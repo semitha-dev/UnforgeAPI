@@ -60,7 +60,7 @@ function Nav() {
           <a href="#docs" className="text-gray-600 hover:text-gray-900">Docs</a>
         </nav>
         <div className="flex items-center gap-3">
-          <a href="/login" className="rounded-xl px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Log in</a>
+          <a href="/signin" className="rounded-xl px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Log in</a>
           <a
             href="/signup"
             className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
