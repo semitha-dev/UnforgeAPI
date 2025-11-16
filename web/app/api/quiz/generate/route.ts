@@ -1,11 +1,10 @@
 // app/api/quiz/generate/route.ts
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
 interface QuizQuestion {
   question: string;
@@ -61,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate quiz using OpenAI
+    // Generate quiz using Gemini
     const prompt = `You are an educational quiz generator. Create ${questionCount} multiple-choice questions based on the following study material. Each question must have exactly 4 options (A, B, C, D) with only ONE correct answer.
 
 Study Material:
@@ -89,31 +88,26 @@ Make sure:
 4. Questions cover different aspects of the material
 5. Return ONLY valid JSON, no additional text`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful educational assistant that generates quiz questions. Always respond with valid JSON only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      response_format: { type: 'json_object' }
-    });
-
-    const responseContent = completion.choices[0].message.content;
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    const responseContent = response.text();
+    
     if (!responseContent) {
-      throw new Error('No response from OpenAI');
+      throw new Error('No response from Gemini');
     }
 
     // Parse the response
     let questions: QuizQuestion[];
     try {
-      const parsed = JSON.parse(responseContent);
+      // Clean up the response text (remove markdown code blocks if present)
+      let cleanedResponse = responseContent.trim();
+      if (cleanedResponse.startsWith('```json')) {
+        cleanedResponse = cleanedResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (cleanedResponse.startsWith('```')) {
+        cleanedResponse = cleanedResponse.replace(/```\n?/g, '');
+      }
+      
+      const parsed = JSON.parse(cleanedResponse);
       // Handle both direct array and wrapped array
       questions = Array.isArray(parsed) ? parsed : parsed.questions;
       
@@ -121,7 +115,7 @@ Make sure:
         throw new Error('Invalid questions format');
       }
     } catch (parseError) {
-      console.error('Error parsing OpenAI response:', responseContent);
+      console.error('Error parsing Gemini response:', responseContent);
       throw new Error('Failed to parse quiz questions');
     }
 
