@@ -2,6 +2,7 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { checkAndDeductTokens, getUserSubscription, TOKEN_COSTS, refundTokens, hasActiveAccess, SubscriptionProfile } from '@/lib/subscription';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -102,6 +103,10 @@ export async function GET(request: NextRequest) {
 
 // Generate AI flashcards or create manual set
 export async function POST(request: NextRequest) {
+  let userId: string | null = null;
+  let tokensDeducted = false;
+  const tokensRequired = TOKEN_COSTS.FLASHCARD_GENERATION;
+  
   try {
     const body = await request.json();
     const { title, description, cardCount, projectId, noteId, sourceMaterial, isManual, cards } = body;
@@ -114,6 +119,8 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
+    
+    userId = user.id;
 
     // Verify project ownership
     const { data: project } = await supabase
@@ -183,6 +190,42 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Check subscription and token balance for AI generation
+    const subscription = await getUserSubscription(user.id);
+    
+    // Verify user has active subscription access (considers canceled but not expired)
+    if (!hasActiveAccess(subscription as SubscriptionProfile) && subscription.subscription_tier !== 'free') {
+      return NextResponse.json(
+        { error: 'Your subscription has expired. Please renew to continue using AI features.' },
+        { status: 403 }
+      );
+    }
+    
+    const tokensRequired = TOKEN_COSTS.FLASHCARD_GENERATION;
+    
+    if ((subscription.tokens_balance || 0) < tokensRequired) {
+      return NextResponse.json(
+        { 
+          error: `Insufficient tokens. You need ${tokensRequired} tokens to generate flashcards. Current balance: ${subscription.tokens_balance || 0}`,
+          tokensRequired,
+          currentBalance: subscription.tokens_balance || 0
+        },
+        { status: 402 }
+      );
+    }
+
+    // Deduct tokens BEFORE generation (atomic operation prevents double-spend)
+    const deducted = await checkAndDeductTokens(user.id, tokensRequired);
+    if (!deducted) {
+      return NextResponse.json(
+        { error: 'Failed to deduct tokens. Please try again.' },
+        { status: 500 }
+      );
+    }
+    
+    // Mark tokens as deducted for potential refund on failure
+    tokensDeducted = true;
 
     console.log('Generating flashcards with Gemini AI...');
 
@@ -350,6 +393,12 @@ Response format:
     return NextResponse.json({ set, success: true }, { status: 201 });
   } catch (error: any) {
     console.error('Error creating flashcards:', error);
+    
+    // Refund tokens on failure (only if we deducted them for AI generation)
+    if (tokensDeducted && userId) {
+      console.log('Refunding tokens due to flashcard generation failure');
+      await refundTokens(userId, tokensRequired);
+    }
     
     // Return user-friendly error messages
     let errorMessage = 'Failed to create flashcards';

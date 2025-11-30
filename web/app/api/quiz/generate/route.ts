@@ -2,6 +2,7 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { checkAndDeductTokens, getUserSubscription, TOKEN_COSTS, refundTokens, hasActiveAccess, SubscriptionProfile } from '@/lib/subscription';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
@@ -19,6 +20,10 @@ interface QuizQuestion {
 }
 
 export async function POST(request: NextRequest) {
+  const tokensRequired = TOKEN_COSTS.QUIZ_GENERATION;
+  let userId: string | null = null;
+  let tokensDeducted = false;
+  
   try {
     const body = await request.json();
     const { title, studyMaterial, questionCount, projectId, noteId } = body;
@@ -44,6 +49,40 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
+    
+    userId = user.id;
+
+    // Check subscription and token balance for AI generation
+    const subscription = await getUserSubscription(user.id);
+    
+    // Verify user has active subscription access (considers canceled but not expired)
+    if (!hasActiveAccess(subscription as SubscriptionProfile) && subscription.subscription_tier !== 'free') {
+      return NextResponse.json(
+        { error: 'Your subscription has expired. Please renew to continue using AI features.' },
+        { status: 403 }
+      );
+    }
+    
+    if ((subscription.tokens_balance || 0) < tokensRequired) {
+      return NextResponse.json(
+        { 
+          error: `Insufficient tokens. You need ${tokensRequired} tokens to generate a quiz. Current balance: ${subscription.tokens_balance || 0}`,
+          tokensRequired,
+          currentBalance: subscription.tokens_balance || 0
+        },
+        { status: 402 }
+      );
+    }
+
+    // Deduct tokens BEFORE generation (atomic operation prevents double-spend)
+    const deducted = await checkAndDeductTokens(user.id, tokensRequired);
+    if (!deducted) {
+      return NextResponse.json(
+        { error: 'Failed to deduct tokens. Please try again.' },
+        { status: 500 }
+      );
+    }
+    tokensDeducted = true;
 
     // Verify project ownership
     const { data: project } = await supabase
@@ -54,6 +93,10 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (!project) {
+      // Refund tokens - not user's fault
+      if (tokensDeducted) {
+        await refundTokens(user.id, tokensRequired);
+      }
       return NextResponse.json(
         { error: 'Project not found or access denied' },
         { status: 403 }
@@ -163,9 +206,17 @@ Make sure:
       throw new Error('Failed to create quiz questions');
     }
 
+    // Success! Tokens stay deducted
     return NextResponse.json({ quiz, success: true }, { status: 201 });
   } catch (error: any) {
     console.error('Error generating quiz:', error);
+    
+    // Refund tokens on failure (only if we deducted them)
+    if (tokensDeducted && userId) {
+      console.log('Refunding tokens due to generation failure');
+      await refundTokens(userId, tokensRequired);
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Failed to generate quiz' },
       { status: 500 }

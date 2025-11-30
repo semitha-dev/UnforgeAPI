@@ -2,6 +2,7 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getUserSubscription, hasActiveAccess, LIMITS, SubscriptionProfile, getEffectiveTier } from '@/lib/subscription';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
@@ -34,6 +35,18 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // Check subscription for schedule access (premium feature)
+    const subscription = await getUserSubscription(user.id);
+    const effectiveTier = getEffectiveTier(subscription as SubscriptionProfile);
+    const tierLimits = LIMITS[effectiveTier];
+    
+    if (!tierLimits.schedule) {
+      return NextResponse.json(
+        { error: 'Schedule feature requires Pro or Premium subscription. Please upgrade to access this feature.' },
+        { status: 403 }
+      );
     }
 
     // Validate inputs
