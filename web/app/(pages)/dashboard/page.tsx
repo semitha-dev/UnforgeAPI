@@ -26,7 +26,7 @@ interface Project {
 
 const projectColors = [
   '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f59e0b', 
-  '#10b981', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6'
+  '#10b981', '#06b6d4', '#3b82f6', '#0ea5e9', '#a855f7'
 ]
 
 export default function Dashboard() {
@@ -102,7 +102,7 @@ export default function Dashboard() {
         console.error('Projects fetch error:', projectsError)
         setProjects([])
       } else if (projectsData) {
-        const projectsWithCounts = projectsData.map(project => ({
+        const projectsWithCounts = projectsData.map((project: any) => ({
           ...project,
           notes_count: project.notes?.[0]?.count || 0,
           qa_count: project.qa_pairs?.[0]?.count || 0,
@@ -125,27 +125,30 @@ export default function Dashboard() {
     setIsCreating(true)
 
     try {
-      const { data, error } = await supabase
-        .from('projects')
-        .insert({
-          user_id: user.id,
+      const response = await fetch('/api/projects/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: newProject.name.trim(),
           description: newProject.description.trim(),
           color: newProject.color
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (error) {
-        console.error('Project creation error:', error)
-        throw error
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create project')
       }
 
       setProjects(prev => [{ ...data, notes_count: 0, qa_count: 0, flashcards_count: 0 }, ...prev])
       setNewProject({ name: '', description: '', color: projectColors[0] })
       setShowCreateModal(false)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating project:', error)
+      alert(error.message || 'Failed to create project')
     } finally {
       setIsCreating(false)
     }
@@ -161,7 +164,7 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <div className="relative w-16 h-16 mx-auto mb-6">
             <div className="absolute inset-0 rounded-full border-4 border-indigo-100"></div>
@@ -174,7 +177,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-white to-purple-50">
       <Navbar />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -191,7 +194,7 @@ export default function Dashboard() {
             </div>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="hidden lg:flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="hidden lg:flex items-center gap-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -205,7 +208,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="w-14 h-14 bg-linear-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
@@ -215,12 +218,12 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-gray-500">Projects</p>
               </div>
             </div>
-            <div className="h-1 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full"></div>
+            <div className="h-1 bg-linear-to-r from-indigo-500 to-indigo-600 rounded-full"></div>
           </div>
 
           <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="w-14 h-14 bg-linear-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
@@ -232,12 +235,12 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-gray-500">Notes</p>
               </div>
             </div>
-            <div className="h-1 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full"></div>
+            <div className="h-1 bg-linear-to-r from-emerald-500 to-emerald-600 rounded-full"></div>
           </div>
 
           <div className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+              <div className="w-14 h-14 bg-linear-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
@@ -249,7 +252,7 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-gray-500">Flashcards</p>
               </div>
             </div>
-            <div className="h-1 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full"></div>
+            <div className="h-1 bg-linear-to-r from-purple-500 to-purple-600 rounded-full"></div>
           </div>
         </div>
 
@@ -261,7 +264,7 @@ export default function Dashboard() {
           </div>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="lg:hidden flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200"
+            className="lg:hidden flex items-center gap-2 px-4 py-2 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -273,7 +276,7 @@ export default function Dashboard() {
         {/* Projects Grid */}
         {projects.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
-            <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-20 h-20 bg-linear-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
@@ -284,7 +287,7 @@ export default function Dashboard() {
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -304,7 +307,7 @@ export default function Dashboard() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div 
-                        className="w-10 h-10 rounded-xl flex-shrink-0 shadow-md group-hover:scale-110 transition-transform duration-300"
+                        className="w-10 h-10 rounded-xl shrink-0 shadow-md group-hover:scale-110 transition-transform duration-300"
                         style={{ backgroundColor: project.color }}
                       />
                       <div className="min-w-0 flex-1">
@@ -316,13 +319,13 @@ export default function Dashboard() {
                         </p>
                       </div>
                     </div>
-                    <svg className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
                   
                   {project.description && (
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[40px]">
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-10">
                       {project.description}
                     </p>
                   )}
@@ -370,7 +373,7 @@ export default function Dashboard() {
             </div>
             
             <div className="mb-6">
-              <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4">
+              <div className="w-14 h-14 bg-linear-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                 </svg>
@@ -412,9 +415,9 @@ export default function Dashboard() {
                   Choose Color
                 </label>
                 <div className="flex flex-wrap gap-3">
-                  {projectColors.map((color) => (
+                  {projectColors.map((color, index) => (
                     <button
-                      key={color}
+                      key={`${color}-${index}`}
                       type="button"
                       onClick={() => setNewProject(prev => ({ ...prev, color }))}
                       className={`w-10 h-10 rounded-xl transition-all ${
@@ -439,7 +442,7 @@ export default function Dashboard() {
                 <button
                   type="submit"
                   disabled={isCreating || !newProject.name.trim()}
-                  className="flex-1 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+                  className="flex-1 px-6 py-3 text-sm font-semibold text-white bg-linear-to-r from-indigo-600 to-purple-600 rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
                 >
                   {isCreating ? 'Creating...' : 'Create Project'}
                 </button>
