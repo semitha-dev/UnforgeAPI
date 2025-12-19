@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
-import { MessageSquare, X, Send, Bug, Lightbulb, HelpCircle, Loader2, Check } from 'lucide-react'
+import { MessageSquare, X, Send, Bug, Lightbulb, HelpCircle, Loader2, Check, GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const categories = [
@@ -21,15 +21,92 @@ export default function FeedbackButton() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  
+  // Dragging state
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     checkAuth()
+    // Load saved position from localStorage
+    const savedPosition = localStorage.getItem('feedbackButtonPosition')
+    if (savedPosition) {
+      try {
+        const parsed = JSON.parse(savedPosition)
+        setPosition(parsed)
+      } catch (e) {
+        // Invalid saved position, use default
+      }
+    }
   }, [])
+
+  // Save position to localStorage when it changes
+  useEffect(() => {
+    if (position.x !== 0 || position.y !== 0) {
+      localStorage.setItem('feedbackButtonPosition', JSON.stringify(position))
+    }
+  }, [position])
 
   async function checkAuth() {
     const { data: { session } } = await supabase.auth.getSession()
     setIsAuthenticated(!!session)
   }
+
+  // Handle mouse/touch drag
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+    
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    
+    setDragStart({
+      x: clientX - position.x,
+      y: clientY - position.y
+    })
+  }
+
+  useEffect(() => {
+    const handleDragMove = (e: MouseEvent | TouchEvent) => {
+      if (!isDragging) return
+      
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+      
+      // Calculate new position
+      let newX = clientX - dragStart.x
+      let newY = clientY - dragStart.y
+      
+      // Constrain to viewport
+      const buttonSize = 56 // 14 * 4 = 56px (w-14)
+      const padding = 24 // Keep some padding from edges
+      
+      newX = Math.max(-(window.innerWidth - buttonSize - padding), Math.min(0, newX))
+      newY = Math.max(-(window.innerHeight - buttonSize - padding), Math.min(0, newY))
+      
+      setPosition({ x: newX, y: newY })
+    }
+
+    const handleDragEnd = () => {
+      setIsDragging(false)
+    }
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleDragMove)
+      window.addEventListener('mouseup', handleDragEnd)
+      window.addEventListener('touchmove', handleDragMove)
+      window.addEventListener('touchend', handleDragEnd)
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleDragMove)
+      window.removeEventListener('mouseup', handleDragEnd)
+      window.removeEventListener('touchmove', handleDragMove)
+      window.removeEventListener('touchend', handleDragEnd)
+    }
+  }, [isDragging, dragStart])
 
   // Don't show on landing page or if not authenticated
   if (pathname === '/' || !isAuthenticated) {
@@ -75,13 +152,24 @@ export default function FeedbackButton() {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Draggable Button */}
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center group"
+        ref={buttonRef}
+        onClick={() => !isDragging && setIsOpen(true)}
+        onMouseDown={handleDragStart}
+        onTouchStart={handleDragStart}
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px)`,
+          cursor: isDragging ? 'grabbing' : 'grab'
+        }}
+        className={`fixed bottom-6 right-6 z-50 w-14 h-14 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-full shadow-lg hover:shadow-xl transition-shadow duration-200 flex items-center justify-center group ${isDragging ? 'scale-110' : ''}`}
         aria-label="Send Feedback"
       >
         <MessageSquare className="h-6 w-6 group-hover:scale-110 transition-transform" />
+        {/* Drag indicator */}
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-white rounded-full shadow flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <GripVertical className="w-3 h-3 text-gray-500" />
+        </div>
       </button>
 
       {/* Feedback Modal */}

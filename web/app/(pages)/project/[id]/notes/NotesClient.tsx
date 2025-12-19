@@ -1389,7 +1389,7 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
         </div>
         
         {/* Quill Editor */}
-        <div className="note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
+        <div className="note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm max-h-[70vh] overflow-y-auto">
           <ReactQuill
             theme="snow"
             value={content}
@@ -1776,7 +1776,7 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
             </div>
             
             {/* Quill Editor for Edit Mode */}
-            <div className="note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm">
+            <div className="note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm max-h-[70vh] overflow-y-auto">
               <ReactQuill
                 theme="snow"
                 value={content}

@@ -123,7 +123,11 @@
 
 /* Quill Editor Styles */
 .note-editor-container .ql-toolbar {
-  @apply border-0 border-b border-gray-200 bg-gray-50/80 px-4 py-3;
+  @apply border-0 border-b border-gray-200 bg-gray-50/95 px-4 py-3;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
 }
 
 .note-editor-container .ql-container {
