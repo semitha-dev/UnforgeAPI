@@ -1,0 +1,18 @@
+# Large binaries & downloads
+*.exe
+*.rar
+*.7z
+*.zip
+*.torrent
+*.iso
+
+# Logs & exports
+*.csv
+
+# OS junk
+Thumbs.db
+.DS_Store
+
+# Node
+node_modules
+.next
