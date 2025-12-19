@@ -129,7 +129,7 @@ function GlobalLeafAIPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () =
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userMessage,
+          userMessage: userMessage,
           action: 'chat',
           mode,
           noteTitle: '',
