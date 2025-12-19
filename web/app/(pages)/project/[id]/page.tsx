@@ -364,7 +364,7 @@ export default function ProjectOverview() {
                     padding: '8px 12px'
                   }}
                   labelStyle={{ color: 'white', fontWeight: 'bold' }}
-                  formatter={(value: number) => [`${value.toFixed(2)}`, 'Activity']}
+                  formatter={(value?: number) => [`${(value ?? 0).toFixed(2)}`, 'Activity']}
                 />
                 <Area 
                   type="monotone" 
