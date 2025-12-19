@@ -1,0 +1,19 @@
+{
+  "crons": [
+    {
+      "path": "/api/subscription/reconcile",
+      "schedule": "0 3 * * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/subscription/reconcile",
+      "headers": [
+        {
+          "key": "x-vercel-cron",
+          "value": "true"
+        }
+      ]
+    }
+  ]
+}
