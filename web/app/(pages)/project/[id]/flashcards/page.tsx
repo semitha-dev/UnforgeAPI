@@ -73,7 +73,7 @@ export default function FlashcardsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-[50vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     )
@@ -931,12 +931,12 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
   }
 
   if (loading) {
-    return <Loading message="Loading flashcards..." fullScreen />
+    return <Loading message="Loading flashcards..." fullScreen={false} />
   }
 
   if (!set || cards.length === 0) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="bg-white flex items-center justify-center py-20">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No flashcards found</p>
           <button
@@ -953,7 +953,7 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
   const currentCard = cards[currentIndex]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 p-6">
+    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
