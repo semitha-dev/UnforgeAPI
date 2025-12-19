@@ -24,7 +24,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.12",
     "lucide-react": "^0.544.0",
-    "next": "15.5.3",
+    "next": "^16.1.0",
     "next.js": "^1.0.3",
     "openai": "^6.3.0",
     "pdfjs-dist": "^5.4.449",
@@ -41,7 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.3",
+    "eslint-config-next": "^16.1.0",
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.8",
     "typescript": "^5"
