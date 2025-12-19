@@ -547,7 +547,7 @@ function SettingsPageContent() {
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <h3 className="text-sm font-medium text-blue-800 mb-2">How tokens work</h3>
                       <ul className="text-sm text-blue-700 space-y-1">
-                        <li>• 1 token ≈ 0.75 words of AI-generated content</li>
+                        <li>• ~4 words of AI output = 1 token</li>
                         <li>• Tokens are charged based on actual output length</li>
                         <li>• Purchased tokens never expire</li>
                       </ul>

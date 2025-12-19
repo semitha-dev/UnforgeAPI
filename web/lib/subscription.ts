@@ -39,12 +39,12 @@ export const LIMITS: Record<SubscriptionTier, {
 };
 
 // Token costs: based on OUTPUT word count
-// 1 token ≈ 0.75 words (or ~1.33 tokens per word)
+// ~4 words = 1 token (charging less than actual LLM tokens for user-friendliness)
 // Minimum tokens required to start generation (acts as a buffer)
 export const MIN_TOKENS_TO_GENERATE = 10;
 
 export const TOKEN_COSTS = {
-  WORDS_PER_TOKEN: 0.75,  // 1 token = 0.75 words
+  WORDS_PER_TOKEN: 4,  // 4 words = 1 token (user-friendly rate)
 } as const;
 
 // Token pack product IDs (Polar)
@@ -71,7 +71,8 @@ export const TOKEN_EXPIRY_MONTHS = 2;
 
 /**
  * Calculate token cost based on OUTPUT word count
- * Formula: 1 token ≈ 0.75 words (tokens = words / 0.75)
+ * Formula: ~4 words = 1 token (tokens = words / 4)
+ * This is a user-friendly rate that charges less than actual LLM tokens
  */
 export function calculateOutputTokenCost(outputWordCount: number): number {
   const tokens = Math.ceil(outputWordCount / TOKEN_COSTS.WORDS_PER_TOKEN);
