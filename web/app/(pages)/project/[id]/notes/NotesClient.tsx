@@ -1538,7 +1538,7 @@ export default function NotesClient({
                 {/* Folder Content */}
                 {!collapsedFolders.has(folder) && notesByFolder[folder]?.length > 0 && (
                   <div className="p-3 bg-white">
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                       {notesByFolder[folder].map((note) => (
                         <NoteCard
                           key={note.id}
@@ -2902,7 +2902,7 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
               {/* Summary Type Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">Summary Type</label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
                     { value: 'concise', label: 'Concise', desc: '2-3 paragraphs' },
                     { value: 'bullet', label: 'Bullet Points', desc: 'Key points' },
