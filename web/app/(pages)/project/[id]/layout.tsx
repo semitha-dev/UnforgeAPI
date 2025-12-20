@@ -22,7 +22,12 @@ import {
   Plus,
   BarChart3,
   Sparkles,
-  Send
+  Send,
+  Music,
+  Youtube,
+  ExternalLink,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -43,6 +48,352 @@ import {
 import { Loading } from '@/components/ui/loading'
 import { TokenPurchaseModal } from '@/components/ui/token-purchase-modal'
 import { useTokenRefresh } from '@/lib/useTokenRefresh'
+
+// YouTube URL helpers
+function getYoutubeEmbedUrl(url: string): string | null {
+  if (!url) return null
+  let videoId = ''
+  if (url.includes('youtube.com/watch')) {
+    const urlParams = new URLSearchParams(url.split('?')[1])
+    videoId = urlParams.get('v') || ''
+  } else if (url.includes('youtu.be/')) {
+    videoId = url.split('youtu.be/')[1]?.split('?')[0] || ''
+  } else if (url.includes('youtube.com/embed/')) {
+    videoId = url.split('youtube.com/embed/')[1]?.split('?')[0] || ''
+  } else if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
+    videoId = url
+  }
+  return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : null
+}
+
+function getSpotifyEmbedUrl(url: string): string | null {
+  if (!url) return null
+  if (url.includes('open.spotify.com')) {
+    return url.replace('open.spotify.com/', 'open.spotify.com/embed/')
+  }
+  return null
+}
+
+interface SavedUrl {
+  url: string
+  title: string
+  savedAt: number
+}
+
+// Global Music Player Component
+function GlobalMusicPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<'youtube' | 'spotify'>('youtube')
+  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [spotifyUrl, setSpotifyUrl] = useState('')
+  const [isMinimized, setIsMinimized] = useState(false)
+  const [youtubeHistory, setYoutubeHistory] = useState<SavedUrl[]>([])
+  const [spotifyHistory, setSpotifyHistory] = useState<SavedUrl[]>([])
+
+  // Load history from localStorage
+  useEffect(() => {
+    const savedYoutube = localStorage.getItem('leaflearning_youtube_history')
+    const savedSpotify = localStorage.getItem('leaflearning_spotify_history')
+    if (savedYoutube) setYoutubeHistory(JSON.parse(savedYoutube))
+    if (savedSpotify) setSpotifyHistory(JSON.parse(savedSpotify))
+  }, [])
+
+  const saveToYoutubeHistory = (url: string) => {
+    const title = url.length > 30 ? url.substring(0, 30) + '...' : url
+    const newEntry: SavedUrl = { url, title, savedAt: Date.now() }
+    const updated = [newEntry, ...youtubeHistory.filter(h => h.url !== url)].slice(0, 5)
+    setYoutubeHistory(updated)
+    localStorage.setItem('leaflearning_youtube_history', JSON.stringify(updated))
+  }
+
+  const saveToSpotifyHistory = (url: string) => {
+    const title = url.length > 30 ? url.substring(0, 30) + '...' : url
+    const newEntry: SavedUrl = { url, title, savedAt: Date.now() }
+    const updated = [newEntry, ...spotifyHistory.filter(h => h.url !== url)].slice(0, 5)
+    setSpotifyHistory(updated)
+    localStorage.setItem('leaflearning_spotify_history', JSON.stringify(updated))
+  }
+
+  const removeFromYoutubeHistory = (index: number) => {
+    const updated = youtubeHistory.filter((_, i) => i !== index)
+    setYoutubeHistory(updated)
+    localStorage.setItem('leaflearning_youtube_history', JSON.stringify(updated))
+  }
+
+  const removeFromSpotifyHistory = (index: number) => {
+    const updated = spotifyHistory.filter((_, i) => i !== index)
+    setSpotifyHistory(updated)
+    localStorage.setItem('leaflearning_spotify_history', JSON.stringify(updated))
+  }
+
+  const handleYoutubeChange = (url: string) => {
+    setYoutubeUrl(url)
+    if (getYoutubeEmbedUrl(url)) saveToYoutubeHistory(url)
+  }
+
+  const handleSpotifyChange = (url: string) => {
+    setSpotifyUrl(url)
+    if (getSpotifyEmbedUrl(url)) saveToSpotifyHistory(url)
+  }
+
+  if (!isOpen) return null
+
+  const youtubeEmbedUrl = getYoutubeEmbedUrl(youtubeUrl)
+  const spotifyEmbedUrl = getSpotifyEmbedUrl(spotifyUrl)
+
+  const youtubePresets = [
+    { id: 'jfKfPfyJRdk', name: 'Lofi Girl', emoji: '🎧', color: 'from-pink-500 to-purple-500' },
+    { id: '4xDzrJKXOOY', name: 'Synthwave', emoji: '🌆', color: 'from-cyan-500 to-blue-500' },
+    { id: 'lTRiuFIWV54', name: 'Jazz Cafe', emoji: '☕', color: 'from-amber-500 to-orange-500' },
+    { id: '5qap5aO4i9A', name: 'Chill Beats', emoji: '🎵', color: 'from-green-500 to-teal-500' },
+  ]
+
+  const spotifyPresets = [
+    { url: 'https://open.spotify.com/playlist/0vvXsWCC9xrXsKd4FyS8kM', name: 'Deep Focus', emoji: '🧠', color: 'from-blue-500 to-indigo-500' },
+    { url: 'https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS', name: 'Chill Lofi', emoji: '🌙', color: 'from-purple-500 to-pink-500' },
+    { url: 'https://open.spotify.com/playlist/37i9dQZF1DWZeKCadgRdKQ', name: 'Lo-Fi Beats', emoji: '🎹', color: 'from-rose-500 to-red-500' },
+    { url: 'https://open.spotify.com/playlist/37i9dQZF1DX9sIqqvKsjG8', name: 'Study Piano', emoji: '🎼', color: 'from-teal-500 to-emerald-500' },
+  ]
+
+  return (
+    <>
+      {isMinimized && (
+        <div className="fixed top-20 right-4 z-[60] bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 rounded-full shadow-lg overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            <span className="text-sm font-medium text-white">Now Playing</span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setIsMinimized(false)} className="p-1.5 hover:bg-white/20 rounded-full transition-colors" title="Expand">
+                <ChevronDown className="w-4 h-4 text-white" />
+              </button>
+              <button onClick={onClose} className="p-1.5 hover:bg-white/20 rounded-full transition-colors" title="Close">
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`fixed top-20 right-4 z-[60] w-[340px] bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-3xl shadow-2xl border border-white/10 overflow-hidden ${isMinimized ? 'invisible absolute -top-[9999px]' : ''}`}>
+        <div className="relative px-5 py-4 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-rose-600/20" />
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                <Music className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-base">Focus Music</h3>
+                <p className="text-xs text-white/60">Study with music</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setIsMinimized(true)} className="p-2 hover:bg-white/10 rounded-xl transition-colors" title="Minimize">
+                <ChevronUp className="w-4 h-4 text-white/80" />
+              </button>
+              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-colors" title="Close">
+                <X className="w-4 h-4 text-white/80" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4">
+          <div className="flex gap-2 p-1 bg-white/5 rounded-2xl">
+            <button
+              onClick={() => setActiveTab('youtube')}
+              className={`flex-1 py-2.5 text-sm font-medium transition-all flex items-center justify-center gap-2 rounded-xl ${
+                activeTab === 'youtube' ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Youtube className="w-4 h-4" />
+              YouTube
+            </button>
+            <button
+              onClick={() => setActiveTab('spotify')}
+              className={`flex-1 py-2.5 text-sm font-medium transition-all flex items-center justify-center gap-2 rounded-xl ${
+                activeTab === 'spotify' ? 'bg-green-500 text-white shadow-lg shadow-green-500/30' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+              </svg>
+              Spotify
+            </button>
+          </div>
+        </div>
+
+        <div className="px-4 pt-4">
+          <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">⚡ Quick Pick</p>
+          <div className="grid grid-cols-2 gap-2">
+            {activeTab === 'youtube' ? (
+              youtubePresets.map((preset) => (
+                <button
+                  key={preset.id}
+                  onClick={() => handleYoutubeChange(preset.id)}
+                  className={`group relative p-3 rounded-2xl transition-all duration-300 overflow-hidden ${
+                    youtubeUrl === preset.id || youtubeUrl.includes(preset.id)
+                      ? `bg-gradient-to-br ${preset.color} shadow-lg scale-[1.02]`
+                      : 'bg-white/5 hover:bg-white/10 hover:scale-[1.02]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{preset.emoji}</span>
+                    <span className={`text-sm font-medium ${youtubeUrl === preset.id || youtubeUrl.includes(preset.id) ? 'text-white' : 'text-white/80'}`}>
+                      {preset.name}
+                    </span>
+                  </div>
+                  {(youtubeUrl === preset.id || youtubeUrl.includes(preset.id)) && (
+                    <div className="absolute top-2 right-2"><div className="w-2 h-2 bg-white rounded-full animate-pulse" /></div>
+                  )}
+                </button>
+              ))
+            ) : (
+              spotifyPresets.map((preset) => (
+                <button
+                  key={preset.url}
+                  onClick={() => handleSpotifyChange(preset.url)}
+                  className={`group relative p-3 rounded-2xl transition-all duration-300 overflow-hidden ${
+                    spotifyUrl === preset.url
+                      ? `bg-gradient-to-br ${preset.color} shadow-lg scale-[1.02]`
+                      : 'bg-white/5 hover:bg-white/10 hover:scale-[1.02]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{preset.emoji}</span>
+                    <span className={`text-sm font-medium ${spotifyUrl === preset.url ? 'text-white' : 'text-white/80'}`}>
+                      {preset.name}
+                    </span>
+                  </div>
+                  {spotifyUrl === preset.url && (
+                    <div className="absolute top-2 right-2"><div className="w-2 h-2 bg-white rounded-full animate-pulse" /></div>
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="p-4">
+          {activeTab === 'youtube' ? (
+            <div className="space-y-3">
+              {youtubeEmbedUrl ? (
+                <div className="aspect-video rounded-2xl overflow-hidden bg-black/50 ring-1 ring-white/10">
+                  <iframe src={youtubeEmbedUrl} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                </div>
+              ) : (
+                <div className="aspect-video rounded-2xl bg-white/5 flex flex-col items-center justify-center text-white/40 ring-1 ring-white/10">
+                  <Youtube className="w-10 h-10 mb-2 opacity-50" />
+                  <span className="text-sm">Select a playlist above</span>
+                  <span className="text-xs mt-1 text-white/30">or paste a URL below</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {spotifyEmbedUrl ? (
+                <div className="rounded-2xl overflow-hidden ring-1 ring-white/10">
+                  <iframe src={spotifyEmbedUrl} width="100%" height="152" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" className="rounded-2xl" />
+                </div>
+              ) : (
+                <div className="h-[152px] rounded-2xl bg-white/5 flex flex-col items-center justify-center text-white/40 ring-1 ring-white/10">
+                  <svg className="w-10 h-10 mb-2 opacity-50" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                  </svg>
+                  <span className="text-sm">Select a playlist above</span>
+                  <span className="text-xs mt-1 text-white/30">or paste a URL below</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="px-4 pb-4">
+          <details className="group">
+            <summary className="flex items-center gap-2 cursor-pointer text-xs font-medium text-white/40 hover:text-white/60 transition-colors list-none">
+              <ChevronDown className="w-3 h-3 transition-transform group-open:rotate-180" />
+              Custom URL
+            </summary>
+            <div className="mt-3 space-y-2">
+              {activeTab === 'youtube' ? (
+                <>
+                  <input
+                    type="text"
+                    value={youtubeUrl}
+                    onChange={(e) => handleYoutubeChange(e.target.value)}
+                    placeholder="Paste YouTube URL..."
+                    className="w-full px-4 py-2.5 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-transparent transition-all"
+                  />
+                  {youtubeHistory.length > 0 && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-white/30 block">Recent</label>
+                      <div className="max-h-20 overflow-y-auto space-y-1">
+                        {youtubeHistory.map((item, index) => (
+                          <div key={index} className="flex items-center gap-2 group/item">
+                            <button
+                              onClick={() => setYoutubeUrl(item.url)}
+                              className={`flex-1 text-left px-3 py-2 text-xs rounded-lg transition-all truncate ${youtubeUrl === item.url ? 'bg-red-500/20 text-red-300 ring-1 ring-red-500/30' : 'bg-white/5 hover:bg-white/10 text-white/60'}`}
+                            >
+                              {item.title}
+                            </button>
+                            <button onClick={() => removeFromYoutubeHistory(index)} className="p-1.5 opacity-0 group-hover/item:opacity-100 hover:bg-red-500/20 rounded-lg transition-all">
+                              <X className="w-3 h-3 text-red-400" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={spotifyUrl}
+                    onChange={(e) => handleSpotifyChange(e.target.value)}
+                    placeholder="Paste Spotify URL..."
+                    className="w-full px-4 py-2.5 text-sm bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-transparent transition-all"
+                  />
+                  {spotifyHistory.length > 0 && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs text-white/30 block">Recent</label>
+                      <div className="max-h-20 overflow-y-auto space-y-1">
+                        {spotifyHistory.map((item, index) => (
+                          <div key={index} className="flex items-center gap-2 group/item">
+                            <button
+                              onClick={() => setSpotifyUrl(item.url)}
+                              className={`flex-1 text-left px-3 py-2 text-xs rounded-lg transition-all truncate ${spotifyUrl === item.url ? 'bg-green-500/20 text-green-300 ring-1 ring-green-500/30' : 'bg-white/5 hover:bg-white/10 text-white/60'}`}
+                            >
+                              {item.title}
+                            </button>
+                            <button onClick={() => removeFromSpotifyHistory(index)} className="p-1.5 opacity-0 group-hover/item:opacity-100 hover:bg-red-500/20 rounded-lg transition-all">
+                              <X className="w-3 h-3 text-red-400" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </details>
+        </div>
+
+        <div className="px-4 pb-4">
+          <a
+            href={activeTab === 'youtube' ? "https://www.youtube.com/results?search_query=lofi+study+music" : "https://open.spotify.com/search/lofi%20study"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 w-full py-2.5 text-xs text-white/50 hover:text-white/80 hover:bg-white/5 rounded-xl transition-all"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Find more on {activeTab === 'youtube' ? 'YouTube' : 'Spotify'}
+          </a>
+        </div>
+      </div>
+    </>
+  )
+}
 
 interface Project {
   id: string
@@ -349,6 +700,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const [projectDropdownOpen, setProjectDropdownOpen] = useState(false)
   const [showLeafAI, setShowLeafAI] = useState(false)
   const [showTokenModal, setShowTokenModal] = useState(false)
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false)
 
   const router = useRouter()
   const params = useParams()
@@ -722,6 +1074,24 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
               </div>
 
               <div className="flex items-center gap-3">
+                {/* Music Player Button */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+                      className={`h-9 w-9 rounded-xl transition-all ${
+                        showMusicPlayer 
+                          ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/30' 
+                          : 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white hover:shadow-lg hover:shadow-pink-500/30'
+                      }`}
+                      size="icon"
+                    >
+                      <Music className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Focus Music</TooltipContent>
+                </Tooltip>
+
                 {/* Leaf AI Button - Hide on notes page since it has its own Leaf AI */}
                 {!pathname.includes('/notes') && (
                   <Button 
@@ -777,6 +1147,9 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
 
         {/* Leaf AI Panel */}
         <LeafAIPanel isOpen={showLeafAI} onClose={() => setShowLeafAI(false)} />
+
+        {/* Global Music Player */}
+        <GlobalMusicPlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />
 
         {/* Token Purchase Modal */}
         <TokenPurchaseModal 
