@@ -699,6 +699,26 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                 <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileMenuOpen(true)}>
                   <Menu className="h-5 w-5" />
                 </Button>
+                {/* Sidebar Toggle Button - Desktop */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="hidden lg:flex"
+                      onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                    >
+                      {sidebarCollapsed ? (
+                        <ChevronRight className="h-5 w-5 text-gray-600" />
+                      ) : (
+                        <ChevronLeft className="h-5 w-5 text-gray-600" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    {sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
               <div className="flex items-center gap-3">

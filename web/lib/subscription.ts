@@ -345,21 +345,24 @@ export async function checkAndDeductTokens(userId: string, cost: number): Promis
 
   const currentBalance = profile.tokens_balance || 0;
   
-  if (currentBalance < cost) {
-    console.log(`Insufficient tokens: has ${currentBalance}, needs ${cost}`);
+  if (currentBalance <= 0) {
+    console.log(`No tokens available: has ${currentBalance}, needs ${cost}`);
     return false;
   }
+  
+  // Calculate new balance - ensure it doesn't go negative
+  const newBalance = Math.max(0, currentBalance - cost);
 
-  // Atomically update only if balance is still sufficient
+  // Atomically update - allow partial deduction if user has some tokens
   // This uses Postgres's ability to conditionally update
   const { data: updated, error: updateError } = await supabase
     .from('profiles')
     .update({ 
-      tokens_balance: currentBalance - cost,
+      tokens_balance: newBalance,
       updated_at: new Date().toISOString()
     })
     .eq('id', userId)
-    .gte('tokens_balance', cost) // Only update if balance >= cost (prevents race condition)
+    .gt('tokens_balance', 0) // Only update if balance > 0
     .select('tokens_balance')
     .single();
 
@@ -453,8 +456,14 @@ export async function deductTokensWithExpiry(userId: string, cost: number): Prom
       }
       
       const currentBalance = profile.tokens_balance || 0;
-      if (currentBalance < cost) {
-        console.log(`Insufficient tokens for user ${userId}: has ${currentBalance}, needs ${cost}`);
+      
+      // If user has some tokens but less than cost, deduct what they have (set to 0)
+      // This prevents negative balances while still allowing the operation
+      const newBalance = Math.max(0, currentBalance - cost);
+      const actualDeduction = currentBalance - newBalance;
+      
+      if (currentBalance <= 0) {
+        console.log(`No tokens available for user ${userId}: has ${currentBalance}, needs ${cost}`);
         return false;
       }
       
@@ -462,7 +471,7 @@ export async function deductTokensWithExpiry(userId: string, cost: number): Prom
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
-          tokens_balance: currentBalance - cost,
+          tokens_balance: newBalance,
           updated_at: new Date().toISOString()
         })
         .eq('id', userId);
@@ -472,7 +481,7 @@ export async function deductTokensWithExpiry(userId: string, cost: number): Prom
         return false;
       }
       
-      console.log(`Deducted ${cost} tokens from user ${userId}. New balance: ${currentBalance - cost}`);
+      console.log(`Deducted ${actualDeduction} tokens from user ${userId} (requested ${cost}). New balance: ${newBalance}`);
       return true;
     }
     

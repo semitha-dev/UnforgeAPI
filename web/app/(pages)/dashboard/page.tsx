@@ -10,7 +10,8 @@ import {
   LayoutDashboard, Settings, ChevronLeft, Menu, Coins, Leaf, LogOut,
   BookOpen, GraduationCap, FlaskConical, Calculator, Globe, Code, Music, 
   Palette, Camera, Dumbbell, Heart, Star, Lightbulb, Rocket, Trophy,
-  Brain, Atom, Languages, PenTool, Microscope, Scale, Briefcase, Coffee
+  Brain, Atom, Languages, PenTool, Microscope, Scale, Briefcase, Coffee,
+  MoreVertical, Pencil, Trash2
 } from 'lucide-react'
 import {
   Tooltip,
@@ -96,6 +97,14 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  
+  // Project menu states
+  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [editingProject, setEditingProject] = useState<Project | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   const router = useRouter()
   const pathname = usePathname()
@@ -250,6 +259,74 @@ export default function Dashboard() {
     } finally {
       setIsCreating(false)
     }
+  }
+
+  const handleEditProject = (project: Project) => {
+    setEditingProject({ ...project })
+    setShowEditModal(true)
+    setMenuOpenFor(null)
+  }
+
+  const handleUpdateProject = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingProject?.name.trim()) return
+
+    setIsUpdating(true)
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          name: editingProject.name.trim(),
+          description: editingProject.description?.trim() || '',
+          color: editingProject.color,
+          icon: editingProject.icon
+        })
+        .eq('id', editingProject.id)
+
+      if (error) throw error
+
+      setProjects(prev => prev.map(p => 
+        p.id === editingProject.id 
+          ? { ...p, name: editingProject.name.trim(), description: editingProject.description?.trim() || '', color: editingProject.color, icon: editingProject.icon }
+          : p
+      ))
+      setShowEditModal(false)
+      setEditingProject(null)
+    } catch (error: any) {
+      console.error('Error updating project:', error)
+      alert(error.message || 'Failed to update project')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleDeleteProject = async () => {
+    if (!editingProject) return
+
+    setIsDeleting(true)
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', editingProject.id)
+
+      if (error) throw error
+
+      setProjects(prev => prev.filter(p => p.id !== editingProject.id))
+      setShowDeleteModal(false)
+      setEditingProject(null)
+    } catch (error: any) {
+      console.error('Error deleting project:', error)
+      alert(error.message || 'Failed to delete project')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const openDeleteModal = (project: Project) => {
+    setEditingProject(project)
+    setShowDeleteModal(true)
+    setMenuOpenFor(null)
   }
 
   const formatDate = (dateString: string) => {
@@ -519,11 +596,65 @@ export default function Dashboard() {
                 project.description?.toLowerCase().includes(searchQuery.toLowerCase())
               )
               .map((project) => (
-              <Link
+              <div
                 key={project.id}
-                href={`/project/${project.id}`}
                 className="group relative rounded-2xl overflow-hidden transition-all duration-300 flex flex-col min-h-[280px] hover:-translate-y-1 hover:shadow-xl bg-white border border-gray-200"
               >
+                {/* Three-dot menu button */}
+                <div className="absolute top-2 right-2 z-20">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setMenuOpenFor(menuOpenFor === project.id ? null : project.id)
+                    }}
+                    className="p-1.5 rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/40 transition-colors opacity-0 group-hover:opacity-100"
+                  >
+                    <MoreVertical className="w-4 h-4 text-white" />
+                  </button>
+                  
+                  {/* Dropdown menu */}
+                  {menuOpenFor === project.id && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-10" 
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setMenuOpenFor(null)
+                        }} 
+                      />
+                      <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 overflow-hidden">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleEditProject(project)
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors rounded-none"
+                        >
+                          <Pencil className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            openDeleteModal(project)
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors rounded-none"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <Link
+                  href={`/project/${project.id}`}
+                  className="flex flex-col flex-1"
+                >
                 {/* Colored top section - user's designated project color */}
                 <div 
                   className="relative h-36 w-full transition-all duration-300 group-hover:h-40 flex items-center justify-center"
@@ -567,6 +698,7 @@ export default function Dashboard() {
                   </p>
                 </div>
               </Link>
+              </div>
             ))}
             {projects.length > 0 && projects.filter(p => 
               p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -711,6 +843,196 @@ export default function Dashboard() {
         onClose={() => setShowTokenModal(false)}
         currentBalance={profile?.tokens_balance ?? 0}
       />
+
+      {/* Edit Project Modal */}
+      {showEditModal && editingProject && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+          <div className="relative bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl max-w-md w-full p-6 border border-white/20">
+            <button
+              onClick={() => {
+                setShowEditModal(false)
+                setEditingProject(null)
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Edit Project</h3>
+              <p className="text-sm text-gray-500 mt-1">Update your project details</p>
+            </div>
+
+            <form onSubmit={handleUpdateProject} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
+                <input
+                  type="text"
+                  value={editingProject.name}
+                  onChange={(e) => setEditingProject(prev => prev ? { ...prev, name: e.target.value } : null)}
+                  className="w-full px-4 py-2.5 text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#3B82F6] focus:border-[#3B82F6] transition-all"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+                <textarea
+                  value={editingProject.description || ''}
+                  onChange={(e) => setEditingProject(prev => prev ? { ...prev, description: e.target.value } : null)}
+                  className="w-full px-4 py-2.5 text-gray-900 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#3B82F6] focus:border-[#3B82F6] transition-all resize-none"
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                <div className="flex flex-wrap gap-2">
+                  {projectColors.map((color, index) => (
+                    <button
+                      key={`edit-${color}-${index}`}
+                      type="button"
+                      onClick={() => setEditingProject(prev => prev ? { ...prev, color } : null)}
+                      className={`w-8 h-8 rounded-lg transition-all ${
+                        editingProject.color === color 
+                          ? 'ring-2 ring-offset-2 ring-[#3B82F6] scale-110' 
+                          : 'hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Icon</label>
+                <div className="grid grid-cols-8 gap-2 max-h-36 overflow-y-auto p-2 -m-1 border border-gray-100 rounded-xl">
+                  {projectIcons.map((iconItem) => {
+                    const IconComponent = iconItem.icon
+                    return (
+                      <Tooltip key={`edit-icon-${iconItem.name}`}>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => setEditingProject(prev => prev ? { ...prev, icon: iconItem.name } : null)}
+                            className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center ${
+                              editingProject.icon === iconItem.name 
+                                ? 'ring-2 ring-offset-2 ring-[#3B82F6] scale-110 bg-gray-100' 
+                                : 'hover:scale-105 hover:bg-gray-50'
+                            }`}
+                          >
+                            <IconComponent className="w-4 h-4 text-gray-600" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs">
+                          {iconItem.label}
+                        </TooltipContent>
+                      </Tooltip>
+                    )
+                  })}
+                </div>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false)
+                    setEditingProject(null)
+                  }}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdating || !editingProject.name.trim()}
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#3B82F6] rounded-xl hover:bg-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isUpdating ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Project Modal */}
+      {showDeleteModal && editingProject && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/90 backdrop-blur-xl rounded-2xl max-w-md w-full p-6 shadow-2xl border border-white/20">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="flex-shrink-0">
+                <svg className="w-12 h-12 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Delete Project</h3>
+                <p className="text-sm text-gray-600 mt-1">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700">
+                Are you sure you want to delete <span className="font-semibold">"{editingProject.name}"</span>? This will permanently remove:
+              </p>
+              <ul className="mt-3 space-y-2 text-sm text-gray-600">
+                <li className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>All notes in this project</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>All Q&A pairs</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>All flashcards</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false)
+                  setEditingProject(null)
+                }}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteProject}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <span>Yes, Delete Project</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </TooltipProvider>
   )

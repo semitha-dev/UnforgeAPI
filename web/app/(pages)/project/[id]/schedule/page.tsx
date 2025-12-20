@@ -91,15 +91,15 @@ export default function SchedulePage() {
         body: JSON.stringify({ scheduleId: schedule.id })
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const data = await response.json()
         throw new Error(data.error || 'Failed to delete schedule')
       }
 
-      // Reset state and reload
+      // Successfully deleted - just reset state (don't reload)
       setSchedule(null)
       setShowDeleteConfirm(false)
-      loadSchedule()
     } catch (error: any) {
       console.error('Error deleting schedule:', error)
       alert(error.message)

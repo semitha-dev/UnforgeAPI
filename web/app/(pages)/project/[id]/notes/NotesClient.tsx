@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { Note, Project } from './page'
-import { Maximize2, Minimize2 } from 'lucide-react'
+import { Maximize2, Minimize2, Music, X, Youtube, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
 import 'react-quill-new/dist/quill.snow.css'
 
 // Dynamically import Quill to avoid SSR issues
@@ -37,6 +37,452 @@ const quillFormats = [
   'align',
   'link'
 ]
+
+// Music Player Component for Fullscreen Mode
+interface MusicPlayerProps {
+  isOpen: boolean
+  onClose: () => void
+}
+
+interface SavedUrl {
+  url: string
+  title: string
+  timestamp: number
+}
+
+const YOUTUBE_HISTORY_KEY = 'leaflearning_youtube_history'
+const SPOTIFY_HISTORY_KEY = 'leaflearning_spotify_history'
+const MAX_HISTORY_ITEMS = 5
+
+function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
+  const [activeTab, setActiveTab] = useState<'youtube' | 'spotify'>('youtube')
+  const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [spotifyUrl, setSpotifyUrl] = useState('')
+  const [youtubeHistory, setYoutubeHistory] = useState<SavedUrl[]>([])
+  const [spotifyHistory, setSpotifyHistory] = useState<SavedUrl[]>([])
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
+
+  // Load saved URLs from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedYoutube = localStorage.getItem(YOUTUBE_HISTORY_KEY)
+      const savedSpotify = localStorage.getItem(SPOTIFY_HISTORY_KEY)
+      
+      if (savedYoutube) {
+        const parsed = JSON.parse(savedYoutube)
+        setYoutubeHistory(parsed)
+        // Auto-load the most recent URL
+        if (parsed.length > 0 && !youtubeUrl) {
+          setYoutubeUrl(parsed[0].url)
+        }
+      }
+      
+      if (savedSpotify) {
+        const parsed = JSON.parse(savedSpotify)
+        setSpotifyHistory(parsed)
+        // Auto-load the most recent URL
+        if (parsed.length > 0 && !spotifyUrl) {
+          setSpotifyUrl(parsed[0].url)
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load music history:', e)
+    }
+  }, [])
+
+  // Save YouTube URL to history
+  const saveYoutubeUrl = (url: string) => {
+    if (!url || !getYoutubeEmbedUrl(url)) return
+    
+    const videoId = extractYoutubeId(url)
+    if (!videoId) return
+
+    const newEntry: SavedUrl = {
+      url: url,
+      title: `YouTube Video (${videoId.slice(0, 6)}...)`,
+      timestamp: Date.now()
+    }
+
+    setYoutubeHistory(prev => {
+      // Remove duplicate if exists
+      const filtered = prev.filter(item => extractYoutubeId(item.url) !== videoId)
+      const updated = [newEntry, ...filtered].slice(0, MAX_HISTORY_ITEMS)
+      localStorage.setItem(YOUTUBE_HISTORY_KEY, JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  // Save Spotify URL to history
+  const saveSpotifyUrl = (url: string) => {
+    if (!url || !getSpotifyEmbedUrl(url)) return
+    
+    const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/)
+    if (!match) return
+
+    const type = match[1]
+    const id = match[2]
+
+    const newEntry: SavedUrl = {
+      url: url,
+      title: `${type.charAt(0).toUpperCase() + type.slice(1)} (${id.slice(0, 6)}...)`,
+      timestamp: Date.now()
+    }
+
+    setSpotifyHistory(prev => {
+      // Remove duplicate if exists
+      const filtered = prev.filter(item => !item.url.includes(id))
+      const updated = [newEntry, ...filtered].slice(0, MAX_HISTORY_ITEMS)
+      localStorage.setItem(SPOTIFY_HISTORY_KEY, JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  // Extract YouTube video ID
+  const extractYoutubeId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /^([a-zA-Z0-9_-]{11})$/
+    ]
+    for (const pattern of patterns) {
+      const match = url.match(pattern)
+      if (match) return match[1]
+    }
+    return null
+  }
+
+  // Extract YouTube video ID from various URL formats
+  const getYoutubeEmbedUrl = (url: string) => {
+    if (!url) return null
+    const videoId = extractYoutubeId(url)
+    if (videoId) return `https://www.youtube.com/embed/${videoId}?autoplay=1`
+    return null
+  }
+
+  // Extract Spotify embed URL
+  const getSpotifyEmbedUrl = (url: string) => {
+    if (!url) return null
+    // Handle various Spotify URL formats
+    const match = url.match(/spotify\.com\/(track|playlist|album)\/([a-zA-Z0-9]+)/)
+    if (match) {
+      return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator&theme=0`
+    }
+    return null
+  }
+
+  // Handle URL input change and save valid URLs
+  const handleYoutubeChange = (url: string) => {
+    setYoutubeUrl(url)
+    // Save after a short delay to avoid saving incomplete URLs
+    if (getYoutubeEmbedUrl(url)) {
+      saveYoutubeUrl(url)
+    }
+  }
+
+  const handleSpotifyChange = (url: string) => {
+    setSpotifyUrl(url)
+    if (getSpotifyEmbedUrl(url)) {
+      saveSpotifyUrl(url)
+    }
+  }
+
+  // Remove from history
+  const removeFromYoutubeHistory = (index: number) => {
+    setYoutubeHistory(prev => {
+      const updated = prev.filter((_, i) => i !== index)
+      localStorage.setItem(YOUTUBE_HISTORY_KEY, JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  const removeFromSpotifyHistory = (index: number) => {
+    setSpotifyHistory(prev => {
+      const updated = prev.filter((_, i) => i !== index)
+      localStorage.setItem(SPOTIFY_HISTORY_KEY, JSON.stringify(updated))
+      return updated
+    })
+  }
+
+  if (!isOpen) return null
+
+  const youtubeEmbedUrl = getYoutubeEmbedUrl(youtubeUrl)
+  const spotifyEmbedUrl = getSpotifyEmbedUrl(spotifyUrl)
+
+  // Minimized view
+  if (isMinimized) {
+    return (
+      <div className="fixed top-4 right-4 z-[60] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+        <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500">
+          <Music className="w-4 h-4 text-white" />
+          <span className="text-sm font-medium text-white">
+            {activeTab === 'youtube' ? 'YouTube' : 'Spotify'}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsMinimized(false)}
+              className="p-1 hover:bg-white/20 rounded transition-colors"
+              title="Expand"
+            >
+              <ChevronDown className="w-4 h-4 text-white" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-white/20 rounded transition-colors"
+              title="Close"
+            >
+              <X className="w-4 h-4 text-white" />
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="fixed top-4 right-4 z-[60] w-80 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500">
+        <div className="flex items-center gap-2">
+          <Music className="w-5 h-5 text-white" />
+          <span className="font-semibold text-white">Focus Music</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setIsMinimized(true)}
+            className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+            title="Minimize"
+          >
+            <ChevronUp className="w-4 h-4 text-white" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+            title="Close"
+          >
+            <X className="w-4 h-4 text-white" />
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('youtube')}
+          className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+            activeTab === 'youtube'
+              ? 'text-red-600 border-b-2 border-red-600 bg-red-50'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Youtube className="w-4 h-4" />
+          YouTube
+        </button>
+        <button
+          onClick={() => setActiveTab('spotify')}
+          className={`flex-1 py-2.5 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
+            activeTab === 'spotify'
+              ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+          </svg>
+          Spotify
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="p-4">
+        {activeTab === 'youtube' ? (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Paste YouTube URL or Video ID</label>
+              <input
+                type="text"
+                value={youtubeUrl}
+                onChange={(e) => handleYoutubeChange(e.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
+            </div>
+            {/* Recent YouTube URLs */}
+            {youtubeHistory.length > 0 && (
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-400 block">Recent URLs</label>
+                <div className="max-h-24 overflow-y-auto space-y-1">
+                  {youtubeHistory.map((item, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center gap-2 group"
+                    >
+                      <button
+                        onClick={() => setYoutubeUrl(item.url)}
+                        className={`flex-1 text-left px-2 py-1.5 text-xs rounded-md transition-colors truncate ${
+                          youtubeUrl === item.url 
+                            ? 'bg-red-100 text-red-700' 
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        {item.title}
+                      </button>
+                      <button
+                        onClick={() => removeFromYoutubeHistory(index)}
+                        className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 rounded transition-all"
+                      >
+                        <X className="w-3 h-3 text-red-500" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {youtubeEmbedUrl ? (
+              <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                <iframe
+                  src={youtubeEmbedUrl}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <div className="aspect-video rounded-lg bg-gray-100 flex flex-col items-center justify-center text-gray-400">
+                <Youtube className="w-8 h-8 mb-2" />
+                <span className="text-xs">Enter a YouTube URL to play</span>
+              </div>
+            )}
+            <a
+              href="https://www.youtube.com/results?search_query=lofi+study+music"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Find study music on YouTube
+            </a>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Paste Spotify URL</label>
+              <input
+                type="text"
+                value={spotifyUrl}
+                onChange={(e) => handleSpotifyChange(e.target.value)}
+                placeholder="https://open.spotify.com/track/..."
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+            {/* Recent Spotify URLs */}
+            {spotifyHistory.length > 0 && (
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-gray-400 block">Recent URLs</label>
+                <div className="max-h-24 overflow-y-auto space-y-1">
+                  {spotifyHistory.map((item, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center gap-2 group"
+                    >
+                      <button
+                        onClick={() => setSpotifyUrl(item.url)}
+                        className={`flex-1 text-left px-2 py-1.5 text-xs rounded-md transition-colors truncate ${
+                          spotifyUrl === item.url 
+                            ? 'bg-green-100 text-green-700' 
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-600'
+                        }`}
+                      >
+                        {item.title}
+                      </button>
+                      <button
+                        onClick={() => removeFromSpotifyHistory(index)}
+                        className="p-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 rounded transition-all"
+                      >
+                        <X className="w-3 h-3 text-red-500" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {spotifyEmbedUrl ? (
+              <div className="rounded-lg overflow-hidden">
+                <iframe
+                  src={spotifyEmbedUrl}
+                  width="100%"
+                  height="152"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  className="rounded-lg"
+                />
+              </div>
+            ) : (
+              <div className="h-[152px] rounded-lg bg-gray-100 flex flex-col items-center justify-center text-gray-400">
+                <svg className="w-8 h-8 mb-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                </svg>
+                <span className="text-xs">Enter a Spotify URL to play</span>
+              </div>
+            )}
+            <a
+              href="https://open.spotify.com/search/lofi%20study"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2 text-xs text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Find study music on Spotify
+            </a>
+          </div>
+        )}
+      </div>
+
+      {/* Quick Links */}
+      <div className="px-4 pb-4">
+        <p className="text-xs text-gray-400 mb-2">Popular study playlists:</p>
+        <div className="flex flex-wrap gap-1">
+          {activeTab === 'youtube' ? (
+            <>
+              <button
+                onClick={() => handleYoutubeChange('jfKfPfyJRdk')}
+                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Lofi Girl
+              </button>
+              <button
+                onClick={() => handleYoutubeChange('4xDzrJKXOOY')}
+                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Synthwave
+              </button>
+              <button
+                onClick={() => handleYoutubeChange('lTRiuFIWV54')}
+                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Jazz Study
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => handleSpotifyChange('https://open.spotify.com/playlist/0vvXsWCC9xrXsKd4FyS8kM')}
+                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Deep Focus
+              </button>
+              <button
+                onClick={() => handleSpotifyChange('https://open.spotify.com/playlist/37i9dQZF1DX8Uebhn9wzrS')}
+                className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+              >
+                Chill Lofi
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // Debounce hook for auto-save
 function useDebounce<T>(value: T, delay: number): T {
@@ -1276,6 +1722,7 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [noteId, setNoteId] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false)
   
   // Debounced content for auto-save
   const debouncedContent = useDebounce(content, 2000)
@@ -1336,7 +1783,67 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   }
 
   return (
-    <div className={`bg-white min-h-[calc(100vh-8rem)] transition-all ${showLeafAI ? 'mr-96' : ''}`}>
+    <div className={`bg-white min-h-[calc(100vh-8rem)] transition-all ${showLeafAI && !isFullscreen ? 'mr-96' : ''}`}>
+      {/* Fullscreen Editor Overlay */}
+      {isFullscreen && (
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col">
+          {/* Fullscreen Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+            <div className="flex items-center gap-4">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter note title..."
+                className="text-xl font-semibold text-gray-900 placeholder-gray-400 bg-transparent border-none focus:outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Music Button */}
+              <button
+                onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-md hover:shadow-lg hover:scale-105 ${
+                  showMusicPlayer ? 'ring-2 ring-white/50' : ''
+                }`}
+                title="Toggle music player"
+              >
+                <Music className="w-5 h-5 text-white" />
+                <span className="text-sm font-medium text-white">Music</span>
+              </button>
+              {/* Exit Fullscreen Button */}
+              <button
+                onClick={() => {
+                  setIsFullscreen(false)
+                  setShowMusicPlayer(false)
+                }}
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 transition-colors"
+                title="Exit fullscreen"
+              >
+                <Minimize2 className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Fullscreen Editor */}
+          <div className="flex-1 overflow-hidden">
+            <div className="note-editor-container h-full">
+              <ReactQuill
+                theme="snow"
+                value={content}
+                onChange={setContent}
+                modules={quillModules}
+                formats={quillFormats}
+                placeholder="Start writing your notes..."
+                className="h-full"
+              />
+            </div>
+          </div>
+          
+          {/* Music Player */}
+          <MusicPlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />
+        </div>
+      )}
+
       {/* Clean Header */}
       <div className="border-b border-gray-100 sticky top-0 z-20 bg-white/95 backdrop-blur-sm">
         <div className="flex items-center justify-between py-4">
@@ -1391,23 +1898,17 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
         </div>
         
         {/* Quill Editor */}
-        <div className={`note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm relative ${
-          isFullscreen 
-            ? 'fixed inset-0 z-50 rounded-none max-h-full' 
-            : 'max-h-[70vh] overflow-y-auto'
-        }`}>
+        <div className="note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm relative max-h-[70vh] overflow-y-auto">
           {/* Fullscreen Toggle Button */}
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="absolute top-2 right-2 z-10 p-2 bg-white/90 hover:bg-gray-100 rounded-lg shadow-sm border border-gray-200 transition-colors"
-            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          >
-            {isFullscreen ? (
-              <Minimize2 className="w-4 h-4 text-gray-600" />
-            ) : (
+          <div className="absolute top-2 right-2 z-20">
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="p-2 bg-white/90 hover:bg-gray-100 rounded-lg shadow-sm border border-gray-200 transition-colors"
+              title="Enter fullscreen"
+            >
               <Maximize2 className="w-4 h-4 text-gray-600" />
-            )}
-          </button>
+            </button>
+          </div>
           <ReactQuill
             theme="snow"
             value={content}
@@ -1415,7 +1916,6 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
             modules={quillModules}
             formats={quillFormats}
             placeholder="Start writing your notes..."
-            className={isFullscreen ? 'h-full' : ''}
           />
         </div>
       </div>
@@ -1456,6 +1956,7 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
   const [showLeafAI, setShowLeafAI] = useState(true) // Auto-open Leaf AI when note opens
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showMusicPlayer, setShowMusicPlayer] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<HTMLDivElement>(null)
   
@@ -1639,7 +2140,84 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
   }
 
   return (
-    <div className={`bg-white min-h-[calc(100vh-8rem)] transition-all ${showLeafAI ? 'mr-96' : ''}`}>
+    <div className={`bg-white min-h-[calc(100vh-8rem)] transition-all ${showLeafAI && !isFullscreen ? 'mr-96' : ''}`}>
+      {/* Fullscreen Editor Overlay */}
+      {isFullscreen && isEditing && (
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col">
+          {/* Fullscreen Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+            <div className="flex items-center gap-4">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter note title..."
+                className="text-xl font-semibold text-gray-900 placeholder-gray-400 bg-transparent border-none focus:outline-none"
+              />
+              {/* Auto-save status */}
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                autoSaveStatus === 'saved' ? 'bg-green-100 text-green-600' :
+                autoSaveStatus === 'saving' ? 'bg-yellow-100 text-yellow-600' :
+                'bg-gray-100 text-gray-500'
+              }`}>
+                {autoSaveStatus === 'saved' ? '✓ Saved' :
+                 autoSaveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Music Button */}
+              <button
+                onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-md hover:shadow-lg hover:scale-105 ${
+                  showMusicPlayer ? 'ring-2 ring-white/50' : ''
+                }`}
+                title="Toggle music player"
+              >
+                <Music className="w-5 h-5 text-white" />
+                <span className="text-sm font-medium text-white">Music</span>
+              </button>
+              {/* Save Button */}
+              <button
+                onClick={handleSave}
+                disabled={isSaving || !title.trim()}
+                className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+              {/* Exit Fullscreen Button */}
+              <button
+                onClick={() => {
+                  setIsFullscreen(false)
+                  setShowMusicPlayer(false)
+                }}
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 transition-colors"
+                title="Exit fullscreen"
+              >
+                <Minimize2 className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Fullscreen Editor */}
+          <div className="flex-1 overflow-hidden">
+            <div className="note-editor-container h-full">
+              <ReactQuill
+                theme="snow"
+                value={content}
+                onChange={setContent}
+                modules={quillModules}
+                formats={quillFormats}
+                placeholder="Start writing your notes..."
+                className="h-full"
+              />
+            </div>
+          </div>
+          
+          {/* Music Player */}
+          <MusicPlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />
+        </div>
+      )}
+
       {/* Header */}
       <div className="border-b border-gray-100 sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
         <div className="flex items-center justify-between py-4">
@@ -1796,23 +2374,17 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
             </div>
             
             {/* Quill Editor for Edit Mode */}
-            <div className={`note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm relative ${
-              isFullscreen 
-                ? 'fixed inset-0 z-50 rounded-none max-h-full' 
-                : 'max-h-[70vh] overflow-y-auto'
-            }`}>
+            <div className="note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm relative max-h-[70vh] overflow-y-auto">
               {/* Fullscreen Toggle Button */}
-              <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                className="absolute top-2 right-2 z-10 p-2 bg-white/90 hover:bg-gray-100 rounded-lg shadow-sm border border-gray-200 transition-colors"
-                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="w-4 h-4 text-gray-600" />
-                ) : (
+              <div className="absolute top-2 right-2 z-20">
+                <button
+                  onClick={() => setIsFullscreen(true)}
+                  className="p-2 bg-white/90 hover:bg-gray-100 rounded-lg shadow-sm border border-gray-200 transition-colors"
+                  title="Enter fullscreen"
+                >
                   <Maximize2 className="w-4 h-4 text-gray-600" />
-                )}
-              </button>
+                </button>
+              </div>
               <ReactQuill
                 theme="snow"
                 value={content}
@@ -1820,7 +2392,6 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
                 modules={quillModules}
                 formats={quillFormats}
                 placeholder="Start writing your notes..."
-                className={isFullscreen ? 'h-full' : ''}
               />
             </div>
           </>
@@ -1894,7 +2465,7 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
 
       {/* Leaf AI Panel */}
       <LeafAIPanel
-        isOpen={showLeafAI}
+        isOpen={showLeafAI && !isFullscreen}
         onClose={() => setShowLeafAI(false)}
         noteTitle={note.title}
         noteContent={isEditing ? content : (note.content || '')}

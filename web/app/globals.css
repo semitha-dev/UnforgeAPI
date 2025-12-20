@@ -194,6 +194,25 @@
   @apply ring-2 ring-blue-500/20 border-blue-300;
 }
 
+/* Fullscreen editor styles */
+.note-editor-container.h-full {
+  display: flex;
+  flex-direction: column;
+}
+
+.note-editor-container.h-full .ql-toolbar {
+  flex-shrink: 0;
+}
+
+.note-editor-container.h-full .ql-container {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.note-editor-container.h-full .ql-editor {
+  min-height: 100%;
+}
+
 /* Prose content styles for rendered HTML */
 .prose ul {
   @apply list-disc pl-5;
