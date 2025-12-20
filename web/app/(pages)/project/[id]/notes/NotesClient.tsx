@@ -208,38 +208,38 @@ function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
   const youtubeEmbedUrl = getYoutubeEmbedUrl(youtubeUrl)
   const spotifyEmbedUrl = getSpotifyEmbedUrl(spotifyUrl)
 
-  // Minimized view
-  if (isMinimized) {
-    return (
-      <div className="fixed top-4 right-4 z-[60] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-        <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500">
-          <Music className="w-4 h-4 text-white" />
-          <span className="text-sm font-medium text-white">
-            {activeTab === 'youtube' ? 'YouTube' : 'Spotify'}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setIsMinimized(false)}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
-              title="Expand"
-            >
-              <ChevronDown className="w-4 h-4 text-white" />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-white/20 rounded transition-colors"
-              title="Close"
-            >
-              <X className="w-4 h-4 text-white" />
-            </button>
+  return (
+    <>
+      {/* Minimized view */}
+      {isMinimized && (
+        <div className="fixed top-4 right-4 z-[60] bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="flex items-center gap-3 px-3 py-2 bg-gradient-to-r from-purple-500 to-pink-500">
+            <Music className="w-4 h-4 text-white" />
+            <span className="text-sm font-medium text-white">
+              {activeTab === 'youtube' ? 'YouTube' : 'Spotify'}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setIsMinimized(false)}
+                className="p-1 hover:bg-white/20 rounded transition-colors"
+                title="Expand"
+              >
+                <ChevronDown className="w-4 h-4 text-white" />
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1 hover:bg-white/20 rounded transition-colors"
+                title="Close"
+              >
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    )
-  }
+      )}
 
-  return (
-    <div className="fixed top-4 right-4 z-[60] w-80 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+      {/* Full view - hidden when minimized but keeps iframes mounted */}
+      <div className={`fixed top-4 right-4 z-[60] w-80 bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 overflow-hidden ${isMinimized ? 'invisible absolute -top-[9999px]' : ''}`}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-500">
         <div className="flex items-center gap-2">
@@ -481,6 +481,7 @@ function MusicPlayer({ isOpen, onClose }: MusicPlayerProps) {
         </div>
       </div>
     </div>
+    </>
   )
 }
 
