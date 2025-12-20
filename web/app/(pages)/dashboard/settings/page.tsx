@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/app/lib/supabaseClient'
+import { useTokenRefresh } from '@/lib/useTokenRefresh'
 import { 
   LayoutDashboard, 
   Settings, 
@@ -71,6 +72,18 @@ function SettingsPageContent() {
     name: '',
     education_level: ''
   })
+
+  // Check if returning from checkout and trigger token refresh
+  useTokenRefresh()
+
+  // Listen for token update events
+  useEffect(() => {
+    const handleTokensUpdated = () => {
+      fetchTokens()
+    }
+    window.addEventListener('tokensUpdated', handleTokensUpdated)
+    return () => window.removeEventListener('tokensUpdated', handleTokensUpdated)
+  }, [])
 
   useEffect(() => {
     const section = searchParams.get('section')

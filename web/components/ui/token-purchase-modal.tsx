@@ -16,6 +16,8 @@ const TOKEN_PACKS = [
   { id: '6dd09d70-13ef-4fa9-86a3-9f7fa9ed8901', tokens: 10000, price: 8, perToken: 0.0008, bestValue: true },
 ]
 
+const CHECKOUT_KEY = 'token_checkout_initiated'
+
 export function TokenPurchaseModal({ isOpen, onClose, currentBalance }: TokenPurchaseModalProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -37,6 +39,8 @@ export function TokenPurchaseModal({ isOpen, onClose, currentBalance }: TokenPur
       if (!response.ok) throw new Error(data.error || 'Failed to create checkout session')
 
       if (data.checkoutUrl) {
+        // Mark that checkout was initiated before leaving
+        localStorage.setItem(CHECKOUT_KEY, 'true')
         window.location.href = data.checkoutUrl
       }
     } catch (err: any) {

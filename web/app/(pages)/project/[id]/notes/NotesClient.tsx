@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { Note, Project } from './page'
+import { Maximize2, Minimize2 } from 'lucide-react'
 import 'react-quill-new/dist/quill.snow.css'
 
 // Dynamically import Quill to avoid SSR issues
@@ -1274,6 +1275,7 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   const [showLeafAI, setShowLeafAI] = useState(true) // Auto-open Leaf AI when creating note
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [noteId, setNoteId] = useState<string | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   
   // Debounced content for auto-save
   const debouncedContent = useDebounce(content, 2000)
@@ -1389,7 +1391,23 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
         </div>
         
         {/* Quill Editor */}
-        <div className="note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm max-h-[70vh] overflow-y-auto">
+        <div className={`note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm relative ${
+          isFullscreen 
+            ? 'fixed inset-0 z-50 rounded-none max-h-full' 
+            : 'max-h-[70vh] overflow-y-auto'
+        }`}>
+          {/* Fullscreen Toggle Button */}
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="absolute top-2 right-2 z-10 p-2 bg-white/90 hover:bg-gray-100 rounded-lg shadow-sm border border-gray-200 transition-colors"
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-4 h-4 text-gray-600" />
+            ) : (
+              <Maximize2 className="w-4 h-4 text-gray-600" />
+            )}
+          </button>
           <ReactQuill
             theme="snow"
             value={content}
@@ -1397,13 +1415,14 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
             modules={quillModules}
             formats={quillFormats}
             placeholder="Start writing your notes..."
+            className={isFullscreen ? 'h-full' : ''}
           />
         </div>
       </div>
 
       {/* Leaf AI Panel */}
       <LeafAIPanel
-        isOpen={showLeafAI}
+        isOpen={showLeafAI && !isFullscreen}
         onClose={() => setShowLeafAI(false)}
         noteTitle={title}
         noteContent={content}
@@ -1436,6 +1455,7 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
   const [summaryError, setSummaryError] = useState('')
   const [showLeafAI, setShowLeafAI] = useState(true) // Auto-open Leaf AI when note opens
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const summaryRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<HTMLDivElement>(null)
   
@@ -1776,7 +1796,23 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
             </div>
             
             {/* Quill Editor for Edit Mode */}
-            <div className="note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm max-h-[70vh] overflow-y-auto">
+            <div className={`note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm relative ${
+              isFullscreen 
+                ? 'fixed inset-0 z-50 rounded-none max-h-full' 
+                : 'max-h-[70vh] overflow-y-auto'
+            }`}>
+              {/* Fullscreen Toggle Button */}
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="absolute top-2 right-2 z-10 p-2 bg-white/90 hover:bg-gray-100 rounded-lg shadow-sm border border-gray-200 transition-colors"
+                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="w-4 h-4 text-gray-600" />
+                ) : (
+                  <Maximize2 className="w-4 h-4 text-gray-600" />
+                )}
+              </button>
               <ReactQuill
                 theme="snow"
                 value={content}
@@ -1784,6 +1820,7 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
                 modules={quillModules}
                 formats={quillFormats}
                 placeholder="Start writing your notes..."
+                className={isFullscreen ? 'h-full' : ''}
               />
             </div>
           </>

@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Loading } from '@/components/ui/loading'
 import { TokenPurchaseModal } from '@/components/ui/token-purchase-modal'
+import { useTokenRefresh } from '@/lib/useTokenRefresh'
 
 interface Profile {
   name: string
@@ -100,8 +101,32 @@ export default function Dashboard() {
   const pathname = usePathname()
   const supabase = createClient()
 
+  // Check if returning from checkout and trigger token refresh
+  useTokenRefresh()
+
   useEffect(() => {
     loadUserAndProjects()
+  }, [])
+
+  // Listen for token updates (e.g., after purchase)
+  useEffect(() => {
+    const handleTokensUpdated = async () => {
+      try {
+        const subscriptionRes = await fetch('/api/subscription')
+        if (subscriptionRes.ok) {
+          const subscriptionData = await subscriptionRes.json()
+          setProfile(prev => prev ? {
+            ...prev,
+            tokens_balance: subscriptionData.subscription?.tokens_balance || 0
+          } : null)
+        }
+      } catch (err) {
+        console.error('Error refreshing token balance:', err)
+      }
+    }
+
+    window.addEventListener('tokensUpdated', handleTokensUpdated)
+    return () => window.removeEventListener('tokensUpdated', handleTokensUpdated)
   }, [])
 
   const loadUserAndProjects = async () => {

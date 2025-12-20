@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Loading } from '@/components/ui/loading'
 import { TokenPurchaseModal } from '@/components/ui/token-purchase-modal'
+import { useTokenRefresh } from '@/lib/useTokenRefresh'
 
 interface Project {
   id: string
@@ -355,6 +356,9 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const supabase = createClient()
 
   const projectId = params.id as string
+
+  // Check if returning from checkout and trigger token refresh
+  useTokenRefresh()
 
   useEffect(() => {
     if (projectId) {
