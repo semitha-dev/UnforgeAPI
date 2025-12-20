@@ -197,7 +197,7 @@ function GlobalMusicPlayer({ isOpen, onClose }: { isOpen: boolean; onClose: () =
           </div>
         </div>
 
-        <div className="px-4">
+        <div className="px-4 pt-3">
           <div className="flex gap-2 p-1 bg-white/5 rounded-2xl">
             <button
               onClick={() => setActiveTab('youtube')}
