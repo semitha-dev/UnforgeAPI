@@ -95,12 +95,11 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .single();
 
-    // If schedule exists and there are mistakes, record them and update schedule
-    if (schedule && mistakes.length > 0) {
-      // Record mistakes in mistake database
+    // Always record mistakes to analytics (regardless of schedule)
+    if (mistakes.length > 0) {
       const mistakesToInsert = mistakes.map(mistake => ({
         user_id: user.id,
-        schedule_id: schedule.id,
+        schedule_id: schedule?.id || null, // Optional - may not have schedule
         quiz_id: quizId,
         project_id: quiz.project_id,
         question: mistake.question,
@@ -116,8 +115,10 @@ export async function POST(request: NextRequest) {
 
       if (mistakesError) {
         console.error('Error recording mistakes:', mistakesError);
-      } else {
-        // For each mistake, add a "Revise" task to the schedule
+      }
+      
+      // Only add revision tasks to schedule IF schedule exists
+      if (schedule && !mistakesError) {
         for (const mistake of mistakes) {
           await addReviseTaskToSchedule(supabase, schedule, quiz, mistake);
         }
