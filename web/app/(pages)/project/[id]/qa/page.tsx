@@ -147,16 +147,16 @@ export default function QuizPage() {
             >
               <div className="h-full flex flex-col p-3">
                 <div className="flex-1 overflow-hidden">
-                  <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 text-xs">
+                  <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-base">
                     {quiz.title}
                   </h3>
-                  <p className="text-[10px] text-gray-500 line-clamp-2">
+                  <p className="text-xs text-gray-500 line-clamp-2">
                     {quiz.description || 'No description'}
                   </p>
                 </div>
                 <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400">{quiz.question_count} questions</span>
-                  <span className="text-[10px] text-green-600 font-medium group-hover:translate-x-0.5 transition-transform">Start →</span>
+                  <span className="text-sm text-gray-500 font-medium">{quiz.question_count} questions</span>
+                  <span className="text-sm text-green-600 font-semibold group-hover:translate-x-0.5 transition-transform">Start →</span>
                 </div>
               </div>
             </button>
@@ -198,7 +198,8 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
   const supabase = createClient()
   const [title, setTitle] = useState('')
   const [studyMaterial, setStudyMaterial] = useState('')
-  const [questionCount, setQuestionCount] = useState<5 | 10>(5)
+  const [questionCount, setQuestionCount] = useState<number>(5)
+  const [customCount, setCustomCount] = useState('')
   const [notes, setNotes] = useState<Note[]>([])
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -549,28 +550,50 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
           {/* Question Count */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Number of Questions</label>
-            <div className="flex space-x-4">
+            <div className="flex space-x-3">
               <button
-                onClick={() => setQuestionCount(5)}
+                onClick={() => { setQuestionCount(5); setCustomCount(''); }}
                 className={`flex-1 py-2 px-4 rounded-lg border-2 transition-colors ${
-                  questionCount === 5
+                  questionCount === 5 && !customCount
                     ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                5 Questions
+                5
               </button>
               <button
-                onClick={() => setQuestionCount(10)}
+                onClick={() => { setQuestionCount(10); setCustomCount(''); }}
                 className={`flex-1 py-2 px-4 rounded-lg border-2 transition-colors ${
-                  questionCount === 10
+                  questionCount === 10 && !customCount
                     ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                10 Questions
+                10
               </button>
+              <div className="flex-1 relative">
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  placeholder="Custom"
+                  value={customCount}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCustomCount(val);
+                    if (val && parseInt(val) >= 1 && parseInt(val) <= 20) {
+                      setQuestionCount(parseInt(val));
+                    }
+                  }}
+                  className={`w-full py-2 px-3 rounded-lg border-2 transition-colors text-center ${
+                    customCount
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                />
+              </div>
             </div>
+            <p className="text-xs text-gray-500 mt-1">Max 20 questions</p>
           </div>
 
           {/* Generate Button */}

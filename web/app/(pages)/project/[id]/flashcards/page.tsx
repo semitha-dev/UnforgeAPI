@@ -143,7 +143,7 @@ export default function FlashcardsPage() {
               <div className="h-full flex flex-col p-3">
                 <div className="flex-1 overflow-hidden">
                   <div className="flex items-start justify-between mb-1">
-                    <h3 className="font-medium text-gray-900 line-clamp-2 text-sm flex-1">
+                    <h3 className="font-semibold text-gray-900 line-clamp-2 text-base flex-1">
                       {set.title}
                     </h3>
                     {set.is_ai_generated && (
@@ -155,8 +155,8 @@ export default function FlashcardsPage() {
                   </p>
                 </div>
                 <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-xs text-gray-400">{set.card_count} cards</span>
-                  <span className="text-xs text-purple-600 font-medium group-hover:translate-x-0.5 transition-transform">Study →</span>
+                  <span className="text-sm text-gray-500 font-medium">{set.card_count} cards</span>
+                  <span className="text-sm text-purple-600 font-semibold group-hover:translate-x-0.5 transition-transform">Study →</span>
                 </div>
               </div>
             </button>
@@ -467,7 +467,8 @@ function AIFlashcardCreator({ projectId, onClose, onSuccess, onBack }: AICreator
   const supabase = createClient()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [cardCount, setCardCount] = useState<5 | 10>(5)
+  const [cardCount, setCardCount] = useState<number>(5)
+  const [customCount, setCustomCount] = useState('')
   const [sourceType, setSourceType] = useState<'text' | 'note' | 'pdf'>('text')
   const [sourceMaterial, setSourceMaterial] = useState('')
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
@@ -832,28 +833,50 @@ function AIFlashcardCreator({ projectId, onClose, onSuccess, onBack }: AICreator
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Number of Flashcards</label>
-            <div className="flex space-x-4">
+            <div className="flex space-x-3">
               <button
-                onClick={() => setCardCount(5)}
+                onClick={() => { setCardCount(5); setCustomCount(''); }}
                 className={`flex-1 py-2 px-4 rounded-lg border-2 transition-colors ${
-                  cardCount === 5
+                  cardCount === 5 && !customCount
                     ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                5 Cards
+                5
               </button>
               <button
-                onClick={() => setCardCount(10)}
+                onClick={() => { setCardCount(10); setCustomCount(''); }}
                 className={`flex-1 py-2 px-4 rounded-lg border-2 transition-colors ${
-                  cardCount === 10
+                  cardCount === 10 && !customCount
                     ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
               >
-                10 Cards
+                10
               </button>
+              <div className="flex-1 relative">
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  placeholder="Custom"
+                  value={customCount}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCustomCount(val);
+                    if (val && parseInt(val) >= 1 && parseInt(val) <= 20) {
+                      setCardCount(parseInt(val));
+                    }
+                  }}
+                  className={`w-full py-2 px-3 rounded-lg border-2 transition-colors text-center ${
+                    customCount
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                />
+              </div>
             </div>
+            <p className="text-xs text-gray-500 mt-1">Max 20 flashcards</p>
           </div>
 
           <button
