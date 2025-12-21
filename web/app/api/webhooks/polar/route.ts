@@ -133,12 +133,19 @@ export async function POST(request: NextRequest) {
     const { type, data } = body;
     
     // Extract event ID for idempotency
-    // CRITICAL: Include event type in the ID because the same entity (order/subscription)
-    // can have multiple events (created, updated, etc.) and each must be processed
+    // Use webhook-id header (unique per delivery) if available, otherwise construct from data
+    // This ensures each webhook delivery is processed exactly once
+    const webhookDeliveryId = webhookId; // This is unique per delivery from Polar
     const entityId = data.id || body.id;
-    const eventId = `${type}:${entityId}:${data.modified_at || data.created_at || Date.now()}`;
+    
+    // Prefer webhook-id for idempotency (most reliable)
+    // Fallback to type:entity:timestamp for older webhooks
+    const eventId = webhookDeliveryId 
+      ? `delivery:${webhookDeliveryId}`
+      : `${type}:${entityId}:${data.modified_at || data.created_at || Date.now()}`;
 
     console.log('Webhook type:', type);
+    console.log('Webhook delivery ID:', webhookDeliveryId);
     console.log('Event ID:', eventId);
     console.log('Webhook data:', JSON.stringify(data, null, 2));
 
@@ -605,8 +612,20 @@ export async function POST(request: NextRequest) {
             break;
           }
           
+          // Double-check: See if a token transaction already exists for this order
+          const { data: existingTransaction } = await supabase
+            .from('token_transactions')
+            .select('id')
+            .eq('polar_order_id', orderId)
+            .single();
+          
+          if (existingTransaction) {
+            console.log(`Token transaction already exists for order ${orderId}. Skipping to prevent duplicate.`);
+            break;
+          }
+          
           // Insert into token_transactions (no expiration - tokens never expire)
-          const { error: transactionError } = await supabase
+          const { data: newTransaction, error: transactionError } = await supabase
             .from('token_transactions')
             .insert({
               user_id: profile.id,
@@ -615,12 +634,21 @@ export async function POST(request: NextRequest) {
               source: 'purchase',
               expires_at: null, // Tokens never expire
               polar_order_id: orderId,
-            });
+            })
+            .select('id')
+            .single();
           
           if (transactionError) {
+            // Check if it's a duplicate key error
+            if (transactionError.code === '23505') {
+              console.log(`Token transaction for order ${orderId} already exists (unique constraint). Skipping.`);
+              break;
+            }
             console.error('Error creating token transaction:', transactionError);
             break;
           }
+          
+          console.log(`✅ Token transaction created: ${newTransaction.id} for ${tokensToAdd} tokens`);
           
           // Also update tokens_balance for backward compatibility (cached value)
           const newBalance = (profile.tokens_balance || 0) + tokensToAdd;
