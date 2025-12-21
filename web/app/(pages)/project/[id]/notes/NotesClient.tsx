@@ -1057,7 +1057,7 @@ interface NotesClientProps {
   project: Project
   notes: Note[]
   projectId: string
-  createNoteAction: (formData: FormData) => Promise<void>
+  createNoteAction: (formData: FormData) => Promise<{ id: string; title: string; content: string; created_at: string; updated_at: string }>
   deleteNoteAction: (formData: FormData) => Promise<void>
   updateNoteAction: (formData: FormData) => Promise<void>
 }
@@ -1764,7 +1764,7 @@ function NoteCard({ note, onClick, isSelected = false, isSelectable = false }: N
 // Create Note Component with Quill Editor
 interface CreateNoteProps {
   projectId: string
-  createNoteAction: (formData: FormData) => Promise<void>
+  createNoteAction: (formData: FormData) => Promise<{ id: string; title: string; content: string; created_at: string; updated_at: string }>
   onBack: () => void
   onNoteCreated?: (note: Note) => void
 }
@@ -2536,7 +2536,7 @@ interface GlobalSummarizeModalProps {
   notes: ExtendedNote[]
   onClose: () => void
   onSummaryCreated: (note: ExtendedNote) => void
-  createNoteAction: (formData: FormData) => Promise<void>
+  createNoteAction: (formData: FormData) => Promise<{ id: string; title: string; content: string; created_at: string; updated_at: string }>
 }
 
 function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, createNoteAction }: GlobalSummarizeModalProps) {
@@ -2700,15 +2700,16 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
       formData.append('title', `Summary: ${sourceName}`)
       formData.append('content', summary)
 
-      await createNoteAction(formData)
+      // Get the created note with real UUID from the server
+      const createdNote = await createNoteAction(formData)
       
-      // Create a mock note object for immediate UI update
+      // Use the real note data from the server
       const newNote: ExtendedNote = {
-        id: Date.now().toString(),
-        title: `Summary: ${sourceName}`,
-        content: summary,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        id: createdNote.id,
+        title: createdNote.title,
+        content: createdNote.content,
+        created_at: createdNote.created_at,
+        updated_at: createdNote.updated_at,
         isSummary: true,
         sourceType,
         sourceName

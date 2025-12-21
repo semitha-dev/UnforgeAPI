@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import NotesClient from './NotesClient' // We'll create this client component
 
 // Server Actions
-async function createNote(formData: FormData) {
+async function createNote(formData: FormData): Promise<{ id: string; title: string; content: string; created_at: string; updated_at: string }> {
   'use server'
   
   const supabase = await createClient()
@@ -33,7 +33,7 @@ async function createNote(formData: FormData) {
     throw new Error('Project not found or unauthorized')
   }
   
-  const { error: insertError } = await supabase
+  const { data: newNote, error: insertError } = await supabase
     .from('notes')
     .insert({
       title,
@@ -41,13 +41,17 @@ async function createNote(formData: FormData) {
       project_id: projectId,
       user_id: user.id
     })
+    .select('id, title, content, created_at, updated_at')
+    .single()
     
-  if (insertError) {
+  if (insertError || !newNote) {
     console.error('Error creating note:', insertError)
     throw new Error('Failed to create note')
   }
   
   revalidatePath(`/project/${projectId}/notes`)
+  
+  return newNote
 }
 
 async function deleteNote(formData: FormData) {
