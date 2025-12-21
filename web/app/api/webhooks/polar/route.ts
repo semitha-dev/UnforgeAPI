@@ -47,6 +47,17 @@ function verifyWebhookSignature(
     return { valid: false, reason: 'No signature provided in request' };
   }
 
+  // SECURITY: Validate timestamp to prevent replay attacks (5 minute window)
+  if (webhookTimestamp) {
+    const timestamp = parseInt(webhookTimestamp, 10);
+    const now = Math.floor(Date.now() / 1000);
+    const tolerance = 300; // 5 minutes
+    
+    if (Math.abs(now - timestamp) > tolerance) {
+      return { valid: false, reason: 'Webhook timestamp too old or in future' };
+    }
+  }
+
   try {
     // Polar uses Standard Webhooks format
     // The signature header contains: v1,base64_signature
@@ -594,11 +605,7 @@ export async function POST(request: NextRequest) {
             break;
           }
           
-          // Calculate expiration date (2 months from now)
-          const expiresAt = new Date();
-          expiresAt.setMonth(expiresAt.getMonth() + 2);
-          
-          // Insert into token_transactions with expiration
+          // Insert into token_transactions (no expiration - tokens never expire)
           const { error: transactionError } = await supabase
             .from('token_transactions')
             .insert({
@@ -606,7 +613,7 @@ export async function POST(request: NextRequest) {
               amount: tokensToAdd,
               remaining: tokensToAdd,
               source: 'purchase',
-              expires_at: expiresAt.toISOString(),
+              expires_at: null, // Tokens never expire
               polar_order_id: orderId,
             });
           
@@ -647,7 +654,7 @@ export async function POST(request: NextRequest) {
             console.error('Error recording token purchase:', purchaseError);
           }
           
-          console.log(`✅ Token pack purchased for ${customerEmail}: +${tokensToAdd} tokens (expires: ${expiresAt.toISOString()}), cached balance: ${newBalance}`);
+          console.log(`✅ Token pack purchased for ${customerEmail}: +${tokensToAdd} tokens (never expires), cached balance: ${newBalance}`);
           break;
         }
         

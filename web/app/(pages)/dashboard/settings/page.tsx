@@ -11,14 +11,14 @@ import {
   ChevronLeft, 
   Menu, 
   Coins, 
-  Leaf, 
   LogOut,
   User,
   CreditCard,
   Shield,
   AlertTriangle,
   Check,
-  X
+  X,
+  Leaf
 } from 'lucide-react'
 import {
   Tooltip,

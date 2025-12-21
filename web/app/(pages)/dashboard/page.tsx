@@ -7,11 +7,11 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/app/lib/supabaseClient'
 import { 
-  LayoutDashboard, Settings, ChevronLeft, Menu, Coins, Leaf, LogOut,
+  LayoutDashboard, Settings, ChevronLeft, Menu, Coins, LogOut,
   BookOpen, GraduationCap, FlaskConical, Calculator, Globe, Code, Music, 
   Palette, Camera, Dumbbell, Heart, Star, Lightbulb, Rocket, Trophy,
   Brain, Atom, Languages, PenTool, Microscope, Scale, Briefcase, Coffee,
-  MoreVertical, Pencil, Trash2
+  MoreVertical, Pencil, Trash2, Leaf
 } from 'lucide-react'
 import {
   Tooltip,

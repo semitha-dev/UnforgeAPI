@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
-    const { content, noteId, projectId, summaryType = 'concise' } = body;
+    const { content, noteId, projectId, summaryType = 'concise', citationStyle = 'none', sourceName = '' } = body;
 
     if (!content || !projectId) {
       return NextResponse.json(
@@ -134,15 +134,56 @@ export async function POST(request: NextRequest) {
       case 'detailed':
         promptInstructions = `Create a detailed summary that captures all important information, organized with clear paragraphs. Use HTML <p> tags for paragraphs and <strong> for key terms.`;
         break;
+      case 'findings':
+        promptInstructions = `Extract and present the main research findings, methodology highlights, and conclusions. Structure the output with clear sections:
+        - <h4>Methodology</h4>: Brief overview of methods used
+        - <h4>Key Findings</h4>: Main discoveries and results
+        - <h4>Conclusions</h4>: What the findings mean
+        Use HTML <p> tags for paragraphs, <strong> for emphasis, and <ul><li> for lists where appropriate.`;
+        break;
+      case 'keypoints':
+        promptInstructions = `Identify and list the most important key points and main takeaways. Format as:
+        - Use <h4>Key Points</h4> as a header
+        - List each key point as a numbered item using <ol><li> tags
+        - Include a brief <h4>Summary</h4> section at the end
+        Make each point clear, actionable, and memorable.`;
+        break;
       case 'concise':
       default:
         promptInstructions = `Create a concise summary in 2-3 paragraphs. Use HTML <p> tags for paragraphs.`;
         break;
     }
 
+    // Add citation style instructions if requested
+    let citationInstructions = '';
+    if (citationStyle !== 'none') {
+      const currentYear = new Date().getFullYear();
+      const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      
+      citationInstructions = `
+
+At the end of the summary, include a <h4>Bibliography</h4> section with a proper citation in ${citationStyle.toUpperCase()} format.
+Source name: "${sourceName || 'Untitled Document'}"
+Current date for access date: ${currentDate}
+Current year: ${currentYear}
+
+${citationStyle === 'apa' ? 
+  `Use APA 7th edition format. Example: Author, A. A. (Year). Title of work. Publisher. URL (if applicable)
+  If author is unknown, start with the title. For web sources, include "Retrieved [date]"` :
+  citationStyle === 'mla' ?
+  `Use MLA 9th edition format. Example: Last name, First name. "Title of Source." Container, Other contributors, Version, Number, Publisher, Publication date, Location.
+  For web sources, include "Accessed [date]"` :
+  `Use Chicago 17th edition (Notes-Bibliography) format. Example: First name Last name, Title of Work (Place: Publisher, Year), page numbers.
+  For web sources, include "accessed [date]"`
+}
+
+Make sure the citation is properly formatted and includes all available information.`;
+    }
+
     const prompt = `You are an educational content summarizer. Summarize the following study notes.
 
 ${promptInstructions}
+${citationInstructions}
 
 Notes content:
 ${plainText.slice(0, 10000)}

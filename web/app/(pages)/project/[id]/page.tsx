@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/app/lib/supabaseClient'
-import { FileText, HelpCircle, Layers, Clock, TrendingUp } from 'lucide-react'
+import { FileText, HelpCircle, Layers, Clock, TrendingUp, Flame } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -38,11 +38,17 @@ interface WeeklyActivity {
   activity: number
 }
 
+interface StreakData {
+  currentStreak: number
+  longestStreak: number
+}
+
 export default function ProjectOverview() {
   const [project, setProject] = useState<ProjectData | null>(null)
   const [counts, setCounts] = useState<ContentCounts>({ notes: 0, qa_pairs: 0, flashcards: 0 })
   const [recentItems, setRecentItems] = useState<RecentItem[]>([])
   const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivity[]>([])
+  const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, longestStreak: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -209,6 +215,59 @@ export default function ProjectOverview() {
       
       setWeeklyActivity(weekData)
 
+      // Calculate streak for this project
+      const allItemDates = allItems.map(item => {
+        const d = new Date(item.created_at)
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+      })
+      const uniqueDates = [...new Set(allItemDates)].sort().reverse()
+      
+      let currentStreak = 0
+      let longestStreak = 0
+      let tempStreak = 0
+      
+      // Check if today or yesterday has activity (to start counting streak)
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+      const yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
+      
+      if (uniqueDates.includes(todayStr) || uniqueDates.includes(yesterdayStr)) {
+        // Count consecutive days backwards from today
+        for (let i = 0; i <= 365; i++) {
+          const checkDate = new Date(today)
+          checkDate.setDate(checkDate.getDate() - i)
+          const checkStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`
+          
+          if (uniqueDates.includes(checkStr)) {
+            currentStreak++
+          } else if (i > 0) {
+            // Allow skipping today if no activity yet today
+            break
+          }
+        }
+      }
+      
+      // Calculate longest streak
+      for (let i = 0; i < uniqueDates.length; i++) {
+        const currentDate = new Date(uniqueDates[i])
+        const nextDate = i + 1 < uniqueDates.length ? new Date(uniqueDates[i + 1]) : null
+        
+        tempStreak++
+        
+        if (nextDate) {
+          const diffDays = Math.floor((currentDate.getTime() - nextDate.getTime()) / (1000 * 60 * 60 * 24))
+          if (diffDays !== 1) {
+            longestStreak = Math.max(longestStreak, tempStreak)
+            tempStreak = 0
+          }
+        } else {
+          longestStreak = Math.max(longestStreak, tempStreak)
+        }
+      }
+      
+      setStreak({ currentStreak, longestStreak: Math.max(longestStreak, currentStreak) })
+
     } catch (error) {
       console.error('Error loading project data:', error)
       setError('An unexpected error occurred while loading project data')
@@ -274,7 +333,7 @@ export default function ProjectOverview() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Link href={`/project/${projectId}/notes`}>
           <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-2xl">
             <CardContent className="p-5">
@@ -322,6 +381,22 @@ export default function ProjectOverview() {
             </CardContent>
           </Card>
         </Link>
+
+        {/* Streak Card */}
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-white/80 font-medium">Study Streak</p>
+                <p className="text-2xl font-bold text-white mt-1">{streak.currentStreak} days</p>
+                <p className="text-xs text-white/60 mt-1">Best: {streak.longestStreak} days</p>
+              </div>
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <Flame className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Weekly Activity Chart */}

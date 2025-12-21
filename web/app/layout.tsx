@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LeafLearn - AI-Powered Learning Platform",
   description: "Your personal AI-powered learning assistant",
+  icons: {
+    icon: "/logosvg.svg",
+    shortcut: "/logosvg.svg",
+    apple: "/logosvg.svg",
+  },
 };
 
 export default function RootLayout({

@@ -2545,7 +2545,8 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [pdfText, setPdfText] = useState('')
   const [isExtractingPdf, setIsExtractingPdf] = useState(false)
-  const [summaryType, setSummaryType] = useState<'concise' | 'bullet' | 'detailed'>('concise')
+  const [summaryType, setSummaryType] = useState<'concise' | 'bullet' | 'detailed' | 'findings' | 'keypoints'>('concise')
+  const [citationStyle, setCitationStyle] = useState<'none' | 'apa' | 'mla' | 'chicago'>('none')
   const [isSummarizing, setIsSummarizing] = useState(false)
   const [summary, setSummary] = useState('')
   const [summaryError, setSummaryError] = useState('')
@@ -2662,7 +2663,9 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
         body: JSON.stringify({
           content,
           projectId,
-          summaryType
+          summaryType,
+          citationStyle,
+          sourceName
         })
       })
 
@@ -2906,7 +2909,9 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
                   {[
                     { value: 'concise', label: 'Concise', desc: '2-3 paragraphs' },
                     { value: 'bullet', label: 'Bullet Points', desc: 'Key points' },
-                    { value: 'detailed', label: 'Detailed', desc: 'Comprehensive' }
+                    { value: 'detailed', label: 'Detailed', desc: 'Comprehensive' },
+                    { value: 'findings', label: 'Findings', desc: 'Research findings' },
+                    { value: 'keypoints', label: 'Key Points', desc: 'Main takeaways' }
                   ].map((type) => (
                     <button
                       key={type.value}
@@ -2922,6 +2927,37 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Citation Style Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Citation Style (Optional)</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { value: 'none', label: 'None', desc: 'No citations' },
+                    { value: 'apa', label: 'APA', desc: '7th Edition' },
+                    { value: 'mla', label: 'MLA', desc: '9th Edition' },
+                    { value: 'chicago', label: 'Chicago', desc: '17th Edition' }
+                  ].map((style) => (
+                    <button
+                      key={style.value}
+                      onClick={() => setCitationStyle(style.value as any)}
+                      className={`p-3 rounded-xl border-2 transition-all text-left ${
+                        citationStyle === style.value
+                          ? 'border-indigo-500 bg-indigo-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-900 text-sm">{style.label}</div>
+                      <div className="text-xs text-gray-500">{style.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                {citationStyle !== 'none' && (
+                  <p className="text-xs text-indigo-600 mt-2">
+                    📚 Bibliography will be included in {citationStyle.toUpperCase()} format
+                  </p>
+                )}
               </div>
             </>
           )}

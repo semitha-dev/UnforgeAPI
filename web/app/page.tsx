@@ -989,7 +989,7 @@ function Pricing() {
             <Coins className="h-5 w-5 text-emerald-700" />
             <h3 className="text-2xl font-bold text-gray-900">Buy Token Packs</h3>
           </div>
-          <p className="text-gray-600">One-time purchase. Tokens expire after 30 days. Use them whenever you need AI features.</p>
+          <p className="text-gray-600">One-time purchase. Tokens never expire. Use them whenever you need AI features.</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1088,7 +1088,7 @@ function FAQ() {
       <div className="space-y-4">
         <FaqDropdown q="What do I get for free?" a="You get 500 free tokens on signup, plus unlimited projects, folders, notes, quizzes, and flashcards. All features are unlocked — tokens are only used when you generate AI content like summaries, flashcards, or quizzes." />
         <FaqDropdown q="How are tokens used?" a="Tokens power AI features like summarizing papers, generating flashcards, and creating quizzes. Each AI generation uses a set number of tokens based on the output. When you run out, simply purchase a token pack to continue." />
-        <FaqDropdown q="Do tokens expire?" a="Yes, purchased tokens expire 30 days after purchase. Your account dashboard shows the expiration date for each token pack so you can plan your study sessions accordingly." />
+        <FaqDropdown q="Do tokens expire?" a="No! Purchased tokens never expire. Use them whenever you need them — your tokens will always be there waiting for you." />
         <FaqDropdown q="What AI features are included?" a="LeafLearning includes an AI Summarizer with citation exports (APA/MLA/Chicago), AI Flashcard Generator, AI Quiz Maker with auto-grading, and an AI Study Planner with spaced repetition scheduling." />
         <FaqDropdown q="Is there a subscription plan?" a="No subscriptions! LeafLearning is free forever with a token-based model. Buy tokens only when you need them — no recurring charges, no commitments." />
         <FaqDropdown q="How do I track my progress?" a="The Analytics dashboard shows your study streaks, quiz accuracy, time spent, and more. Free accounts get 30 days of analytics history to monitor your learning progress." />
