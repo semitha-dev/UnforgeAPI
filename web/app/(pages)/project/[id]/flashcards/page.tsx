@@ -143,20 +143,20 @@ export default function FlashcardsPage() {
               <div className="h-full flex flex-col p-3">
                 <div className="flex-1 overflow-hidden">
                   <div className="flex items-start justify-between mb-1">
-                    <h3 className="font-medium text-gray-900 line-clamp-2 text-xs flex-1">
+                    <h3 className="font-medium text-gray-900 line-clamp-2 text-sm flex-1">
                       {set.title}
                     </h3>
                     {set.is_ai_generated && (
                       <span className="ml-1 px-1 py-0.5 text-[9px] font-medium bg-purple-100 text-purple-700 rounded shrink-0">AI</span>
                     )}
                   </div>
-                  <p className="text-[10px] text-gray-500 line-clamp-2">
+                  <p className="text-xs text-gray-500 line-clamp-2">
                     {set.description || 'No description'}
                   </p>
                 </div>
                 <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-[10px] text-gray-400">{set.card_count} cards</span>
-                  <span className="text-[10px] text-purple-600 font-medium group-hover:translate-x-0.5 transition-transform">Study →</span>
+                  <span className="text-xs text-gray-400">{set.card_count} cards</span>
+                  <span className="text-xs text-purple-600 font-medium group-hover:translate-x-0.5 transition-transform">Study →</span>
                 </div>
               </div>
             </button>
@@ -991,8 +991,8 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
               className="absolute inset-0 flex flex-col items-center justify-center p-12 backface-hidden"
               style={{ backfaceVisibility: 'hidden' }}
             >
-              <div className="text-sm font-medium text-indigo-600 mb-4">QUESTION</div>
-              <p className="text-2xl font-medium text-gray-900 text-center">
+              <div className="text-base font-medium text-indigo-600 mb-4">QUESTION</div>
+              <p className="text-3xl font-medium text-gray-900 text-center leading-relaxed">
                 {currentCard.front}
               </p>
               <div className="absolute bottom-6 text-sm text-gray-400">Click to flip</div>
@@ -1006,8 +1006,8 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
                 transform: 'rotateY(180deg)'
               }}
             >
-              <div className="text-sm font-medium mb-4">ANSWER</div>
-              <p className="text-2xl font-medium text-center">
+              <div className="text-base font-medium mb-4">ANSWER</div>
+              <p className="text-3xl font-medium text-center leading-relaxed">
                 {currentCard.back}
               </p>
               <div className="absolute bottom-6 text-sm opacity-75">Click to flip back</div>

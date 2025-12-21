@@ -821,7 +821,7 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
 
         {/* Question */}
         <div className="bg-white rounded-lg shadow p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">{currentQ?.question_text}</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 leading-relaxed">{currentQ?.question_text}</h2>
 
           {/* Options */}
           <div className="space-y-4 mb-8">
@@ -847,7 +847,7 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
                   } ${showFeedback ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-start space-x-3">
-                    <span className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-medium ${
+                    <span className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center text-base font-medium ${
                       showCorrectness && isCorrectOption
                         ? 'border-green-500 bg-green-500 text-white'
                         : showCorrectness && isSelected && !isCorrect
@@ -858,7 +858,7 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
                     }`}>
                       {showCorrectness && isCorrectOption ? '✓' : option}
                     </span>
-                    <span className="flex-1">{optionText}</span>
+                    <span className="flex-1 text-lg">{optionText}</span>
                   </div>
                 </button>
               )

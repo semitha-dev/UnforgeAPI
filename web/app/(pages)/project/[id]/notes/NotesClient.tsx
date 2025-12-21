@@ -1746,15 +1746,15 @@ function NoteCard({ note, onClick, isSelected = false, isSelectable = false }: N
       
       <div className="h-full flex flex-col p-3">
         <div className={`flex-1 overflow-hidden ${(isSummaryNote || hasSavedSummary) ? 'mt-4' : ''}`}>
-          <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 text-xs">
+          <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 text-sm">
             {note.title}
           </h3>
-          <p className="text-[10px] text-gray-500 line-clamp-3">
+          <p className="text-xs text-gray-500 line-clamp-3">
             {getPlainText(note.content || 'No content')}
           </p>
         </div>
         <div className="mt-auto pt-2 border-t border-gray-100">
-          <span className="text-[10px] text-gray-400">{formatDate(note.updated_at)}</span>
+          <span className="text-xs text-gray-400">{formatDate(note.updated_at)}</span>
         </div>
       </div>
     </button>
