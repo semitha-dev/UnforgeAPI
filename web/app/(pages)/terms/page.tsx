@@ -71,7 +71,7 @@ export default function TermsPage() {
 
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Eligibility</h3>
-                <p>You must be at least 13 years old (or 16 years old if residing in the European Union) to use this service.</p>
+                <p>You must be at least <strong>18 years old</strong> to use this service and make purchases. By creating an account, you confirm that you are at least 18 years of age. If you are under 18, you may not use LeafLearning.</p>
               </div>
 
               <div>

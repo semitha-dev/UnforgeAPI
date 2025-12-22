@@ -241,7 +241,7 @@ export default function SignUpPage() {
                 className="mt-0.5 h-4 w-4 text-[#4A7C59] border-gray-300 rounded focus:ring-[#4A7C59]"
               />
               <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
-                I agree to the{' '}
+                I am at least 18 years old and agree to the{' '}
                 <Link href="/terms" className="text-gray-900 underline hover:text-[#4A7C59]">
                   terms & policy
                 </Link>
