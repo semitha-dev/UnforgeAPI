@@ -71,7 +71,7 @@ export default function TermsPage() {
 
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Eligibility</h3>
-                <p>You must be at least <strong>18 years old</strong> to use this service and make purchases. By creating an account, you confirm that you are at least 18 years of age. If you are under 18, you may not use LeafLearning.</p>
+                <p>You must be at least <strong>13 years old</strong> (or 16 years old if residing in the European Union) to use this service. <strong>You must be at least 18 years old to purchase tokens.</strong> Users under 18 may use LeafLearning with the complimentary tokens provided upon registration.</p>
               </div>
 
               <div>
@@ -95,9 +95,10 @@ export default function TermsPage() {
               <div>
                 <h3 className="font-semibold text-gray-900 mb-2">Token System</h3>
                 <ul className="list-disc list-inside space-y-2 ml-4">
+                  <li><strong>Age Requirement for Purchases:</strong> You must be at least 18 years old to purchase tokens. By making a purchase, you confirm that you are at least 18 years of age.</li>
                   <li><strong>Token Validity:</strong> Tokens are valid for the period specified at the time of purchase. LeafLearning reserves the right to modify token expiration policies at its discretion.</li>
                   <li><strong>Non-Transferable:</strong> Tokens cannot be transferred to other accounts or exchanged for cash.</li>
-                  <li><strong>Free Tier:</strong> New users receive 100 complimentary tokens upon registration.</li>
+                  <li><strong>Free Tier:</strong> New users receive 500 complimentary tokens upon registration, available to all eligible users (13+).</li>
                 </ul>
               </div>
 
