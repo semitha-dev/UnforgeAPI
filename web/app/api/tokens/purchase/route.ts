@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // Token pack product IDs
 const TOKEN_PACKS: Record<string, { tokens: number; price: number }> = {
-  '6c9c0f4b-2758-4c09-bc3f-d10c6a3e419a': { tokens: 500, price: 200 },    // $2
-  'f6309173-add3-4683-bf4a-911db2877f42': { tokens: 1000, price: 300 },   // $3
-  '1b34d897-9009-49b7-bc87-21f77626c588': { tokens: 2500, price: 500 },   // $5
-  '6dd09d70-13ef-4fa9-86a3-9f7fa9ed8901': { tokens: 10000, price: 800 },  // $8
+  'c7594c15-a5ce-444e-ba49-8b42ea72eca7': { tokens: 500, price: 200 },    // $2
+  '0e654da6-ae7b-4a1c-9dae-28959d89b7f8': { tokens: 1000, price: 300 },   // $3
+  '63c6b8c0-92d7-4996-9976-f19936c94a24': { tokens: 2500, price: 500 },   // $5
+  '2beeb4a7-532a-4fb7-8e70-51a9b3c5ec3a': { tokens: 10000, price: 800 },  // $8
 };
 
 const POLAR_API_URL = process.env.POLAR_SANDBOX === 'true' 

@@ -49,18 +49,18 @@ export const TOKEN_COSTS = {
 
 // Token pack product IDs (Polar)
 export const TOKEN_PACK_PRODUCTS: Record<string, number> = {
-  '6c9c0f4b-2758-4c09-bc3f-d10c6a3e419a': 500,    // 500 tokens - $2
-  'f6309173-add3-4683-bf4a-911db2877f42': 1000,   // 1000 tokens - $3
-  '1b34d897-9009-49b7-bc87-21f77626c588': 2500,   // 2500 tokens - $5
-  '6dd09d70-13ef-4fa9-86a3-9f7fa9ed8901': 10000,  // 10000 tokens - $8
+  'c7594c15-a5ce-444e-ba49-8b42ea72eca7': 500,    // 500 tokens - $2
+  '0e654da6-ae7b-4a1c-9dae-28959d89b7f8': 1000,   // 1000 tokens - $3
+  '63c6b8c0-92d7-4996-9976-f19936c94a24': 2500,   // 2500 tokens - $5
+  '2beeb4a7-532a-4fb7-8e70-51a9b3c5ec3a': 10000,  // 10000 tokens - $8
 };
 
 // Token pack pricing info for display
 export const TOKEN_PACKS = [
-  { id: '6c9c0f4b-2758-4c09-bc3f-d10c6a3e419a', tokens: 500, price: 200, priceDisplay: '$2' },
-  { id: 'f6309173-add3-4683-bf4a-911db2877f42', tokens: 1000, price: 300, priceDisplay: '$3' },
-  { id: '1b34d897-9009-49b7-bc87-21f77626c588', tokens: 2500, price: 500, priceDisplay: '$5' },
-  { id: '6dd09d70-13ef-4fa9-86a3-9f7fa9ed8901', tokens: 10000, price: 800, priceDisplay: '$8' },
+  { id: 'c7594c15-a5ce-444e-ba49-8b42ea72eca7', tokens: 500, price: 200, priceDisplay: '$2' },
+  { id: '0e654da6-ae7b-4a1c-9dae-28959d89b7f8', tokens: 1000, price: 300, priceDisplay: '$3' },
+  { id: '63c6b8c0-92d7-4996-9976-f19936c94a24', tokens: 2500, price: 500, priceDisplay: '$5' },
+  { id: '2beeb4a7-532a-4fb7-8e70-51a9b3c5ec3a', tokens: 10000, price: 800, priceDisplay: '$8' },
 ] as const;
 
 // Default tokens for new users (launch promotion)

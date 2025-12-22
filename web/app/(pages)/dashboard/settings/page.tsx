@@ -665,11 +665,11 @@ function SettingsPageContent() {
                             <p className="text-lg font-semibold text-gray-900">$2</p>
                             <p className="text-xs text-gray-400 mb-3">$0.004/token</p>
                             <button
-                              onClick={() => handleBuyTokens('6c9c0f4b-2758-4c09-bc3f-d10c6a3e419a')}
+                              onClick={() => handleBuyTokens('c7594c15-a5ce-444e-ba49-8b42ea72eca7')}
                               disabled={checkoutLoading !== null}
                               className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
                             >
-                              {checkoutLoading === '6c9c0f4b-2758-4c09-bc3f-d10c6a3e419a' ? 'Loading...' : 'Buy'}
+                              {checkoutLoading === 'c7594c15-a5ce-444e-ba49-8b42ea72eca7' ? 'Loading...' : 'Buy'}
                             </button>
                           </div>
                         </div>
@@ -682,11 +682,11 @@ function SettingsPageContent() {
                             <p className="text-lg font-semibold text-gray-900">$3</p>
                             <p className="text-xs text-gray-400 mb-3">$0.003/token</p>
                             <button
-                              onClick={() => handleBuyTokens('f6309173-add3-4683-bf4a-911db2877f42')}
+                              onClick={() => handleBuyTokens('0e654da6-ae7b-4a1c-9dae-28959d89b7f8')}
                               disabled={checkoutLoading !== null}
                               className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
                             >
-                              {checkoutLoading === 'f6309173-add3-4683-bf4a-911db2877f42' ? 'Loading...' : 'Buy'}
+                              {checkoutLoading === '0e654da6-ae7b-4a1c-9dae-28959d89b7f8' ? 'Loading...' : 'Buy'}
                             </button>
                           </div>
                         </div>
@@ -702,11 +702,11 @@ function SettingsPageContent() {
                             <p className="text-lg font-semibold text-gray-900">$5</p>
                             <p className="text-xs text-gray-400 mb-3">$0.002/token</p>
                             <button
-                              onClick={() => handleBuyTokens('1b34d897-9009-49b7-bc87-21f77626c588')}
+                              onClick={() => handleBuyTokens('63c6b8c0-92d7-4996-9976-f19936c94a24')}
                               disabled={checkoutLoading !== null}
                               className="w-full px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                             >
-                              {checkoutLoading === '1b34d897-9009-49b7-bc87-21f77626c588' ? 'Loading...' : 'Buy'}
+                              {checkoutLoading === '63c6b8c0-92d7-4996-9976-f19936c94a24' ? 'Loading...' : 'Buy'}
                             </button>
                           </div>
                         </div>
@@ -722,14 +722,21 @@ function SettingsPageContent() {
                             <p className="text-lg font-semibold text-gray-900">$8</p>
                             <p className="text-xs text-gray-400 mb-3">$0.0008/token</p>
                             <button
-                              onClick={() => handleBuyTokens('6dd09d70-13ef-4fa9-86a3-9f7fa9ed8901')}
+                              onClick={() => handleBuyTokens('2beeb4a7-532a-4fb7-8e70-51a9b3c5ec3a')}
                               disabled={checkoutLoading !== null}
                               className="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 transition-colors"
                             >
-                              {checkoutLoading === '6dd09d70-13ef-4fa9-86a3-9f7fa9ed8901' ? 'Loading...' : 'Buy'}
+                              {checkoutLoading === '2beeb4a7-532a-4fb7-8e70-51a9b3c5ec3a' ? 'Loading...' : 'Buy'}
                             </button>
                           </div>
                         </div>
+                      </div>
+
+                      {/* Token delay notice */}
+                      <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p className="text-sm text-amber-800">
+                          <span className="font-medium">Note:</span> After purchase, tokens may take 5-10 minutes to appear in your account. If tokens don't arrive, please refresh the page or contact <a href="mailto:leaflearningofficial@gmail.com" className="underline font-medium">leaflearningofficial@gmail.com</a> for support.
+                        </p>
                       </div>
                     </div>
                   </div>

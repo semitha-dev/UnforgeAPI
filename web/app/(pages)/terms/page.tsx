@@ -200,11 +200,11 @@ export default function TermsPage() {
             <div className="text-gray-700">
               <p className="mb-4">For legal inquiries or support, please contact:</p>
               <a 
-                href="mailto:leaflearningoffcial@gmail.com" 
+                href="mailto:leaflearningofficial@gmail.com" 
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 <Mail className="w-4 h-4" />
-                <span className="font-medium">leaflearningoffcial@gmail.com</span>
+                <span className="font-medium">leaflearningofficial@gmail.com</span>
               </a>
             </div>
           </div>
