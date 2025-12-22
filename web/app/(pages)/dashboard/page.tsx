@@ -120,13 +120,23 @@ export default function Dashboard() {
   // Listen for token updates (e.g., after purchase)
   useEffect(() => {
     const handleTokensUpdated = async () => {
+      console.log('[Dashboard] Token update event received, fetching fresh balance...')
       try {
-        const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
+        const timestamp = Date.now()
+        const subscriptionRes = await fetch(`/api/subscription?_t=${timestamp}`, { 
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        })
         if (subscriptionRes.ok) {
           const subscriptionData = await subscriptionRes.json()
+          const newBalance = subscriptionData.subscription?.tokens_balance || 0
+          console.log('[Dashboard] Fresh token balance:', newBalance)
           setProfile(prev => prev ? {
             ...prev,
-            tokens_balance: subscriptionData.subscription?.tokens_balance || 0
+            tokens_balance: newBalance
           } : null)
         }
       } catch (err) {
@@ -179,10 +189,18 @@ export default function Dashboard() {
       // Fetch valid token balance
       let validTokenBalance = 0
       try {
-        const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
+        const timestamp = Date.now()
+        const subscriptionRes = await fetch(`/api/subscription?_t=${timestamp}`, { 
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        })
         if (subscriptionRes.ok) {
           const subscriptionData = await subscriptionRes.json()
           validTokenBalance = subscriptionData.subscription?.tokens_balance || 0
+          console.log('[Dashboard] Initial token balance:', validTokenBalance)
         }
       } catch (err) {
         console.error('Error fetching token balance:', err)

@@ -9,14 +9,21 @@ import { RealtimeChannel } from '@supabase/supabase-js'
  * When the user's profile is updated (specifically tokens_balance),
  * this will dispatch a 'tokensUpdated' event to refresh all components.
  * 
+ * NOTE: Supabase Realtime requires the table to have Realtime enabled in the dashboard:
+ * Database -> Replication -> Select "profiles" table -> Enable Realtime
+ * 
  * @param userId - The current user's ID to subscribe to
  */
 export function useTokenSubscription(userId: string | null | undefined) {
   const channelRef = useRef<RealtimeChannel | null>(null)
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId) {
+      console.log('[TokenSubscription] No userId, skipping subscription')
+      return
+    }
 
+    console.log('[TokenSubscription] Setting up Realtime subscription for user:', userId)
     const supabase = createClient()
 
     // Subscribe to changes on the profiles table for this specific user
@@ -31,27 +38,38 @@ export function useTokenSubscription(userId: string | null | undefined) {
           filter: `id=eq.${userId}`,
         },
         (payload) => {
-          console.log('Token balance updated via Supabase Realtime:', payload)
+          console.log('[TokenSubscription] Received Realtime update:', payload)
           
           // Check if tokens_balance was actually changed
           const oldTokens = payload.old?.tokens_balance
           const newTokens = payload.new?.tokens_balance
           
-          if (oldTokens !== newTokens) {
-            console.log(`Tokens changed: ${oldTokens} -> ${newTokens}`)
-            // Dispatch the tokensUpdated event to refresh all components
-            window.dispatchEvent(new CustomEvent('tokensUpdated'))
-          }
+          console.log(`[TokenSubscription] Token change detected: ${oldTokens} -> ${newTokens}`)
+          
+          // Always dispatch the event to refresh - even if values look the same
+          // (the RPC function might return different values than the cached column)
+          window.dispatchEvent(new CustomEvent('tokensUpdated', { 
+            detail: { oldTokens, newTokens } 
+          }))
         }
       )
-      .subscribe((status) => {
-        console.log('Supabase Realtime subscription status:', status)
+      .subscribe((status, err) => {
+        console.log('[TokenSubscription] Subscription status:', status)
+        if (err) {
+          console.error('[TokenSubscription] Subscription error:', err)
+        }
+        if (status === 'SUBSCRIBED') {
+          console.log('[TokenSubscription] ✅ Successfully subscribed to profile changes')
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('[TokenSubscription] ❌ Channel error - check if Realtime is enabled for profiles table')
+        }
       })
 
     channelRef.current = channel
 
     // Cleanup on unmount or userId change
     return () => {
+      console.log('[TokenSubscription] Cleaning up subscription')
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current)
         channelRef.current = null

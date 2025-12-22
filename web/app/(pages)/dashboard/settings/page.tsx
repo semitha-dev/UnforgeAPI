@@ -58,6 +58,7 @@ function SettingsPageContent() {
   const [userId, setUserId] = useState<string | null>(null)
   const [tokensBalance, setTokensBalance] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [hasHandledCheckoutReturn, setHasHandledCheckoutReturn] = useState(false)
   const [saving, setSaving] = useState(false)
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -94,37 +95,89 @@ function SettingsPageContent() {
     fetchProfile()
     fetchTokens()
     
-    if (searchParams.get('tokens') === 'success') {
-      setSuccess('🎉 Token purchase successful! Your tokens have been added.')
+    // Only handle checkout return once
+    if (searchParams.get('tokens') === 'success' && !hasHandledCheckoutReturn) {
+      setHasHandledCheckoutReturn(true)
       setActiveSection('tokens')
-      pollForTokenUpdate()
-      router.replace('/dashboard/settings?section=tokens')
+      // Don't set success here - let polling handle it
+      // Start polling for token update
+      startTokenPolling()
+      // Clean up URL without triggering re-render issues
+      window.history.replaceState({}, '', '/dashboard/settings?section=tokens')
     }
-  }, [searchParams])
+  }, [searchParams, hasHandledCheckoutReturn])
 
-  const pollForTokenUpdate = async () => {
-    const initialBalance = tokensBalance
+  const startTokenPolling = async () => {
+    // First fetch current balance to use as baseline
+    let initialBalance = 0
+    try {
+      const timestamp = Date.now()
+      const response = await fetch(`/api/subscription?_t=${timestamp}`, { 
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
+      if (response.ok) {
+        const data = await response.json()
+        initialBalance = data.subscription?.tokens_balance ?? 0
+        setTokensBalance(initialBalance)
+      }
+    } catch (err) {
+      console.error('Error fetching initial balance:', err)
+    }
+    
+    // Show the "processing" message
+    setSuccess('⏳ Processing your purchase... Tokens will appear shortly.')
+    
+    // Now start polling
+    pollForTokenUpdate(initialBalance)
+  }
+
+  const pollForTokenUpdate = async (initialBalance: number) => {
     let attempts = 0
-    const maxAttempts = 10
+    const maxAttempts = 30  // More attempts for slow webhooks
+    
+    console.log('[TokenPoll] Starting poll, initial balance:', initialBalance)
     
     const poll = async () => {
       attempts++
+      console.log(`[TokenPoll] Attempt ${attempts}/${maxAttempts}`)
+      
       try {
-        const response = await fetch('/api/subscription', { cache: 'no-store' })
+        const timestamp = Date.now()
+        const response = await fetch(`/api/subscription?_t=${timestamp}`, { 
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        })
         if (response.ok) {
           const data = await response.json()
           const newBalance = data.subscription?.tokens_balance ?? 0
           
+          console.log(`[TokenPoll] Fetched balance: ${newBalance}, initial: ${initialBalance}`)
+          
           if (newBalance > initialBalance) {
+            console.log(`[TokenPoll] ✅ Balance increased! ${initialBalance} -> ${newBalance}`)
             setTokensBalance(newBalance)
-            setSuccess(`🎉 Token purchase successful! +${newBalance - initialBalance} tokens added.`)
+            setSuccess(`🎉 +${newBalance - initialBalance} tokens added successfully!`)
             return
           }
           
           if (attempts < maxAttempts) {
-            setTimeout(poll, 1500)
+            // Start fast (1s), then slow down gradually up to 3s
+            const delay = Math.min(1000 + (attempts * 200), 3000)
+            console.log(`[TokenPoll] Balance unchanged, retrying in ${delay}ms...`)
+            setTimeout(poll, delay)
           } else {
+            console.log('[TokenPoll] Max attempts reached, final balance:', newBalance)
             setTokensBalance(newBalance)
+            if (newBalance === initialBalance) {
+              setSuccess('🎉 Purchase complete! Tokens may be delayed - please refresh the page or wait a few minutes. If tokens still don\'t appear, contact leaflearningofficial@gmail.com for support.')
+            }
           }
         }
       } catch (err) {
@@ -161,13 +214,40 @@ function SettingsPageContent() {
 
   const fetchTokens = async () => {
     try {
-      const response = await fetch('/api/subscription', { cache: 'no-store' })
+      // Add timestamp to bust any browser/CDN caching
+      const timestamp = Date.now()
+      const response = await fetch(`/api/subscription?_t=${timestamp}`, { 
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
       if (response.ok) {
         const data = await response.json()
-        setTokensBalance(data.subscription?.tokens_balance || 0)
+        const newBalance = data.subscription?.tokens_balance || 0
+        console.log('[TokenSync] Fetched token balance:', newBalance)
+        setTokensBalance(newBalance)
       }
     } catch (err) {
       console.error('Failed to load tokens:', err)
+      // Fallback: try direct Supabase query if API fails
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('tokens_balance')
+            .eq('id', user.id)
+            .single()
+          if (profile) {
+            console.log('[TokenSync] Fallback token balance:', profile.tokens_balance)
+            setTokensBalance(profile.tokens_balance || 0)
+          }
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback token fetch also failed:', fallbackErr)
+      }
     }
   }
 

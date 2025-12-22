@@ -64,9 +64,13 @@ export async function GET(request: NextRequest) {
         flashcard_sets: flashcardsResult.count || 0,
         qa_pairs: qaResult.count || 0,
       },
+      _timestamp: Date.now(), // Debug: verify fresh data
     }, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Surrogate-Control': 'no-store',
       },
     });
   } catch (error: any) {
