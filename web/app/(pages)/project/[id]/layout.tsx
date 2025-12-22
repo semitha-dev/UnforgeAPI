@@ -722,7 +722,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   useEffect(() => {
     const handleTokensUpdated = async () => {
       try {
-        const subscriptionRes = await fetch('/api/subscription')
+        const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
         if (subscriptionRes.ok) {
           const subscriptionData = await subscriptionRes.json()
           setProfile(prev => prev ? {
@@ -764,7 +764,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       // Fetch valid token balance from subscription API
       let validTokenBalance = 0
       try {
-        const subscriptionRes = await fetch('/api/subscription')
+        const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
         if (subscriptionRes.ok) {
           const subscriptionData = await subscriptionRes.json()
           validTokenBalance = subscriptionData.subscription?.tokens_balance || 0

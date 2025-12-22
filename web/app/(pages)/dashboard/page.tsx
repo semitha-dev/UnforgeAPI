@@ -121,7 +121,7 @@ export default function Dashboard() {
   useEffect(() => {
     const handleTokensUpdated = async () => {
       try {
-        const subscriptionRes = await fetch('/api/subscription')
+        const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
         if (subscriptionRes.ok) {
           const subscriptionData = await subscriptionRes.json()
           setProfile(prev => prev ? {
@@ -179,7 +179,7 @@ export default function Dashboard() {
       // Fetch valid token balance
       let validTokenBalance = 0
       try {
-        const subscriptionRes = await fetch('/api/subscription')
+        const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
         if (subscriptionRes.ok) {
           const subscriptionData = await subscriptionRes.json()
           validTokenBalance = subscriptionData.subscription?.tokens_balance || 0

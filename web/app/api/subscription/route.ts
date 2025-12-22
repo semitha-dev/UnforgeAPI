@@ -2,6 +2,10 @@ import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserSubscription, getValidTokenBalance, getTokenBreakdown, SUBSCRIPTION_TIERS, LIMITS } from '@/lib/subscription';
 
+// Disable caching for this route - token balance must always be fresh
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // GET /api/subscription - Get current user's subscription info
 export async function GET(request: NextRequest) {
   try {
@@ -59,6 +63,10 @@ export async function GET(request: NextRequest) {
         notes: notesResult.count || 0,
         flashcard_sets: flashcardsResult.count || 0,
         qa_pairs: qaResult.count || 0,
+      },
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
       },
     });
   } catch (error: any) {

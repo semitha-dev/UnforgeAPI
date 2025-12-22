@@ -109,7 +109,7 @@ function SettingsPageContent() {
     const poll = async () => {
       attempts++
       try {
-        const response = await fetch('/api/subscription')
+        const response = await fetch('/api/subscription', { cache: 'no-store' })
         if (response.ok) {
           const data = await response.json()
           const newBalance = data.subscription?.tokens_balance ?? 0
@@ -154,7 +154,7 @@ function SettingsPageContent() {
 
   const fetchTokens = async () => {
     try {
-      const response = await fetch('/api/subscription')
+      const response = await fetch('/api/subscription', { cache: 'no-store' })
       if (response.ok) {
         const data = await response.json()
         setTokensBalance(data.subscription?.tokens_balance || 0)
