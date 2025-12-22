@@ -83,18 +83,57 @@ interface AnalyticsData {
   }>
 }
 
+interface TimeTrackingData {
+  totalSessions: number
+  totalSeconds: number
+  avgSessionSeconds: number
+  dailyStats: Array<{
+    date: string
+    totalSeconds: number
+    sessions: number
+  }>
+  pageStats: Array<{
+    page: string
+    totalSeconds: number
+    sessions: number
+  }>
+  recentSessions: Array<{
+    id: string
+    session_start: string
+    session_end: string | null
+    duration_seconds: number | null
+    page_path: string | null
+  }>
+}
+
 export default function AnalyticsPage() {
   const params = useParams()
   const projectId = params.id as string
   
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+  const [timeTracking, setTimeTracking] = useState<TimeTrackingData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [viewMode, setViewMode] = useState<'project' | 'all'>('project')
 
   useEffect(() => {
     loadAnalytics()
+    if (viewMode === 'project') {
+      loadTimeTracking()
+    }
   }, [projectId, viewMode])
+
+  const loadTimeTracking = async () => {
+    try {
+      const response = await fetch(`/api/project-time?projectId=${projectId}&days=30`)
+      if (response.ok) {
+        const data = await response.json()
+        setTimeTracking(data)
+      }
+    } catch (err: any) {
+      console.error('Failed to load time tracking:', err)
+    }
+  }
 
   const loadAnalytics = async () => {
     try {
@@ -126,6 +165,21 @@ export default function AnalyticsPage() {
 
   const getDayName = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'short' })
+  }
+
+  const formatTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`
+  }
+
+  const formatPageName = (path: string | null) => {
+    if (!path) return 'Overview'
+    const parts = path.split('/')
+    const lastPart = parts[parts.length - 1] || parts[parts.length - 2]
+    return lastPart.charAt(0).toUpperCase() + lastPart.slice(1)
   }
 
   if (loading) {
@@ -208,6 +262,15 @@ export default function AnalyticsPage() {
           subtext={`from ${overview.totalQuizAttempts || 0} quiz attempts`}
           color="blue"
         />
+        {viewMode === 'project' && timeTracking && (
+          <StatCard
+            icon={<Clock className="w-5 h-5 text-emerald-600" />}
+            label="Time Spent"
+            value={formatTime(timeTracking.totalSeconds)}
+            subtext={`${timeTracking.totalSessions} sessions`}
+            color="emerald"
+          />
+        )}
         <StatCard
           icon={<Flame className="w-5 h-5 text-orange-600" />}
           label="Current Streak"
@@ -471,6 +534,110 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
+
+        {/* Time Tracking Section - Only show for project view */}
+        {viewMode === 'project' && timeTracking && timeTracking.totalSessions > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center space-x-2 mb-4">
+              <Clock className="w-5 h-5 text-emerald-500" />
+              <h2 className="text-lg font-semibold text-gray-900">Time Spent on Project</h2>
+            </div>
+
+            {/* Time Stats */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-emerald-50 rounded-lg p-4">
+                <div className="flex items-center justify-center mb-2">
+                  <Clock className="w-5 h-5 text-emerald-600" />
+                </div>
+                <p className="text-2xl font-bold text-emerald-700 text-center">
+                  {formatTime(timeTracking.totalSeconds)}
+                </p>
+                <p className="text-xs text-emerald-600 text-center mt-1">Total Time</p>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center justify-center mb-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <p className="text-2xl font-bold text-blue-700 text-center">
+                  {timeTracking.totalSessions}
+                </p>
+                <p className="text-xs text-blue-600 text-center mt-1">Sessions</p>
+              </div>
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center justify-center mb-2">
+                  <BarChart3 className="w-5 h-5 text-purple-600" />
+                </div>
+                <p className="text-2xl font-bold text-purple-700 text-center">
+                  {formatTime(timeTracking.avgSessionSeconds)}
+                </p>
+                <p className="text-xs text-purple-600 text-center mt-1">Avg Session</p>
+              </div>
+            </div>
+
+            {/* Time by Page */}
+            {timeTracking.pageStats.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Time by Activity</h3>
+                <div className="space-y-2">
+                  {timeTracking.pageStats
+                    .sort((a, b) => b.totalSeconds - a.totalSeconds)
+                    .slice(0, 5)
+                    .map((stat, index) => {
+                      const percentage = (stat.totalSeconds / timeTracking.totalSeconds) * 100
+                      return (
+                        <div key={index}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-600">{formatPageName(stat.page)}</span>
+                            <span className="font-medium text-gray-900">{formatTime(stat.totalSeconds)}</span>
+                          </div>
+                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    })}
+                </div>
+              </div>
+            )}
+
+            {/* Daily Activity Chart */}
+            {timeTracking.dailyStats.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Daily Time Spent (Last 7 Days)</h3>
+                <div className="flex items-end justify-between h-32 px-2">
+                  {timeTracking.dailyStats
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    .slice(-7)
+                    .map((stat, index) => {
+                      const maxTime = Math.max(...timeTracking.dailyStats.map(s => s.totalSeconds), 1)
+                      const height = (stat.totalSeconds / maxTime) * 100
+                      
+                      return (
+                        <div key={stat.date} className="flex flex-col items-center flex-1">
+                          <div className="relative w-full max-w-[40px] h-24 flex flex-col justify-end">
+                            <div 
+                              className="bg-gradient-to-t from-emerald-500 to-teal-400 rounded-t w-full"
+                              style={{ height: `${height}%`, minHeight: '4px' }}
+                              title={`${formatTime(stat.totalSeconds)} (${stat.sessions} sessions)`}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-500 mt-2">
+                            {new Date(stat.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {formatTime(stat.totalSeconds)}
+                          </span>
+                        </div>
+                      )
+                    })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Schedule & Flashcard Progress */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">

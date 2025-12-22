@@ -201,8 +201,8 @@ function Hero() {
                 <Star className="h-4 w-4 text-amber-500" />
               </div>
             </div>
-            <div className="font-semibold text-gray-900 text-sm">Smart Scheduling</div>
-            <p className="text-xs text-gray-500 mt-1">Build personalized study plans around your exam dates.</p>
+            <div className="font-semibold text-gray-900 text-sm">Smart Exam Scheduling</div>
+            <p className="text-xs text-gray-500 mt-1">Build personalized exam prep plans around your exam dates.</p>
           </div>
         </motion.div>
       </div>
@@ -276,7 +276,7 @@ function Hero() {
               </div>
             </div>
             <div className="font-semibold text-gray-900 text-sm">Community Library</div>
-            <p className="text-xs text-gray-500 mt-1">Access shared resources from other students worldwide.</p>
+            <p className="text-xs text-gray-500 mt-1">Access shared resources from other learners worldwide.</p>
           </div>
         </motion.div>
 
@@ -436,7 +436,7 @@ function FeatureGrid() {
         Everything you need to study smarter
       </h2>
       <p className="mx-auto mt-4 max-w-3xl text-center text-gray-600 text-base md:text-lg leading-relaxed mb-12 md:mb-20 px-4">
-        AI-powered tools to compress knowledge fast, practice deliberately, and track your progress with powerful features designed for students.
+        AI-powered tools to compress knowledge fast, practice deliberately, and track your progress with powerful features designed for learners.
       </p>
 
       {/* Feature Cards - Each as separate section */}
@@ -564,13 +564,13 @@ function FeatureGrid() {
                 <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mx-auto">
                   <Brain className="w-6 h-6 text-purple-600" />
                 </div>
-                <h4 className="text-lg font-semibold text-gray-900">What is mitosis?</h4>
+                <h4 className="text-lg font-semibold text-gray-900">Explain machine learning</h4>
                 <div className="space-y-2">
                   <button className="w-full text-left px-4 py-3 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors text-sm">
-                    Cell division process
+                    AI that learns from data
                   </button>
                   <button className="w-full text-left px-4 py-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors text-sm">
-                    Energy production
+                    Statistical modeling
                   </button>
                 </div>
                 <div className="text-xs text-gray-500">Card 1 of 24</div>
@@ -592,10 +592,10 @@ function FeatureGrid() {
               <CalendarCheck2 className="w-7 h-7 text-white" />
             </div>
             <h3 className="text-4xl font-bold text-gray-900 leading-tight">
-              AI Study Planner
+              AI Exam Planner
             </h3>
             <p className="text-lg text-gray-600 leading-relaxed">
-              Schedules from subject + exam date • Spaced repetition built‑in • Adapts to progress + feedback
+              Build exam prep schedules from your exam dates • Spaced repetition built‑in • Adapts to your progress + feedback
             </p>
             <div className="grid grid-cols-2 gap-4 pt-4">
               <div className="flex items-start gap-3">
@@ -626,7 +626,7 @@ function FeatureGrid() {
                 <CalendarCheck2 className="w-5 h-5 text-emerald-600" />
               </div>
               <div className="space-y-3">
-                {['Biology Chapter 3', 'Math Practice', 'Chemistry Review'].map((task, i) => (
+                {['Data Structures Review', 'Statistics Practice', 'Research Methods'].map((task, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                     <span className="text-sm text-gray-700">{task}</span>
@@ -686,15 +686,15 @@ function FeatureGrid() {
                   </div>
                   <div>
                     <div className="text-xs text-gray-500">Quiz Mode</div>
-                    <div className="text-sm font-semibold text-gray-900">Biology Chapter 5</div>
+                    <div className="text-sm font-semibold text-gray-900">Database Systems</div>
                   </div>
                 </div>
                 <span className="text-xs text-violet-600 font-medium">5/10</span>
               </div>
               <div className="space-y-3">
-                <div className="text-sm font-medium text-gray-900">What is photosynthesis?</div>
+                <div className="text-sm font-medium text-gray-900">What is normalization in databases?</div>
                 <div className="space-y-2">
-                  {['Process of energy production', 'Converting light to energy', 'Cell respiration'].map((option, i) => (
+                  {['Organizing data efficiently', 'Reducing redundancy', 'Increasing storage'].map((option, i) => (
                     <button key={i} className={`w-full text-left px-4 py-2.5 rounded-xl text-xs transition-colors ${i === 1 ? 'bg-violet-100 border-2 border-violet-500' : 'bg-gray-50 hover:bg-gray-100'}`}>
                       {option}
                     </button>
@@ -793,7 +793,7 @@ function FeatureGrid() {
           </div>
         </motion.div>
 
-        {/* Student-first UX */}
+        {/* Learner-first UX */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -806,7 +806,7 @@ function FeatureGrid() {
               <Sparkles className="w-7 h-7 text-white" />
             </div>
             <h3 className="text-4xl font-bold text-gray-900 leading-tight">
-              Student‑first UX
+              Learner‑first UX
             </h3>
             <p className="text-lg text-gray-600 leading-relaxed">
               Fast UI, keyboard shortcuts • Mobile friendly • Privacy‑first by design
@@ -1091,7 +1091,7 @@ function FAQ() {
         <FaqDropdown q="Do tokens expire?" a="No! Purchased tokens never expire. Use them whenever you need them — your tokens will always be there waiting for you." />
         <FaqDropdown q="What AI features are included?" a="LeafLearning includes an AI Summarizer with citation exports (APA/MLA/Chicago), AI Flashcard Generator, AI Quiz Maker with auto-grading, and an AI Study Planner with spaced repetition scheduling." />
         <FaqDropdown q="Is there a subscription plan?" a="No subscriptions! LeafLearning is free forever with a token-based model. Buy tokens only when you need them — no recurring charges, no commitments." />
-        <FaqDropdown q="How do I track my progress?" a="The Analytics dashboard shows your study streaks, quiz accuracy, time spent, and more. Free accounts get 30 days of analytics history to monitor your learning progress." />
+        <FaqDropdown q="How do I track my progress?" a="The Analytics dashboard shows your study streaks, quiz accuracy, time spent, and more. All accounts get 30 days of analytics history to monitor your learning progress." />
       </div>
     </section>
   );
@@ -1103,7 +1103,7 @@ function Footer() {
     <footer className="border-t border-gray-200 bg-white py-10 text-sm">
       <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-6 px-6 md:grid-cols-3">
         <div className="text-gray-600">© {new Date().getFullYear()} LeafLearning</div>
-        <div className="text-center text-gray-500">Built for students, loved by communities</div>
+        <div className="text-center text-gray-500">Built for learners, loved by communities</div>
         <div className="flex justify-end gap-5 text-gray-600">
           <a href="#" className="hover:text-gray-900">Privacy</a>
           <a href="#" className="hover:text-gray-900">Terms</a>

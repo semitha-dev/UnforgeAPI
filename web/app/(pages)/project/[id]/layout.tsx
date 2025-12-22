@@ -48,6 +48,7 @@ import {
 import { Loading } from '@/components/ui/loading'
 import { TokenPurchaseModal } from '@/components/ui/token-purchase-modal'
 import { useTokenSync } from '@/lib/useTokenRefresh'
+import { useProjectTimeTracking } from '@/lib/useProjectTimeTracking'
 
 // YouTube URL helpers
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -712,6 +713,9 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
 
   // Check if returning from checkout and subscribe to realtime token updates
   useTokenSync(userId)
+
+  // Track time spent on this project
+  useProjectTimeTracking()
 
   useEffect(() => {
     if (projectId) {
