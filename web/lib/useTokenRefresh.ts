@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useCallback } from 'react'
+import { useTokenSubscription } from './useTokenSubscription'
 
 const CHECKOUT_KEY = 'token_checkout_initiated'
 
@@ -25,4 +26,19 @@ export function useTokenRefresh() {
   }, [])
 
   return { markCheckoutInitiated }
+}
+
+/**
+ * Combined hook for complete token synchronization
+ * - Handles checkout return refresh
+ * - Subscribes to Supabase Realtime for live updates
+ * 
+ * @param userId - The current user's ID for realtime subscription
+ */
+export function useTokenSync(userId: string | null | undefined) {
+  // Handle checkout return
+  useTokenRefresh()
+  
+  // Subscribe to Supabase Realtime for live token updates
+  useTokenSubscription(userId)
 }

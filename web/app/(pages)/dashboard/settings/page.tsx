@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/app/lib/supabaseClient'
-import { useTokenRefresh } from '@/lib/useTokenRefresh'
+import { useTokenSync } from '@/lib/useTokenRefresh'
 import { 
   LayoutDashboard, 
   Settings, 
@@ -55,6 +55,7 @@ function SettingsPageContent() {
   const supabase = createClient()
   
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [tokensBalance, setTokensBalance] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -73,8 +74,8 @@ function SettingsPageContent() {
     education_level: ''
   })
 
-  // Check if returning from checkout and trigger token refresh
-  useTokenRefresh()
+  // Check if returning from checkout and subscribe to realtime token updates
+  useTokenSync(userId)
 
   // Listen for token update events
   useEffect(() => {
@@ -136,6 +137,12 @@ function SettingsPageContent() {
 
   const fetchProfile = async () => {
     try {
+      // Get user ID for realtime subscription
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+      }
+      
       const response = await fetch('/api/profile')
       if (!response.ok) throw new Error('Failed to fetch profile')
       const data = await response.json()

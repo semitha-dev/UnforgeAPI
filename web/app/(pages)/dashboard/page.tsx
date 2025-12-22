@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Loading } from '@/components/ui/loading'
 import { TokenPurchaseModal } from '@/components/ui/token-purchase-modal'
-import { useTokenRefresh } from '@/lib/useTokenRefresh'
+import { useTokenSync } from '@/lib/useTokenRefresh'
 
 interface Profile {
   name: string
@@ -110,8 +110,8 @@ export default function Dashboard() {
   const pathname = usePathname()
   const supabase = createClient()
 
-  // Check if returning from checkout and trigger token refresh
-  useTokenRefresh()
+  // Check if returning from checkout and subscribe to realtime token updates
+  useTokenSync(user?.id)
 
   useEffect(() => {
     loadUserAndProjects()

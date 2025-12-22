@@ -47,7 +47,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Loading } from '@/components/ui/loading'
 import { TokenPurchaseModal } from '@/components/ui/token-purchase-modal'
-import { useTokenRefresh } from '@/lib/useTokenRefresh'
+import { useTokenSync } from '@/lib/useTokenRefresh'
 
 // YouTube URL helpers
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -693,6 +693,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const [project, setProject] = useState<Project | null>(null)
   const [allProjects, setAllProjects] = useState<Project[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [userId, setUserId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -709,8 +710,8 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
 
   const projectId = params.id as string
 
-  // Check if returning from checkout and trigger token refresh
-  useTokenRefresh()
+  // Check if returning from checkout and subscribe to realtime token updates
+  useTokenSync(userId)
 
   useEffect(() => {
     if (projectId) {
@@ -754,6 +755,9 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
         router.push('/signin')
         return
       }
+
+      // Set userId for realtime subscription
+      setUserId(user.id)
 
       const { data: profileData } = await supabase
         .from('profiles')
