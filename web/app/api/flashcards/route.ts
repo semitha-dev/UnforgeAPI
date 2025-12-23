@@ -185,9 +185,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (![5, 10].includes(cardCount)) {
+    if (![5, 10, 15, 20].includes(cardCount)) {
       return NextResponse.json(
-        { error: 'Card count must be 5 or 10' },
+        { error: 'Card count must be 5, 10, 15, or 20' },
         { status: 400 }
       );
     }

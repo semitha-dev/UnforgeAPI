@@ -187,7 +187,7 @@ export default function SupportPage() {
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">How do I generate a quiz?</h3>
-              <p className="text-gray-600">Open a project, go to the Q&A section, and click "Generate Quiz". You can choose to generate 5 or 10 questions based on your study material.</p>
+              <p className="text-gray-600">Open a project, go to the Q&A section, and click "Generate Quiz". You can choose to generate 5, 10, 15, or 20 questions based on your study material.</p>
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 mb-2">Can I edit my profile information?</h3>
