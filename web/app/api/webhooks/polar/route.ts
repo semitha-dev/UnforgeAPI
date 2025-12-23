@@ -17,10 +17,10 @@ const PRODUCT_TO_TIER: Record<string, string> = {
 
 // Token pack product IDs to token amounts (one-time purchases)
 const TOKEN_PACK_PRODUCTS: Record<string, number> = {
-  'c7594c15-a5ce-444e-ba49-8b42ea72eca7': 500,    // 500 tokens - $2
-  '0e654da6-ae7b-4a1c-9dae-28959d89b7f8': 1000,   // 1000 tokens - $3
-  '63c6b8c0-92d7-4996-9976-f19936c94a24': 2500,   // 2500 tokens - $5
-  '2beeb4a7-532a-4fb7-8e70-51a9b3c5ec3a': 10000,  // 10000 tokens - $8
+  '5ac0c69a-501f-4f9f-a17e-592e50bb45a8': 500,    // 500 tokens - $2
+  '743c222a-bee4-4272-8011-12f6089a9c01': 1000,   // 1000 tokens - $3
+  'ffc789b3-4e5a-4e3f-8afc-8e310973fd57': 2500,   // 2500 tokens - $5
+  '367064f3-6219-4e15-8142-705e7267d75e': 10000,  // 10000 tokens - $8
 };
 
 const POLAR_WEBHOOK_SECRET = process.env.POLAR_WEBHOOK_SECRET;
@@ -109,10 +109,17 @@ function calculatePeriodEnd(startDate: Date): Date {
 // Polar Webhook Handler
 // Handles all subscription lifecycle events from Polar
 export async function POST(request: NextRequest) {
-  console.log('=== POLAR WEBHOOK RECEIVED ===');
+  const startTime = Date.now();
+  console.log('');
+  console.log('╔════════════════════════════════════════════════════════════╗');
+  console.log('║           POLAR WEBHOOK RECEIVED                           ║');
+  console.log('╚════════════════════════════════════════════════════════════╝');
+  console.log('Timestamp:', new Date().toISOString());
   
   try {
     const rawBody = await request.text();
+    console.log('Raw body length:', rawBody.length);
+    console.log('Raw body preview:', rawBody.substring(0, 500));
     
     // Polar uses Standard Webhooks format with these headers
     const webhookId = request.headers.get('webhook-id');
@@ -551,19 +558,35 @@ export async function POST(request: NextRequest) {
         const productId = data.product_id;
         const orderId = data.id;
         
-        console.log('Order event:', type, 'Status:', orderStatus, 'Billing reason:', billingReason, 'Product:', productId);
+        console.log('=== ORDER EVENT DEBUG ===');
+        console.log('Event type:', type);
+        console.log('Order ID:', orderId);
+        console.log('Order Status:', orderStatus);
+        console.log('Billing Reason:', billingReason);
+        console.log('Product ID from webhook:', productId);
+        console.log('Product ID type:', typeof productId);
+        console.log('Known token packs:', Object.keys(TOKEN_PACK_PRODUCTS));
+        console.log('Is token pack?', TOKEN_PACK_PRODUCTS.hasOwnProperty(productId));
+        console.log('Token pack lookup result:', TOKEN_PACK_PRODUCTS[productId]);
+        console.log('Full order data:', JSON.stringify(data, null, 2));
         
         // Check if this is a token pack purchase (one-time purchase)
         // Process when status is 'paid', regardless of event type
         // Use order-specific idempotency to prevent double-processing
         if (orderStatus === 'paid' && TOKEN_PACK_PRODUCTS[productId]) {
+          console.log('✅ MATCHED: Token pack purchase detected!');
+          console.log('Tokens to add:', TOKEN_PACK_PRODUCTS[productId]);
           // Check if we've already processed this specific order for tokens
           const tokenPurchaseKey = `token_purchase:${orderId}`;
-          const { data: existingPurchase } = await supabase
+          console.log('Token purchase idempotency key:', tokenPurchaseKey);
+          
+          const { data: existingPurchase, error: lookupError } = await supabase
             .from('webhook_events')
             .select('id')
             .eq('event_id', tokenPurchaseKey)
             .single();
+          
+          console.log('Existing purchase lookup:', { existingPurchase, lookupError: lookupError?.message });
           
           if (existingPurchase) {
             console.log(`Token purchase for order ${orderId} already processed. Skipping.`);
@@ -571,59 +594,73 @@ export async function POST(request: NextRequest) {
           }
           
           // Mark this order as processed for tokens
-          await supabase.from('webhook_events').insert({
+          const { error: insertEventError } = await supabase.from('webhook_events').insert({
             event_id: tokenPurchaseKey,
             event_type: 'token_purchase',
             payload: { orderId, productId },
             status: 'processed',
             processed_at: new Date().toISOString()
           });
+          console.log('Insert webhook event result:', { error: insertEventError?.message });
           
           const tokensToAdd = TOKEN_PACK_PRODUCTS[productId];
           const customerEmail = data.customer?.email || data.user?.email;
           const metadataUserId = data.metadata?.user_id;
           const pricePaid = data.total_amount || data.amount || 0;
           
-          console.log(`Processing token pack purchase: ${tokensToAdd} tokens for ${customerEmail}`);
+          console.log('=== USER LOOKUP DEBUG ===');
+          console.log('Customer email from webhook:', customerEmail);
+          console.log('Metadata user_id from webhook:', metadataUserId);
+          console.log('Price paid:', pricePaid);
           
           // Find user
           let profile: { id: string; email: string; tokens_balance: number } | null = null;
           
           if (customerEmail) {
-            const { data: profileByEmail } = await supabase
+            const { data: profileByEmail, error: emailLookupError } = await supabase
               .from('profiles')
               .select('id, email, tokens_balance')
               .eq('email', customerEmail)
               .single();
+            console.log('Email lookup result:', { profileByEmail, error: emailLookupError?.message });
             profile = profileByEmail;
           }
           
           if (!profile && metadataUserId) {
-            const { data: profileById } = await supabase
+            console.log('Email lookup failed, trying metadata user_id...');
+            const { data: profileById, error: idLookupError } = await supabase
               .from('profiles')
               .select('id, email, tokens_balance')
               .eq('id', metadataUserId)
               .single();
+            console.log('User ID lookup result:', { profileById, error: idLookupError?.message });
             profile = profileById;
           }
           
           if (!profile) {
-            console.error('User not found for token pack purchase:', customerEmail, metadataUserId);
+            console.error('❌ USER NOT FOUND for token pack purchase!');
+            console.error('Searched email:', customerEmail);
+            console.error('Searched user_id:', metadataUserId);
             break;
           }
           
+          console.log('✅ Found user:', { id: profile.id, email: profile.email, currentBalance: profile.tokens_balance });
+          
           // Double-check: See if a token transaction already exists for this order
-          const { data: existingTransaction } = await supabase
+          const { data: existingTransaction, error: txLookupError } = await supabase
             .from('token_transactions')
             .select('id')
             .eq('polar_order_id', orderId)
             .single();
+          
+          console.log('Existing transaction lookup:', { existingTransaction, error: txLookupError?.message });
           
           if (existingTransaction) {
             console.log(`Token transaction already exists for order ${orderId}. Skipping to prevent duplicate.`);
             break;
           }
           
+          console.log('=== INSERTING TOKEN TRANSACTION ===');
           // Insert into token_transactions (no expiration - tokens never expire)
           const { data: newTransaction, error: transactionError } = await supabase
             .from('token_transactions')
@@ -638,13 +675,15 @@ export async function POST(request: NextRequest) {
             .select('id')
             .single();
           
+          console.log('Token transaction insert result:', { newTransaction, error: transactionError?.message });
+          
           if (transactionError) {
             // Check if it's a duplicate key error
             if (transactionError.code === '23505') {
               console.log(`Token transaction for order ${orderId} already exists (unique constraint). Skipping.`);
               break;
             }
-            console.error('Error creating token transaction:', transactionError);
+            console.error('❌ Error creating token transaction:', transactionError);
             break;
           }
           
@@ -652,6 +691,7 @@ export async function POST(request: NextRequest) {
           
           // Also update tokens_balance for backward compatibility (cached value)
           const newBalance = (profile.tokens_balance || 0) + tokensToAdd;
+          console.log('Updating cached balance from', profile.tokens_balance, 'to', newBalance);
           
           const { error: updateError } = await supabase
             .from('profiles')
@@ -661,8 +701,10 @@ export async function POST(request: NextRequest) {
             })
             .eq('id', profile.id);
           
+          console.log('Profile update result:', { error: updateError?.message });
+          
           if (updateError) {
-            console.error('Error updating cached token balance:', updateError);
+            console.error('❌ Error updating cached token balance:', updateError);
             // Non-critical - token_transactions is the source of truth now
           }
           
@@ -678,11 +720,13 @@ export async function POST(request: NextRequest) {
               currency: data.currency || 'usd',
             });
           
+          console.log('Token purchase record result:', { error: purchaseError?.message });
+          
           if (purchaseError && purchaseError.code !== '23505') { // Ignore duplicate
-            console.error('Error recording token purchase:', purchaseError);
+            console.error('❌ Error recording token purchase:', purchaseError);
           }
           
-          console.log(`✅ Token pack purchased for ${customerEmail}: +${tokensToAdd} tokens (never expires), cached balance: ${newBalance}`);
+          console.log(`🎉 TOKEN PACK PURCHASE COMPLETE for ${customerEmail}: +${tokensToAdd} tokens, new balance: ${newBalance}`);
           break;
         }
         
