@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
 import { Loading } from '@/components/ui/loading'
-import { FileText, Upload, Search } from 'lucide-react'
+import { FileText, Upload, Search, MoreVertical, Pencil, Trash2, Share2, Copy, Check, Link2 } from 'lucide-react'
 
 interface FlashcardSet {
   id: string
@@ -14,6 +14,8 @@ interface FlashcardSet {
   card_count: number
   is_ai_generated: boolean
   created_at: string
+  share_token?: string
+  is_public?: boolean
 }
 
 interface Flashcard {
@@ -40,6 +42,17 @@ export default function FlashcardsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSet, setSelectedSet] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  
+  // Menu and sharing states
+  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [sharingSet, setSharingSet] = useState<FlashcardSet | null>(null)
+  const [shareUrl, setShareUrl] = useState('')
+  const [isSharing, setIsSharing] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingSet, setDeletingSet] = useState<FlashcardSet | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     loadSets()
@@ -62,6 +75,61 @@ export default function FlashcardsPage() {
   const handleSetCreated = (setId: string) => {
     setShowCreateModal(false)
     setSelectedSet(setId)
+  }
+
+  const handleShare = async (set: FlashcardSet) => {
+    setSharingSet(set)
+    setShowShareModal(true)
+    setMenuOpenFor(null)
+    setIsSharing(true)
+    setCopied(false)
+
+    try {
+      const response = await fetch('/api/share/flashcards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setId: set.id })
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setShareUrl(data.shareUrl)
+        // Update local state
+        setSets(prev => prev.map(s => s.id === set.id ? { ...s, share_token: data.shareToken, is_public: true } : s))
+      }
+    } catch (error) {
+      console.error('Error generating share link:', error)
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Error copying link:', error)
+    }
+  }
+
+  const handleDeleteSet = async () => {
+    if (!deletingSet) return
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/flashcards?setId=${deletingSet.id}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        setSets(prev => prev.filter(s => s.id !== deletingSet.id))
+        setShowDeleteModal(false)
+        setDeletingSet(null)
+      }
+    } catch (error) {
+      console.error('Error deleting flashcard set:', error)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   if (selectedSet) {
@@ -135,31 +203,85 @@ export default function FlashcardsPage() {
               (set.description || '').toLowerCase().includes(searchQuery.toLowerCase())
             )
             .map((set) => (
-            <button
+            <div
               key={set.id}
-              onClick={() => setSelectedSet(set.id)}
-              className="aspect-square bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all text-left overflow-hidden group"
+              className="relative aspect-square bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all text-left overflow-hidden group"
             >
-              <div className="h-full flex flex-col p-3">
-                <div className="flex-1 overflow-hidden">
-                  <div className="flex items-start justify-between mb-1">
-                    <h3 className="font-semibold text-gray-900 line-clamp-2 text-base flex-1">
-                      {set.title}
-                    </h3>
-                    {set.is_ai_generated && (
-                      <span className="ml-1 px-1 py-0.5 text-[9px] font-medium bg-purple-100 text-purple-700 rounded shrink-0">AI</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-500 line-clamp-2">
-                    {set.description || 'No description'}
-                  </p>
-                </div>
-                <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-sm text-gray-500 font-medium">{set.card_count} cards</span>
-                  <span className="text-sm text-purple-600 font-semibold group-hover:translate-x-0.5 transition-transform">Study →</span>
-                </div>
+              {/* Three-dot menu button */}
+              <div className="absolute top-2 right-2 z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setMenuOpenFor(menuOpenFor === set.id ? null : set.id)
+                  }}
+                  className="p-1 rounded-lg bg-white/80 hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <MoreVertical className="w-4 h-4 text-gray-500" />
+                </button>
+                
+                {/* Dropdown menu */}
+                {menuOpenFor === set.id && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setMenuOpenFor(null)
+                      }} 
+                    />
+                    <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 overflow-hidden">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleShare(set)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Share
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeletingSet(set)
+                          setShowDeleteModal(true)
+                          setMenuOpenFor(null)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
-            </button>
+
+              <button
+                onClick={() => setSelectedSet(set.id)}
+                className="h-full w-full text-left"
+              >
+                <div className="h-full flex flex-col p-3">
+                  <div className="flex-1 overflow-hidden">
+                    <div className="flex items-start justify-between mb-1 pr-6">
+                      <h3 className="font-semibold text-gray-900 line-clamp-2 text-base flex-1">
+                        {set.title}
+                      </h3>
+                      {set.is_ai_generated && (
+                        <span className="ml-1 px-1 py-0.5 text-[9px] font-medium bg-purple-100 text-purple-700 rounded shrink-0">AI</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 line-clamp-2">
+                      {set.description || 'No description'}
+                    </p>
+                  </div>
+                  <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-sm text-gray-500 font-medium">{set.card_count} cards</span>
+                    <span className="text-sm text-purple-600 font-semibold group-hover:translate-x-0.5 transition-transform">Study →</span>
+                  </div>
+                </div>
+              </button>
+            </div>
           ))}
         </div>
 
@@ -180,6 +302,111 @@ export default function FlashcardsPage() {
             onClose={() => setShowCreateModal(false)}
             onSuccess={handleSetCreated}
           />
+        )}
+
+        {/* Share Modal */}
+        {showShareModal && sharingSet && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Share Flashcards</h3>
+                <button onClick={() => setShowShareModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Share "<span className="font-medium">{sharingSet.title}</span>" with friends. They can study these flashcards without needing an account!
+              </p>
+
+              {isSharing ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                </div>
+              ) : shareUrl ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={shareUrl}
+                      className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg"
+                    />
+                    <button
+                      onClick={handleCopyLink}
+                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                        copied 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-purple-600 text-white hover:bg-purple-700'
+                      }`}
+                    >
+                      {copied ? (
+                        <span className="flex items-center gap-1">
+                          <Check className="w-4 h-4" /> Copied!
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <Copy className="w-4 h-4" /> Copy
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <Link2 className="w-3 h-3" />
+                    Anyone with this link can view and study these flashcards
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-red-600">Failed to generate share link. Please try again.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && deletingSet && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0">
+                  <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Delete Flashcard Set</h3>
+                  <p className="text-sm text-gray-600">This action cannot be undone</p>
+                </div>
+              </div>
+
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete "<span className="font-semibold">{deletingSet.title}</span>"? 
+                This will permanently remove all {deletingSet.card_count} flashcards in this set.
+              </p>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false)
+                    setDeletingSet(null)
+                  }}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteSet}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

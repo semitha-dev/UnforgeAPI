@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
 import { Loading } from '@/components/ui/loading'
-import { FileText, Upload, Search, X } from 'lucide-react'
+import { FileText, Upload, Search, X, MoreVertical, Share2, Trash2, Copy, Check, Link2 } from 'lucide-react'
 
 interface Quiz {
   id: string
@@ -13,6 +13,8 @@ interface Quiz {
   description: string
   question_count: number
   created_at: string
+  share_token?: string
+  is_public?: boolean
 }
 
 interface Note {
@@ -44,6 +46,17 @@ export default function QuizPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedQuiz, setSelectedQuiz] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  
+  // Menu and sharing states
+  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [sharingQuiz, setSharingQuiz] = useState<Quiz | null>(null)
+  const [shareUrl, setShareUrl] = useState('')
+  const [isSharing, setIsSharing] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deletingQuiz, setDeletingQuiz] = useState<Quiz | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     loadQuizzes()
@@ -69,6 +82,61 @@ export default function QuizPage() {
     // Auto-open the newly created quiz
     if (quizId) {
       setSelectedQuiz(quizId)
+    }
+  }
+
+  const handleShare = async (quiz: Quiz) => {
+    setSharingQuiz(quiz)
+    setShowShareModal(true)
+    setMenuOpenFor(null)
+    setIsSharing(true)
+    setCopied(false)
+
+    try {
+      const response = await fetch('/api/share/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quizId: quiz.id })
+      })
+      const data = await response.json()
+      if (response.ok) {
+        setShareUrl(data.shareUrl)
+        // Update local state
+        setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, share_token: data.shareToken, is_public: true } : q))
+      }
+    } catch (error) {
+      console.error('Error generating share link:', error)
+    } finally {
+      setIsSharing(false)
+    }
+  }
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (error) {
+      console.error('Error copying link:', error)
+    }
+  }
+
+  const handleDeleteQuiz = async () => {
+    if (!deletingQuiz) return
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/quiz/${deletingQuiz.id}`, {
+        method: 'DELETE'
+      })
+      if (response.ok) {
+        setQuizzes(prev => prev.filter(q => q.id !== deletingQuiz.id))
+        setShowDeleteModal(false)
+        setDeletingQuiz(null)
+      }
+    } catch (error) {
+      console.error('Error deleting quiz:', error)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -140,26 +208,80 @@ export default function QuizPage() {
               (quiz.description || '').toLowerCase().includes(searchQuery.toLowerCase())
             )
             .map((quiz) => (
-            <button
+            <div
               key={quiz.id}
-              onClick={() => setSelectedQuiz(quiz.id)}
-              className="aspect-square bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all text-left overflow-hidden group"
+              className="relative aspect-square bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all text-left overflow-hidden group"
             >
-              <div className="h-full flex flex-col p-3">
-                <div className="flex-1 overflow-hidden">
-                  <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-base">
-                    {quiz.title}
-                  </h3>
-                  <p className="text-xs text-gray-500 line-clamp-2">
-                    {quiz.description || 'No description'}
-                  </p>
-                </div>
-                <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-sm text-gray-500 font-medium">{quiz.question_count} questions</span>
-                  <span className="text-sm text-green-600 font-semibold group-hover:translate-x-0.5 transition-transform">Start →</span>
-                </div>
+              {/* Three-dot menu button */}
+              <div className="absolute top-2 right-2 z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setMenuOpenFor(menuOpenFor === quiz.id ? null : quiz.id)
+                  }}
+                  className="p-1 rounded-lg bg-white/80 hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <MoreVertical className="w-4 h-4 text-gray-500" />
+                </button>
+                
+                {/* Dropdown menu */}
+                {menuOpenFor === quiz.id && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setMenuOpenFor(null)
+                      }} 
+                    />
+                    <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 overflow-hidden">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleShare(quiz)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Share
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeletingQuiz(quiz)
+                          setShowDeleteModal(true)
+                          setMenuOpenFor(null)
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
-            </button>
+
+              <button
+                onClick={() => setSelectedQuiz(quiz.id)}
+                className="h-full w-full text-left"
+              >
+                <div className="h-full flex flex-col p-3">
+                  <div className="flex-1 overflow-hidden">
+                    <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-base pr-6">
+                      {quiz.title}
+                    </h3>
+                    <p className="text-xs text-gray-500 line-clamp-2">
+                      {quiz.description || 'No description'}
+                    </p>
+                  </div>
+                  <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-sm text-gray-500 font-medium">{quiz.question_count} questions</span>
+                    <span className="text-sm text-green-600 font-semibold group-hover:translate-x-0.5 transition-transform">Start →</span>
+                  </div>
+                </div>
+              </button>
+            </div>
           ))}
         </div>
 
@@ -181,6 +303,111 @@ export default function QuizPage() {
             onClose={() => setShowCreateModal(false)}
             onSuccess={handleQuizCreated}
           />
+        )}
+
+        {/* Share Modal */}
+        {showShareModal && sharingQuiz && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">Share Quiz</h3>
+                <button onClick={() => setShowShareModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Share "<span className="font-medium">{sharingQuiz.title}</span>" with friends. They can take this quiz without needing an account!
+              </p>
+
+              {isSharing ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+              ) : shareUrl ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={shareUrl}
+                      className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg"
+                    />
+                    <button
+                      onClick={handleCopyLink}
+                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                        copied 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                    >
+                      {copied ? (
+                        <span className="flex items-center gap-1">
+                          <Check className="w-4 h-4" /> Copied!
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1">
+                          <Copy className="w-4 h-4" /> Copy
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <Link2 className="w-3 h-3" />
+                    Anyone with this link can take this quiz
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-red-600">Failed to generate share link. Please try again.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && deletingQuiz && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="flex-shrink-0">
+                  <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Delete Quiz</h3>
+                  <p className="text-sm text-gray-600">This action cannot be undone</p>
+                </div>
+              </div>
+
+              <p className="text-gray-700 mb-6">
+                Are you sure you want to delete "<span className="font-semibold">{deletingQuiz.title}</span>"? 
+                This will permanently remove all {deletingQuiz.question_count} questions in this quiz.
+              </p>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false)
+                    setDeletingQuiz(null)
+                  }}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteQuiz}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

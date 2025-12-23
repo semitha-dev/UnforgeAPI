@@ -1,3 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&display=swap');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -6,8 +11,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: 'Source Sans Pro', sans-serif;
   --font-mono: var(--font-geist-mono);
+  --font-headline: 'Crimson Text', serif;
+  --font-body: 'Source Sans Pro', sans-serif;
+  --font-cta: 'Nunito Sans', sans-serif;
+  --font-display: 'Playfair Display', serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -25,6 +34,7 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -37,6 +47,14 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-error: var(--error);
+  --color-error-foreground: var(--error-foreground);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -44,72 +62,117 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.13 0.028 261.692);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.028 261.692);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.028 261.692);
-  --primary: oklch(0.21 0.034 264.665);
-  --primary-foreground: oklch(0.985 0.002 247.839);
-  --secondary: oklch(0.967 0.003 264.542);
-  --secondary-foreground: oklch(0.21 0.034 264.665);
-  --muted: oklch(0.967 0.003 264.542);
-  --muted-foreground: oklch(0.551 0.027 264.364);
-  --accent: oklch(0.967 0.003 264.542);
-  --accent-foreground: oklch(0.21 0.034 264.665);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.928 0.006 264.531);
-  --input: oklch(0.928 0.006 264.531);
-  --ring: oklch(0.707 0.022 261.325);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0.002 247.839);
-  --sidebar-foreground: oklch(0.13 0.028 261.692);
-  --sidebar-primary: oklch(0.21 0.034 264.665);
-  --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.967 0.003 264.542);
-  --sidebar-accent-foreground: oklch(0.21 0.034 264.665);
-  --sidebar-border: oklch(0.928 0.006 264.531);
-  --sidebar-ring: oklch(0.707 0.022 261.325);
+  --radius: 0.5rem;
+  
+  /* Primary Colors - Navy */
+  --primary: #1B365D;
+  --primary-foreground: #FFFFFF;
+  
+  /* Secondary Colors - Teal */
+  --secondary: #4A90A4;
+  --secondary-foreground: #FFFFFF;
+  
+  /* Accent Colors - Green */
+  --accent: #00C851;
+  --accent-foreground: #FFFFFF;
+  
+  /* Background Colors */
+  --background: #FAFBFC;
+  --foreground: #2C3E50;
+  
+  /* Surface Colors */
+  --card: #FFFFFF;
+  --card-foreground: #2C3E50;
+  
+  /* Popover Colors */
+  --popover: #FFFFFF;
+  --popover-foreground: #2C3E50;
+  
+  /* Muted Colors */
+  --muted: #E8ECF0;
+  --muted-foreground: #5A6C7D;
+  
+  /* Border & Input */
+  --border: #E8ECF0;
+  --input: #E8ECF0;
+  --ring: #1B365D;
+  
+  /* Status Colors */
+  --success: #00C851;
+  --success-foreground: #FFFFFF;
+  
+  --warning: #FF8C00;
+  --warning-foreground: #FFFFFF;
+  
+  --error: #E74C3C;
+  --error-foreground: #FFFFFF;
+  
+  --destructive: #E74C3C;
+  --destructive-foreground: #FFFFFF;
+  
+  /* Text Colors */
+  --text-primary: #2C3E50;
+  --text-secondary: #5A6C7D;
+  
+  /* Chart Colors */
+  --chart-1: #1B365D;
+  --chart-2: #4A90A4;
+  --chart-3: #00C851;
+  --chart-4: #FF8C00;
+  --chart-5: #E74C3C;
+  
+  /* Sidebar */
+  --sidebar: #FAFBFC;
+  --sidebar-foreground: #2C3E50;
+  --sidebar-primary: #1B365D;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E8ECF0;
+  --sidebar-accent-foreground: #1B365D;
+  --sidebar-border: #E8ECF0;
+  --sidebar-ring: #1B365D;
 }
 
 .dark {
-  --background: oklch(0.13 0.028 261.692);
-  --foreground: oklch(0.985 0.002 247.839);
-  --card: oklch(0.21 0.034 264.665);
-  --card-foreground: oklch(0.985 0.002 247.839);
-  --popover: oklch(0.21 0.034 264.665);
-  --popover-foreground: oklch(0.985 0.002 247.839);
-  --primary: oklch(0.928 0.006 264.531);
-  --primary-foreground: oklch(0.21 0.034 264.665);
-  --secondary: oklch(0.278 0.033 256.848);
-  --secondary-foreground: oklch(0.985 0.002 247.839);
-  --muted: oklch(0.278 0.033 256.848);
-  --muted-foreground: oklch(0.707 0.022 261.325);
-  --accent: oklch(0.278 0.033 256.848);
-  --accent-foreground: oklch(0.985 0.002 247.839);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.034 264.665);
-  --sidebar-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-accent: oklch(0.278 0.033 256.848);
-  --sidebar-accent-foreground: oklch(0.985 0.002 247.839);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --background: #1a1f2e;
+  --foreground: #E8ECF0;
+  --card: #242b3d;
+  --card-foreground: #E8ECF0;
+  --popover: #242b3d;
+  --popover-foreground: #E8ECF0;
+  --primary: #4A90A4;
+  --primary-foreground: #FFFFFF;
+  --secondary: #3d4f61;
+  --secondary-foreground: #E8ECF0;
+  --muted: #3d4f61;
+  --muted-foreground: #9CA3AF;
+  --accent: #00C851;
+  --accent-foreground: #FFFFFF;
+  --destructive: #E74C3C;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: #4A90A4;
+  --success: #00C851;
+  --success-foreground: #FFFFFF;
+  --warning: #FF8C00;
+  --warning-foreground: #FFFFFF;
+  --error: #E74C3C;
+  --error-foreground: #FFFFFF;
+  --text-primary: #E8ECF0;
+  --text-secondary: #9CA3AF;
+  --chart-1: #4A90A4;
+  --chart-2: #00C851;
+  --chart-3: #FF8C00;
+  --chart-4: #9b59b6;
+  --chart-5: #E74C3C;
+  --sidebar: #242b3d;
+  --sidebar-foreground: #E8ECF0;
+  --sidebar-primary: #4A90A4;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #3d4f61;
+  --sidebar-accent-foreground: #E8ECF0;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #4A90A4;
 }
 
 @layer base {
@@ -118,7 +181,48 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
+}
+
+/* Landing page specific fonts - only applied within landing section */
+.landing-page {
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.landing-page h1,
+.landing-page h2,
+.landing-page h3,
+.landing-page h4,
+.landing-page h5,
+.landing-page h6 {
+  font-family: 'Crimson Text', serif;
+}
+
+.landing-page button {
+  font-family: 'Nunito Sans', sans-serif;
+}
+
+/* Font utility classes - for landing page use */
+.font-headline {
+  font-family: 'Crimson Text', serif;
+}
+
+.font-body {
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+.font-cta {
+  font-family: 'Nunito Sans', sans-serif;
+}
+
+.font-display {
+  font-family: 'Playfair Display', serif;
+}
+
+/* Shadow utilities */
+.shadow-card {
+  box-shadow: 0 4px 6px -1px rgba(27, 54, 93, 0.1), 0 2px 4px -1px rgba(27, 54, 93, 0.06);
 }
 
 /* Quill Editor Styles */
