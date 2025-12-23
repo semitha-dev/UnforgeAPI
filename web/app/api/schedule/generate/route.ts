@@ -220,12 +220,12 @@ function generateSchedule(
     return a.project.projectName.localeCompare(b.project.projectName);
   });
 
-  // Get all available study dates
+  // Get all available study dates (excluding exam day - no study tasks on exam day)
   const studyDates: Date[] = [];
   let currentDate = new Date(today);
   currentDate.setDate(currentDate.getDate() + 1); // Start from tomorrow
   
-  while (currentDate <= exam) {
+  while (currentDate < exam) {
     if (preferredDays.includes(currentDate.getDay())) {
       studyDates.push(new Date(currentDate));
     }
