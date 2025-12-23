@@ -56,10 +56,13 @@ export function TokenPurchaseModal({ isOpen, onClose, currentBalance }: TokenPur
       if (data.checkoutUrl) {
         console.log('✅ Checkout URL received:', data.checkoutUrl)
         console.log('🔄 Redirecting to Polar checkout...')
-        // Mark that checkout was initiated before leaving
+        // Store balance BEFORE checkout so we can compare when returning
         localStorage.setItem(CHECKOUT_KEY, 'true')
         localStorage.setItem('token_checkout_product_id', productId)
         localStorage.setItem('token_checkout_timestamp', new Date().toISOString())
+        localStorage.setItem('token_checkout_balance_before', currentBalance.toString())
+        const pack = TOKEN_PACKS.find(p => p.id === productId)
+        localStorage.setItem('token_checkout_expected_tokens', pack?.tokens.toString() || '0')
         window.location.href = data.checkoutUrl
       }
     } catch (err: any) {

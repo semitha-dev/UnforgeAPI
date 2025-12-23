@@ -103,10 +103,11 @@ function SettingsPageContent() {
       console.log('Timestamp:', new Date().toISOString())
       console.log('Checkout product ID:', localStorage.getItem('token_checkout_product_id'))
       console.log('Checkout initiated at:', localStorage.getItem('token_checkout_timestamp'))
+      console.log('Balance before checkout:', localStorage.getItem('token_checkout_balance_before'))
+      console.log('Expected tokens:', localStorage.getItem('token_checkout_expected_tokens'))
       
       setHasHandledCheckoutReturn(true)
       setActiveSection('tokens')
-      // Don't set success here - let polling handle it
       // Start polling for token update
       startTokenPolling()
       // Clean up URL without triggering re-render issues
@@ -116,11 +117,19 @@ function SettingsPageContent() {
 
   const startTokenPolling = async () => {
     console.log('📊 Starting token polling...')
-    // First fetch current balance to use as baseline
-    let initialBalance = 0
+    
+    // Get the balance from BEFORE checkout (stored in localStorage)
+    const balanceBeforeCheckout = parseInt(localStorage.getItem('token_checkout_balance_before') || '0', 10)
+    const expectedTokens = parseInt(localStorage.getItem('token_checkout_expected_tokens') || '0', 10)
+    
+    console.log('📋 Balance before checkout (from localStorage):', balanceBeforeCheckout)
+    console.log('📋 Expected tokens to add:', expectedTokens)
+    
+    // Also fetch current balance
+    let currentBalance = 0
     try {
       const timestamp = Date.now()
-      console.log('📤 Fetching initial balance...')
+      console.log('📤 Fetching current balance...')
       const response = await fetch(`/api/subscription?_t=${timestamp}`, { 
         cache: 'no-store',
         headers: {
@@ -130,27 +139,45 @@ function SettingsPageContent() {
       })
       if (response.ok) {
         const data = await response.json()
-        initialBalance = data.subscription?.tokens_balance ?? 0
-        console.log('📥 Initial balance from API:', initialBalance)
-        console.log('📥 Full subscription data:', data.subscription)
-        setTokensBalance(initialBalance)
+        currentBalance = data.subscription?.tokens_balance ?? 0
+        console.log('📥 Current balance from API:', currentBalance)
+        setTokensBalance(currentBalance)
+        
+        // Check if tokens were already added (webhook was super fast)
+        if (balanceBeforeCheckout > 0 && currentBalance >= balanceBeforeCheckout + expectedTokens) {
+          console.log('✅ Tokens already credited! Webhook was fast.')
+          const tokensAdded = currentBalance - balanceBeforeCheckout
+          setSuccess(`🎉 +${tokensAdded.toLocaleString()} tokens added successfully!`)
+          // Clean up localStorage
+          localStorage.removeItem('token_checkout_initiated')
+          localStorage.removeItem('token_checkout_product_id')
+          localStorage.removeItem('token_checkout_timestamp')
+          localStorage.removeItem('token_checkout_balance_before')
+          localStorage.removeItem('token_checkout_expected_tokens')
+          return // Don't need to poll
+        }
       }
     } catch (err) {
-      console.error('❌ Error fetching initial balance:', err)
+      console.error('❌ Error fetching current balance:', err)
     }
     
     // Show the "processing" message
     setSuccess('⏳ Processing your purchase... Tokens will appear shortly.')
     
+    // Use the balance before checkout as baseline for polling
+    const baselineBalance = balanceBeforeCheckout > 0 ? balanceBeforeCheckout : currentBalance
+    console.log('📋 Using baseline balance for polling:', baselineBalance)
+    
     // Now start polling
-    pollForTokenUpdate(initialBalance)
+    pollForTokenUpdate(baselineBalance)
   }
 
   const pollForTokenUpdate = async (initialBalance: number) => {
     let attempts = 0
     const maxAttempts = 30  // More attempts for slow webhooks
+    const expectedTokens = parseInt(localStorage.getItem('token_checkout_expected_tokens') || '0', 10)
     
-    console.log('🔄 [TokenPoll] Starting poll, initial balance:', initialBalance)
+    console.log('🔄 [TokenPoll] Starting poll, initial balance:', initialBalance, 'expected tokens:', expectedTokens)
     
     const poll = async () => {
       attempts++
@@ -180,6 +207,8 @@ function SettingsPageContent() {
             localStorage.removeItem('token_checkout_initiated')
             localStorage.removeItem('token_checkout_product_id')
             localStorage.removeItem('token_checkout_timestamp')
+            localStorage.removeItem('token_checkout_balance_before')
+            localStorage.removeItem('token_checkout_expected_tokens')
             return
           }
           
@@ -195,6 +224,12 @@ function SettingsPageContent() {
             if (newBalance === initialBalance) {
               setSuccess('🎉 Purchase complete! Tokens may be delayed - please refresh the page or wait a few minutes. If tokens still don\'t appear, contact leaflearningofficial@gmail.com for support.')
             }
+            // Clean up localStorage anyway
+            localStorage.removeItem('token_checkout_initiated')
+            localStorage.removeItem('token_checkout_product_id')
+            localStorage.removeItem('token_checkout_timestamp')
+            localStorage.removeItem('token_checkout_balance_before')
+            localStorage.removeItem('token_checkout_expected_tokens')
           }
         }
       } catch (err) {
