@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (![5, 10].includes(questionCount)) {
+    if (![5, 10, 15, 20].includes(questionCount)) {
       return NextResponse.json(
-        { error: 'Question count must be 5 or 10' },
+        { error: 'Question count must be 5, 10, 15, or 20' },
         { status: 400 }
       );
     }

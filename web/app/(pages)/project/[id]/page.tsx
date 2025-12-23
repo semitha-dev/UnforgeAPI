@@ -178,22 +178,45 @@ export default function ProjectOverview() {
       recent.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       setRecentItems(recent.slice(0, 6))
 
-      // Calculate weekly activity from recent items
+      // Calculate weekly activity - fetch all items from last 7 days
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
       const today = new Date()
-      const weekData: WeeklyActivity[] = []
+      const sevenDaysAgo = new Date(today)
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      const sevenDaysAgoISO = sevenDaysAgo.toISOString()
+      
+      // Fetch all activity from last 7 days for accurate chart
+      const [weekNotes, weekQuizzes, weekFlashcards] = await Promise.allSettled([
+        supabase
+          .from('notes')
+          .select('created_at')
+          .eq('project_id', projectId)
+          .gte('created_at', sevenDaysAgoISO),
+        supabase
+          .from('quizzes')
+          .select('created_at')
+          .eq('project_id', projectId)
+          .gte('created_at', sevenDaysAgoISO),
+        supabase
+          .from('flashcard_sets')
+          .select('created_at')
+          .eq('project_id', projectId)
+          .gte('created_at', sevenDaysAgoISO)
+      ])
       
       // Get all items with dates for activity calculation
       const allItems: { created_at: string }[] = []
-      if (recentNotes.status === 'fulfilled' && recentNotes.value.data) {
-        allItems.push(...recentNotes.value.data)
+      if (weekNotes.status === 'fulfilled' && weekNotes.value.data) {
+        allItems.push(...weekNotes.value.data)
       }
-      if (recentQA.status === 'fulfilled' && recentQA.value.data) {
-        allItems.push(...recentQA.value.data)
+      if (weekQuizzes.status === 'fulfilled' && weekQuizzes.value.data) {
+        allItems.push(...weekQuizzes.value.data)
       }
-      if (recentFlashcards.status === 'fulfilled' && recentFlashcards.value.data) {
-        allItems.push(...recentFlashcards.value.data)
+      if (weekFlashcards.status === 'fulfilled' && weekFlashcards.value.data) {
+        allItems.push(...weekFlashcards.value.data)
       }
+      
+      const weekData: WeeklyActivity[] = []
       
       // Calculate activity for last 7 days
       for (let i = 6; i >= 0; i--) {
@@ -209,7 +232,7 @@ export default function ProjectOverview() {
         
         weekData.push({
           day: days[dayStart.getDay()],
-          activity: dayActivity * 20 + Math.random() * 30 + 20 // Scale and add some variance for visual appeal
+          activity: dayActivity
         })
       }
       
