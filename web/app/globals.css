@@ -225,29 +225,55 @@
   box-shadow: 0 4px 6px -1px rgba(27, 54, 93, 0.1), 0 2px 4px -1px rgba(27, 54, 93, 0.06);
 }
 
-/* Quill Editor Styles */
+/* Quill Editor Styles - Full page seamless editor */
+.note-editor-container {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
 .note-editor-container .ql-toolbar {
-  @apply border-0 border-b border-gray-200 bg-gray-50/95 px-4 py-3;
+  @apply border-0 bg-transparent px-0 py-3;
   position: sticky;
   top: 0;
   z-index: 10;
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #e4e4e7 !important;
+  margin-bottom: 1rem;
 }
 
 .note-editor-container .ql-container {
   @apply border-0;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 16px;
-  line-height: 1.75;
+  font-size: 18px;
+  line-height: 1.8;
+  border: none !important;
+  border-top: 1px solid #f4f4f5 !important;
+  padding-top: 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .note-editor-container .ql-editor {
-  @apply min-h-[450px] px-6 py-5;
+  @apply min-h-[60vh] px-0 py-4;
+  border: none !important;
+  outline: none !important;
+  flex: 1;
+  cursor: text;
+}
+
+.note-editor-container .ql-editor:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .note-editor-container .ql-editor.ql-blank::before {
-  @apply text-gray-400 not-italic pl-0;
-  left: 24px;
+  @apply text-zinc-300 not-italic pl-0;
+  left: 0;
   font-style: normal;
 }
 
@@ -293,11 +319,6 @@
   @apply px-2;
 }
 
-/* Focus styling */
-.note-editor-container:focus-within {
-  @apply ring-2 ring-blue-500/20 border-blue-300;
-}
-
 /* Fullscreen editor styles */
 .note-editor-container.h-full {
   display: flex;
@@ -340,6 +361,30 @@
 
 .prose em {
   @apply italic;
+}
+
+/* Quill Text Box (Blockquote) Styles */
+.note-editor-container .ql-editor blockquote {
+  border-left: 4px solid #6366f1;
+  background-color: #f5f3ff;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  color: #4c1d95;
+  font-style: normal;
+}
+
+.note-editor-container .ql-editor pre.ql-syntax,
+.note-editor-container .ql-editor .ql-code-block-container {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  overflow-x: auto;
 }
 
 /* Loading bar animation */

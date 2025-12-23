@@ -1,6 +1,6 @@
 'use client';
 
-import { Lightbulb, Sparkles, Copy, Calendar, BarChart3, BadgeCheck, Zap, Upload, Cpu, Rocket } from 'lucide-react';
+import { Lightbulb, Sparkles, Copy, Calendar, BarChart3, BadgeCheck, Zap, Upload, Cpu, Rocket, PenLine } from 'lucide-react';
 
 const iconMap = {
   'SparklesIcon': Sparkles,
@@ -13,6 +13,7 @@ const iconMap = {
   'ArrowUpTrayIcon': Upload,
   'CpuChipIcon': Cpu,
   'RocketLaunchIcon': Rocket,
+  'PenLineIcon': PenLine,
 };
 
 const SolutionSection = () => {
@@ -23,6 +24,13 @@ const SolutionSection = () => {
       description: 'Upload any PDF, Word doc, or text file and watch AI extract key concepts, create summaries, and preserve citations automatically.',
       accuracy: '98.5%',
       speed: '< 30 seconds'
+    },
+    {
+      icon: 'PenLineIcon',
+      title: 'Smart Note-Taking',
+      description: 'Take notes directly in the app and instantly generate flashcards, quizzes, and summaries from your own writing with one click.',
+      accuracy: '97.8%',
+      speed: '< 10 seconds'
     },
     {
       icon: 'DocumentDuplicateIcon',
@@ -98,7 +106,7 @@ const SolutionSection = () => {
               <h3 className="text-2xl font-bold font-headline text-primary">How It Works</h3>
               <ol className="space-y-4">
                 {[
-                  { step: '1', text: 'Upload your study materials (PDFs, docs, notes)', icon: Upload },
+                  { step: '1', text: 'Upload documents or write your own notes directly in the app', icon: Upload },
                   { step: '2', text: 'AI processes and extracts key concepts with citations', icon: Cpu },
                   { step: '3', text: 'Generate flashcards, summaries, and quizzes instantly', icon: Sparkles },
                   { step: '4', text: 'Study with adaptive scheduling and track progress', icon: BarChart3 }

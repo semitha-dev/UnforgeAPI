@@ -20,7 +20,7 @@ const FAQSection = () => {
     },
     {
       question: 'What happens if I run out of tokens?',
-      answer: 'You can purchase additional token packs anytime at transparent pricing. There are no subscriptions or recurring charges. Unused tokens never expire and roll over indefinitely. We also offer a free tier with 100 tokens when you sign up.',
+      answer: 'You can purchase additional token packs anytime at transparent pricing. There are no subscriptions or recurring charges. Unused tokens never expire and roll over indefinitely. We also offer a free tier with 500 tokens when you sign up.',
       category: 'pricing'
     },
     {
@@ -37,11 +37,6 @@ const FAQSection = () => {
       question: 'Can I share flashcards and quizzes with friends?',
       answer: 'Absolutely! You can generate a unique shareable link for any flashcard set or quiz you create. Just copy the link and send it to your friends. When they click the link, they can immediately start studying with your flashcards or take your quiz - no account required. After completing, they will see an option to create their own study materials on LeafLearning.',
       category: 'general'
-    },
-    {
-      question: 'What is the refund policy?',
-      answer: 'We offer a 30-day satisfaction guarantee. If you are not completely satisfied with LeafLearning, contact support for a full refund of unused tokens. No questions asked. Free tier users can upgrade risk-free.',
-      category: 'pricing'
     }
   ];
 

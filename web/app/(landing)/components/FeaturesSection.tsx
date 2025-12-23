@@ -129,30 +129,22 @@ const FeaturesSection = () => {
           </div>
 
           <div className="p-8">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div className="space-y-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
-                    <ActiveIcon size={24} className="text-accent fill-accent" />
-                  </div>
-                  <h3 className="text-2xl font-bold font-headline text-primary">{activeFeature.title}</h3>
+            <div className="max-w-2xl mx-auto text-center space-y-6">
+              <div className="flex items-center justify-center space-x-3">
+                <div className="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
+                  <ActiveIcon size={24} className="text-accent fill-accent" />
                 </div>
-                <p className="text-lg text-text-secondary font-body">{activeFeature.description}</p>
-                <ul className="space-y-3">
-                  {activeFeature.benefits.map((benefit, index) =>
-                  <li key={index} className="flex items-start space-x-3">
-                      <CheckCircle size={20} className="text-success fill-success mt-0.5 flex-shrink-0" />
-                      <span className="text-text-primary font-body">{benefit}</span>
-                    </li>
-                  )}
-                </ul>
+                <h3 className="text-2xl font-bold font-headline text-primary">{activeFeature.title}</h3>
               </div>
-              <div className="relative h-80 rounded-lg overflow-hidden border border-border shadow-sm bg-gradient-to-br from-accent/5 to-secondary/5 flex items-center justify-center">
-                <img
-                  src={activeFeature.image}
-                  alt={activeFeature.alt}
-                  className="w-full h-full object-contain p-4" />
-              </div>
+              <p className="text-lg text-text-secondary font-body">{activeFeature.description}</p>
+              <ul className="space-y-3 text-left inline-block">
+                {activeFeature.benefits.map((benefit, index) =>
+                <li key={index} className="flex items-start space-x-3">
+                    <CheckCircle size={20} className="text-success fill-success mt-0.5 flex-shrink-0" />
+                    <span className="text-text-primary font-body">{benefit}</span>
+                  </li>
+                )}
+              </ul>
             </div>
           </div>
         </div>

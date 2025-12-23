@@ -58,7 +58,7 @@ const FinalCTASection = () => {
                 </h2>
 
                 <p className="text-xl text-text-secondary font-body max-w-2xl mx-auto">
-                  Join 1K+ students who transformed their study habits. Get 100 free tokens when you sign up now.
+                  Join 1K+ students who transformed their study habits. Get 500 free tokens when you sign up now.
                 </p>
 
                 <div className="bg-muted/30 rounded-lg p-6 inline-block">

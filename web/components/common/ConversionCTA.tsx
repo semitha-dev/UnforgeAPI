@@ -19,7 +19,7 @@ const ConversionCTA = ({ variant = 'hero', className = '' }: ConversionCTAProps)
     },
     pricing: {
       text: 'Get Started Now',
-      subtext: '100 free tokens included',
+      subtext: '500 free tokens included',
       icon: Rocket,
       size: 'medium',
       gradient: 'from-accent to-accent',

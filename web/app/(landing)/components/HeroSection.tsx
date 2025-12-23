@@ -78,7 +78,7 @@ const HeroSection = ({ onCTAClick }: HeroSectionProps) => {
             </div>
 
             <div className="bg-card/80 backdrop-blur-sm rounded-lg p-6 border border-border shadow-sm">
-              <div className="text-3xl font-bold font-headline text-accent">50K+</div>
+              <div className="text-3xl font-bold font-headline text-accent">1K+</div>
               <div className="text-sm text-text-secondary font-body mt-1">Active Students</div>
             </div>
 
@@ -91,19 +91,19 @@ const HeroSection = ({ onCTAClick }: HeroSectionProps) => {
           <div className="flex flex-wrap items-center justify-center gap-8 pt-8 opacity-60">
             <div className="flex items-center space-x-2">
               <GraduationCap size={24} className="text-primary" />
-              <span className="text-sm font-medium font-body text-text-primary">Harvard University</span>
+              <span className="text-sm font-medium font-body text-text-primary">Medical Students</span>
             </div>
             <div className="flex items-center space-x-2">
               <GraduationCap size={24} className="text-primary" />
-              <span className="text-sm font-medium font-body text-text-primary">MIT</span>
+              <span className="text-sm font-medium font-body text-text-primary">Law Students</span>
             </div>
             <div className="flex items-center space-x-2">
               <GraduationCap size={24} className="text-primary" />
-              <span className="text-sm font-medium font-body text-text-primary">Stanford</span>
+              <span className="text-sm font-medium font-body text-text-primary">Engineering Students</span>
             </div>
             <div className="flex items-center space-x-2">
               <GraduationCap size={24} className="text-primary" />
-              <span className="text-sm font-medium font-body text-text-primary">Oxford</span>
+              <span className="text-sm font-medium font-body text-text-primary">Business Students</span>
             </div>
           </div>
         </div>

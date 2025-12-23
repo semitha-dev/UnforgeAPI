@@ -127,8 +127,7 @@ const PricingSection = () => {
                 {[
                   { action: 'Document Summary', cost: '~50-200 tokens', icon: FileText },
                   { action: 'Flashcard Set', cost: '~100-300 tokens', icon: Layers },
-                  { action: 'Quiz Generation', cost: '~80-150 tokens', icon: ClipboardCheck },
-                  { action: 'Study Schedule', cost: '~50-100 tokens', icon: Calendar }
+                  { action: 'Quiz Generation', cost: '~80-150 tokens', icon: ClipboardCheck }
                 ].map((item, index) => {
                   const IconComponent = item.icon;
                   return (
@@ -147,7 +146,7 @@ const PricingSection = () => {
               <GraduationCap size={48} className="text-accent mx-auto" />
               <h4 className="text-xl font-bold font-headline text-primary">Free Tokens on Signup</h4>
               <p className="text-text-secondary font-body">
-                Start with 100 free tokens when you create your account. No credit card required!
+                Start with 500 free tokens when you create your account. No credit card required!
               </p>
               <div className="pt-4">
                 <ConversionCTA variant="pricing" />

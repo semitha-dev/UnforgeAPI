@@ -3,7 +3,10 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import { Note, Project } from './page'
-import { Maximize2, Minimize2, Music, X, Youtube, ExternalLink, ChevronUp, ChevronDown } from 'lucide-react'
+import { 
+  Maximize2, Minimize2, Music, X, Youtube, ExternalLink, ChevronUp, ChevronDown,
+  Search, Plus, FileText, MoreVertical, Trash2, FolderOpen, Sparkles, Clock, Loader2
+} from 'lucide-react'
 import 'react-quill-new/dist/quill.snow.css'
 
 // Dynamically import Quill to avoid SSR issues
@@ -21,6 +24,7 @@ const quillModules = {
     [{ 'list': 'ordered' }, { 'list': 'bullet' }],
     [{ 'indent': '-1' }, { 'indent': '+1' }],
     [{ 'align': [] }],
+    ['blockquote', 'code-block'],
     ['link'],
     ['clean']
   ],
@@ -35,6 +39,7 @@ const quillFormats = [
   'color', 'background',
   'list', 'indent',
   'align',
+  'blockquote', 'code-block',
   'link'
 ]
 
@@ -1095,6 +1100,7 @@ export default function NotesClient({
   const [editingFolder, setEditingFolder] = useState<string | null>(null)
   const [editFolderName, setEditFolderName] = useState('')
   const [showFolderDropdown, setShowFolderDropdown] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const folderDropdownRef = useRef<HTMLDivElement>(null)
 
   // Sync notes from server while preserving local changes
@@ -1364,292 +1370,348 @@ export default function NotesClient({
     )
   }
 
+  // Filter notes by search query
+  const filteredNotes = useMemo(() => {
+    if (!searchQuery.trim()) return localNotes
+    const query = searchQuery.toLowerCase()
+    return localNotes.filter(note => 
+      note.title.toLowerCase().includes(query) ||
+      (note.content && note.content.toLowerCase().includes(query))
+    )
+  }, [localNotes, searchQuery])
+
+  // Group filtered notes by folder
+  const filteredNotesByFolder = useMemo(() => {
+    const grouped: Record<string, ExtendedNote[]> = { 'Ungrouped': [] }
+    folders.forEach(folder => { grouped[folder] = [] })
+    
+    filteredNotes.forEach(note => {
+      if (note.folder && grouped[note.folder]) {
+        grouped[note.folder].push(note)
+      } else {
+        grouped['Ungrouped'].push(note)
+      }
+    })
+    
+    return grouped
+  }, [filteredNotes, folders])
+
   return (
-    <div className="bg-white">
-      <div>
-        {/* Header with Actions */}
-        <div className="flex items-center justify-between mb-6">
-          <p className="text-gray-600">Create and organize your project notes</p>
-          <div className="flex items-center gap-2">
-            {isManagingFolders ? (
-              <>
-                <span className="text-sm text-gray-500">
-                  {selectedNotesForFolder.size} selected
-                </span>
-                {selectedNotesForFolder.size > 0 && (
-                  <div className="relative" ref={folderDropdownRef}>
-                    <button
-                      onClick={() => setShowFolderDropdown(!showFolderDropdown)}
-                      className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                      Move to Folder
-                      <svg className={`w-4 h-4 transition-transform ${showFolderDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {/* Dropdown */}
-                    {showFolderDropdown && (
-                    <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                      <button
-                        onClick={() => {
-                          handleMoveNotesToFolder(null)
-                          setShowFolderDropdown(false)
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                      >
-                        Remove from folder
-                      </button>
-                      {folders.map(folder => (
-                        <button
-                          key={folder}
-                          onClick={() => {
-                            handleMoveNotesToFolder(folder)
-                            setShowFolderDropdown(false)
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                          {folder}
-                        </button>
-                      ))}
-                      <div className="border-t border-gray-100 my-1" />
-                      <button
-                        onClick={() => {
-                          setShowFolderModal(true)
-                          setShowFolderDropdown(false)
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        New Folder
-                      </button>
-                    </div>
-                    )}
-                  </div>
-                )}
-                <button
-                  onClick={() => {
-                    setIsManagingFolders(false)
-                    setSelectedNotesForFolder(new Set())
-                  }}
-                  className="px-3 py-2 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
+    <div className="min-h-screen bg-white">
+      {/* Top Header - Sticky with backdrop blur matching quiz/flashcard */}
+      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
+        <div className="px-8 py-6 max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Notes Library</h1>
+              <p className="text-zinc-500 mt-1">Create and organize your project notes</p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {/* Search Bar */}
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
+                <input 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search notes..."
+                  className="pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+              
+              {/* Organize Button */}
+              {!isManagingFolders ? (
                 <button
                   onClick={() => setIsManagingFolders(true)}
-                  className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2.5 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl font-medium transition-all"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                  </svg>
-                  Organize
+                  <FolderOpen className="w-4 h-4" />
+                  <span className="hidden sm:inline">Organize</span>
                 </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-zinc-500">
+                    {selectedNotesForFolder.size} selected
+                  </span>
+                  {selectedNotesForFolder.size > 0 && (
+                    <div className="relative" ref={folderDropdownRef}>
+                      <button
+                        onClick={() => setShowFolderDropdown(!showFolderDropdown)}
+                        className="flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-xl hover:bg-indigo-700 transition-colors"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        Move
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showFolderDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                      {showFolderDropdown && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-zinc-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                          <button
+                            onClick={() => {
+                              handleMoveNotesToFolder(null)
+                              setShowFolderDropdown(false)
+                            }}
+                            className="w-full px-4 py-2.5 text-left text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                          >
+                            Remove from folder
+                          </button>
+                          {folders.map(folder => (
+                            <button
+                              key={folder}
+                              onClick={() => {
+                                handleMoveNotesToFolder(folder)
+                                setShowFolderDropdown(false)
+                              }}
+                              className="w-full px-4 py-2.5 text-left text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                            >
+                              {folder}
+                            </button>
+                          ))}
+                          <div className="border-t border-zinc-100 my-1" />
+                          <button
+                            onClick={() => {
+                              setShowFolderModal(true)
+                              setShowFolderDropdown(false)
+                            }}
+                            className="w-full px-4 py-2.5 text-left text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+                          >
+                            <Plus className="w-4 h-4" />
+                            New Folder
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => {
+                      setIsManagingFolders(false)
+                      setSelectedNotesForFolder(new Set())
+                    }}
+                    className="px-3 py-2 text-zinc-500 hover:text-zinc-700 text-sm font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {/* AI Summarize Button */}
+              {!isManagingFolders && (
                 <button
                   onClick={() => setShowSummarizeModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-sm font-medium rounded-xl hover:from-purple-600 hover:to-indigo-600 transition-all shadow-sm"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-purple-600/20 hover:shadow-purple-600/30"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  AI Summarize
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden sm:inline">AI Summarize</span>
                 </button>
-              </>
-            )}
+              )}
+
+              {/* New Note Button */}
+              {!isManagingFolders && (
+                <button 
+                  onClick={handleCreateNew}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 hover:shadow-zinc-900/20 hover:-translate-y-0.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>New Note</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
+      </div>
 
+      {/* Grid Content */}
+      <div className="p-8 max-w-7xl mx-auto">
         {/* Folders Section */}
         {folders.length > 0 && (
-          <div className="space-y-4 mb-6">
-            {folders.map(folder => (
-              <div key={folder} className="border border-gray-200 rounded-xl overflow-hidden">
-                {/* Folder Header */}
-                <div 
-                  className="flex items-center justify-between px-4 py-3 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => toggleFolderCollapse(folder)}
-                >
-                  <div className="flex items-center gap-3">
-                    <svg 
-                      className={`w-5 h-5 text-gray-500 transition-transform ${collapsedFolders.has(folder) ? '' : 'rotate-90'}`} 
-                      fill="none" 
-                      stroke="currentColor" 
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
-                    </svg>
-                    {editingFolder === folder ? (
-                      <input
-                        type="text"
-                        value={editFolderName}
-                        onChange={(e) => setEditFolderName(e.target.value)}
-                        onBlur={() => handleRenameFolder(folder, editFolderName)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleRenameFolder(folder, editFolderName)
-                          if (e.key === 'Escape') setEditingFolder(null)
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="px-2 py-1 border border-blue-300 rounded text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        autoFocus
+          <div className="space-y-6 mb-8">
+            {folders.map(folder => {
+              const folderNotes = filteredNotesByFolder[folder] || []
+              if (searchQuery && folderNotes.length === 0) return null
+              
+              return (
+                <div key={folder} className="bg-zinc-50/50 border border-zinc-100 rounded-2xl overflow-hidden">
+                  {/* Folder Header */}
+                  <div 
+                    className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-zinc-100/50 transition-colors"
+                    onClick={() => toggleFolderCollapse(folder)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <ChevronDown 
+                        className={`w-5 h-5 text-zinc-400 transition-transform ${collapsedFolders.has(folder) ? '-rotate-90' : ''}`} 
                       />
-                    ) : (
-                      <span className="font-medium text-gray-900">{folder}</span>
-                    )}
-                    <span className="text-sm text-gray-500">({notesByFolder[folder]?.length || 0})</span>
-                  </div>
-                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => {
-                        setEditingFolder(folder)
-                        setEditFolderName(folder)
-                      }}
-                      className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
-                      title="Rename folder"
-                    >
-                      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Delete folder "${folder}"? Notes will be moved to Ungrouped.`)) {
-                          handleDeleteFolder(folder)
-                        }
-                      }}
-                      className="p-1.5 hover:bg-red-100 rounded-lg transition-colors"
-                      title="Delete folder"
-                    >
-                      <svg className="w-4 h-4 text-gray-500 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                {/* Folder Content */}
-                {!collapsedFolders.has(folder) && notesByFolder[folder]?.length > 0 && (
-                  <div className="p-3 bg-white">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                      {notesByFolder[folder].map((note) => (
-                        <NoteCard
-                          key={note.id}
-                          note={note}
-                          onClick={() => handleNoteClick(note)}
-                          isSelected={selectedNotesForFolder.has(note.id)}
-                          isSelectable={isManagingFolders}
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                        <FolderOpen className="w-5 h-5 text-amber-600" />
+                      </div>
+                      {editingFolder === folder ? (
+                        <input
+                          type="text"
+                          value={editFolderName}
+                          onChange={(e) => setEditFolderName(e.target.value)}
+                          onBlur={() => handleRenameFolder(folder, editFolderName)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleRenameFolder(folder, editFolderName)
+                            if (e.key === 'Escape') setEditingFolder(null)
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-3 py-1.5 border border-indigo-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          autoFocus
                         />
-                      ))}
+                      ) : (
+                        <span className="font-semibold text-zinc-900">{folder}</span>
+                      )}
+                      <span className="text-sm text-zinc-400 font-medium">({folderNotes.length})</span>
+                    </div>
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => {
+                          setEditingFolder(folder)
+                          setEditFolderName(folder)
+                        }}
+                        className="p-2 hover:bg-zinc-200 rounded-xl transition-colors"
+                        title="Rename folder"
+                      >
+                        <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete folder "${folder}"? Notes will be moved to Ungrouped.`)) {
+                            handleDeleteFolder(folder)
+                          }
+                        }}
+                        className="p-2 hover:bg-red-100 rounded-xl transition-colors"
+                        title="Delete folder"
+                      >
+                        <Trash2 className="w-4 h-4 text-zinc-500 hover:text-red-500" />
+                      </button>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+                  {/* Folder Content */}
+                  {!collapsedFolders.has(folder) && folderNotes.length > 0 && (
+                    <div className="px-5 pb-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {folderNotes.map((note) => (
+                          <NoteCard
+                            key={note.id}
+                            note={note}
+                            onClick={() => handleNoteClick(note)}
+                            isSelected={selectedNotesForFolder.has(note.id)}
+                            isSelectable={isManagingFolders}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
 
         {/* Ungrouped Notes Section */}
-        <div className="mb-6">
-          {folders.length > 0 && notesByFolder['Ungrouped']?.length > 0 && (
-            <h3 className="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Ungrouped Notes
-            </h3>
-          )}
-          
-          {/* Notes Grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-            {/* Create New Note Card */}
-            <button
-              onClick={handleCreateNew}
-              className="aspect-square bg-white border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all flex flex-col items-center justify-center group"
-            >
-              <div className="w-10 h-10 rounded-full bg-blue-100 group-hover:bg-blue-200 flex items-center justify-center mb-2 transition-colors">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-              </div>
-              <span className="text-xs font-medium text-gray-600 group-hover:text-blue-600">New Note</span>
-            </button>
-
-            {/* Ungrouped Notes */}
-            {notesByFolder['Ungrouped']?.map((note) => (
-              <NoteCard
-                key={note.id}
-                note={note}
-                onClick={() => handleNoteClick(note)}
-                isSelected={selectedNotesForFolder.has(note.id)}
-                isSelectable={isManagingFolders}
-              />
-            ))}
+        {(filteredNotesByFolder['Ungrouped']?.length > 0 || filteredNotes.length === 0) && (
+          <div>
+            {folders.length > 0 && filteredNotesByFolder['Ungrouped']?.length > 0 && (
+              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Ungrouped Notes
+              </h3>
+            )}
+            
+            {/* Notes Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredNotesByFolder['Ungrouped']?.map((note) => (
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  onClick={() => handleNoteClick(note)}
+                  isSelected={selectedNotesForFolder.has(note.id)}
+                  isSelectable={isManagingFolders}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Empty State */}
-        {localNotes.length === 0 && (
-          <div className="text-center py-12 mt-8">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No notes yet</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating a new note.</p>
+        {filteredNotes.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-24 text-zinc-400">
+            <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6">
+              <FileText className="w-10 h-10 opacity-20" />
+            </div>
+            {searchQuery ? (
+              <>
+                <h3 className="text-lg font-medium text-zinc-900 mb-1">No notes found</h3>
+                <p className="text-zinc-500">Try adjusting your search or create a new note.</p>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-medium text-zinc-900 mb-1">No notes yet</h3>
+                <p className="text-zinc-500 mb-6">Get started by creating your first note.</p>
+                <button 
+                  onClick={handleCreateNew}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>New Note</span>
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
 
       {/* New Folder Modal */}
       {showFolderModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">Create New Folder</h3>
-            <input
-              type="text"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="e.g., Week 1, Chapter 1, Midterm"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newFolderName.trim()) {
-                  handleMoveNotesToFolder(newFolderName.trim())
-                  setShowFolderModal(false)
-                  setNewFolderName('')
-                }
-              }}
-            />
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowFolderModal(false)
-                  setNewFolderName('')
-                }}
-                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+        <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden">
+            <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-zinc-900">Create New Folder</h2>
+              <button 
+                onClick={() => { setShowFolderModal(false); setNewFolderName(''); }}
+                className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600"
               >
-                Cancel
+                <X className="w-5 h-5" />
               </button>
-              <button
-                onClick={() => {
-                  if (newFolderName.trim()) {
+            </div>
+            <div className="p-6">
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                placeholder="e.g., Week 1, Chapter 1, Midterm"
+                className="w-full px-4 py-3 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all mb-4"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newFolderName.trim()) {
                     handleMoveNotesToFolder(newFolderName.trim())
                     setShowFolderModal(false)
                     setNewFolderName('')
                   }
                 }}
-                disabled={!newFolderName.trim()}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
-              >
-                Create & Move
-              </button>
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => { setShowFolderModal(false); setNewFolderName(''); }}
+                  className="px-4 py-2.5 text-zinc-600 hover:bg-zinc-100 rounded-xl font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (newFolderName.trim()) {
+                      handleMoveNotesToFolder(newFolderName.trim())
+                      setShowFolderModal(false)
+                      setNewFolderName('')
+                    }
+                  }}
+                  disabled={!newFolderName.trim()}
+                  className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                >
+                  Create & Move
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1669,7 +1731,7 @@ export default function NotesClient({
   )
 }
 
-// Note Card Component
+// Note Card Component - Matching Quiz/Flashcard design
 interface NoteCardProps {
   note: ExtendedNote
   onClick: () => void
@@ -1680,6 +1742,13 @@ interface NoteCardProps {
 function NoteCard({ note, onClick, isSelected = false, isSelectable = false }: NoteCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
+    const now = new Date()
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return 'Today'
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays} days ago`
+    
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric'
@@ -1699,65 +1768,85 @@ function NoteCard({ note, onClick, isSelected = false, isSelectable = false }: N
   // Check if note has an AI-generated summary saved
   const hasSavedSummary = !!note.summary
 
+  // Generate a consistent color based on title for aesthetics
+  const colors = ['bg-blue-50 text-blue-600', 'bg-purple-50 text-purple-600', 'bg-emerald-50 text-emerald-600', 'bg-rose-50 text-rose-600', 'bg-amber-50 text-amber-600']
+  const colorClass = colors[note.title.length % colors.length]
+
   return (
-    <button
+    <div 
       onClick={onClick}
-      className={`aspect-square bg-white border-2 rounded-xl hover:shadow-md transition-all text-left overflow-hidden group relative ${
+      className={`group relative bg-white border rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full ${
         isSelected 
-          ? 'border-blue-500 ring-2 ring-blue-200 bg-blue-50/50' 
-          : 'border-gray-200 hover:border-gray-300'
+          ? 'border-indigo-500 ring-2 ring-indigo-200' 
+          : 'border-zinc-200'
       }`}
     >
       {/* Selection Checkbox */}
       {isSelectable && (
-        <div className="absolute top-1.5 right-1.5 z-20">
-          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+        <div className="absolute top-3 right-3 z-20">
+          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
             isSelected 
-              ? 'bg-blue-500 border-blue-500' 
-              : 'bg-white border-gray-300 group-hover:border-blue-400'
+              ? 'bg-indigo-600 border-indigo-600' 
+              : 'bg-white border-zinc-300 group-hover:border-indigo-400'
           }`}>
             {isSelected && (
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             )}
           </div>
         </div>
       )}
-      {/* Badges */}
-      <div className="absolute top-1.5 left-1.5 right-1.5 z-10 flex gap-1 flex-wrap">
-        {isSummaryNote && (
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-medium rounded">
-            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            Summary
-          </span>
-        )}
-        {hasSavedSummary && !isSummaryNote && (
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-medium rounded">
-            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            AI
-          </span>
+
+      {/* Icon & Badges */}
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorClass}`}>
+          <FileText className="w-6 h-6" />
+        </div>
+        {!isSelectable && (
+          <div className="flex gap-1.5">
+            {isSummaryNote && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-lg">
+                <Sparkles className="w-3 h-3" />
+                Summary
+              </span>
+            )}
+            {hasSavedSummary && !isSummaryNote && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-lg">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                AI
+              </span>
+            )}
+          </div>
         )}
       </div>
-      
-      <div className="h-full flex flex-col p-3">
-        <div className={`flex-1 overflow-hidden ${(isSummaryNote || hasSavedSummary) ? 'mt-4' : ''}`}>
-          <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 text-sm">
-            {note.title}
-          </h3>
-          <p className="text-xs text-gray-500 line-clamp-3">
-            {getPlainText(note.content || 'No content')}
-          </p>
-        </div>
-        <div className="mt-auto pt-2 border-t border-gray-100">
-          <span className="text-xs text-gray-400">{formatDate(note.updated_at)}</span>
-        </div>
+
+      {/* Text */}
+      <div className="flex-1 mb-4">
+        <h3 className="font-bold text-zinc-900 mb-1 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+          {note.title}
+        </h3>
+        <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed">
+          {getPlainText(note.content || 'No content yet')}
+        </p>
       </div>
-    </button>
+
+      {/* Footer */}
+      <div className="pt-4 border-t border-zinc-50 flex items-center justify-between text-xs font-medium text-zinc-400">
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5" />
+          <span>{formatDate(note.updated_at)}</span>
+        </div>
+        {note.folder && (
+          <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+            <FolderOpen className="w-3 h-3" />
+            <span className="truncate max-w-[80px]">{note.folder}</span>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -1773,7 +1862,7 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [showLeafAI, setShowLeafAI] = useState(true) // Auto-open Leaf AI when creating note
+  const [showLeafAI, setShowLeafAI] = useState(false) // Start closed for cleaner view
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [noteId, setNoteId] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -1782,6 +1871,14 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   // Debounced content for auto-save
   const debouncedContent = useDebounce(content, 2000)
   const debouncedTitle = useDebounce(title, 2000)
+
+  // Collapse sidebar when editor opens, expand when closing
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('collapseSidebar'))
+    return () => {
+      window.dispatchEvent(new CustomEvent('expandSidebar'))
+    }
+  }, [])
 
   // Auto-save effect
   useEffect(() => {
@@ -1838,32 +1935,34 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   }
 
   return (
-    <div className={`bg-white min-h-[calc(100vh-8rem)] transition-all ${showLeafAI && !isFullscreen ? 'mr-96' : ''}`}>
+    <div className={`bg-white h-full flex flex-col transition-all ${showLeafAI && !isFullscreen ? 'mr-96' : ''}`}>
       {/* Fullscreen Editor Overlay */}
       {isFullscreen && (
         <div className="fixed inset-0 z-[100] bg-white flex flex-col">
           {/* Fullscreen Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-white">
             <div className="flex items-center gap-4">
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter note title..."
-                className="text-xl font-semibold text-gray-900 placeholder-gray-400 bg-transparent border-none focus:outline-none"
+                placeholder="Untitled"
+                className="text-xl font-semibold text-zinc-900 placeholder-zinc-400 bg-transparent border-none focus:outline-none"
               />
             </div>
             <div className="flex items-center gap-2">
               {/* Music Button */}
               <button
                 onClick={() => setShowMusicPlayer(!showMusicPlayer)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-md hover:shadow-lg hover:scale-105 ${
-                  showMusicPlayer ? 'ring-2 ring-white/50' : ''
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                  showMusicPlayer 
+                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-md' 
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                 }`}
                 title="Toggle music player"
               >
-                <Music className="w-5 h-5 text-white" />
-                <span className="text-sm font-medium text-white">Music</span>
+                <Music className="w-5 h-5" />
+                <span className="text-sm font-medium">Music</span>
               </button>
               {/* Exit Fullscreen Button */}
               <button
@@ -1871,10 +1970,10 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
                   setIsFullscreen(false)
                   setShowMusicPlayer(false)
                 }}
-                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 transition-colors"
+                className="p-2 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
                 title="Exit fullscreen"
               >
-                <Minimize2 className="w-5 h-5 text-gray-600" />
+                <Minimize2 className="w-5 h-5 text-zinc-600" />
               </button>
             </div>
           </div>
@@ -1899,79 +1998,69 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
         </div>
       )}
 
-      {/* Clean Header */}
-      <div className="border-b border-gray-100 sticky top-0 z-20 bg-white/95 backdrop-blur-sm">
-        <div className="flex items-center justify-between py-4">
+      {/* Clean Header - minimal */}
+      <div className="sticky top-0 z-20 bg-white px-8 py-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={onBack}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              className="p-2 hover:bg-zinc-100 rounded-xl transition-colors"
             >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </button>
-            <span className="text-sm text-gray-500">New Note</span>
+            <span className="text-xs font-medium text-zinc-400">New Note</span>
           </div>
           <div className="flex items-center gap-2">
             {/* Leaf AI Toggle */}
             <button
               onClick={() => setShowLeafAI(!showLeafAI)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 showLeafAI
                   ? 'bg-emerald-500 text-white'
-                  : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
+                  : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
               }`}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
               </svg>
-              Leaf AI
+              Ask AI
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving || !title.trim()}
-              className="px-5 py-2.5 bg-blue-500 text-white text-sm font-medium rounded-xl hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isSaving ? 'Saving...' : 'Save Note'}
+              {isSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Editor Area */}
-      <div className="py-6">
-        {/* Title Input */}
-        <div className="mb-4">
+      {/* Full Page Editor Area */}
+      <div className="flex-1 overflow-y-auto px-8">
+        <div className="py-8">
+          {/* Title Input - Large and prominent */}
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter note title..."
-            className="w-full text-2xl md:text-3xl font-semibold text-gray-900 placeholder-gray-400 bg-transparent border-b-2 border-gray-200 focus:border-blue-500 focus:outline-none pb-3 transition-colors"
+            placeholder="Untitled"
+            className="w-full text-4xl font-bold text-zinc-900 placeholder:text-zinc-300 border-none focus:outline-none focus:ring-0 bg-transparent mb-6 tracking-tight pl-4"
           />
-        </div>
-        
-        {/* Quill Editor */}
-        <div className="note-editor-container rounded-xl border border-gray-200 overflow-hidden bg-white shadow-sm relative max-h-[70vh] overflow-y-auto">
-          {/* Fullscreen Toggle Button */}
-          <div className="absolute top-2 right-2 z-20">
-            <button
-              onClick={() => setIsFullscreen(true)}
-              className="p-2 bg-white/90 hover:bg-gray-100 rounded-lg shadow-sm border border-gray-200 transition-colors"
-              title="Enter fullscreen"
-            >
-              <Maximize2 className="w-4 h-4 text-gray-600" />
-            </button>
+          
+          {/* Quill Editor - Full width seamless */}
+          <div className="note-editor-container">
+            <ReactQuill
+              theme="snow"
+              value={content}
+              onChange={setContent}
+              modules={quillModules}
+              formats={quillFormats}
+              placeholder="Start writing..."
+            />
           </div>
-          <ReactQuill
-            theme="snow"
-            value={content}
-            onChange={setContent}
-            modules={quillModules}
-            formats={quillFormats}
-            placeholder="Start writing your notes..."
-          />
         </div>
       </div>
 
@@ -1999,7 +2088,7 @@ interface NoteEditorProps {
 }
 
 function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteAction, onNoteUpdated, onNoteDeleted }: NoteEditorProps) {
-  const [isEditing, setIsEditing] = useState(false)
+  const [isEditing, setIsEditing] = useState(true) // Start in edit mode by default
   const [title, setTitle] = useState(note.title)
   const [content, setContent] = useState(note.content || '')
   const [isSaving, setIsSaving] = useState(false)
@@ -2008,7 +2097,7 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
   const [summaryType, setSummaryType] = useState<'concise' | 'bullet' | 'detailed'>(note.summary_type || 'concise')
   const [inlineSummary, setInlineSummary] = useState(note.summary || '')
   const [summaryError, setSummaryError] = useState('')
-  const [showLeafAI, setShowLeafAI] = useState(true) // Auto-open Leaf AI when note opens
+  const [showLeafAI, setShowLeafAI] = useState(false) // Start closed for cleaner view
   const [autoSaveStatus, setAutoSaveStatus] = useState<'saved' | 'saving' | 'unsaved'>('saved')
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showMusicPlayer, setShowMusicPlayer] = useState(false)
@@ -2018,6 +2107,14 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
   // Debounced values for auto-save
   const debouncedContent = useDebounce(content, 2000)
   const debouncedTitle = useDebounce(title, 2000)
+
+  // Collapse sidebar when editor opens, expand when closing
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('collapseSidebar'))
+    return () => {
+      window.dispatchEvent(new CustomEvent('expandSidebar'))
+    }
+  }, [])
 
   useEffect(() => {
     if (viewRef.current && !isEditing) {
@@ -2195,60 +2292,211 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
   }
 
   return (
-    <div className={`bg-white min-h-[calc(100vh-8rem)] transition-all ${showLeafAI && !isFullscreen ? 'mr-96' : ''}`}>
+    <div className="flex h-screen bg-white text-zinc-900 overflow-hidden">
+      {/* Editor Navigation Sidebar (Collapsed mini sidebar) */}
+      <div className="hidden lg:flex flex-col items-center w-16 bg-zinc-50 border-r border-zinc-200 py-6 gap-4">
+        <button onClick={onBack} className="p-3 hover:bg-zinc-200 rounded-xl transition-colors" title="Back to notes">
+          <svg className="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </button>
+        <div className="w-8 h-[1px] bg-zinc-200 my-2" />
+        <button 
+          onClick={() => setShowLeafAI(!showLeafAI)} 
+          className={`p-3 rounded-xl transition-colors ${showLeafAI ? 'bg-emerald-100 text-emerald-600' : 'hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600'}`} 
+          title="AI Assistant"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+          </svg>
+        </button>
+        <button 
+          onClick={handleInlineSummarize}
+          disabled={isSummarizing}
+          className="p-3 hover:bg-purple-50 text-zinc-400 hover:text-purple-600 rounded-xl transition-colors disabled:opacity-50" 
+          title="Summarize"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </button>
+        <div className="flex-1" />
+        <button 
+          onClick={() => setShowMusicPlayer(!showMusicPlayer)} 
+          className={`p-3 rounded-xl transition-colors ${showMusicPlayer ? 'bg-pink-100 text-pink-600' : 'hover:bg-zinc-200 text-zinc-600'}`} 
+          title="Focus Music"
+        >
+          <Music className="w-5 h-5" />
+        </button>
+        <button 
+          onClick={handleDelete}
+          disabled={isDeleting}
+          className="p-3 hover:bg-red-50 text-zinc-400 hover:text-red-500 rounded-xl transition-colors disabled:opacity-50" 
+          title="Delete note"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+
+      <main className="flex-1 flex flex-col relative bg-white">
+        {/* Editor Header - Minimal and clean */}
+        <div className="px-8 py-4 flex items-center justify-between sticky top-0 bg-white z-20">
+          <div className="flex items-center gap-4 lg:hidden">
+            <button onClick={onBack} className="p-2 -ml-2 hover:bg-zinc-100 rounded-lg">
+              <svg className="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="flex-1 flex justify-center">
+            <span className={`text-xs font-medium px-3 py-1 rounded-full ${
+              autoSaveStatus === 'saved' ? 'text-zinc-400' :
+              autoSaveStatus === 'saving' ? 'text-amber-500 bg-amber-50' :
+              'text-zinc-500 bg-zinc-100'
+            }`}>
+              {autoSaveStatus === 'saved' ? `Last edited ${new Date(note.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` :
+               autoSaveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowLeafAI(!showLeafAI)}
+              className={`hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                showLeafAI ? 'bg-emerald-500 text-white' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+              }`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+              Ask AI
+            </button>
+            <button
+              onClick={() => setIsFullscreen(true)}
+              className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
+              title="Fullscreen"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Full Page Editor Area */}
+        <div className="flex-1 overflow-y-auto px-8">
+          <div className="py-8">
+            {/* Title Input - Large and prominent */}
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="Untitled"
+              className="w-full text-4xl font-bold text-zinc-900 placeholder:text-zinc-300 border-none focus:outline-none focus:ring-0 bg-transparent mb-6 tracking-tight pl-4"
+            />
+            
+            {/* Quill Editor - Full width seamless */}
+            <div className="note-editor-container">
+              <ReactQuill
+                theme="snow"
+                value={content}
+                onChange={setContent}
+                modules={quillModules}
+                formats={quillFormats}
+                placeholder="Start writing..."
+              />
+            </div>
+
+            {/* Summary Section */}
+            {inlineSummary && (
+              <div 
+                ref={summaryRef}
+                className="mt-12 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 overflow-hidden"
+              >
+                <div className="p-4 border-b border-purple-200 bg-purple-100/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      <span className="font-semibold text-purple-900">AI Summary</span>
+                      <span className="text-xs text-purple-600 bg-purple-200 px-2 py-0.5 rounded-full capitalize">{summaryType}</span>
+                    </div>
+                    <button
+                      onClick={() => setInlineSummary('')}
+                      className="p-1 hover:bg-purple-200 rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4 text-purple-600" />
+                    </button>
+                  </div>
+                </div>
+                <div 
+                  className="p-6 prose max-w-none text-gray-700"
+                  dangerouslySetInnerHTML={{ __html: inlineSummary }}
+                />
+              </div>
+            )}
+
+            {/* Error Display */}
+            {summaryError && (
+              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                {summaryError}
+                <button 
+                  onClick={() => setSummaryError('')}
+                  className="ml-2 text-red-800 hover:underline"
+                >
+                  Dismiss
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+
       {/* Fullscreen Editor Overlay */}
-      {isFullscreen && isEditing && (
+      {isFullscreen && (
         <div className="fixed inset-0 z-[100] bg-white flex flex-col">
           {/* Fullscreen Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-white">
             <div className="flex items-center gap-4">
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter note title..."
-                className="text-xl font-semibold text-gray-900 placeholder-gray-400 bg-transparent border-none focus:outline-none"
+                placeholder="Untitled"
+                className="text-xl font-semibold text-zinc-900 placeholder-zinc-400 bg-transparent border-none focus:outline-none"
               />
-              {/* Auto-save status */}
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 autoSaveStatus === 'saved' ? 'bg-green-100 text-green-600' :
                 autoSaveStatus === 'saving' ? 'bg-yellow-100 text-yellow-600' :
-                'bg-gray-100 text-gray-500'
+                'bg-zinc-100 text-zinc-500'
               }`}>
                 {autoSaveStatus === 'saved' ? '✓ Saved' :
                  autoSaveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              {/* Music Button */}
               <button
                 onClick={() => setShowMusicPlayer(!showMusicPlayer)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-md hover:shadow-lg hover:scale-105 ${
-                  showMusicPlayer ? 'ring-2 ring-white/50' : ''
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                  showMusicPlayer 
+                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-md' 
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
                 }`}
                 title="Toggle music player"
               >
-                <Music className="w-5 h-5 text-white" />
-                <span className="text-sm font-medium text-white">Music</span>
+                <Music className="w-5 h-5" />
+                <span className="text-sm font-medium">Music</span>
               </button>
-              {/* Save Button */}
-              <button
-                onClick={handleSave}
-                disabled={isSaving || !title.trim()}
-                className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </button>
-              {/* Exit Fullscreen Button */}
               <button
                 onClick={() => {
                   setIsFullscreen(false)
                   setShowMusicPlayer(false)
                 }}
-                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg border border-gray-200 transition-colors"
+                className="p-2 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
                 title="Exit fullscreen"
               >
-                <Minimize2 className="w-5 h-5 text-gray-600" />
+                <Minimize2 className="w-5 h-5 text-zinc-600" />
               </button>
             </div>
           </div>

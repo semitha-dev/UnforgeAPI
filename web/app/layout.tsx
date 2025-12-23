@@ -99,7 +99,7 @@ const jsonLd = {
     '@type': 'Offer',
     price: '0',
     priceCurrency: 'USD',
-    description: 'Free tier with 100 tokens included',
+    description: 'Free tier with 500 tokens included',
   },
   aggregateRating: {
     '@type': 'AggregateRating',

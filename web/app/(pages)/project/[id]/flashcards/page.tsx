@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
 import { Loading } from '@/components/ui/loading'
-import { FileText, Upload, Search, MoreVertical, Pencil, Trash2, Share2, Copy, Check, Link2 } from 'lucide-react'
+import { FileText, Upload, Search, MoreVertical, Pencil, Trash2, Share2, Copy, Check, Link2, Plus, BookOpen, Clock, Loader2, X, ChevronRight, AlertCircle } from 'lucide-react'
 
 interface FlashcardSet {
   id: string
@@ -141,273 +141,296 @@ export default function FlashcardsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-zinc-300 animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="bg-white">
-      <div>
-        {/* Header */}
-        <div className="mb-8">
-          <p className="text-gray-600">Create and study flashcards to master your material</p>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search flashcard sets..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 transition-all text-sm"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+    <div className="min-h-screen bg-white">
+      {/* Top Header */}
+      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
+        <div className="px-8 py-6 max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Flashcard Library</h1>
+              <p className="text-zinc-500 mt-1">Create and study flashcards to master your material.</p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
+                <input 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search flashcards..."
+                  className="pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 hover:shadow-zinc-900/20 hover:-translate-y-0.5"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <Plus className="w-4 h-4" />
+                <span>New Set</span>
               </button>
-            )}
+            </div>
           </div>
         </div>
+      </div>
 
-        {/* Flashcards Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {/* Create New Flashcard Set Card */}
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="aspect-square bg-white border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-all flex flex-col items-center justify-center group"
-          >
-            <div className="w-10 h-10 rounded-full bg-purple-100 group-hover:bg-purple-200 flex items-center justify-center mb-2 transition-colors">
-              <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </div>
-            <span className="text-xs font-medium text-gray-600 group-hover:text-purple-600">New Set</span>
-          </button>
-
-          {/* Existing Flashcard Sets */}
-          {sets
-            .filter(set => 
-              set.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (set.description || '').toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .map((set) => (
-            <div
-              key={set.id}
-              className="relative aspect-square bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all text-left overflow-hidden group"
-            >
-              {/* Three-dot menu button */}
-              <div className="absolute top-2 right-2 z-10">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setMenuOpenFor(menuOpenFor === set.id ? null : set.id)
-                  }}
-                  className="p-1 rounded-lg bg-white/80 hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <MoreVertical className="w-4 h-4 text-gray-500" />
-                </button>
-                
-                {/* Dropdown menu */}
-                {menuOpenFor === set.id && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setMenuOpenFor(null)
-                      }} 
-                    />
-                    <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 overflow-hidden">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleShare(set)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <Share2 className="w-4 h-4" />
-                        Share
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeletingSet(set)
-                          setShowDeleteModal(true)
-                          setMenuOpenFor(null)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <button
+      {/* Grid Content */}
+      <div className="p-8 max-w-7xl mx-auto">
+        {sets.filter(set => 
+          set.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (set.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+        ).length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {sets
+              .filter(set => 
+                set.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (set.description || '').toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((set) => (
+              <FlashcardSetCard
+                key={set.id}
+                set={set}
                 onClick={() => setSelectedSet(set.id)}
-                className="h-full w-full text-left"
-              >
-                <div className="h-full flex flex-col p-3">
-                  <div className="flex-1 overflow-hidden">
-                    <div className="flex items-start justify-between mb-1 pr-6">
-                      <h3 className="font-semibold text-gray-900 line-clamp-2 text-base flex-1">
-                        {set.title}
-                      </h3>
-                      {set.is_ai_generated && (
-                        <span className="ml-1 px-1 py-0.5 text-[9px] font-medium bg-purple-100 text-purple-700 rounded shrink-0">AI</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 line-clamp-2">
-                      {set.description || 'No description'}
-                    </p>
-                  </div>
-                  <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-sm text-gray-500 font-medium">{set.card_count} cards</span>
-                    <span className="text-sm text-purple-600 font-semibold group-hover:translate-x-0.5 transition-transform">Study →</span>
-                  </div>
-                </div>
-              </button>
+                onShare={() => handleShare(set)}
+                onDelete={() => {
+                  setDeletingSet(set)
+                  setShowDeleteModal(true)
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 text-zinc-400">
+            <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6">
+              <BookOpen className="w-10 h-10 opacity-20" />
             </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {sets.length === 0 && (
-          <div className="text-center py-12 mt-8">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No flashcard sets yet</h3>
-            <p className="mt-1 text-sm text-gray-500">Create your first flashcard set to start studying.</p>
+            <h3 className="text-lg font-medium text-zinc-900 mb-1">No flashcard sets found</h3>
+            <p className="text-zinc-500">Try creating a new one or adjusting your search.</p>
           </div>
         )}
+      </div>
 
-        {showCreateModal && (
-          <CreateFlashcardModal
-            projectId={projectId}
-            onClose={() => setShowCreateModal(false)}
-            onSuccess={handleSetCreated}
-          />
-        )}
+      {showCreateModal && (
+        <CreateFlashcardModal
+          projectId={projectId}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={handleSetCreated}
+        />
+      )}
 
-        {/* Share Modal */}
-        {showShareModal && sharingSet && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Share Flashcards</h3>
-                <button onClick={() => setShowShareModal(false)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+      {/* Share Modal */}
+      {showShareModal && sharingSet && (
+        <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white">
+              <h2 className="text-lg font-semibold text-zinc-900">Share Flashcards</h2>
+              <button onClick={() => setShowShareModal(false)} className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Share2 className="w-8 h-8 text-indigo-600" />
+                </div>
+                <h3 className="font-semibold text-zinc-900 mb-1">{sharingSet.title}</h3>
+                <p className="text-sm text-zinc-500">{sharingSet.card_count} flashcards</p>
               </div>
-
-              <p className="text-sm text-gray-600 mb-4">
-                Share "<span className="font-medium">{sharingSet.title}</span>" with friends. They can study these flashcards without needing an account!
-              </p>
 
               {isSharing ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                  <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                 </div>
               ) : shareUrl ? (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={shareUrl}
-                      className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg"
+                  <div className="flex items-center gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-200">
+                    <Link2 className="w-4 h-4 text-zinc-400 shrink-0" />
+                    <input 
+                      type="text" 
+                      value={shareUrl} 
+                      readOnly 
+                      className="flex-1 bg-transparent text-sm text-zinc-700 outline-none truncate"
                     />
                     <button
                       onClick={handleCopyLink}
-                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                        copied 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-purple-600 text-white hover:bg-purple-700'
-                      }`}
+                      className="p-2 hover:bg-zinc-200 rounded-lg transition-colors shrink-0"
                     >
                       {copied ? (
-                        <span className="flex items-center gap-1">
-                          <Check className="w-4 h-4" /> Copied!
-                        </span>
+                        <Check className="w-4 h-4 text-emerald-600" />
                       ) : (
-                        <span className="flex items-center gap-1">
-                          <Copy className="w-4 h-4" /> Copy
-                        </span>
+                        <Copy className="w-4 h-4 text-zinc-500" />
                       )}
                     </button>
                   </div>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <Link2 className="w-3 h-3" />
+                  
+                  <p className="text-xs text-zinc-500 text-center">
                     Anyone with this link can view and study these flashcards
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-red-600">Failed to generate share link. Please try again.</p>
+                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Failed to generate share link. Please try again.
+                </div>
               )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Delete Confirmation Modal */}
-        {showDeleteModal && deletingSet && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="flex-shrink-0">
-                  <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingSet && (
+        <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white">
+              <h2 className="text-lg font-semibold text-zinc-900">Delete Flashcard Set</h2>
+              <button 
+                onClick={() => { setShowDeleteModal(false); setDeletingSet(null); }} 
+                className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-8 h-8 text-red-600" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Delete Flashcard Set</h3>
-                  <p className="text-sm text-gray-600">This action cannot be undone</p>
-                </div>
+                <h3 className="font-semibold text-zinc-900 mb-1">{deletingSet.title}</h3>
+                <p className="text-sm text-zinc-500">{deletingSet.card_count} flashcards will be deleted</p>
               </div>
 
-              <p className="text-gray-700 mb-6">
-                Are you sure you want to delete "<span className="font-semibold">{deletingSet.title}</span>"? 
-                This will permanently remove all {deletingSet.card_count} flashcards in this set.
-              </p>
+              <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                This action cannot be undone.
+              </div>
 
-              <div className="flex space-x-3">
+              <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    setShowDeleteModal(false)
-                    setDeletingSet(null)
-                  }}
+                  onClick={() => { setShowDeleteModal(false); setDeletingSet(null); }}
                   disabled={isDeleting}
-                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  className="flex-1 px-5 py-2.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteSet}
                   disabled={isDeleting}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  className="flex-1 px-5 py-2.5 text-sm font-medium bg-red-600 text-white hover:bg-red-700 rounded-xl shadow-lg shadow-red-600/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
                 >
-                  {isDeleting ? 'Deleting...' : 'Delete'}
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
                 </button>
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Flashcard Set Card Component (matching Quiz Card style)
+interface FlashcardSetCardProps {
+  set: FlashcardSet
+  onClick: () => void
+  onDelete: () => void
+  onShare: () => void
+}
+
+function FlashcardSetCard({ set, onClick, onDelete, onShare }: FlashcardSetCardProps) {
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Generate a consistent color based on title length
+  const colors = ['bg-blue-50 text-blue-600', 'bg-purple-50 text-purple-600', 'bg-emerald-50 text-emerald-600', 'bg-rose-50 text-rose-600', 'bg-amber-50 text-amber-600']
+  const colorClass = colors[set.title.length % colors.length]
+
+  return (
+    <div 
+      onClick={onClick}
+      className="group relative bg-white border border-zinc-200 rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full"
+    >
+      {/* Icon & Menu */}
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorClass}`}>
+          <BookOpen className="w-6 h-6" />
+        </div>
+        <div className="relative" ref={menuRef}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+            className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+          
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-xl border border-zinc-100 py-1 z-10 animate-in fade-in zoom-in-95 duration-100">
+              <button 
+                onClick={(e) => { e.stopPropagation(); onShare(); setShowMenu(false); }}
+                className="w-full px-4 py-2.5 text-sm text-left text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2"
+              >
+                <Share2 className="w-4 h-4" /> Share
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(); setShowMenu(false); }}
+                className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Text */}
+      <div className="flex-1 mb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="font-bold text-zinc-900 line-clamp-1 group-hover:text-indigo-600 transition-colors">{set.title}</h3>
+          {set.is_ai_generated && (
+            <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-purple-100 text-purple-700 rounded">AI</span>
+          )}
+        </div>
+        <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed">{set.description || 'No description provided.'}</p>
+      </div>
+
+      {/* Footer */}
+      <div className="pt-4 border-t border-zinc-50 flex items-center justify-between text-xs font-medium text-zinc-400">
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5" />
+          <span>{Math.round(set.card_count * 0.5)} mins</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-zinc-50 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+          <span>{set.card_count} cards</span>
+        </div>
       </div>
     </div>
   )

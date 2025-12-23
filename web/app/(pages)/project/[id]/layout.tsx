@@ -744,6 +744,19 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
     return () => window.removeEventListener('tokensUpdated', handleTokensUpdated)
   }, [])
 
+  // Listen for sidebar collapse/expand events from notes editor
+  useEffect(() => {
+    const handleSidebarCollapse = () => setSidebarCollapsed(true)
+    const handleSidebarExpand = () => setSidebarCollapsed(false)
+
+    window.addEventListener('collapseSidebar', handleSidebarCollapse)
+    window.addEventListener('expandSidebar', handleSidebarExpand)
+    return () => {
+      window.removeEventListener('collapseSidebar', handleSidebarCollapse)
+      window.removeEventListener('expandSidebar', handleSidebarExpand)
+    }
+  }, [])
+
   const loadProject = async () => {
     try {
       setError(null)

@@ -1,12 +1,16 @@
-// app/project/[id]/qa/page.tsx
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
-import { Loading } from '@/components/ui/loading'
-import { FileText, Upload, Search, X, MoreVertical, Share2, Trash2, Copy, Check, Link2 } from 'lucide-react'
 
+import { 
+  FileText, Upload, Search, X, MoreVertical, Share2, Trash2, 
+  Copy, Check, Link2, Plus, Brain, Clock, ChevronRight, 
+  Trophy, AlertCircle, RefreshCw, ArrowLeft, BookOpen, Loader2
+} from 'lucide-react'
+
+// --- Types ---
 interface Quiz {
   id: string
   title: string
@@ -15,6 +19,7 @@ interface Quiz {
   created_at: string
   share_token?: string
   is_public?: boolean
+  themeColor?: string 
 }
 
 interface Note {
@@ -35,415 +40,58 @@ interface Question {
   question_order: number
 }
 
-export default function QuizPage() {
-  const params = useParams()
-  const router = useRouter()
-  const projectId = params.id as string
-  const supabase = createClient()
+// --- Components ---
 
-  const [quizzes, setQuizzes] = useState<Quiz[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [selectedQuiz, setSelectedQuiz] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
-  
-  // Menu and sharing states
-  const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
-  const [showShareModal, setShowShareModal] = useState(false)
-  const [sharingQuiz, setSharingQuiz] = useState<Quiz | null>(null)
-  const [shareUrl, setShareUrl] = useState('')
-  const [isSharing, setIsSharing] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [deletingQuiz, setDeletingQuiz] = useState<Quiz | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  useEffect(() => {
-    loadQuizzes()
-  }, [projectId])
-
-  const loadQuizzes = async () => {
-    try {
-      const response = await fetch(`/api/quiz/generate?projectId=${projectId}`)
-      if (response.ok) {
-        const data = await response.json()
-        setQuizzes(data)
-      }
-    } catch (error) {
-      console.error('Error loading quizzes:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleQuizCreated = (quizId?: string) => {
-    setShowCreateModal(false)
-    loadQuizzes()
-    // Auto-open the newly created quiz
-    if (quizId) {
-      setSelectedQuiz(quizId)
-    }
-  }
-
-  const handleShare = async (quiz: Quiz) => {
-    setSharingQuiz(quiz)
-    setShowShareModal(true)
-    setMenuOpenFor(null)
-    setIsSharing(true)
-    setCopied(false)
-
-    try {
-      const response = await fetch('/api/share/quiz', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quizId: quiz.id })
-      })
-      const data = await response.json()
-      if (response.ok) {
-        setShareUrl(data.shareUrl)
-        // Update local state
-        setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, share_token: data.shareToken, is_public: true } : q))
-      }
-    } catch (error) {
-      console.error('Error generating share link:', error)
-    } finally {
-      setIsSharing(false)
-    }
-  }
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error('Error copying link:', error)
-    }
-  }
-
-  const handleDeleteQuiz = async () => {
-    if (!deletingQuiz) return
-    setIsDeleting(true)
-    try {
-      const response = await fetch(`/api/quiz/${deletingQuiz.id}`, {
-        method: 'DELETE'
-      })
-      if (response.ok) {
-        setQuizzes(prev => prev.filter(q => q.id !== deletingQuiz.id))
-        setShowDeleteModal(false)
-        setDeletingQuiz(null)
-      }
-    } catch (error) {
-      console.error('Error deleting quiz:', error)
-    } finally {
-      setIsDeleting(false)
-    }
-  }
-
-  if (selectedQuiz) {
-    return <QuizTaker quizId={selectedQuiz} onBack={() => setSelectedQuiz(null)} />
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="bg-white">
-      <div>
-        {/* Header */}
-        <div className="mb-8">
-          <p className="text-gray-600">Create AI-generated quizzes from your study materials</p>
-        </div>
-
-        {/* Search Bar */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search quizzes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all text-sm"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Quiz Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {/* Create New Quiz Card */}
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="aspect-square bg-white border-2 border-dashed border-gray-300 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all flex flex-col items-center justify-center group"
-          >
-            <div className="w-10 h-10 rounded-full bg-green-100 group-hover:bg-green-200 flex items-center justify-center mb-2 transition-colors">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-            </div>
-            <span className="text-xs font-medium text-gray-600 group-hover:text-green-600">New Quiz</span>
-          </button>
-
-          {/* Existing Quizzes */}
-          {quizzes
-            .filter(quiz => 
-              quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              (quiz.description || '').toLowerCase().includes(searchQuery.toLowerCase())
-            )
-            .map((quiz) => (
-            <div
-              key={quiz.id}
-              className="relative aspect-square bg-white border border-gray-200 rounded-xl hover:shadow-md transition-all text-left overflow-hidden group"
-            >
-              {/* Three-dot menu button */}
-              <div className="absolute top-2 right-2 z-10">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setMenuOpenFor(menuOpenFor === quiz.id ? null : quiz.id)
-                  }}
-                  className="p-1 rounded-lg bg-white/80 hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
-                >
-                  <MoreVertical className="w-4 h-4 text-gray-500" />
-                </button>
-                
-                {/* Dropdown menu */}
-                {menuOpenFor === quiz.id && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setMenuOpenFor(null)
-                      }} 
-                    />
-                    <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-20 overflow-hidden">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleShare(quiz)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                      >
-                        <Share2 className="w-4 h-4" />
-                        Share
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeletingQuiz(quiz)
-                          setShowDeleteModal(true)
-                          setMenuOpenFor(null)
-                        }}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <button
-                onClick={() => setSelectedQuiz(quiz.id)}
-                className="h-full w-full text-left"
-              >
-                <div className="h-full flex flex-col p-3">
-                  <div className="flex-1 overflow-hidden">
-                    <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-base pr-6">
-                      {quiz.title}
-                    </h3>
-                    <p className="text-xs text-gray-500 line-clamp-2">
-                      {quiz.description || 'No description'}
-                    </p>
-                  </div>
-                  <div className="mt-auto pt-2 border-t border-gray-100 flex items-center justify-between">
-                    <span className="text-sm text-gray-500 font-medium">{quiz.question_count} questions</span>
-                    <span className="text-sm text-green-600 font-semibold group-hover:translate-x-0.5 transition-transform">Start →</span>
-                  </div>
-                </div>
-              </button>
-            </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {quizzes.length === 0 && (
-          <div className="text-center py-12 mt-8">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No quizzes yet</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by creating your first quiz.</p>
-          </div>
-        )}
-
-        {/* Create Quiz Modal */}
-        {showCreateModal && (
-          <CreateQuizModal
-            projectId={projectId}
-            onClose={() => setShowCreateModal(false)}
-            onSuccess={handleQuizCreated}
-          />
-        )}
-
-        {/* Share Modal */}
-        {showShareModal && sharingQuiz && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Share Quiz</h3>
-                <button onClick={() => setShowShareModal(false)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <p className="text-sm text-gray-600 mb-4">
-                Share "<span className="font-medium">{sharingQuiz.title}</span>" with friends. They can take this quiz without needing an account!
-              </p>
-
-              {isSharing ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                </div>
-              ) : shareUrl ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={shareUrl}
-                      className="flex-1 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg"
-                    />
-                    <button
-                      onClick={handleCopyLink}
-                      className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-                        copied 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-green-600 text-white hover:bg-green-700'
-                      }`}
-                    >
-                      {copied ? (
-                        <span className="flex items-center gap-1">
-                          <Check className="w-4 h-4" /> Copied!
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1">
-                          <Copy className="w-4 h-4" /> Copy
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 flex items-center gap-1">
-                    <Link2 className="w-3 h-3" />
-                    Anyone with this link can take this quiz
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-red-600">Failed to generate share link. Please try again.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Delete Confirmation Modal */}
-        {showDeleteModal && deletingQuiz && (
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="flex-shrink-0">
-                  <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Delete Quiz</h3>
-                  <p className="text-sm text-gray-600">This action cannot be undone</p>
-                </div>
-              </div>
-
-              <p className="text-gray-700 mb-6">
-                Are you sure you want to delete "<span className="font-semibold">{deletingQuiz.title}</span>"? 
-                This will permanently remove all {deletingQuiz.question_count} questions in this quiz.
-              </p>
-
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false)
-                    setDeletingQuiz(null)
-                  }}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteQuiz}
-                  disabled={isDeleting}
-                  className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  {isDeleting ? 'Deleting...' : 'Delete'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Create Quiz Modal Component
+// 1. Create Quiz Modal
 interface CreateQuizModalProps {
   projectId: string
   onClose: () => void
-  onSuccess: (quizId?: string) => void
+  onSuccess: (quizId: string) => void
 }
 
 function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps) {
   const supabase = createClient()
   const [title, setTitle] = useState('')
+  const [sourceType, setSourceType] = useState<'text' | 'note' | 'pdf'>('text')
   const [studyMaterial, setStudyMaterial] = useState('')
   const [questionCount, setQuestionCount] = useState<number>(5)
-  const [customCount, setCustomCount] = useState('')
-  const [notes, setNotes] = useState<Note[]>([])
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  const [customCount, setCustomCount] = useState<string>('')
+  const [useCustom, setUseCustom] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState('')
-  const [sourceType, setSourceType] = useState<'text' | 'note' | 'pdf'>('text')
-  const [noteSearch, setNoteSearch] = useState('')
+  
+  // Note selection state
+  const [notes, setNotes] = useState<Note[]>([])
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [showNoteDropdown, setShowNoteDropdown] = useState(false)
+  const [noteSearch, setNoteSearch] = useState('')
+  
+  // PDF state
   const [isPdfLoading, setIsPdfLoading] = useState(false)
   const [pdfFileName, setPdfFileName] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
+  // Load notes on mount
   useEffect(() => {
+    const loadNotes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('notes')
+          .select('id, title, content')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false })
+        
+        if (error) throw error
+        if (data) setNotes(data)
+      } catch (error) {
+        console.error('Error loading notes:', error)
+      }
+    }
     loadNotes()
-  }, [])
+  }, [projectId, supabase])
 
-  // Close dropdown when clicking outside
+  // Click outside listener for dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -454,20 +102,6 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const loadNotes = async () => {
-    try {
-      const { data } = await supabase
-        .from('notes')
-        .select('*')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false })
-      
-      if (data) setNotes(data)
-    } catch (error) {
-      console.error('Error loading notes:', error)
-    }
-  }
-
   const handleNoteSelect = (noteId: string) => {
     const note = notes.find(n => n.id === noteId)
     if (note) {
@@ -477,10 +111,6 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
       setNoteSearch('')
     }
   }
-
-  const filteredNotes = notes.filter(note => 
-    note.title.toLowerCase().includes(noteSearch.toLowerCase())
-  )
 
   const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -496,10 +126,9 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
     setError('')
 
     try {
-      // Use pdf.js to extract text from PDF
+      // Dynamically import pdfjs
       const pdfjs = await import('pdfjs-dist')
-      
-      // Use local worker file from public folder
+      // Ensure you have the worker file in your public directory
       pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
       const arrayBuffer = await file.arrayBuffer()
@@ -519,11 +148,11 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
       if (fullText.trim()) {
         setStudyMaterial(fullText.trim())
       } else {
-        setError('Could not extract text from PDF. The PDF might be scanned or image-based.')
+        setError('Could not extract text. The PDF might be scanned/image-based.')
       }
     } catch (err) {
       console.error('PDF extraction error:', err)
-      setError('Failed to process PDF. Please try again or use text input.')
+      setError('Failed to process PDF. Please try again.')
     } finally {
       setIsPdfLoading(false)
     }
@@ -531,7 +160,7 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
 
   const handleGenerate = async () => {
     if (!title.trim() || !studyMaterial.trim()) {
-      setError('Please provide title and study material')
+      setError('Please provide a title and content.')
       return
     }
 
@@ -557,11 +186,8 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
       }
 
       const data = await response.json()
-
-      // Dispatch event to notify layout to refresh token balance
+      // Dispatch event to refresh tokens if needed
       window.dispatchEvent(new CustomEvent('tokensUpdated'))
-      
-      // Pass the quiz ID to auto-open it
       onSuccess(data.quiz?.id)
     } catch (error: any) {
       setError(error.message)
@@ -570,275 +196,257 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
     }
   }
 
+  const filteredNotes = notes.filter(note => 
+    note.title.toLowerCase().includes(noteSearch.toLowerCase())
+  )
+
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white/90 backdrop-blur-xl rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-white/20">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Quiz</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+    <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-white/20 overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white">
+          <h2 className="text-lg font-semibold text-zinc-900">Create New Quiz</h2>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            {error}
-          </div>
-        )}
+        {/* Content */}
+        <div className="p-6 overflow-y-auto">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </div>
+          )}
 
-        <div className="space-y-6">
-          {/* Title */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Quiz Title *</label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="e.g., Chapter 1 Quiz"
-            />
-          </div>
-
-          {/* Source Type Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Source Material *</label>
-            <div className="flex space-x-2 mb-3">
-              <button
-                onClick={() => { setSourceType('text'); setSelectedNoteId(null); setPdfFileName(''); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  sourceType === 'text'
-                    ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-600'
-                    : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-                Text
-              </button>
-              <button
-                onClick={() => { setSourceType('note'); setPdfFileName(''); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  sourceType === 'note'
-                    ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-600'
-                    : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
-                }`}
-              >
-                <FileText className="w-4 h-4" />
-                From Notes
-              </button>
-              <button
-                onClick={() => { setSourceType('pdf'); setSelectedNoteId(null); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  sourceType === 'pdf'
-                    ? 'bg-indigo-100 text-indigo-700 border-2 border-indigo-600'
-                    : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
-                }`}
-              >
-                <Upload className="w-4 h-4" />
-                Upload PDF
-              </button>
+          <div className="space-y-6">
+            {/* Title Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700">Quiz Title</label>
+              <input 
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Chapter 4: Photosynthesis"
+                className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
+              />
             </div>
 
-            {/* Text Input */}
-            {sourceType === 'text' && (
-              <textarea
-                value={studyMaterial}
-                onChange={(e) => setStudyMaterial(e.target.value)}
-                rows={8}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="Paste or type your study material here..."
-              />
-            )}
-
-            {/* Notes Selection with Search */}
-            {sourceType === 'note' && (
-              <div ref={dropdownRef} className="relative">
-                {notes.length > 0 ? (
-                  <>
-                    <div 
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg cursor-pointer flex items-center justify-between"
-                      onClick={() => setShowNoteDropdown(!showNoteDropdown)}
-                    >
-                      <span className={selectedNoteId ? 'text-gray-900' : 'text-gray-500'}>
-                        {selectedNoteId ? notes.find(n => n.id === selectedNoteId)?.title : '-- Select a note --'}
-                      </span>
-                      <svg className={`w-5 h-5 text-gray-400 transition-transform ${showNoteDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                    
-                    {showNoteDropdown && (
-                      <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden">
-                        {/* Search Input */}
-                        <div className="p-2 border-b border-gray-200 sticky top-0 bg-white">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                              type="text"
-                              value={noteSearch}
-                              onChange={(e) => setNoteSearch(e.target.value)}
-                              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                              placeholder="Search notes..."
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                        </div>
-                        
-                        {/* Notes List */}
-                        <div className="overflow-y-auto max-h-48">
-                          {filteredNotes.length > 0 ? (
-                            filteredNotes.map((note) => (
-                              <div
-                                key={note.id}
-                                onClick={() => handleNoteSelect(note.id)}
-                                className={`px-4 py-2 cursor-pointer hover:bg-indigo-50 transition-colors ${
-                                  selectedNoteId === note.id ? 'bg-indigo-100 text-indigo-700' : 'text-gray-700'
-                                }`}
-                              >
-                                {note.title}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                              No notes found
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Show selected note content preview */}
-                    {selectedNoteId && (
-                      <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">Content preview:</p>
-                        <p className="text-sm text-gray-700 line-clamp-3">{studyMaterial.slice(0, 300)}{studyMaterial.length > 300 ? '...' : ''}</p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-gray-500 p-4 bg-gray-50 rounded-lg">
-                    No notes available. Create a note first or use text input.
-                  </p>
-                )}
+            {/* Source Selection */}
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-zinc-700">Source Material</label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: 'text', label: 'Paste Text', icon: FileText },
+                  { id: 'note', label: 'From Note', icon: BookOpen },
+                  { id: 'pdf', label: 'Upload PDF', icon: Upload },
+                ].map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => {
+                      setSourceType(type.id as any)
+                      setSelectedNoteId(null)
+                      setPdfFileName('')
+                    }}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                      sourceType === type.id 
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
+                        : 'border-zinc-100 bg-white text-zinc-500 hover:border-zinc-200 hover:bg-zinc-50'
+                    }`}
+                  >
+                    <type.icon className="w-6 h-6" />
+                    <span className="text-xs font-medium">{type.label}</span>
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
 
-            {/* PDF Upload */}
-            {sourceType === 'pdf' && (
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="application/pdf"
-                  onChange={handlePdfUpload}
-                  className="hidden"
+            {/* Input Area based on Source */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700">Content</label>
+              
+              {sourceType === 'text' && (
+                <textarea 
+                  value={studyMaterial}
+                  onChange={(e) => setStudyMaterial(e.target.value)}
+                  placeholder="Paste your study notes or text here..."
+                  className="w-full h-40 px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none placeholder:text-zinc-400 text-sm"
                 />
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                    isPdfLoading ? 'border-indigo-300 bg-indigo-50' : 'border-gray-300 hover:border-indigo-500 hover:bg-indigo-50'
-                  }`}
-                >
-                  {isPdfLoading ? (
-                    <div className="flex flex-col items-center">
-                      <svg className="animate-spin h-8 w-8 text-indigo-600 mb-2" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <p className="text-sm text-indigo-600">Processing PDF...</p>
+              )}
+
+              {sourceType === 'note' && (
+                <div ref={dropdownRef} className="relative">
+                  <div 
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer flex items-center justify-between hover:bg-zinc-100 transition-colors"
+                    onClick={() => setShowNoteDropdown(!showNoteDropdown)}
+                  >
+                    <span className={`text-sm ${selectedNoteId ? 'text-zinc-900' : 'text-zinc-400'}`}>
+                      {selectedNoteId ? notes.find(n => n.id === selectedNoteId)?.title : 'Select a note...'}
+                    </span>
+                    <ChevronRight className={`w-4 h-4 text-zinc-400 transition-transform ${showNoteDropdown ? 'rotate-90' : ''}`} />
+                  </div>
+                  
+                  {showNoteDropdown && (
+                    <div className="absolute z-10 mt-2 w-full bg-white border border-zinc-200 rounded-xl shadow-xl max-h-60 overflow-hidden flex flex-col">
+                      <div className="p-2 border-b border-zinc-100 bg-zinc-50/50">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
+                          <input
+                            type="text"
+                            value={noteSearch}
+                            onChange={(e) => setNoteSearch(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:border-indigo-500"
+                            placeholder="Search..."
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+                      <div className="overflow-y-auto flex-1 p-1">
+                        {filteredNotes.length > 0 ? (
+                          filteredNotes.map((note) => (
+                            <button
+                              key={note.id}
+                              onClick={() => handleNoteSelect(note.id)}
+                              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                                selectedNoteId === note.id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-zinc-600 hover:bg-zinc-50'
+                              }`}
+                            >
+                              {note.title}
+                            </button>
+                          ))
+                        ) : (
+                          <div className="p-4 text-center text-sm text-zinc-400">No notes found</div>
+                        )}
+                      </div>
                     </div>
-                  ) : pdfFileName ? (
-                    <div className="flex flex-col items-center">
-                      <FileText className="w-8 h-8 text-indigo-600 mb-2" />
-                      <p className="text-sm font-medium text-gray-900">{pdfFileName}</p>
-                      <p className="text-xs text-gray-500 mt-1">Click to upload a different file</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center">
-                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                      <p className="text-sm font-medium text-gray-700">Click to upload PDF</p>
-                      <p className="text-xs text-gray-500 mt-1">PDF files only</p>
+                  )}
+                  {selectedNoteId && (
+                    <div className="mt-2 text-xs text-zinc-500 line-clamp-3 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+                      {studyMaterial}
                     </div>
                   )}
                 </div>
-                
-                {/* Show extracted text preview */}
-                {studyMaterial && sourceType === 'pdf' && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">Extracted text preview:</p>
-                    <p className="text-sm text-gray-700 line-clamp-3">{studyMaterial.slice(0, 300)}{studyMaterial.length > 300 ? '...' : ''}</p>
+              )}
+
+              {sourceType === 'pdf' && (
+                <div className="space-y-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handlePdfUpload}
+                    className="hidden"
+                  />
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
+                      isPdfLoading 
+                        ? 'border-indigo-300 bg-indigo-50/30' 
+                        : 'border-zinc-300 hover:border-indigo-500 hover:bg-indigo-50/10'
+                    }`}
+                  >
+                    {isPdfLoading ? (
+                      <div className="flex flex-col items-center">
+                        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mb-3" />
+                        <p className="text-sm font-medium text-indigo-600">Extracting text...</p>
+                      </div>
+                    ) : pdfFileName ? (
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 bg-indigo-50 rounded-full flex items-center justify-center mb-3">
+                          <FileText className="w-6 h-6 text-indigo-600" />
+                        </div>
+                        <p className="text-sm font-medium text-zinc-900">{pdfFileName}</p>
+                        <p className="text-xs text-zinc-500 mt-1">Click to replace</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <div className="w-12 h-12 bg-zinc-100 rounded-full flex items-center justify-center mb-3">
+                          <Upload className="w-6 h-6 text-zinc-400" />
+                        </div>
+                        <p className="text-sm font-medium text-zinc-700">Click to upload PDF</p>
+                        <p className="text-xs text-zinc-400 mt-1">Max 10MB</p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Question Count */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Number of Questions</label>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => { setQuestionCount(5); setCustomCount(''); }}
-                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-colors ${
-                  questionCount === 5 && !customCount
-                    ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                5
-              </button>
-              <button
-                onClick={() => { setQuestionCount(10); setCustomCount(''); }}
-                className={`flex-1 py-2 px-4 rounded-lg border-2 transition-colors ${
-                  questionCount === 10 && !customCount
-                    ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                10
-              </button>
-              <div className="flex-1 relative">
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  placeholder="Custom"
-                  value={customCount}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setCustomCount(val);
-                    if (val && parseInt(val) >= 1 && parseInt(val) <= 20) {
-                      setQuestionCount(parseInt(val));
-                    }
-                  }}
-                  className={`w-full py-2 px-3 rounded-lg border-2 transition-colors text-center ${
-                    customCount
-                      ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                />
-              </div>
+                  {studyMaterial && !isPdfLoading && (
+                    <div className="text-xs text-zinc-500 line-clamp-3 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+                      {studyMaterial}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-            <p className="text-xs text-gray-500 mt-1">Max 20 questions</p>
-          </div>
 
-          {/* Generate Button */}
-          <button
+            {/* Question Count */}
+            <div>
+              <label className="text-sm font-medium text-zinc-700 mb-2 block">Number of Questions</label>
+              <div className="flex gap-3">
+                {[5, 10].map(num => (
+                  <button
+                    key={num}
+                    onClick={() => { setQuestionCount(num); setUseCustom(false); setCustomCount(''); }}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${
+                      questionCount === num && !useCustom
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+                <div className="flex-1 relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={customCount}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setCustomCount(val)
+                      const num = parseInt(val)
+                      if (num >= 1 && num <= 20) {
+                        setQuestionCount(num)
+                        setUseCustom(true)
+                      }
+                    }}
+                    onFocus={() => setUseCustom(true)}
+                    placeholder="1-20"
+                    className={`w-full py-2 px-3 rounded-lg text-sm font-medium border text-center transition-all ${
+                      useCustom && customCount
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                        : 'border-zinc-200 text-zinc-600 hover:border-zinc-300'
+                    }`}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1.5">Choose preset or enter custom (1-20)</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-zinc-100 bg-zinc-50/50 flex justify-end gap-3">
+          <button 
+            onClick={onClose}
+            className="px-5 py-2.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
             onClick={handleGenerate}
-            disabled={isGenerating || !title.trim() || !studyMaterial.trim()}
-            className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center space-x-2"
+            disabled={!title || !studyMaterial || isGenerating}
+            className="px-5 py-2.5 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:shadow-none transition-all flex items-center gap-2"
           >
             {isGenerating ? (
               <>
-                <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Generating Quiz...</span>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating...
               </>
             ) : (
-              <span>Generate Quiz</span>
+              <>
+                <Brain className="w-4 h-4" />
+                Generate Quiz
+              </>
             )}
           </button>
         </div>
@@ -847,7 +455,259 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
   )
 }
 
-// Quiz Taker Component
+// 2. Share Quiz Modal
+interface ShareModalProps {
+  quiz: Quiz
+  onClose: () => void
+}
+
+function ShareQuizModal({ quiz, onClose }: ShareModalProps) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [isPublic, setIsPublic] = useState(quiz.is_public || false)
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState('')
+
+  const generateShareLink = async () => {
+    setIsLoading(true)
+    setError('')
+    try {
+      const response = await fetch('/api/share/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quizId: quiz.id, action: 'enable' })
+      })
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to generate share link')
+      }
+      
+      const data = await response.json()
+      setShareUrl(data.shareUrl)
+      setIsPublic(true)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const disableSharing = async () => {
+    setIsLoading(true)
+    setError('')
+    try {
+      const response = await fetch('/api/share/quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quizId: quiz.id, action: 'disable' })
+      })
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to disable sharing')
+      }
+      
+      setShareUrl(null)
+      setIsPublic(false)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const copyToClipboard = async () => {
+    if (!shareUrl) return
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
+
+  // Initialize share URL if quiz is already public
+  useEffect(() => {
+    if (quiz.share_token && quiz.is_public) {
+      const baseUrl = window.location.origin
+      setShareUrl(`${baseUrl}/share/quiz/${quiz.share_token}`)
+      setIsPublic(true)
+    }
+  }, [quiz])
+
+  return (
+    <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white">
+          <h2 className="text-lg font-semibold text-zinc-900">Share Quiz</h2>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Share2 className="w-8 h-8 text-indigo-600" />
+            </div>
+            <h3 className="font-semibold text-zinc-900 mb-1">{quiz.title}</h3>
+            <p className="text-sm text-zinc-500">{quiz.question_count} questions</p>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </div>
+          )}
+
+          {isPublic && shareUrl ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-200">
+                <Link2 className="w-4 h-4 text-zinc-400 shrink-0" />
+                <input 
+                  type="text" 
+                  value={shareUrl} 
+                  readOnly 
+                  className="flex-1 bg-transparent text-sm text-zinc-700 outline-none truncate"
+                />
+                <button
+                  onClick={copyToClipboard}
+                  className="p-2 hover:bg-zinc-200 rounded-lg transition-colors shrink-0"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-emerald-600" />
+                  ) : (
+                    <Copy className="w-4 h-4 text-zinc-500" />
+                  )}
+                </button>
+              </div>
+              
+              <p className="text-xs text-zinc-500 text-center">
+                Anyone with this link can take the quiz
+              </p>
+
+              <button
+                onClick={disableSharing}
+                disabled={isLoading}
+                className="w-full py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl border border-red-200 transition-colors disabled:opacity-50"
+              >
+                {isLoading ? 'Disabling...' : 'Disable Sharing'}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={generateShareLink}
+              disabled={isLoading}
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Link2 className="w-4 h-4" />
+                  Generate Share Link
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 3. Quiz Card
+interface QuizCardProps {
+  quiz: Quiz
+  onClick: () => void
+  onDelete: () => void
+  onShare: () => void
+}
+
+function QuizCard({ quiz, onClick, onDelete, onShare }: QuizCardProps) {
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Generate a consistent color based on title length (for aesthetics without storing in DB)
+  const colors = ['bg-blue-50 text-blue-600', 'bg-purple-50 text-purple-600', 'bg-emerald-50 text-emerald-600', 'bg-rose-50 text-rose-600', 'bg-amber-50 text-amber-600']
+  const colorClass = colors[quiz.title.length % colors.length]
+
+  return (
+    <div 
+      onClick={onClick}
+      className="group relative bg-white border border-zinc-200 rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full"
+    >
+      {/* Icon & Menu */}
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorClass}`}>
+          <Brain className="w-6 h-6" />
+        </div>
+        <div className="relative" ref={menuRef}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+            className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+          
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-xl border border-zinc-100 py-1 z-10 animate-in fade-in zoom-in-95 duration-100">
+              <button 
+                onClick={(e) => { e.stopPropagation(); onShare(); setShowMenu(false); }}
+                className="w-full px-4 py-2.5 text-sm text-left text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2"
+              >
+                <Share2 className="w-4 h-4" /> Share
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDelete(); setShowMenu(false); }}
+                className="w-full px-4 py-2.5 text-sm text-left text-red-600 hover:bg-red-50 flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Text */}
+      <div className="flex-1 mb-4">
+        <h3 className="font-bold text-zinc-900 mb-1 line-clamp-1 group-hover:text-indigo-600 transition-colors">{quiz.title}</h3>
+        <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed">{quiz.description || 'No description provided.'}</p>
+      </div>
+
+      {/* Footer */}
+      <div className="pt-4 border-t border-zinc-50 flex items-center justify-between text-xs font-medium text-zinc-400">
+        <div className="flex items-center gap-1.5">
+          <Clock className="w-3.5 h-3.5" />
+          <span>{Math.round(quiz.question_count * 1.5)} mins</span>
+        </div>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-zinc-50 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+          <span>{quiz.question_count} Qs</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// 3. Quiz Taker (The immersive view)
 interface QuizTakerProps {
   quizId: string
   onBack: () => void
@@ -855,71 +715,67 @@ interface QuizTakerProps {
 
 function QuizTaker({ quizId, onBack }: QuizTakerProps) {
   const supabase = createClient()
-  const [quiz, setQuiz] = useState<Quiz | null>(null)
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
-  const [answers, setAnswers] = useState<Record<number, string>>({})
-  const [showResult, setShowResult] = useState(false)
-  const [showFeedback, setShowFeedback] = useState(false)
-  const [score, setScore] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [currentIdx, setCurrentIdx] = useState(0)
+  const [answers, setAnswers] = useState<Record<number, string>>({})
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [isFinished, setIsFinished] = useState(false)
+  const [score, setScore] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [mistakesRecorded, setMistakesRecorded] = useState(0)
 
+  // Load quiz details
   useEffect(() => {
-    loadQuiz()
-  }, [quizId])
-
-  const loadQuiz = async () => {
-    try {
-      const [quizRes, questionsRes] = await Promise.all([
-        supabase.from('quizzes').select('*').eq('id', quizId).single(),
-        supabase.from('quiz_questions').select('*').eq('quiz_id', quizId).order('question_order')
-      ])
-
-      if (quizRes.data) setQuiz(quizRes.data)
-      if (questionsRes.data) setQuestions(questionsRes.data)
-    } catch (error) {
-      console.error('Error loading quiz:', error)
-    } finally {
-      setLoading(false)
+    const loadQuizData = async () => {
+      try {
+        // Fetch questions from Supabase
+        const { data: questionsData, error } = await supabase
+          .from('quiz_questions')
+          .select('*')
+          .eq('quiz_id', quizId)
+          .order('question_order')
+        
+        if (error) throw error
+        if (questionsData) setQuestions(questionsData as any)
+      } catch (error) {
+        console.error('Error loading quiz:', error)
+        alert('Failed to load quiz. Please try again.')
+        onBack()
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+    loadQuizData()
+  }, [quizId, onBack]) // Removed supabase dependency
 
-  const handleAnswerSelect = (answer: string) => {
-    setSelectedAnswer(answer)
-  }
+  const currentQ = questions[currentIdx]
+  const progress = questions.length > 0 ? ((currentIdx + 1) / questions.length) * 100 : 0
 
-  const handleSubmitAnswer = () => {
-    if (!selectedAnswer) return
-
-    const newAnswers = { ...answers, [currentQuestion]: selectedAnswer }
-    setAnswers(newAnswers)
+  const handleAnswer = (option: string) => {
+    if (showFeedback) return
+    setAnswers(prev => ({ ...prev, [currentIdx]: option }))
     setShowFeedback(true)
   }
 
   const handleNext = async () => {
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1)
-      setSelectedAnswer(answers[currentQuestion + 1] || null)
+    if (currentIdx < questions.length - 1) {
+      setCurrentIdx(prev => prev + 1)
       setShowFeedback(false)
     } else {
-      // Calculate score locally first
-      let correctCount = 0
-      questions.forEach((q, index) => {
-        if (answers[index] === q.correct_answer) {
-          correctCount++
-        }
+      // Calculate score locally
+      let correct = 0
+      questions.forEach((q, idx) => {
+        if (answers[idx] === q.correct_answer) correct++
       })
-      setScore(correctCount)
+      setScore(correct)
       
-      // Submit to backend
-      await submitQuiz(correctCount)
+      // Submit results
+      await submitQuizResults(correct)
     }
   }
 
-  const submitQuiz = async (calculatedScore: number) => {
+  const submitQuizResults = async (finalScore: number) => {
     setSubmitting(true)
     try {
       const response = await fetch('/api/quiz/submit', {
@@ -927,111 +783,73 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           quizId,
-          answers // Send the answers object { 0: 'A', 1: 'B', ... }
+          answers // sending index-based or mapped answers based on your API expectation
         })
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to submit quiz')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.mistakesRecorded > 0) {
+          setMistakesRecorded(data.mistakesRecorded)
+        }
       }
-
-      const data = await response.json()
-      
-      // Store mistakes info
-      if (data.mistakesRecorded > 0) {
-        setMistakesRecorded(data.mistakesRecorded)
-        console.log(`Recorded ${data.mistakesRecorded} mistakes to schedule`)
-      }
-      
-      setShowResult(true)
     } catch (error) {
-      console.error('Error submitting quiz:', error)
-      // Still show result even if submission fails
-      setShowResult(true)
+      console.error('Submission error:', error)
     } finally {
       setSubmitting(false)
+      setIsFinished(true)
     }
   }
 
   if (loading) {
-    return <Loading message="Loading quiz..." fullScreen={false} />
+    return (
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
+      </div>
+    )
   }
 
-  if (showResult) {
+  if (isFinished) {
     const percentage = Math.round((score / questions.length) * 100)
     return (
-      <div className="bg-white flex items-center justify-center p-6">
-        <div className="bg-gray-50 rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-          <div className="mb-6">
-            {percentage >= 70 ? (
-              <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            ) : (
-              <svg className="w-16 h-16 text-yellow-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            )}
+      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6 animate-in fade-in">
+        <div className="bg-white max-w-md w-full rounded-3xl shadow-xl p-8 text-center border border-zinc-100">
+          <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${percentage >= 70 ? 'bg-emerald-50' : 'bg-yellow-50'}`}>
+            <Trophy className={`w-12 h-12 ${percentage >= 70 ? 'text-emerald-500' : 'text-yellow-500'}`} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Completed!</h2>
-          <p className="text-gray-600 mb-6">
-            You scored <span className="font-bold text-indigo-600">{score}</span> out of{' '}
-            <span className="font-bold">{questions.length}</span> ({percentage}%)
+          <h2 className="text-3xl font-bold text-zinc-900 mb-2">Quiz Complete!</h2>
+          <p className="text-zinc-500 mb-8">
+            {percentage >= 80 ? 'Outstanding performance!' : 'Good effort, keep practicing!'}
           </p>
           
-          {/* Show mistake recording status */}
+          <div className="bg-zinc-50 rounded-2xl p-6 mb-4">
+            <div className="text-5xl font-bold text-indigo-600 mb-2">{percentage}%</div>
+            <div className="text-sm font-medium text-zinc-400 uppercase tracking-wider">
+              {score} / {questions.length} Correct
+            </div>
+          </div>
+
           {mistakesRecorded > 0 && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="text-left">
-                  <p className="font-semibold text-blue-900 text-sm">📚 Mistakes Recorded!</p>
-                  <p className="mt-1 text-sm text-blue-800">
-                    {mistakesRecorded} incorrect {mistakesRecorded === 1 ? 'answer has' : 'answers have'} been added to your study schedule for review.
-                  </p>
-                </div>
-              </div>
+            <div className="mb-8 p-3 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 flex items-center justify-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              <span>{mistakesRecorded} mistakes saved for review</span>
             </div>
           )}
 
-          {score < questions.length && mistakesRecorded === 0 && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-start space-x-3">
-                <svg className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <div className="text-left">
-                  <p className="font-semibold text-yellow-900 text-sm">💡 Tip</p>
-                  <p className="mt-1 text-sm text-yellow-800">
-                    Create a study schedule to automatically track and review your mistakes!
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <div className="space-y-3">
-            <button
+          <div className="grid grid-cols-2 gap-3">
+            <button 
               onClick={() => {
-                setCurrentQuestion(0)
-                setAnswers({})
-                setSelectedAnswer(null)
-                setShowResult(false)
-                setShowFeedback(false)
-                setMistakesRecorded(0)
+                setCurrentIdx(0); setAnswers({}); setShowFeedback(false); setIsFinished(false);
               }}
-              className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-zinc-200 text-zinc-700 font-semibold rounded-xl hover:bg-zinc-50 hover:border-zinc-300 transition-all"
             >
-              Retry Quiz
+              <RefreshCw className="w-4 h-4" /> Retry
             </button>
-            <button
+            <button 
               onClick={onBack}
-              className="w-full py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-zinc-900 text-white font-semibold rounded-xl hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-900/10"
             >
-              Back to Quizzes
+              Done
             </button>
           </div>
         </div>
@@ -1039,139 +857,264 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
     )
   }
 
-  const currentQ = questions[currentQuestion]
-  const isCorrect = selectedAnswer === currentQ?.correct_answer
-
   return (
-    <div className="bg-white p-6">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="bg-gray-50 rounded-lg shadow p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <button
-              onClick={onBack}
-              className="text-gray-600 hover:text-gray-900 flex items-center space-x-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              <span>Back</span>
-            </button>
-            <span className="text-sm text-gray-600">
-              Question {currentQuestion + 1} of {questions.length}
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-indigo-600 h-2 rounded-full transition-all"
-              style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
-            />
+    <div className="min-h-screen bg-zinc-50 flex flex-col">
+      {/* Top Bar */}
+      <div className="bg-white border-b border-zinc-200 sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
+          <button 
+            onClick={onBack}
+            className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium text-sm">Exit</span>
+          </button>
+          <div className="text-sm font-medium text-zinc-400">
+            {currentIdx + 1} / {questions.length}
           </div>
         </div>
+        {/* Progress Bar */}
+        <div className="h-1 bg-zinc-100 w-full">
+          <div 
+            className="h-full bg-indigo-600 transition-all duration-500 ease-out" 
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
 
-        {/* Question */}
-        <div className="bg-white rounded-lg shadow p-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 leading-relaxed">{currentQ?.question_text}</h2>
+      {/* Question Area */}
+      <div className="flex-1 max-w-3xl w-full mx-auto px-6 py-12 flex flex-col justify-center">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-12 leading-tight">
+            {currentQ?.question_text}
+          </h2>
 
-          {/* Options */}
-          <div className="space-y-4 mb-8">
+          <div className="space-y-4">
             {['A', 'B', 'C', 'D'].map((option) => {
-              const optionText = currentQ[`option_${option.toLowerCase()}` as keyof Question] as string
-              const isSelected = selectedAnswer === option
-              const isCorrectOption = option === currentQ.correct_answer
-              const showCorrectness = showFeedback
+              const optionKey = `option_${option.toLowerCase()}` as keyof Question
+              const text = currentQ?.[optionKey] as string
+              const isSelected = answers[currentIdx] === option
+              const isCorrect = currentQ?.correct_answer === option
+              
+              let stateStyle = 'border-zinc-200 hover:border-indigo-300 hover:bg-white bg-white'
+              if (showFeedback) {
+                if (isCorrect) stateStyle = 'border-emerald-500 bg-emerald-50 ring-1 ring-emerald-500 text-emerald-900'
+                else if (isSelected) stateStyle = 'border-rose-500 bg-rose-50 text-rose-900'
+                else stateStyle = 'border-zinc-100 bg-zinc-50 opacity-60'
+              } else if (isSelected) {
+                stateStyle = 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600 text-indigo-900'
+              }
 
               return (
                 <button
                   key={option}
-                  onClick={() => !showFeedback && handleAnswerSelect(option)}
+                  onClick={() => handleAnswer(option)}
                   disabled={showFeedback}
-                  className={`w-full p-4 text-left rounded-lg border-2 transition-all ${
-                    showCorrectness && isCorrectOption
-                      ? 'border-green-500 bg-green-50'
-                      : showCorrectness && isSelected && !isCorrect
-                      ? 'border-red-500 bg-red-50'
-                      : isSelected
-                      ? 'border-indigo-600 bg-indigo-50'
-                      : 'border-gray-300 hover:border-indigo-300'
-                  } ${showFeedback ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                  className={`w-full p-6 text-left rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 group ${stateStyle}`}
                 >
-                  <div className="flex items-start space-x-3">
-                    <span className={`flex-shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center text-base font-medium ${
-                      showCorrectness && isCorrectOption
-                        ? 'border-green-500 bg-green-500 text-white'
-                        : showCorrectness && isSelected && !isCorrect
-                        ? 'border-red-500 bg-red-500 text-white'
-                        : isSelected
-                        ? 'border-indigo-600 bg-indigo-600 text-white'
-                        : 'border-gray-400'
-                    }`}>
-                      {showCorrectness && isCorrectOption ? '✓' : option}
-                    </span>
-                    <span className="flex-1 text-lg">{optionText}</span>
+                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm shrink-0 transition-colors ${
+                    showFeedback && isCorrect 
+                      ? 'border-emerald-500 bg-emerald-500 text-white'
+                      : showFeedback && isSelected
+                      ? 'border-rose-500 bg-rose-500 text-white'
+                      : isSelected 
+                      ? 'border-indigo-600 bg-indigo-600 text-white' 
+                      : 'border-zinc-300 text-zinc-400 group-hover:border-indigo-400 group-hover:text-indigo-500'
+                  }`}>
+                    {option}
                   </div>
+                  <span className="text-lg font-medium">{text}</span>
+                  
+                  {showFeedback && isCorrect && (
+                    <Check className="w-6 h-6 text-emerald-600 ml-auto shrink-0" />
+                  )}
+                  {showFeedback && isSelected && !isCorrect && (
+                    <X className="w-6 h-6 text-rose-500 ml-auto shrink-0" />
+                  )}
                 </button>
               )
             })}
           </div>
 
-          {/* Feedback */}
+          {/* Explanation / Next */}
           {showFeedback && (
-            <div className={`p-4 rounded-lg mb-6 ${isCorrect ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-              <div className="flex items-start space-x-3">
-                {isCorrect ? (
-                  <svg className="w-6 h-6 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )}
+            <div className="mt-8 animate-in fade-in slide-in-from-bottom-2">
+              <div className={`p-6 rounded-2xl mb-6 flex gap-4 ${
+                answers[currentIdx] === currentQ.correct_answer 
+                  ? 'bg-emerald-50/50 border border-emerald-100' 
+                  : 'bg-indigo-50/50 border border-indigo-100' 
+              }`}>
+                <div className="shrink-0 p-2 bg-white rounded-full shadow-sm">
+                  {answers[currentIdx] === currentQ.correct_answer 
+                    ? <Check className="w-5 h-5 text-emerald-600" />
+                    : <AlertCircle className="w-5 h-5 text-indigo-600" />
+                  }
+                </div>
                 <div>
-                  <p className={`font-semibold ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
-                    {isCorrect ? 'Correct!' : 'Incorrect'}
-                  </p>
-                  {currentQ.explanation && (
-                    <p className={`text-sm mt-1 ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
-                      {currentQ.explanation}
-                    </p>
-                  )}
+                  <h4 className="font-bold text-zinc-900 mb-1">
+                    {answers[currentIdx] === currentQ.correct_answer ? 'Correct!' : 'Explanation'}
+                  </h4>
+                  <p className="text-zinc-600 leading-relaxed">{currentQ.explanation}</p>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Action Button */}
-          {!showFeedback ? (
-            <button
-              onClick={handleSubmitAnswer}
-              disabled={!selectedAnswer}
-              className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Submit Answer
-            </button>
-          ) : (
-            <button
-              onClick={handleNext}
-              disabled={submitting}
-              className="w-full py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
-            >
-              {submitting ? (
-                <>
-                  <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>Submitting...</span>
-                </>
-              ) : (
-                <span>{currentQuestion < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}</span>
-              )}
-            </button>
+              <button 
+                onClick={handleNext}
+                disabled={submitting}
+                className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl font-semibold text-lg transition-all shadow-xl shadow-zinc-900/10 hover:shadow-zinc-900/20 flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    {currentIdx < questions.length - 1 ? 'Next Question' : 'See Results'}
+                    <ChevronRight className="w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </div>
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// 4. Main Page Component
+export default function QuizPage() {
+  const params = useParams()
+  const projectId = params.id as string
+  const [quizzes, setQuizzes] = useState<Quiz[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null)
+  const [shareQuiz, setShareQuiz] = useState<Quiz | null>(null)
+
+  useEffect(() => {
+    loadQuizzes()
+  }, [projectId])
+
+  const loadQuizzes = async () => {
+    try {
+      const response = await fetch(`/api/quiz/generate?projectId=${projectId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setQuizzes(data)
+      }
+    } catch (error) {
+      console.error('Error loading quizzes:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteQuiz = async (quizId: string) => {
+    if (!confirm('Are you sure you want to delete this quiz?')) return
+    
+    try {
+      const response = await fetch(`/api/quiz/${quizId}`, { method: 'DELETE' })
+      if (response.ok) {
+        setQuizzes(prev => prev.filter(q => q.id !== quizId))
+      }
+    } catch (error) {
+      console.error('Error deleting quiz:', error)
+    }
+  }
+
+  const filteredQuizzes = quizzes.filter(q => 
+    q.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    q.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  // If a quiz is selected, show the quiz taker view
+  if (selectedQuizId) {
+    return <QuizTaker quizId={selectedQuizId} onBack={() => setSelectedQuizId(null)} />
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* Top Header */}
+      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
+        <div className="px-8 py-6 max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Quiz Library</h1>
+              <p className="text-zinc-500 mt-1">Review your automated quizzes and track progress.</p>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
+                <input 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search quizzes..."
+                  className="pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
+                />
+              </div>
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 hover:shadow-zinc-900/20 hover:-translate-y-0.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>New Quiz</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grid Content */}
+      <div className="p-8 max-w-7xl mx-auto">
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 text-zinc-300 animate-spin" />
+          </div>
+        ) : filteredQuizzes.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredQuizzes.map(quiz => (
+              <QuizCard 
+                key={quiz.id} 
+                quiz={quiz} 
+                onClick={() => setSelectedQuizId(quiz.id)}
+                onDelete={() => handleDeleteQuiz(quiz.id)}
+                onShare={() => setShareQuiz(quiz)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 text-zinc-400">
+            <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6">
+              <Brain className="w-10 h-10 opacity-20" />
+            </div>
+            <h3 className="text-lg font-medium text-zinc-900 mb-1">No quizzes found</h3>
+            <p className="text-zinc-500">Try creating a new one or adjusting your search.</p>
+          </div>
+        )}
+      </div>
+
+      {showCreateModal && (
+        <CreateQuizModal 
+          projectId={projectId}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={(id) => {
+            setShowCreateModal(false)
+            loadQuizzes() // Refresh list
+            setSelectedQuizId(id) // Open new quiz
+          }}
+        />
+      )}
+
+      {shareQuiz && (
+        <ShareQuizModal
+          quiz={shareQuiz}
+          onClose={() => {
+            setShareQuiz(null)
+            loadQuizzes() // Refresh to update share status
+          }}
+        />
+      )}
     </div>
   )
 }
