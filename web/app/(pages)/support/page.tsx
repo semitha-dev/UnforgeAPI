@@ -22,7 +22,7 @@ export default function SupportPage() {
     setSuccess('');
 
     // Create mailto link
-    const mailtoLink = `mailto:leaflearningofficial@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
+    const mailtoLink = `mailto:leaflearningoffcial@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
       `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
     )}`;
 
@@ -30,7 +30,7 @@ export default function SupportPage() {
     window.location.href = mailtoLink;
 
     // Show success message
-    setSuccess('Opening your email client... If it doesn\'t open automatically, please email us at leaflearningofficial@gmail.com');
+    setSuccess('Opening your email client... If it doesn\'t open automatically, please email us at leaflearningoffcial@gmail.com');
     
     // Reset form
     setFormData({
@@ -43,7 +43,7 @@ export default function SupportPage() {
     setSending(false);
   };
 
-  const supportEmail = 'leaflearningofficial@gmail.com';
+  const supportEmail = 'leaflearningoffcial@gmail.com';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">

@@ -222,7 +222,7 @@ function SettingsPageContent() {
             console.log('⚠️ Webhook may not have been received by server')
             setTokensBalance(newBalance)
             if (newBalance === initialBalance) {
-              setSuccess('🎉 Purchase complete! Tokens may be delayed - please refresh the page or wait a few minutes. If tokens still don\'t appear, contact leaflearningofficial@gmail.com for support.')
+              setSuccess('🎉 Purchase complete! Tokens may be delayed - please refresh the page or wait a few minutes. If tokens still don\'t appear, contact leaflearningoffcial@gmail.com for support.')
             }
             // Clean up localStorage anyway
             localStorage.removeItem('token_checkout_initiated')
@@ -787,7 +787,7 @@ function SettingsPageContent() {
                       {/* Token delay notice */}
                       <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                         <p className="text-sm text-amber-800">
-                          <span className="font-medium">Note:</span> After purchase, tokens may take 5-10 minutes to appear in your account. If tokens don't arrive, please refresh the page or contact <a href="mailto:leaflearningofficial@gmail.com" className="underline font-medium">leaflearningofficial@gmail.com</a> for support.
+                          <span className="font-medium">Note:</span> After purchase, tokens may take 5-10 minutes to appear in your account. If tokens don't arrive, please refresh the page or contact <a href="mailto:leaflearningoffcial@gmail.com" className="underline font-medium">leaflearningoffcial@gmail.com</a> for support.
                         </p>
                       </div>
                     </div>
