@@ -25,37 +25,23 @@ export function TokenPurchaseModal({ isOpen, onClose, currentBalance }: TokenPur
   if (!isOpen) return null
 
   const handleBuyTokens = async (productId: string) => {
-    console.log('═══════════════════════════════════════════════════')
-    console.log('🛒 TOKEN PURCHASE INITIATED')
-    console.log('═══════════════════════════════════════════════════')
-    console.log('Product ID:', productId)
-    console.log('Selected pack:', TOKEN_PACKS.find(p => p.id === productId))
-    console.log('Current balance:', currentBalance)
-    console.log('Timestamp:', new Date().toISOString())
-    
     setLoading(productId)
     setError('')
     
     try {
-      console.log('📤 Sending request to /api/tokens/purchase...')
       const response = await fetch('/api/tokens/purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId })
       })
 
-      console.log('📥 Response status:', response.status)
       const data = await response.json()
-      console.log('📥 Response data:', data)
       
       if (!response.ok) {
-        console.error('❌ API error:', data.error)
         throw new Error(data.error || 'Failed to create checkout session')
       }
 
       if (data.checkoutUrl) {
-        console.log('✅ Checkout URL received:', data.checkoutUrl)
-        console.log('🔄 Redirecting to Polar checkout...')
         // Store balance BEFORE checkout so we can compare when returning
         localStorage.setItem(CHECKOUT_KEY, 'true')
         localStorage.setItem('token_checkout_product_id', productId)
@@ -66,7 +52,6 @@ export function TokenPurchaseModal({ isOpen, onClose, currentBalance }: TokenPur
         window.location.href = data.checkoutUrl
       }
     } catch (err: any) {
-      console.error('❌ Token purchase error:', err)
       setError(err.message || 'Failed to start checkout')
     } finally {
       setLoading(null)
