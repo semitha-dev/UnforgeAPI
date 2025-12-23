@@ -682,11 +682,11 @@ function SettingsPageContent() {
                             <p className="text-lg font-semibold text-gray-900">$2</p>
                             <p className="text-xs text-gray-400 mb-3">$0.004/token</p>
                             <button
-                              onClick={() => handleBuyTokens('c7594c15-a5ce-444e-ba49-8b42ea72eca7')}
+                              onClick={() => handleBuyTokens('5ac0c69a-501f-4f9f-a17e-592e50bb45a8')}
                               disabled={checkoutLoading !== null}
                               className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
                             >
-                              {checkoutLoading === 'c7594c15-a5ce-444e-ba49-8b42ea72eca7' ? 'Loading...' : 'Buy'}
+                              {checkoutLoading === '5ac0c69a-501f-4f9f-a17e-592e50bb45a8' ? 'Loading...' : 'Buy'}
                             </button>
                           </div>
                         </div>
@@ -699,11 +699,11 @@ function SettingsPageContent() {
                             <p className="text-lg font-semibold text-gray-900">$3</p>
                             <p className="text-xs text-gray-400 mb-3">$0.003/token</p>
                             <button
-                              onClick={() => handleBuyTokens('0e654da6-ae7b-4a1c-9dae-28959d89b7f8')}
+                              onClick={() => handleBuyTokens('743c222a-bee4-4272-8011-12f6089a9c01')}
                               disabled={checkoutLoading !== null}
                               className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
                             >
-                              {checkoutLoading === '0e654da6-ae7b-4a1c-9dae-28959d89b7f8' ? 'Loading...' : 'Buy'}
+                              {checkoutLoading === '743c222a-bee4-4272-8011-12f6089a9c01' ? 'Loading...' : 'Buy'}
                             </button>
                           </div>
                         </div>
@@ -719,11 +719,11 @@ function SettingsPageContent() {
                             <p className="text-lg font-semibold text-gray-900">$5</p>
                             <p className="text-xs text-gray-400 mb-3">$0.002/token</p>
                             <button
-                              onClick={() => handleBuyTokens('63c6b8c0-92d7-4996-9976-f19936c94a24')}
+                              onClick={() => handleBuyTokens('ffc789b3-4e5a-4e3f-8afc-8e310973fd57')}
                               disabled={checkoutLoading !== null}
                               className="w-full px-3 py-2 text-sm font-medium text-white bg-emerald-600 rounded-md hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                             >
-                              {checkoutLoading === '63c6b8c0-92d7-4996-9976-f19936c94a24' ? 'Loading...' : 'Buy'}
+                              {checkoutLoading === 'ffc789b3-4e5a-4e3f-8afc-8e310973fd57' ? 'Loading...' : 'Buy'}
                             </button>
                           </div>
                         </div>
@@ -739,11 +739,11 @@ function SettingsPageContent() {
                             <p className="text-lg font-semibold text-gray-900">$8</p>
                             <p className="text-xs text-gray-400 mb-3">$0.0008/token</p>
                             <button
-                              onClick={() => handleBuyTokens('2beeb4a7-532a-4fb7-8e70-51a9b3c5ec3a')}
+                              onClick={() => handleBuyTokens('367064f3-6219-4e15-8142-705e7267d75e')}
                               disabled={checkoutLoading !== null}
                               className="w-full px-3 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 transition-colors"
                             >
-                              {checkoutLoading === '2beeb4a7-532a-4fb7-8e70-51a9b3c5ec3a' ? 'Loading...' : 'Buy'}
+                              {checkoutLoading === '367064f3-6219-4e15-8142-705e7267d75e' ? 'Loading...' : 'Buy'}
                             </button>
                           </div>
                         </div>
