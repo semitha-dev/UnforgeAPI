@@ -97,6 +97,13 @@ function SettingsPageContent() {
     
     // Only handle checkout return once
     if (searchParams.get('tokens') === 'success' && !hasHandledCheckoutReturn) {
+      console.log('═══════════════════════════════════════════════════')
+      console.log('🔙 RETURNING FROM CHECKOUT')
+      console.log('═══════════════════════════════════════════════════')
+      console.log('Timestamp:', new Date().toISOString())
+      console.log('Checkout product ID:', localStorage.getItem('token_checkout_product_id'))
+      console.log('Checkout initiated at:', localStorage.getItem('token_checkout_timestamp'))
+      
       setHasHandledCheckoutReturn(true)
       setActiveSection('tokens')
       // Don't set success here - let polling handle it
@@ -108,10 +115,12 @@ function SettingsPageContent() {
   }, [searchParams, hasHandledCheckoutReturn])
 
   const startTokenPolling = async () => {
+    console.log('📊 Starting token polling...')
     // First fetch current balance to use as baseline
     let initialBalance = 0
     try {
       const timestamp = Date.now()
+      console.log('📤 Fetching initial balance...')
       const response = await fetch(`/api/subscription?_t=${timestamp}`, { 
         cache: 'no-store',
         headers: {
@@ -122,10 +131,12 @@ function SettingsPageContent() {
       if (response.ok) {
         const data = await response.json()
         initialBalance = data.subscription?.tokens_balance ?? 0
+        console.log('📥 Initial balance from API:', initialBalance)
+        console.log('📥 Full subscription data:', data.subscription)
         setTokensBalance(initialBalance)
       }
     } catch (err) {
-      console.error('Error fetching initial balance:', err)
+      console.error('❌ Error fetching initial balance:', err)
     }
     
     // Show the "processing" message
@@ -139,11 +150,11 @@ function SettingsPageContent() {
     let attempts = 0
     const maxAttempts = 30  // More attempts for slow webhooks
     
-    console.log('[TokenPoll] Starting poll, initial balance:', initialBalance)
+    console.log('🔄 [TokenPoll] Starting poll, initial balance:', initialBalance)
     
     const poll = async () => {
       attempts++
-      console.log(`[TokenPoll] Attempt ${attempts}/${maxAttempts}`)
+      console.log(`🔄 [TokenPoll] Attempt ${attempts}/${maxAttempts}`)
       
       try {
         const timestamp = Date.now()
@@ -158,22 +169,28 @@ function SettingsPageContent() {
           const data = await response.json()
           const newBalance = data.subscription?.tokens_balance ?? 0
           
-          console.log(`[TokenPoll] Fetched balance: ${newBalance}, initial: ${initialBalance}`)
+          console.log(`🔄 [TokenPoll] Fetched balance: ${newBalance}, initial: ${initialBalance}, diff: ${newBalance - initialBalance}`)
           
           if (newBalance > initialBalance) {
-            console.log(`[TokenPoll] ✅ Balance increased! ${initialBalance} -> ${newBalance}`)
+            console.log(`✅ [TokenPoll] Balance increased! ${initialBalance} -> ${newBalance}`)
+            console.log('🎉 TOKEN PURCHASE SUCCESSFUL!')
             setTokensBalance(newBalance)
             setSuccess(`🎉 +${newBalance - initialBalance} tokens added successfully!`)
+            // Clear checkout data from localStorage
+            localStorage.removeItem('token_checkout_initiated')
+            localStorage.removeItem('token_checkout_product_id')
+            localStorage.removeItem('token_checkout_timestamp')
             return
           }
           
           if (attempts < maxAttempts) {
             // Start fast (1s), then slow down gradually up to 3s
             const delay = Math.min(1000 + (attempts * 200), 3000)
-            console.log(`[TokenPoll] Balance unchanged, retrying in ${delay}ms...`)
+            console.log(`🔄 [TokenPoll] Balance unchanged, retrying in ${delay}ms...`)
             setTimeout(poll, delay)
           } else {
-            console.log('[TokenPoll] Max attempts reached, final balance:', newBalance)
+            console.log('⚠️ [TokenPoll] Max attempts reached, final balance:', newBalance)
+            console.log('⚠️ Webhook may not have been received by server')
             setTokensBalance(newBalance)
             if (newBalance === initialBalance) {
               setSuccess('🎉 Purchase complete! Tokens may be delayed - please refresh the page or wait a few minutes. If tokens still don\'t appear, contact leaflearningofficial@gmail.com for support.')
@@ -181,7 +198,7 @@ function SettingsPageContent() {
           }
         }
       } catch (err) {
-        console.error('Poll error:', err)
+        console.error('❌ Poll error:', err)
       }
     }
     
