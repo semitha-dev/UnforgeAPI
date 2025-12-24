@@ -53,10 +53,14 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/logosvg.svg",
-    shortcut: "/logosvg.svg",
-    apple: "/logosvg.svg",
+    icon: [
+      { url: "/logosvg.svg", type: "image/svg+xml" },
+      { url: "/logo.png", sizes: "192x192", type: "image/png" },
+    ],
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
+  manifest: "/site.webmanifest",
   openGraph: {
     type: "website",
     locale: "en_US",

@@ -1,0 +1,21 @@
+{
+  "name": "LeafLearning",
+  "short_name": "LeafLearning",
+  "description": "AI-Powered Study Companion | Flashcards, Quizzes & Summaries",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#22c55e",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
