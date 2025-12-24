@@ -4,11 +4,20 @@ import { GoogleGenerativeAI, Part } from '@google/generative-ai'
 import { getValidTokenBalance, deductTokensWithExpiry, calculateOutputTokenCost, countWords, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription'
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger'
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
-const genAI2 = process.env.GEMINI_API_KEY2 
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY2) 
-  : null
+// Initialize Gemini AI instances - supports up to 5 API keys for redundancy
+const apiKeys = [
+  process.env.GEMINI_API_KEY,
+  process.env.GEMINI_API_KEY2,
+  process.env.GEMINI_API_KEY3,
+  process.env.GEMINI_API_KEY4,
+  process.env.GEMINI_API_KEY5,
+].filter(Boolean) as string[]
+
+const genAIInstances = apiKeys.map(key => new GoogleGenerativeAI(key))
+
+// Legacy exports for backward compatibility
+const genAI = genAIInstances[0] || new GoogleGenerativeAI('')
+const genAI2 = genAIInstances[1] || null
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -41,7 +50,7 @@ async function tryModel(
   return result.response.text()
 }
 
-// Helper function to try generation with fallback
+// Helper function to try generation with fallback across ALL available API keys
 async function generateWithFallback(
   parts: Part[], 
   modelName: string,
@@ -51,35 +60,26 @@ async function generateWithFallback(
   // Build list of models to try (requested model first, then fallbacks)
   const modelsToTry = [modelName, ...FALLBACK_MODELS.filter(m => m !== modelName)]
   
-  // Try primary API key with all models
-  for (const model of modelsToTry) {
-    try {
-      console.log('[LeafAI Chat] Trying primary API key with model:', model)
-      const text = await tryModel(genAI, model, parts, history)
-      console.log('[LeafAI Chat] Success with primary key, model:', model)
-      return { text, usedFallbackKey: false }
-    } catch (error: any) {
-      console.error(`[LeafAI Chat] Primary key failed with ${model}:`, error.message?.substring(0, 100))
-      // Continue to next model
-    }
-  }
-  
-  // Try fallback API key with all models
-  if (genAI2) {
+  // Try each API key with all models before moving to the next key
+  for (let keyIndex = 0; keyIndex < genAIInstances.length; keyIndex++) {
+    const instance = genAIInstances[keyIndex]
+    const keyLabel = keyIndex === 0 ? 'primary' : `key${keyIndex + 1}`
+    
     for (const model of modelsToTry) {
       try {
-        console.log('[LeafAI Chat] Trying fallback API key with model:', model)
-        const text = await tryModel(genAI2, model, parts, history)
-        console.log('[LeafAI Chat] Success with fallback key, model:', model)
-        return { text, usedFallbackKey: true }
+        console.log(`[LeafAI Chat] Trying ${keyLabel} API key with model:`, model)
+        const text = await tryModel(instance, model, parts, history)
+        console.log(`[LeafAI Chat] Success with ${keyLabel}, model:`, model)
+        return { text, usedFallbackKey: keyIndex > 0 }
       } catch (error: any) {
-        console.error(`[LeafAI Chat] Fallback key failed with ${model}:`, error.message?.substring(0, 100))
-        // Continue to next model
+        console.error(`[LeafAI Chat] ${keyLabel} failed with ${model}:`, error.message?.substring(0, 100))
+        // Continue to next model/key
       }
     }
   }
   
   // All attempts failed
+  console.error(`[LeafAI Chat] All ${genAIInstances.length} API keys exhausted across ${modelsToTry.length} models`)
   throw new Error('RATE_LIMITED')
 }
 
