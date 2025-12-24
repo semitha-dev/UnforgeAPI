@@ -1097,22 +1097,17 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
 
               <div className="flex items-center gap-3">
                 {/* Music Player Button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => setShowMusicPlayer(!showMusicPlayer)}
-                      className={`h-9 w-9 rounded-xl transition-all ${
-                        showMusicPlayer 
-                          ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/30' 
-                          : 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white hover:shadow-lg hover:shadow-pink-500/30'
-                      }`}
-                      size="icon"
-                    >
-                      <Music className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Focus Music</TooltipContent>
-                </Tooltip>
+                <Button 
+                  onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+                  className={`h-9 px-4 rounded-xl transition-all gap-2 ${
+                    showMusicPlayer 
+                      ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/30' 
+                      : 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white hover:shadow-lg hover:shadow-pink-500/30'
+                  }`}
+                >
+                  <Music className="h-4 w-4" />
+                  <span className="hidden sm:inline">Music</span>
+                </Button>
 
                 {/* Leaf AI Button - Hide on notes page since it has its own Leaf AI */}
                 {!pathname.includes('/notes') && (
