@@ -9,6 +9,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' })
 // Models - optimized for production
 const PRIMARY_MODEL = 'llama-3.1-8b-instant' // Fast, 14.4K requests/day
 const FALLBACK_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct' // Quality, 30K tokens/min
+const FILE_MODEL = 'llama-3.3-70b-versatile' // Best for file analysis, 70B params
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -41,9 +42,11 @@ Use markdown formatting for better readability (headers, bullet points, code blo
 async function generateResponse(
   message: string,
   history: { role: string; content: string }[],
-  mode: 'light' | 'heavy'
+  mode: 'light' | 'heavy',
+  hasFiles: boolean = false
 ): Promise<{ text: string; model: string }> {
-  const model = mode === 'heavy' ? FALLBACK_MODEL : PRIMARY_MODEL
+  // Use FILE_MODEL when files are attached for better document understanding
+  const model = hasFiles ? FILE_MODEL : (mode === 'heavy' ? FALLBACK_MODEL : PRIMARY_MODEL)
   
   const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
     { role: 'system', content: SYSTEM_PROMPT }
@@ -139,10 +142,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate response
+    const hasFiles = files && files.length > 0
     const { text, model } = await generateResponse(
       fullMessage,
       history || [],
-      mode
+      mode,
+      hasFiles
     )
 
     console.log('[LeafAI Chat] Generated response length:', text.length)

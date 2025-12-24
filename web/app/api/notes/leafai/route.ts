@@ -10,6 +10,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' })
 // Models optimized for production - high rate limits
 const PRIMARY_MODEL = 'llama-3.1-8b-instant' // 14,400 requests/day, fast
 const HEAVY_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct' // Better quality, 30K tokens/min
+const FILE_MODEL = 'llama-3.3-70b-versatile' // Best for file/document analysis, 70B params
 
 // Helper function to generate with fallback
 async function generateWithFallback(
