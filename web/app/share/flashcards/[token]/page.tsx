@@ -165,7 +165,7 @@ export default function SharedFlashcardsPage() {
               <div className="h-px bg-slate-100 my-4" />
               <p className="text-sm text-slate-400 mb-4 font-medium">Ready for your own deck?</p>
               <a
-                href="/signup"
+                href="/"
                 className="w-full py-4 px-6 bg-emerald-500 text-white rounded-2xl font-black hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 group"
               >
                 <Leaf size={18} />
@@ -195,7 +195,7 @@ export default function SharedFlashcardsPage() {
             </div>
             <span className="font-bold text-lg tracking-tight">LeafLearning</span>
           </a>
-          <a href="/signup" className="text-xs font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full transition-colors">
+          <a href="/" className="text-xs font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-4 py-2 rounded-full transition-colors">
             Create Yours Free
           </a>
         </div>
@@ -290,7 +290,7 @@ export default function SharedFlashcardsPage() {
             <p className="text-slate-500">Transform any notes or PDFs into quiz cards in seconds.</p>
           </div>
           <a 
-            href="/signup" 
+            href="/" 
             className="whitespace-nowrap px-8 py-5 bg-emerald-500 text-white font-black rounded-2xl shadow-xl shadow-emerald-200 hover:bg-emerald-600 hover:scale-105 transition-all flex items-center gap-2"
           >
             Start for Free

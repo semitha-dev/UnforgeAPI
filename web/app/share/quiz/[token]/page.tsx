@@ -207,7 +207,7 @@ export default function SharedQuizPage() {
               <div className="h-px bg-slate-100 my-4" />
               <p className="text-sm text-slate-400 mb-4 font-medium">Ready for your own quiz?</p>
               <a
-                href="/signup"
+                href="/"
                 className="w-full py-4 px-6 bg-indigo-500 text-white rounded-2xl font-black hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 group"
               >
                 <Leaf size={18} />
@@ -243,7 +243,7 @@ export default function SharedQuizPage() {
             </div>
             <span className="font-bold text-lg tracking-tight">LeafLearning</span>
           </a>
-          <a href="/signup" className="text-xs font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-4 py-2 rounded-full transition-colors">
+          <a href="/" className="text-xs font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-4 py-2 rounded-full transition-colors">
             Create Yours Free
           </a>
         </div>
@@ -375,7 +375,7 @@ export default function SharedQuizPage() {
             <p className="text-slate-500">Transform any notes or PDFs into quizzes in seconds.</p>
           </div>
           <a 
-            href="/signup" 
+            href="/" 
             className="whitespace-nowrap px-8 py-5 bg-indigo-500 text-white font-black rounded-2xl shadow-xl shadow-indigo-200 hover:bg-indigo-600 hover:scale-105 transition-all flex items-center gap-2"
           >
             Start for Free
