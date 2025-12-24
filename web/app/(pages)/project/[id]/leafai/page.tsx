@@ -293,7 +293,7 @@ export default function LeafAIChatPage() {
   }, [])
 
   return (
-    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
+    <div className="flex flex-col h-[calc(100vh-64px)] bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
       {/* Header */}
       <div className="flex-shrink-0 border-b border-slate-200 bg-white/80 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-6 py-4">
@@ -359,11 +359,11 @@ export default function LeafAIChatPage() {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         <div className="max-w-4xl mx-auto px-6 py-6">
           {messages.length === 0 ? (
             // Welcome state
-            <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-center">
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-350px)] text-center">
               <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mb-6">
                 <Sparkles className="w-10 h-10 text-emerald-600" />
               </div>
@@ -498,8 +498,8 @@ export default function LeafAIChatPage() {
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="flex-shrink-0 border-t border-slate-200 bg-white/80 backdrop-blur-sm">
+      {/* Input Area - Fixed at bottom */}
+      <div className="flex-shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur-sm sticky bottom-0">
         <div className="max-w-4xl mx-auto px-6 py-4">
           {/* Attachments preview */}
           {attachments.length > 0 && (
