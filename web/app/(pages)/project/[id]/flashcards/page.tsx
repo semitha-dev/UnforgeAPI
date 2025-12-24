@@ -251,23 +251,28 @@ export default function FlashcardsPage() {
 
       {/* Share Modal */}
       {showShareModal && sharingSet && (
-        <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden">
+        <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-t-3xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl border border-white/20 overflow-hidden animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 duration-300 max-h-[90vh] overflow-y-auto">
+            {/* Mobile drag handle */}
+            <div className="sm:hidden flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 bg-zinc-300 rounded-full" />
+            </div>
+            
             {/* Header */}
-            <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white">
+            <div className="px-5 sm:px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white sticky top-0">
               <h2 className="text-lg font-semibold text-zinc-900">Share Flashcards</h2>
-              <button onClick={() => setShowShareModal(false)} className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
+              <button onClick={() => setShowShareModal(false)} className="p-2.5 hover:bg-zinc-100 active:bg-zinc-200 rounded-full transition-colors text-zinc-400 hover:text-zinc-600 -mr-1">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className="p-5 sm:p-6 pb-8 sm:pb-6">
               <div className="text-center mb-6">
-                <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Share2 className="w-8 h-8 text-indigo-600" />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Share2 className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-600" />
                 </div>
-                <h3 className="font-semibold text-zinc-900 mb-1">{sharingSet.title}</h3>
+                <h3 className="font-semibold text-zinc-900 mb-1 line-clamp-2">{sharingSet.title}</h3>
                 <p className="text-sm text-zinc-500">{sharingSet.card_count} flashcards</p>
               </div>
 
@@ -277,22 +282,25 @@ export default function FlashcardsPage() {
                 </div>
               ) : shareUrl ? (
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-200">
-                    <Link2 className="w-4 h-4 text-zinc-400 shrink-0" />
-                    <input 
-                      type="text" 
-                      value={shareUrl} 
-                      readOnly 
-                      className="flex-1 bg-transparent text-sm text-zinc-700 outline-none truncate"
-                    />
+                  {/* URL display - stacked on mobile */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 bg-zinc-50 rounded-xl border border-zinc-200">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <Link2 className="w-4 h-4 text-zinc-400 shrink-0" />
+                      <input 
+                        type="text" 
+                        value={shareUrl} 
+                        readOnly 
+                        className="flex-1 bg-transparent text-sm text-zinc-700 outline-none truncate"
+                      />
+                    </div>
                     <button
                       onClick={handleCopyLink}
-                      className="p-2 hover:bg-zinc-200 rounded-lg transition-colors shrink-0"
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 sm:p-2 bg-white sm:bg-transparent hover:bg-zinc-100 active:bg-zinc-200 rounded-lg transition-colors border sm:border-0 border-zinc-200"
                     >
                       {copied ? (
-                        <Check className="w-4 h-4 text-emerald-600" />
+                        <><Check className="w-4 h-4 text-emerald-600" /><span className="sm:hidden text-sm text-emerald-600 font-medium">Copied!</span></>
                       ) : (
-                        <Copy className="w-4 h-4 text-zinc-500" />
+                        <><Copy className="w-4 h-4 text-zinc-500" /><span className="sm:hidden text-sm text-zinc-600 font-medium">Copy Link</span></>
                       )}
                     </button>
                   </div>
@@ -302,9 +310,9 @@ export default function FlashcardsPage() {
                   </p>
                 </div>
               ) : (
-                <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  Failed to generate share link. Please try again.
+                <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>Failed to generate share link. Please try again.</span>
                 </div>
               )}
             </div>
