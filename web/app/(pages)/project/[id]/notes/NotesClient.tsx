@@ -1345,6 +1345,32 @@ export default function NotesClient({
     }
   }
 
+  // Filter notes by search query - MUST be before any conditional returns
+  const filteredNotes = useMemo(() => {
+    if (!searchQuery.trim()) return localNotes
+    const query = searchQuery.toLowerCase()
+    return localNotes.filter(note => 
+      note.title.toLowerCase().includes(query) ||
+      (note.content && note.content.toLowerCase().includes(query))
+    )
+  }, [localNotes, searchQuery])
+
+  // Group filtered notes by folder - MUST be before any conditional returns
+  const filteredNotesByFolder = useMemo(() => {
+    const grouped: Record<string, ExtendedNote[]> = { 'Ungrouped': [] }
+    folders.forEach(folder => { grouped[folder] = [] })
+    
+    filteredNotes.forEach(note => {
+      if (note.folder && grouped[note.folder]) {
+        grouped[note.folder].push(note)
+      } else {
+        grouped['Ungrouped'].push(note)
+      }
+    })
+    
+    return grouped
+  }, [filteredNotes, folders])
+
   if (selectedNote) {
     return (
       <NoteEditor
@@ -1369,32 +1395,6 @@ export default function NotesClient({
       />
     )
   }
-
-  // Filter notes by search query
-  const filteredNotes = useMemo(() => {
-    if (!searchQuery.trim()) return localNotes
-    const query = searchQuery.toLowerCase()
-    return localNotes.filter(note => 
-      note.title.toLowerCase().includes(query) ||
-      (note.content && note.content.toLowerCase().includes(query))
-    )
-  }, [localNotes, searchQuery])
-
-  // Group filtered notes by folder
-  const filteredNotesByFolder = useMemo(() => {
-    const grouped: Record<string, ExtendedNote[]> = { 'Ungrouped': [] }
-    folders.forEach(folder => { grouped[folder] = [] })
-    
-    filteredNotes.forEach(note => {
-      if (note.folder && grouped[note.folder]) {
-        grouped[note.folder].push(note)
-      } else {
-        grouped['Ungrouped'].push(note)
-      }
-    })
-    
-    return grouped
-  }, [filteredNotes, folders])
 
   return (
     <div className="min-h-screen bg-white">
