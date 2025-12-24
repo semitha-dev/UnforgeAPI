@@ -461,3 +461,38 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+// Update flashcard set title/description
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { setId, title, description } = body;
+
+    if (!setId || !title) {
+      return NextResponse.json({ error: 'Set ID and title required' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const { error } = await supabase
+      .from('flashcard_sets')
+      .update({ title, description: description || '' })
+      .eq('id', setId)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('[Flashcards] Error updating:', error);
+    return NextResponse.json(
+      { error: 'Failed to update flashcard set' },
+      { status: 500 }
+    );
+  }
+}

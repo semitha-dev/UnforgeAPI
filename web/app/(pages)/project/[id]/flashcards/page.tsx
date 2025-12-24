@@ -53,6 +53,10 @@ export default function FlashcardsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deletingSet, setDeletingSet] = useState<FlashcardSet | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  
+  // Edit state
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingSet, setEditingSet] = useState<FlashcardSet | null>(null)
 
   useEffect(() => {
     loadSets()
@@ -132,6 +136,23 @@ export default function FlashcardsPage() {
     }
   }
 
+  const handleEditSet = async (id: string, title: string, description: string) => {
+    try {
+      const response = await fetch('/api/flashcards', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setId: id, title, description })
+      })
+      if (response.ok) {
+        setSets(prev => prev.map(s => s.id === id ? { ...s, title, description } : s))
+        setShowEditModal(false)
+        setEditingSet(null)
+      }
+    } catch (error) {
+      console.error('Error updating flashcard set:', error)
+    }
+  }
+
   if (selectedSet) {
     return <FlashcardViewer setId={selectedSet} onBack={() => {
       setSelectedSet(null)
@@ -198,6 +219,10 @@ export default function FlashcardsPage() {
                 set={set}
                 onClick={() => setSelectedSet(set.id)}
                 onShare={() => handleShare(set)}
+                onEdit={() => {
+                  setEditingSet(set)
+                  setShowEditModal(true)
+                }}
                 onDelete={() => {
                   setDeletingSet(set)
                   setShowDeleteModal(true)
@@ -344,6 +369,15 @@ export default function FlashcardsPage() {
           </div>
         </div>
       )}
+
+      {/* Edit Modal */}
+      {showEditModal && editingSet && (
+        <EditFlashcardSetModal
+          set={editingSet}
+          onClose={() => { setShowEditModal(false); setEditingSet(null); }}
+          onSave={handleEditSet}
+        />
+      )}
     </div>
   )
 }
@@ -354,9 +388,10 @@ interface FlashcardSetCardProps {
   onClick: () => void
   onDelete: () => void
   onShare: () => void
+  onEdit: () => void
 }
 
-function FlashcardSetCard({ set, onClick, onDelete, onShare }: FlashcardSetCardProps) {
+function FlashcardSetCard({ set, onClick, onDelete, onShare, onEdit }: FlashcardSetCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -395,6 +430,12 @@ function FlashcardSetCard({ set, onClick, onDelete, onShare }: FlashcardSetCardP
           {showMenu && (
             <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-xl border border-zinc-100 py-1 z-10 animate-in fade-in zoom-in-95 duration-100">
               <button 
+                onClick={(e) => { e.stopPropagation(); onEdit(); setShowMenu(false); }}
+                className="w-full px-4 py-2.5 text-sm text-left text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2"
+              >
+                <Pencil className="w-4 h-4" /> Edit
+              </button>
+              <button 
                 onClick={(e) => { e.stopPropagation(); onShare(); setShowMenu(false); }}
                 className="w-full px-4 py-2.5 text-sm text-left text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2"
               >
@@ -430,6 +471,79 @@ function FlashcardSetCard({ set, onClick, onDelete, onShare }: FlashcardSetCardP
         </div>
         <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-zinc-50 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
           <span>{set.card_count} cards</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Edit Flashcard Set Modal
+interface EditFlashcardSetModalProps {
+  set: FlashcardSet
+  onClose: () => void
+  onSave: (id: string, title: string, description: string) => void
+}
+
+function EditFlashcardSetModal({ set, onClose, onSave }: EditFlashcardSetModalProps) {
+  const [title, setTitle] = useState(set.title)
+  const [description, setDescription] = useState(set.description || '')
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (!title.trim()) return
+    setSaving(true)
+    await onSave(set.id, title.trim(), description.trim())
+    setSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white/90 backdrop-blur-xl rounded-2xl max-w-md w-full p-6 shadow-2xl border border-white/20">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Edit Flashcard Set</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Flashcard set title..."
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add a description..."
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!title.trim() || saving}
+            className="flex-1 px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          >
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
 
 import { 
-  FileText, Upload, Search, X, MoreVertical, Share2, Trash2, 
+  FileText, Upload, Search, X, MoreVertical, Share2, Trash2, Pencil,
   Copy, Check, Link2, Plus, Brain, Clock, ChevronRight, 
   Trophy, AlertCircle, RefreshCw, ArrowLeft, BookOpen, Loader2
 } from 'lucide-react'
@@ -630,9 +630,10 @@ interface QuizCardProps {
   onClick: () => void
   onDelete: () => void
   onShare: () => void
+  onEdit: () => void
 }
 
-function QuizCard({ quiz, onClick, onDelete, onShare }: QuizCardProps) {
+function QuizCard({ quiz, onClick, onDelete, onShare, onEdit }: QuizCardProps) {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -671,6 +672,12 @@ function QuizCard({ quiz, onClick, onDelete, onShare }: QuizCardProps) {
           {showMenu && (
             <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-xl border border-zinc-100 py-1 z-10 animate-in fade-in zoom-in-95 duration-100">
               <button 
+                onClick={(e) => { e.stopPropagation(); onEdit(); setShowMenu(false); }}
+                className="w-full px-4 py-2.5 text-sm text-left text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2"
+              >
+                <Pencil className="w-4 h-4" /> Edit
+              </button>
+              <button 
                 onClick={(e) => { e.stopPropagation(); onShare(); setShowMenu(false); }}
                 className="w-full px-4 py-2.5 text-sm text-left text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 flex items-center gap-2"
               >
@@ -701,6 +708,79 @@ function QuizCard({ quiz, onClick, onDelete, onShare }: QuizCardProps) {
         </div>
         <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-zinc-50 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
           <span>{quiz.question_count} Qs</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Edit Quiz Modal
+interface EditQuizModalProps {
+  quiz: Quiz
+  onClose: () => void
+  onSave: (id: string, title: string, description: string) => void
+}
+
+function EditQuizModal({ quiz, onClose, onSave }: EditQuizModalProps) {
+  const [title, setTitle] = useState(quiz.title)
+  const [description, setDescription] = useState(quiz.description || '')
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    if (!title.trim()) return
+    setSaving(true)
+    await onSave(quiz.id, title.trim(), description.trim())
+    setSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white/90 backdrop-blur-xl rounded-2xl max-w-md w-full p-6 shadow-2xl border border-white/20">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-900">Edit Quiz</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Quiz title..."
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add a description..."
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all resize-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!title.trim() || saving}
+            className="flex-1 px-4 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          >
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
       </div>
     </div>
@@ -990,6 +1070,10 @@ export default function QuizPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null)
   const [shareQuiz, setShareQuiz] = useState<Quiz | null>(null)
+  
+  // Edit state
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null)
 
   useEffect(() => {
     loadQuizzes()
@@ -1019,6 +1103,23 @@ export default function QuizPage() {
       }
     } catch (error) {
       console.error('Error deleting quiz:', error)
+    }
+  }
+
+  const handleEditQuiz = async (id: string, title: string, description: string) => {
+    try {
+      const response = await fetch(`/api/quiz/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description })
+      })
+      if (response.ok) {
+        setQuizzes(prev => prev.map(q => q.id === id ? { ...q, title, description } : q))
+        setShowEditModal(false)
+        setEditingQuiz(null)
+      }
+    } catch (error) {
+      console.error('Error updating quiz:', error)
     }
   }
 
@@ -1080,6 +1181,10 @@ export default function QuizPage() {
                 onClick={() => setSelectedQuizId(quiz.id)}
                 onDelete={() => handleDeleteQuiz(quiz.id)}
                 onShare={() => setShareQuiz(quiz)}
+                onEdit={() => {
+                  setEditingQuiz(quiz)
+                  setShowEditModal(true)
+                }}
               />
             ))}
           </div>
@@ -1113,6 +1218,15 @@ export default function QuizPage() {
             setShareQuiz(null)
             loadQuizzes() // Refresh to update share status
           }}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && editingQuiz && (
+        <EditQuizModal
+          quiz={editingQuiz}
+          onClose={() => { setShowEditModal(false); setEditingQuiz(null); }}
+          onSave={handleEditQuiz}
         />
       )}
     </div>

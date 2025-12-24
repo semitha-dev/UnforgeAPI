@@ -83,3 +83,42 @@ export async function DELETE(
     );
   }
 }
+
+// Update quiz title/description
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: quizId } = await params;
+    const body = await request.json();
+    const { title, description } = body;
+
+    if (!title) {
+      return NextResponse.json({ error: 'Title required' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const { error } = await supabase
+      .from('quizzes')
+      .update({ title, description: description || '' })
+      .eq('id', quizId)
+      .eq('user_id', user.id);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error updating quiz:', error);
+    return NextResponse.json(
+      { error: 'Failed to update quiz' },
+      { status: 500 }
+    );
+  }
+}
