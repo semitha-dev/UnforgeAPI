@@ -26,11 +26,11 @@ interface TopNavProps {
   title?: string
 }
 
-// Markdown to HTML converter for AI responses
+// Markdown to HTML converter with table support
 function convertMarkdownToHtml(markdown: string): string {
   let html = markdown
   
-  // Handle code blocks
+  // Handle code blocks first
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
     return `<pre class="bg-gray-800 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto my-2"><code>${code.trim()}</code></pre>`
   })
@@ -50,14 +50,67 @@ function convertMarkdownToHtml(markdown: string): string {
   // Handle links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-emerald-600 hover:underline" target="_blank">$1</a>')
   
-  // Process lists and paragraphs
+  // Process tables, lists, and paragraphs
   const lines = html.split('\n')
   const processed: string[] = []
   let inList = false
   let listType = ''
+  let inTable = false
+  let tableHeaderProcessed = false
   
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     const trimmed = line.trim()
+    
+    // Check if this is a table row
+    const isTableRow = trimmed.startsWith('|') && trimmed.endsWith('|')
+    const isSeparatorRow = /^\|[\s-:|]+\|$/.test(trimmed)
+    
+    if (isTableRow) {
+      if (inList) {
+        processed.push(listType === 'ul' ? '</ul>' : '</ol>')
+        inList = false
+        listType = ''
+      }
+      
+      if (!inTable) {
+        processed.push('<div class="overflow-x-auto my-3"><table class="min-w-full border-collapse border border-gray-200 rounded-lg text-sm">')
+        inTable = true
+        tableHeaderProcessed = false
+      }
+      
+      if (isSeparatorRow) {
+        tableHeaderProcessed = true
+        continue
+      }
+      
+      const cells = trimmed.slice(1, -1).split('|').map(cell => cell.trim())
+      
+      if (!tableHeaderProcessed) {
+        processed.push('<thead class="bg-gray-100">')
+        processed.push('<tr>')
+        cells.forEach(cell => {
+          processed.push(`<th class="border border-gray-200 px-3 py-2 text-left text-xs font-semibold text-gray-700">${cell}</th>`)
+        })
+        processed.push('</tr>')
+        processed.push('</thead>')
+        processed.push('<tbody>')
+      } else {
+        processed.push('<tr class="hover:bg-gray-50">')
+        cells.forEach(cell => {
+          processed.push(`<td class="border border-gray-200 px-3 py-2 text-xs text-gray-600">${cell}</td>`)
+        })
+        processed.push('</tr>')
+      }
+      continue
+    }
+    
+    if (inTable && !isTableRow) {
+      processed.push('</tbody></table></div>')
+      inTable = false
+      tableHeaderProcessed = false
+    }
+    
     if (!trimmed) {
       if (inList) { processed.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false }
       continue
@@ -89,6 +142,8 @@ function convertMarkdownToHtml(markdown: string): string {
     if (trimmed.startsWith('<')) { processed.push(trimmed); continue }
     processed.push(`<p class="my-1">${trimmed}</p>`)
   }
+  
+  if (inTable) processed.push('</tbody></table></div>')
   if (inList) processed.push(listType === 'ul' ? '</ul>' : '</ol>')
   
   return processed.join('')

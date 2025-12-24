@@ -561,7 +561,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue
 }
 
-// Comprehensive markdown to HTML converter for Quill editor
+// Comprehensive markdown to HTML converter with table support
 function convertMarkdownToHtml(markdown: string): string {
   let html = markdown
   
@@ -589,15 +589,66 @@ function convertMarkdownToHtml(markdown: string): string {
   // Handle links [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
   
-  // Process line by line for lists and paragraphs
+  // Process line by line for tables, lists and paragraphs
   const lines = html.split('\n')
   const processedLines: string[] = []
   let inList = false
   let listType = ''
+  let inTable = false
+  let tableHeaderProcessed = false
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const trimmed = line.trim()
+    
+    // Check if this is a table row
+    const isTableRow = trimmed.startsWith('|') && trimmed.endsWith('|')
+    const isSeparatorRow = /^\|[\s-:|]+\|$/.test(trimmed)
+    
+    if (isTableRow) {
+      if (inList) {
+        processedLines.push(listType === 'ul' ? '</ul>' : '</ol>')
+        inList = false
+        listType = ''
+      }
+      
+      if (!inTable) {
+        processedLines.push('<table style="width:100%; border-collapse:collapse; margin:1em 0;">')
+        inTable = true
+        tableHeaderProcessed = false
+      }
+      
+      if (isSeparatorRow) {
+        tableHeaderProcessed = true
+        continue
+      }
+      
+      const cells = trimmed.slice(1, -1).split('|').map(cell => cell.trim())
+      
+      if (!tableHeaderProcessed) {
+        processedLines.push('<thead>')
+        processedLines.push('<tr>')
+        cells.forEach(cell => {
+          processedLines.push(`<th style="border:1px solid #ddd; padding:8px; background:#f5f5f5; text-align:left; font-weight:600;">${cell}</th>`)
+        })
+        processedLines.push('</tr>')
+        processedLines.push('</thead>')
+        processedLines.push('<tbody>')
+      } else {
+        processedLines.push('<tr>')
+        cells.forEach(cell => {
+          processedLines.push(`<td style="border:1px solid #ddd; padding:8px;">${cell}</td>`)
+        })
+        processedLines.push('</tr>')
+      }
+      continue
+    }
+    
+    if (inTable && !isTableRow) {
+      processedLines.push('</tbody></table>')
+      inTable = false
+      tableHeaderProcessed = false
+    }
     
     // Skip empty lines
     if (!trimmed) {
@@ -653,10 +704,9 @@ function convertMarkdownToHtml(markdown: string): string {
     processedLines.push(`<p>${trimmed}</p>`)
   }
   
-  // Close any remaining open list
-  if (inList) {
-    processedLines.push(listType === 'ul' ? '</ul>' : '</ol>')
-  }
+  // Close any remaining open elements
+  if (inTable) processedLines.push('</tbody></table>')
+  if (inList) processedLines.push(listType === 'ul' ? '</ul>' : '</ol>')
   
   return processedLines.join('')
 }

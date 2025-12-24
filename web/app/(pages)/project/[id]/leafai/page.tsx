@@ -59,11 +59,11 @@ function isImageGenerationRequest(message: string): boolean {
   return imageKeywords.some(keyword => lowerMessage.includes(keyword))
 }
 
-// Markdown to HTML converter
+// Markdown to HTML converter with table support
 function convertMarkdownToHtml(markdown: string): string {
   let html = markdown
   
-  // Handle code blocks
+  // Handle code blocks first
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
     return `<pre class="bg-slate-800 text-slate-100 p-4 rounded-xl text-sm overflow-x-auto my-3 font-mono"><code>${code.trim()}</code></pre>`
   })
@@ -83,14 +83,74 @@ function convertMarkdownToHtml(markdown: string): string {
   // Handle links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-emerald-600 hover:text-emerald-700 underline" target="_blank">$1</a>')
   
-  // Process lists and paragraphs
+  // Process tables, lists, and paragraphs
   const lines = html.split('\n')
   const processed: string[] = []
   let inList = false
   let listType = ''
+  let inTable = false
+  let tableHeaderProcessed = false
   
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
     const trimmed = line.trim()
+    
+    // Check if this is a table row (starts and ends with |)
+    const isTableRow = trimmed.startsWith('|') && trimmed.endsWith('|')
+    const isSeparatorRow = /^\|[\s-:|]+\|$/.test(trimmed)
+    
+    if (isTableRow) {
+      // Close any open list
+      if (inList) {
+        processed.push(listType === 'ul' ? '</ul>' : '</ol>')
+        inList = false
+        listType = ''
+      }
+      
+      if (!inTable) {
+        // Start new table
+        processed.push('<div class="overflow-x-auto my-4"><table class="min-w-full border-collapse border border-slate-200 rounded-lg overflow-hidden">')
+        inTable = true
+        tableHeaderProcessed = false
+      }
+      
+      if (isSeparatorRow) {
+        // This is the separator row, skip it but mark header as processed
+        tableHeaderProcessed = true
+        continue
+      }
+      
+      // Parse table cells
+      const cells = trimmed.slice(1, -1).split('|').map(cell => cell.trim())
+      
+      if (!tableHeaderProcessed) {
+        // This is the header row
+        processed.push('<thead class="bg-slate-100">')
+        processed.push('<tr>')
+        cells.forEach(cell => {
+          processed.push(`<th class="border border-slate-200 px-4 py-2 text-left text-sm font-semibold text-slate-700">${cell}</th>`)
+        })
+        processed.push('</tr>')
+        processed.push('</thead>')
+        processed.push('<tbody>')
+      } else {
+        // This is a data row
+        processed.push('<tr class="hover:bg-slate-50">')
+        cells.forEach(cell => {
+          processed.push(`<td class="border border-slate-200 px-4 py-2 text-sm text-slate-600">${cell}</td>`)
+        })
+        processed.push('</tr>')
+      }
+      continue
+    }
+    
+    // Close table if we were in one and this line is not a table row
+    if (inTable && !isTableRow) {
+      processed.push('</tbody></table></div>')
+      inTable = false
+      tableHeaderProcessed = false
+    }
+    
     if (!trimmed) {
       if (inList) { processed.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false }
       continue
@@ -122,6 +182,9 @@ function convertMarkdownToHtml(markdown: string): string {
     if (trimmed.startsWith('<')) { processed.push(trimmed); continue }
     processed.push(`<p class="my-2 text-slate-700 leading-relaxed">${trimmed}</p>`)
   }
+  
+  // Close any remaining open elements
+  if (inTable) processed.push('</tbody></table></div>')
   if (inList) processed.push(listType === 'ul' ? '</ul>' : '</ol>')
   
   return processed.join('')
