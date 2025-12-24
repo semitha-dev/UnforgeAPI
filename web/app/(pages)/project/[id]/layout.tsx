@@ -420,7 +420,8 @@ const sidebarItems = [
   { name: 'Q&A', href: '/qa', icon: HelpCircle },
   { name: 'Flashcards', href: '/flashcards', icon: Layers },
   { name: 'Schedule', href: '/schedule', icon: Calendar },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 }
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Leaf AI', href: '/leafai', icon: Sparkles }
 ]
 
 // Markdown to HTML converter for AI responses
