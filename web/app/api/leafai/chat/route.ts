@@ -29,8 +29,11 @@ interface ChatMessage {
   }[]
 }
 
-// Fallback models for multimodal support (in order of preference)
-const FALLBACK_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro']
+// Primary model for Leaf AI chat
+const PRIMARY_MODEL = 'gemini-2.5-flash'
+
+// Fallback models in order of preference
+const FALLBACK_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash']
 
 // Helper to try a single model with a specific API instance
 async function tryModel(
@@ -72,7 +75,8 @@ async function generateWithFallback(
         console.log(`[LeafAI Chat] Success with ${keyLabel}, model:`, model)
         return { text, usedFallbackKey: keyIndex > 0 }
       } catch (error: any) {
-        console.error(`[LeafAI Chat] ${keyLabel} failed with ${model}:`, error.message?.substring(0, 100))
+        // Log full error for debugging
+        console.error(`[LeafAI Chat] ${keyLabel} failed with ${model}:`, error.message)
         // Continue to next model/key
       }
     }
@@ -184,8 +188,8 @@ export async function POST(request: NextRequest) {
       }, { status: 402 })
     }
 
-    // Select model - use gemini-2.0-flash for multimodal
-    const modelName = mode === 'heavy' ? 'gemini-1.5-pro' : 'gemini-2.0-flash'
+    // Select model - use gemini-2.5-flash for all modes
+    const modelName = PRIMARY_MODEL
     console.log('[LeafAI Chat] Using model:', modelName)
 
     // Build parts array for the message

@@ -56,6 +56,7 @@ export const ActionTypes = {
   // AI Related
   LEAF_AI_CHAT: 'leaf_ai_chat',
   LEAF_AI_GENERATE: 'leaf_ai_generate',
+  AI_IMAGE_GENERATED: 'ai_image_generated',
   QUIZ_GENERATE: 'quiz_generate',
   QUIZ_SUBMIT: 'quiz_submit',
   FLASHCARD_GENERATE: 'flashcard_generate',
