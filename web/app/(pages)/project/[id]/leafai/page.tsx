@@ -40,6 +40,23 @@ interface ChatMessage {
   files?: FileAttachment[]
   timestamp: Date
   tokensUsed?: number
+  image?: {
+    data: string
+    mimeType: string
+  }
+}
+
+// Helper to detect image generation requests
+function isImageGenerationRequest(message: string): boolean {
+  const lowerMessage = message.toLowerCase()
+  const imageKeywords = [
+    'generate image', 'create image', 'make image', 'draw', 'generate a picture',
+    'create a picture', 'make a picture', 'generate an image', 'create an image',
+    'make an image', 'image of', 'picture of', 'illustration of', 'draw me',
+    'generate me an image', 'can you draw', 'can you create an image',
+    'visualize', 'show me an image', 'generate art', 'create art'
+  ]
+  return imageKeywords.some(keyword => lowerMessage.includes(keyword))
 }
 
 // Markdown to HTML converter
@@ -222,7 +239,42 @@ export default function LeafAIChatPage() {
     setIsLoading(true)
 
     try {
-      // Prepare files for API
+      // Check if this is an image generation request
+      if (isImageGenerationRequest(userMessage.content)) {
+        // Call image generation API
+        const imageResponse = await fetch('/api/leafai/image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: userMessage.content
+          })
+        })
+
+        const imageData = await imageResponse.json()
+
+        if (!imageResponse.ok) {
+          throw new Error(imageData.error || 'Failed to generate image')
+        }
+
+        const assistantMessage: ChatMessage = {
+          id: `assistant-${Date.now()}`,
+          role: 'assistant',
+          content: `Here's the image I generated for you! 🎨`,
+          image: {
+            data: imageData.image.data,
+            mimeType: imageData.image.mimeType
+          },
+          timestamp: new Date(),
+          tokensUsed: imageData.tokensUsed
+        }
+
+        setMessages(prev => [...prev, assistantMessage])
+        setRemainingTokens(imageData.newBalance)
+        window.dispatchEvent(new CustomEvent('tokensUpdated'))
+        return
+      }
+
+      // Regular chat - Prepare files for API
       const filesData = userMessage.files?.map(f => ({
         type: f.type,
         name: f.name,
@@ -376,7 +428,7 @@ export default function LeafAIChatPage() {
                 {[
                   { icon: '📚', text: 'Explain quantum physics', color: 'from-blue-50 to-indigo-50' },
                   { icon: '📝', text: 'Help me write an essay', color: 'from-amber-50 to-orange-50' },
-                  { icon: '🖼️', text: 'Analyze this image', color: 'from-pink-50 to-rose-50' },
+                  { icon: '🎨', text: 'Generate image of a forest', color: 'from-pink-50 to-rose-50' },
                   { icon: '📄', text: 'Summarize this PDF', color: 'from-green-50 to-emerald-50' },
                 ].map((suggestion, idx) => (
                   <button
@@ -447,6 +499,27 @@ export default function LeafAIChatPage() {
                           className="prose prose-sm max-w-none"
                           dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(message.content) }}
                         />
+                        
+                        {/* Generated Image */}
+                        {message.image && (
+                          <div className="mt-4">
+                            <img 
+                              src={`data:${message.image.mimeType};base64,${message.image.data}`}
+                              alt="Generated image"
+                              className="rounded-xl max-w-full h-auto shadow-lg border border-slate-200"
+                            />
+                            <div className="mt-2 flex items-center gap-2">
+                              <a
+                                href={`data:${message.image.mimeType};base64,${message.image.data}`}
+                                download="leafai-generated-image.png"
+                                className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors"
+                              >
+                                <Download className="w-3 h-3" />
+                                Download Image
+                              </a>
+                            </div>
+                          </div>
+                        )}
                         
                         {/* Message actions */}
                         <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
@@ -537,7 +610,7 @@ export default function LeafAIChatPage() {
           )}
           
           {/* Input box */}
-          <div className="flex items-end gap-3">
+          <div className="flex items-center gap-3">
             {/* File upload button */}
             <input
               ref={fileInputRef}
@@ -557,15 +630,14 @@ export default function LeafAIChatPage() {
             </Button>
             
             {/* Text input */}
-            <div className="flex-1 relative">
-              <textarea
-                ref={textareaRef}
+            <div className="flex-1">
+              <input
+                type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask me anything... (Shift+Enter for new line)"
-                className="w-full resize-none rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all min-h-[48px] max-h-[200px]"
-                rows={1}
+                placeholder="Ask me anything..."
+                className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
               />
             </div>
             

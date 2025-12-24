@@ -15,52 +15,55 @@ const apiKeys = [
 
 const genAIInstances = apiKeys.map(key => new GoogleGenerativeAI(key))
 
-// Image generation model
-const IMAGE_MODEL = 'gemini-2.0-flash-exp'
+// Image generation models to try (in order of preference)
+const IMAGE_MODELS = ['gemini-2.0-flash-exp', 'imagen-3.0-generate-002']
 
-// Helper function to generate image with fallback across API keys
+// Helper function to generate image with fallback across API keys and models
 async function generateImageWithFallback(
   prompt: string
-): Promise<{ imageData: string; mimeType: string }> {
+): Promise<{ imageData: string; mimeType: string; model: string }> {
   
   for (let keyIndex = 0; keyIndex < genAIInstances.length; keyIndex++) {
     const instance = genAIInstances[keyIndex]
     const keyLabel = keyIndex === 0 ? 'primary' : `key${keyIndex + 1}`
     
-    try {
-      console.log(`[LeafAI Image] Trying ${keyLabel} API key with model:`, IMAGE_MODEL)
-      
-      const model = instance.getGenerativeModel({ 
-        model: IMAGE_MODEL,
-        generationConfig: {
-          // @ts-ignore - responseModalities is a valid config for image generation
-          responseModalities: ['image', 'text'],
-        }
-      })
-      
-      const result = await model.generateContent(prompt)
-      const response = result.response
-      
-      // Extract image from response
-      const parts = response.candidates?.[0]?.content?.parts || []
-      
-      for (const part of parts) {
-        // @ts-ignore - inlineData exists for image responses
-        if (part.inlineData) {
-          console.log(`[LeafAI Image] Success with ${keyLabel}`)
-          return {
-            // @ts-ignore
-            imageData: part.inlineData.data,
-            // @ts-ignore
-            mimeType: part.inlineData.mimeType || 'image/png'
+    for (const modelName of IMAGE_MODELS) {
+      try {
+        console.log(`[LeafAI Image] Trying ${keyLabel} API key with model:`, modelName)
+        
+        const model = instance.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: {
+            // @ts-ignore - responseModalities is a valid config for image generation
+            responseModalities: ['image', 'text'],
+          }
+        })
+        
+        const result = await model.generateContent(prompt)
+        const response = result.response
+        
+        // Extract image from response
+        const parts = response.candidates?.[0]?.content?.parts || []
+        
+        for (const part of parts) {
+          // @ts-ignore - inlineData exists for image responses
+          if (part.inlineData) {
+            console.log(`[LeafAI Image] Success with ${keyLabel}, model: ${modelName}`)
+            return {
+              // @ts-ignore
+              imageData: part.inlineData.data,
+              // @ts-ignore
+              mimeType: part.inlineData.mimeType || 'image/png',
+              model: modelName
+            }
           }
         }
+        
+        throw new Error('No image in response')
+      } catch (error: any) {
+        console.error(`[LeafAI Image] ${keyLabel} failed with ${modelName}:`, error.message)
+        // Continue to next model/key
       }
-      
-      throw new Error('No image in response')
-    } catch (error: any) {
-      console.error(`[LeafAI Image] ${keyLabel} failed:`, error.message)
-      // Continue to next key
     }
   }
   
@@ -111,7 +114,7 @@ export async function POST(request: NextRequest) {
     const imagePrompt = `Generate an image based on this description: ${prompt}. 
 Create a high-quality, educational, and visually appealing image.`
 
-    const { imageData, mimeType } = await generateImageWithFallback(imagePrompt)
+    const { imageData, mimeType, model: usedModel } = await generateImageWithFallback(imagePrompt)
     
     // Deduct tokens (image generation costs more)
     const tokenCost = 100 // Fixed cost for image generation
@@ -124,7 +127,7 @@ Create a high-quality, educational, and visually appealing image.`
       user_id: user.id,
       action_type: ActionTypes.AI_IMAGE_GENERATED,
       tokens_used: tokenCost,
-      model: IMAGE_MODEL,
+      model: usedModel,
       metadata: {
         promptLength: prompt.length,
         projectId
@@ -139,6 +142,7 @@ Create a high-quality, educational, and visually appealing image.`
         data: imageData,
         mimeType
       },
+      model: usedModel,
       tokensUsed: tokenCost,
       newBalance: validBalance - tokenCost
     })
