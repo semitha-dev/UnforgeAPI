@@ -1,77 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/app/lib/supabaseServer'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import Groq from 'groq-sdk'
 import { getValidTokenBalance, deductTokensWithExpiry, calculateOutputTokenCost, countWords, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription'
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger'
 
-// Primary and fallback API keys
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '')
-const genAI2 = process.env.GEMINI_API_KEY2 
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY2) 
-  : null
+// Initialize Groq - 100% FREE!
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' })
 
-// Helper function to try generation with fallback
+// Models optimized for production - high rate limits
+const PRIMARY_MODEL = 'llama-3.1-8b-instant' // 14,400 requests/day, fast
+const HEAVY_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct' // Better quality, 30K tokens/min
+
+// Helper function to generate with fallback
 async function generateWithFallback(
   prompt: string, 
   modelName: string
-): Promise<{ text: string; usedFallbackKey: boolean }> {
-  const fallbackModel = 'gemini-2.5-flash-lite'
-  
-  // Try primary API key
+): Promise<{ text: string; model: string }> {
+  // Try requested model
   try {
-    console.log('[LeafAI] Trying primary API key with model:', modelName)
-    const model = genAI.getGenerativeModel({ model: modelName })
-    const result = await model.generateContent(prompt)
-    return { text: result.response.text(), usedFallbackKey: false }
+    console.log('[LeafAI Notes] Using model:', modelName)
+    const completion = await groq.chat.completions.create({
+      model: modelName,
+      messages: [
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 2048,
+      temperature: 0.7,
+    })
+    return { text: completion.choices[0]?.message?.content || '', model: modelName }
   } catch (primaryError: any) {
-    console.error('[LeafAI] Primary API error:', primaryError.message)
+    console.error('[LeafAI Notes] Primary model failed:', primaryError.message)
     
-    const isRateLimit = primaryError.message?.includes('429') || 
-                        primaryError.message?.includes('quota') || 
-                        primaryError.message?.includes('Too Many Requests')
-    
-    if (isRateLimit && genAI2) {
-      // Try fallback API key
-      console.log('[LeafAI] Rate limited on primary, trying GEMINI_API_KEY2...')
-      try {
-        const fallbackKeyModel = genAI2.getGenerativeModel({ model: modelName })
-        const result = await fallbackKeyModel.generateContent(prompt)
-        console.log('[LeafAI] Fallback API key succeeded!')
-        return { text: result.response.text(), usedFallbackKey: true }
-      } catch (fallbackKeyError: any) {
-        console.error('[LeafAI] Fallback API key also failed:', fallbackKeyError.message)
-        
-        // Try gemini-2.5-flash-lite on fallback key
-        if (modelName !== fallbackModel) {
-          console.log(`[LeafAI] Trying ${fallbackModel} on fallback key...`)
-          try {
-            const lastResort = genAI2.getGenerativeModel({ model: fallbackModel })
-            const result = await lastResort.generateContent(prompt)
-            return { text: result.response.text(), usedFallbackKey: true }
-          } catch (e) {
-            // Fall through
-          }
-        }
+    // Try fallback model
+    const fallbackModel = modelName === PRIMARY_MODEL ? HEAVY_MODEL : PRIMARY_MODEL
+    try {
+      console.log('[LeafAI Notes] Trying fallback:', fallbackModel)
+      const completion = await groq.chat.completions.create({
+        model: fallbackModel,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 2048,
+        temperature: 0.7,
+      })
+      return { text: completion.choices[0]?.message?.content || '', model: fallbackModel }
+    } catch (fallbackError: any) {
+      console.error('[LeafAI Notes] Fallback also failed:', fallbackError.message)
+      
+      if (fallbackError?.status === 429) {
+        throw new Error('RATE_LIMITED')
       }
+      throw fallbackError
     }
-    
-    // Try gemini-2.5-flash-lite on primary key
-    if (modelName !== fallbackModel) {
-      console.log(`[LeafAI] Trying ${fallbackModel} on primary key...`)
-      try {
-        const fallbackModelInstance = genAI.getGenerativeModel({ model: fallbackModel })
-        const result = await fallbackModelInstance.generateContent(prompt)
-        return { text: result.response.text(), usedFallbackKey: false }
-      } catch (e) {
-        // Fall through
-      }
-    }
-    
-    // All attempts failed
-    if (isRateLimit) {
-      throw new Error('RATE_LIMITED')
-    }
-    throw primaryError
   }
 }
 
@@ -80,29 +60,29 @@ export async function POST(request: NextRequest) {
   const { ip, userAgent } = getRequestInfo(request)
   
   try {
-    console.log('[LeafAI] Starting request...')
+    console.log('[LeafAI Notes] Starting request...')
     
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      console.log('[LeafAI] No user found')
+      console.log('[LeafAI Notes] No user found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.log('[LeafAI] User:', user.id)
+    console.log('[LeafAI Notes] User:', user.id)
 
     const body = await request.json()
     const { noteContent, noteTitle, userMessage, mode, action, isGlobal } = body
-    console.log('[LeafAI] Request body:', { noteTitle, mode, action, isGlobal, messageLength: userMessage?.length, contentLength: noteContent?.length })
+    console.log('[LeafAI Notes] Request:', { noteTitle, mode, action, isGlobal })
 
     if (!userMessage) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
-    // Check user's token balance using the proper utility function
-    console.log('[LeafAI] Checking token balance...')
+    // Check user's token balance
+    console.log('[LeafAI Notes] Checking token balance...')
     const validBalance = await getValidTokenBalance(user.id)
-    console.log('[LeafAI] Valid balance:', validBalance)
+    console.log('[LeafAI Notes] Valid balance:', validBalance)
     
     if (validBalance < MIN_TOKENS_TO_GENERATE) {
       return NextResponse.json({ 
@@ -112,9 +92,9 @@ export async function POST(request: NextRequest) {
       }, { status: 402 })
     }
 
-    // Select model based on mode - Heavy uses pro model
-    const modelName = mode === 'heavy' ? 'gemini-1.5-pro' : 'gemini-2.0-flash'
-    console.log('[LeafAI] Using model:', modelName)
+    // Select model based on mode
+    const modelName = mode === 'heavy' ? HEAVY_MODEL : PRIMARY_MODEL
+    console.log('[LeafAI Notes] Using model:', modelName)
 
     let prompt = ''
     
@@ -172,13 +152,15 @@ Provide a helpful, concise answer. If the question relates to the note content, 
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
 
-    console.log('[LeafAI] Generating content with prompt length:', prompt.length)
+    console.log('[LeafAI Notes] Generating content...')
     
     let text = ''
+    let modelUsed = ''
     try {
       const result = await generateWithFallback(prompt, modelName)
       text = result.text
-      console.log('[LeafAI] Generated response length:', text.length, 'Used fallback key:', result.usedFallbackKey)
+      modelUsed = result.model
+      console.log('[LeafAI Notes] Generated response length:', text.length)
     } catch (genError: any) {
       if (genError.message === 'RATE_LIMITED') {
         return NextResponse.json({ 
@@ -194,7 +176,7 @@ Provide a helpful, concise answer. If the question relates to the note content, 
     // Calculate token cost based on output word count
     const outputWords = countWords(text)
     let tokenCost = calculateOutputTokenCost(outputWords)
-    console.log('[LeafAI] Output words:', outputWords, 'Token cost:', tokenCost)
+    console.log('[LeafAI Notes] Output words:', outputWords, 'Token cost:', tokenCost)
     
     // Double the cost for heavy mode
     if (mode === 'heavy') {
@@ -203,21 +185,20 @@ Provide a helpful, concise answer. If the question relates to the note content, 
     
     // Minimum cost
     tokenCost = Math.max(tokenCost, mode === 'heavy' ? 2 : 1)
-    console.log('[LeafAI] Final token cost:', tokenCost)
+    console.log('[LeafAI Notes] Final token cost:', tokenCost)
 
     // Deduct tokens using FIFO system
-    console.log('[LeafAI] Deducting tokens...')
+    console.log('[LeafAI Notes] Deducting tokens...')
     const deductSuccess = await deductTokensWithExpiry(user.id, tokenCost)
-    console.log('[LeafAI] Deduct success:', deductSuccess)
+    console.log('[LeafAI Notes] Deduct success:', deductSuccess)
     
     if (!deductSuccess) {
-      // Still return the response but warn about token deduction failure
-      console.error('[LeafAI] Token deduction failed for user:', user.id)
+      console.error('[LeafAI Notes] Token deduction failed')
     }
 
     // Get updated balance
     const newBalance = await getValidTokenBalance(user.id)
-    console.log('[LeafAI] New balance:', newBalance)
+    console.log('[LeafAI Notes] New balance:', newBalance)
 
     // Log activity
     await logActivity({
@@ -227,8 +208,8 @@ Provide a helpful, concise answer. If the question relates to the note content, 
       endpoint: '/api/notes/leafai',
       method: 'POST',
       tokens_used: tokenCost,
-      model: mode === 'heavy' ? 'gemini-1.5-pro' : 'gemini-2.0-flash',
-      metadata: { action, mode, isGlobal, outputWords },
+      model: modelUsed,
+      metadata: { action, mode, isGlobal, outputWords, provider: 'groq' },
       ip_address: ip,
       user_agent: userAgent,
       response_status: 200,
@@ -239,11 +220,12 @@ Provide a helpful, concise answer. If the question relates to the note content, 
       response: text,
       tokensUsed: tokenCost,
       remainingTokens: newBalance,
-      mode
+      mode,
+      model: modelUsed,
+      provider: 'groq'
     })
   } catch (error: any) {
-    console.error('[LeafAI] Unexpected error:', error.message)
-    console.error('[LeafAI] Error stack:', error.stack)
+    console.error('[LeafAI Notes] Unexpected error:', error.message)
     return NextResponse.json(
       { error: `Failed to process request: ${error.message}` },
       { status: 500 }

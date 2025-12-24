@@ -1,12 +1,16 @@
 // app/api/quiz/generate/route.ts
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { deductTokensWithExpiry, getValidTokenBalance, getUserSubscription, calculateOutputTokenCost, countWords, hasActiveAccess, SubscriptionProfile, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription';
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
+// Initialize Groq - 100% FREE!
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+
+// Models optimized for production - high rate limits
+const PRIMARY_MODEL = 'llama-3.1-8b-instant'; // 14,400 requests/day
+const FALLBACK_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'; // 30K tokens/min
 
 interface QuizQuestion {
   question: string;
@@ -93,11 +97,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate quiz using Gemini
+    // Generate quiz using Groq
     const prompt = `You are an educational quiz generator. Create ${questionCount} multiple-choice questions based on the following study material. Each question must have exactly 4 options (A, B, C, D) with only ONE correct answer.
 
 Study Material:
-${studyMaterial}
+${studyMaterial.slice(0, 15000)}
 
 Generate a JSON array of ${questionCount} questions with the following format:
 [
@@ -121,12 +125,57 @@ Make sure:
 4. Questions cover different aspects of the material
 5. Return ONLY valid JSON, no additional text`;
 
-    const result = await model.generateContent(prompt);
-    const response = result.response;
-    const responseContent = response.text();
+    let responseContent: string | null = null;
+    let modelUsed = PRIMARY_MODEL;
+    
+    // Try primary model first
+    try {
+      console.log(`[Quiz] Using model: ${PRIMARY_MODEL}`);
+      const completion = await groq.chat.completions.create({
+        model: PRIMARY_MODEL,
+        messages: [
+          { role: 'system', content: 'You are a helpful AI that generates educational quiz questions. Always respond with valid JSON only.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 4096,
+        temperature: 0.7,
+      });
+      responseContent = completion.choices[0]?.message?.content || null;
+      console.log(`[Quiz] ${PRIMARY_MODEL} generation successful`);
+    } catch (primaryError: any) {
+      console.error(`[Quiz] ${PRIMARY_MODEL} failed:`, primaryError.message);
+      
+      // Try fallback model
+      try {
+        console.log(`[Quiz] Trying fallback: ${FALLBACK_MODEL}`);
+        modelUsed = FALLBACK_MODEL;
+        const completion = await groq.chat.completions.create({
+          model: FALLBACK_MODEL,
+          messages: [
+            { role: 'system', content: 'You are a helpful AI that generates educational quiz questions. Always respond with valid JSON only.' },
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 4096,
+          temperature: 0.7,
+        });
+        responseContent = completion.choices[0]?.message?.content || null;
+        console.log(`[Quiz] ${FALLBACK_MODEL} generation successful`);
+      } catch (fallbackError: any) {
+        console.error(`[Quiz] Fallback also failed:`, fallbackError.message);
+        
+        if (fallbackError?.status === 429) {
+          return NextResponse.json(
+            { error: 'AI service rate limit exceeded. Please try again in a few moments.' },
+            { status: 429 }
+          );
+        }
+        
+        throw new Error('Failed to generate quiz: ' + (fallbackError.message || 'Unknown error'));
+      }
+    }
     
     if (!responseContent) {
-      throw new Error('No response from Gemini');
+      throw new Error('No response from AI');
     }
 
     // Parse the response
@@ -189,7 +238,7 @@ Make sure:
         };
       });
     } catch (parseError) {
-      console.error('Error parsing Gemini response:', responseContent);
+      console.error('[Quiz] Error parsing response:', responseContent);
       throw new Error('Failed to parse quiz questions');
     }
 
@@ -209,7 +258,7 @@ Make sure:
       .single();
 
     if (quizError) {
-      console.error('Error creating quiz:', quizError);
+      console.error('[Quiz] Error creating quiz:', quizError);
       throw new Error('Failed to create quiz');
     }
 
@@ -239,26 +288,24 @@ Make sure:
       .insert(questionsToInsert);
 
     if (questionsError) {
-      console.error('Error inserting questions:', questionsError);
+      console.error('[Quiz] Error inserting questions:', questionsError);
       // Clean up quiz if questions failed
       await supabase.from('quizzes').delete().eq('id', quiz.id);
       throw new Error('Failed to create quiz questions');
     }
 
     // Calculate token cost based on OUTPUT word count
-    // Count all words in the generated quiz content
     const outputText = questions.map(q => 
       `${q.question} ${q.options.A} ${q.options.B} ${q.options.C} ${q.options.D} ${q.explanation || ''}`
     ).join(' ');
     const outputWordCount = countWords(outputText);
     const tokensRequired = calculateOutputTokenCost(outputWordCount);
-    console.log(`Quiz generated: ${questions.length} questions, ${outputWordCount} words, deducting ${tokensRequired} tokens`);
+    console.log(`[Quiz] ${questions.length} questions, ${outputWordCount} words, deducting ${tokensRequired} tokens`);
 
     // Deduct tokens AFTER successful generation (uses FIFO with expiry)
     const deducted = await deductTokensWithExpiry(user.id, tokensRequired);
     if (!deducted) {
-      console.error('Failed to deduct tokens after quiz generation - user may have insufficient valid balance');
-      // Don't fail the request - quiz is already created, log for monitoring
+      console.error('[Quiz] Failed to deduct tokens');
     }
 
     // Log activity
@@ -269,8 +316,8 @@ Make sure:
       endpoint: '/api/quiz/generate',
       method: 'POST',
       tokens_used: tokensRequired,
-      model: 'gemini-2.5-flash-lite',
-      metadata: { questionCount, projectId, noteId, quizId: quiz.id },
+      model: modelUsed,
+      metadata: { questionCount, projectId, noteId, quizId: quiz.id, provider: 'groq' },
       ip_address: ip,
       user_agent: userAgent,
       response_status: 201,
@@ -281,10 +328,12 @@ Make sure:
       quiz, 
       success: true,
       tokensUsed: tokensRequired,
-      outputWords: outputWordCount
+      outputWords: outputWordCount,
+      model: modelUsed,
+      provider: 'groq'
     }, { status: 201 });
   } catch (error: any) {
-    console.error('Error generating quiz:', error);
+    console.error('[Quiz] Error generating:', error);
     
     return NextResponse.json(
       { error: error.message || 'Failed to generate quiz' },
@@ -323,7 +372,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(quizzes);
   } catch (error: any) {
-    console.error('Error fetching quizzes:', error);
+    console.error('[Quiz] Error fetching:', error);
     return NextResponse.json(
       { error: 'Failed to fetch quizzes' },
       { status: 500 }

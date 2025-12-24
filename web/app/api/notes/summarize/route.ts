@@ -1,58 +1,56 @@
 // app/api/notes/summarize/route.ts
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { deductTokensWithExpiry, getValidTokenBalance, getUserSubscription, calculateOutputTokenCost, countWords, hasActiveAccess, SubscriptionProfile, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription';
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-const genAI2 = process.env.GEMINI_API_KEY2 
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY2) 
-  : null;
+// Initialize Groq - 100% FREE!
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
 
-// Helper function to try generation with fallback
-async function generateWithFallback(prompt: string): Promise<string> {
-  const primaryModel = 'gemini-2.5-flash'
-  const fallbackModel = 'gemini-2.5-flash-lite'
-  
+// Models optimized for production - high rate limits
+const PRIMARY_MODEL = 'llama-3.1-8b-instant'; // 14,400 requests/day
+const FALLBACK_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'; // 30K tokens/min
+
+// Helper function to generate with fallback
+async function generateWithFallback(prompt: string): Promise<{ text: string; model: string }> {
   // Try primary model
   try {
-    console.log('[Summarize] Trying primary model:', primaryModel)
-    const model = genAI.getGenerativeModel({ model: primaryModel })
-    const result = await model.generateContent(prompt)
-    return result.response.text()
+    console.log('[Summarize] Using model:', PRIMARY_MODEL);
+    const completion = await groq.chat.completions.create({
+      model: PRIMARY_MODEL,
+      messages: [
+        { role: 'system', content: 'You are an educational content summarizer. Always respond with clean HTML formatting only, no markdown.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 2048,
+      temperature: 0.7,
+    });
+    return { text: completion.choices[0]?.message?.content || '', model: PRIMARY_MODEL };
   } catch (primaryError: any) {
-    console.error('[Summarize] Primary model error:', primaryError.message)
+    console.error('[Summarize] Primary model failed:', primaryError.message);
     
-    const isRateLimitOrOverload = 
-      primaryError.message?.includes('429') || 
-      primaryError.message?.includes('503') ||
-      primaryError.message?.includes('overloaded') ||
-      primaryError.message?.includes('quota')
-    
-    // Try fallback model on primary key
-    console.log(`[Summarize] Trying ${fallbackModel} on primary key...`)
+    // Try fallback model
     try {
-      const fallback = genAI.getGenerativeModel({ model: fallbackModel })
-      const result = await fallback.generateContent(prompt)
-      return result.response.text()
+      console.log('[Summarize] Trying fallback:', FALLBACK_MODEL);
+      const completion = await groq.chat.completions.create({
+        model: FALLBACK_MODEL,
+        messages: [
+          { role: 'system', content: 'You are an educational content summarizer. Always respond with clean HTML formatting only, no markdown.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 2048,
+        temperature: 0.7,
+      });
+      return { text: completion.choices[0]?.message?.content || '', model: FALLBACK_MODEL };
     } catch (fallbackError: any) {
-      console.error('[Summarize] Fallback on primary key failed:', fallbackError.message)
+      console.error('[Summarize] Fallback also failed:', fallbackError.message);
       
-      // Try fallback API key if available
-      if (genAI2) {
-        console.log(`[Summarize] Trying ${fallbackModel} on GEMINI_API_KEY2...`)
-        try {
-          const fallback2 = genAI2.getGenerativeModel({ model: fallbackModel })
-          const result = await fallback2.generateContent(prompt)
-          return result.response.text()
-        } catch (e) {
-          // Fall through
-        }
+      if (fallbackError?.status === 429) {
+        throw new Error('RATE_LIMITED');
       }
+      throw fallbackError;
     }
-    
-    throw primaryError
   }
 }
 
@@ -180,7 +178,7 @@ ${citationStyle === 'apa' ?
 Make sure the citation is properly formatted and includes all available information.`;
     }
 
-    const prompt = `You are an educational content summarizer. Summarize the following study notes.
+    const prompt = `Summarize the following study notes.
 
 ${promptInstructions}
 ${citationInstructions}
@@ -194,7 +192,7 @@ Important:
 - Return ONLY the HTML-formatted summary, no additional text or markdown
 - Do not include any code blocks or markdown formatting`;
 
-    const summary = await generateWithFallback(prompt);
+    const { text: summary, model: modelUsed } = await generateWithFallback(prompt);
 
     if (!summary) {
       throw new Error('No response from AI');
@@ -212,11 +210,11 @@ Important:
     const outputWordCount = countWords(cleanSummary);
     const tokensRequired = calculateOutputTokenCost(outputWordCount);
     
-    console.log(`Summary generated: ${outputWordCount} words, deducting ${tokensRequired} tokens`);
+    console.log(`[Summarize] ${outputWordCount} words, deducting ${tokensRequired} tokens`);
 
     const deducted = await deductTokensWithExpiry(user.id, tokensRequired);
     if (!deducted) {
-      console.error('Failed to deduct tokens after summarization');
+      console.error('[Summarize] Failed to deduct tokens');
     }
 
     // Save summary to the note in database
@@ -233,9 +231,9 @@ Important:
         .eq('user_id', user.id);
 
       if (updateError) {
-        console.error('Failed to save summary to note:', updateError);
+        console.error('[Summarize] Failed to save summary:', updateError);
       } else {
-        console.log('Summary saved to note:', noteId);
+        console.log('[Summarize] Summary saved to note:', noteId);
       }
     }
 
@@ -247,23 +245,32 @@ Important:
       endpoint: '/api/notes/summarize',
       method: 'POST',
       tokens_used: tokensRequired,
-      model: 'gemini-2.5-flash',
-      metadata: { summaryType, noteId, outputWords: outputWordCount },
+      model: modelUsed,
+      metadata: { summaryType, noteId, outputWords: outputWordCount, provider: 'groq' },
       ip_address: ip,
       user_agent: userAgent,
       response_status: 200,
       duration_ms: Date.now() - startTime,
     });
 
-    // Dispatch token update event (client will handle UI refresh)
     return NextResponse.json({ 
       summary: cleanSummary,
       tokensUsed: tokensRequired,
       outputWords: outputWordCount,
-      savedToNote: !!noteId
+      savedToNote: !!noteId,
+      model: modelUsed,
+      provider: 'groq'
     });
   } catch (error: any) {
-    console.error('Error summarizing notes:', error);
+    console.error('[Summarize] Error:', error);
+    
+    if (error.message === 'RATE_LIMITED') {
+      return NextResponse.json(
+        { error: 'AI service temporarily unavailable. Please try again.' },
+        { status: 429 }
+      );
+    }
+    
     return NextResponse.json(
       { error: error.message || 'Failed to summarize notes' },
       { status: 500 }

@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/app/lib/supabaseServer'
-import { GoogleGenerativeAI, Part } from '@google/generative-ai'
-import { getValidTokenBalance, deductTokensWithExpiry, calculateOutputTokenCost, countWords, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription'
+import Groq from 'groq-sdk'
+import { getValidTokenBalance, deductTokensWithExpiry, countWords, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription'
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger'
 
-// Initialize Gemini AI instances - supports up to 5 API keys for redundancy
-const apiKeys = [
-  process.env.GEMINI_API_KEY,
-  process.env.GEMINI_API_KEY2,
-  process.env.GEMINI_API_KEY3,
-  process.env.GEMINI_API_KEY4,
-  process.env.GEMINI_API_KEY5,
-].filter(Boolean) as string[]
+// Initialize Groq (100% FREE!)
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' })
 
-const genAIInstances = apiKeys.map(key => new GoogleGenerativeAI(key))
-
-// Legacy exports for backward compatibility
-const genAI = genAIInstances[0] || new GoogleGenerativeAI('')
-const genAI2 = genAIInstances[1] || null
+// Models - optimized for production
+const PRIMARY_MODEL = 'llama-3.1-8b-instant' // Fast, 14.4K requests/day
+const FALLBACK_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct' // Quality, 30K tokens/min
 
 interface ChatMessage {
   role: 'user' | 'assistant'
@@ -25,181 +17,14 @@ interface ChatMessage {
   files?: {
     type: string
     name: string
-    data: string // base64 encoded
+    data: string
   }[]
 }
 
-// Primary model for Leaf AI chat
-const PRIMARY_MODEL = 'gemini-2.5-flash'
-
-// Fallback models in order of preference
-const FALLBACK_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.0-flash']
-
-// Helper to try a single model with a specific API instance
-async function tryModel(
-  genAIInstance: GoogleGenerativeAI,
-  modelName: string,
-  parts: Part[],
-  history: { role: string; parts: Part[] }[]
-): Promise<string> {
-  const model = genAIInstance.getGenerativeModel({ model: modelName })
-  const chat = model.startChat({
-    history: history.map(msg => ({
-      role: msg.role as 'user' | 'model',
-      parts: msg.parts
-    }))
-  })
-  const result = await chat.sendMessage(parts)
-  return result.response.text()
-}
-
-// Helper function to try generation with fallback across ALL available API keys
-async function generateWithFallback(
-  parts: Part[], 
-  modelName: string,
-  history: { role: string; parts: Part[] }[]
-): Promise<{ text: string; usedFallbackKey: boolean }> {
-  
-  // Build list of models to try (requested model first, then fallbacks)
-  const modelsToTry = [modelName, ...FALLBACK_MODELS.filter(m => m !== modelName)]
-  
-  // Try each API key with all models before moving to the next key
-  for (let keyIndex = 0; keyIndex < genAIInstances.length; keyIndex++) {
-    const instance = genAIInstances[keyIndex]
-    const keyLabel = keyIndex === 0 ? 'primary' : `key${keyIndex + 1}`
-    
-    for (const model of modelsToTry) {
-      try {
-        console.log(`[LeafAI Chat] Trying ${keyLabel} API key with model:`, model)
-        const text = await tryModel(instance, model, parts, history)
-        console.log(`[LeafAI Chat] Success with ${keyLabel}, model:`, model)
-        return { text, usedFallbackKey: keyIndex > 0 }
-      } catch (error: any) {
-        // Log full error for debugging
-        console.error(`[LeafAI Chat] ${keyLabel} failed with ${model}:`, error.message)
-        // Continue to next model/key
-      }
-    }
-  }
-  
-  // All attempts failed
-  console.error(`[LeafAI Chat] All ${genAIInstances.length} API keys exhausted across ${modelsToTry.length} models`)
-  throw new Error('RATE_LIMITED')
-}
-
-// Convert file to Gemini-compatible format
-function fileToGenerativePart(base64Data: string, mimeType: string): Part {
-  // Remove data URL prefix if present
-  const base64Content = base64Data.includes(',') 
-    ? base64Data.split(',')[1] 
-    : base64Data
-    
-  return {
-    inlineData: {
-      data: base64Content,
-      mimeType
-    }
-  }
-}
-
-// Get MIME type from file type or name
-function getMimeType(fileType: string, fileName: string): string {
-  // If file type is provided and valid, use it
-  if (fileType && fileType !== 'application/octet-stream') {
-    return fileType
-  }
-  
-  // Infer from extension
-  const ext = fileName.split('.').pop()?.toLowerCase()
-  const mimeTypes: Record<string, string> = {
-    // Images
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'webp': 'image/webp',
-    // Documents
-    'pdf': 'application/pdf',
-    'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'txt': 'text/plain',
-    'md': 'text/markdown',
-    // Spreadsheets
-    'xls': 'application/vnd.ms-excel',
-    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'csv': 'text/csv',
-    // Presentations
-    'ppt': 'application/vnd.ms-powerpoint',
-    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  }
-  
-  return mimeTypes[ext || ''] || 'application/octet-stream'
-}
-
-export async function POST(request: NextRequest) {
-  const startTime = Date.now()
-  const { ip, userAgent } = getRequestInfo(request)
-  
-  try {
-    console.log('[LeafAI Chat] Starting request...')
-    
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      console.log('[LeafAI Chat] No user found')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    console.log('[LeafAI Chat] User:', user.id)
-
-    const body = await request.json()
-    const { message, files, history, mode } = body as {
-      message: string
-      files?: { type: string; name: string; data: string }[]
-      history?: ChatMessage[]
-      mode?: 'light' | 'heavy'
-    }
-    
-    console.log('[LeafAI Chat] Request:', { 
-      messageLength: message?.length, 
-      filesCount: files?.length || 0,
-      historyLength: history?.length || 0,
-      mode 
-    })
-
-    if (!message && (!files || files.length === 0)) {
-      return NextResponse.json({ error: 'Message or files required' }, { status: 400 })
-    }
-
-    // Check user's token balance
-    console.log('[LeafAI Chat] Checking token balance...')
-    const validBalance = await getValidTokenBalance(user.id)
-    console.log('[LeafAI Chat] Valid balance:', validBalance)
-    
-    // Files cost more tokens
-    const fileCount = files?.length || 0
-    const minRequired = MIN_TOKENS_TO_GENERATE + (fileCount * 2)
-    
-    if (validBalance < minRequired) {
-      return NextResponse.json({ 
-        error: `Insufficient tokens. You need at least ${minRequired} tokens. Current balance: ${validBalance}`,
-        tokensRequired: minRequired,
-        currentBalance: validBalance
-      }, { status: 402 })
-    }
-
-    // Select model - use gemini-2.5-flash for all modes
-    const modelName = PRIMARY_MODEL
-    console.log('[LeafAI Chat] Using model:', modelName)
-
-    // Build parts array for the message
-    const messageParts: Part[] = []
-    
-    // Add system context as the first part
-    const systemContext = `You are Leaf AI, a powerful and friendly AI assistant for LeafLearning - an educational platform. You can:
-- Analyze images, PDFs, and documents that users share with you
-- Answer questions about uploaded content
-- Help with studying, homework, and learning any topic
+// System prompt for Leaf AI
+const SYSTEM_PROMPT = `You are Leaf AI, a powerful and friendly AI assistant for LeafLearning - an educational platform. You can:
+- Answer questions about any topic
+- Help with studying, homework, and learning
 - Explain complex concepts in simple terms
 - Generate study materials, summaries, and explanations
 
@@ -210,119 +35,181 @@ Your personality:
 - Celebrates learning progress
 - Professional but approachable
 
-When analyzing files:
-- For images: Describe what you see, answer questions about the content, extract text if present
-- For PDFs/Documents: Summarize key points, answer questions about the content, help understand complex parts
-- Be specific and reference actual content from the files
+When users share files or documents, analyze them carefully and provide helpful insights.
+Use markdown formatting for better readability (headers, bullet points, code blocks, etc.).`
 
-Current message from user:`
-
-    // Add text message
-    if (message) {
-      messageParts.push({ text: `${systemContext}\n\n${message}` })
+// Generate response with fallback
+async function generateResponse(
+  message: string,
+  history: { role: string; content: string }[],
+  mode: 'light' | 'heavy'
+): Promise<{ text: string; model: string }> {
+  const model = mode === 'heavy' ? FALLBACK_MODEL : PRIMARY_MODEL
+  
+  const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+    { role: 'system', content: SYSTEM_PROMPT }
+  ]
+  
+  // Add chat history
+  for (const msg of history) {
+    messages.push({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content
+    })
+  }
+  
+  // Add current message
+  messages.push({ role: 'user', content: message })
+  
+  try {
+    console.log(`[LeafAI Chat] Using model: ${model}`)
+    const completion = await groq.chat.completions.create({
+      model,
+      messages,
+      max_tokens: mode === 'heavy' ? 4096 : 2048,
+      temperature: 0.7,
+    })
+    
+    const text = completion.choices[0]?.message?.content || ''
+    console.log(`[LeafAI Chat] Success with ${model}`)
+    return { text, model }
+  } catch (error: any) {
+    console.error(`[LeafAI Chat] ${model} failed:`, error.message)
+    
+    // Try fallback model
+    if (model === PRIMARY_MODEL) {
+      console.log(`[LeafAI Chat] Trying fallback: ${FALLBACK_MODEL}`)
+      const completion = await groq.chat.completions.create({
+        model: FALLBACK_MODEL,
+        messages,
+        max_tokens: 2048,
+        temperature: 0.7,
+      })
+      
+      const text = completion.choices[0]?.message?.content || ''
+      console.log(`[LeafAI Chat] Success with fallback ${FALLBACK_MODEL}`)
+      return { text, model: FALLBACK_MODEL }
     }
     
-    // Add files
-    if (files && files.length > 0) {
-      for (const file of files) {
-        const mimeType = getMimeType(file.type, file.name)
-        console.log('[LeafAI Chat] Processing file:', file.name, 'MIME:', mimeType)
-        
-        // Add file part
-        messageParts.push(fileToGenerativePart(file.data, mimeType))
-        
-        // Add context about the file
-        messageParts.push({ text: `\n[Attached file: ${file.name}]` })
-      }
+    throw error
+  }
+}
+
+export async function POST(request: NextRequest) {
+  console.log('[LeafAI Chat] Starting request...')
+  
+  try {
+    // Get user session
+    const supabase = await createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      console.log('[LeafAI Chat] Unauthorized:', authError?.message)
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Convert history to Gemini format
-    const geminiHistory: { role: string; parts: Part[] }[] = (history || []).map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }))
+    console.log('[LeafAI Chat] User:', user.id)
 
-    console.log('[LeafAI Chat] Generating response with', messageParts.length, 'parts')
+    // Parse request body
+    const body = await request.json()
+    const { message, files, history, mode = 'light' } = body
     
-    let text = ''
-    try {
-      const result = await generateWithFallback(messageParts, modelName, geminiHistory)
-      text = result.text
-      console.log('[LeafAI Chat] Generated response length:', text.length, 'Used fallback:', result.usedFallbackKey)
-    } catch (genError: any) {
-      if (genError.message === 'RATE_LIMITED') {
-        return NextResponse.json({ 
-          error: 'AI service is temporarily busy. Please wait a minute and try again.',
-          retryAfter: 60
-        }, { status: 429 })
-      }
+    console.log('[LeafAI Chat] Request:', { 
+      messageLength: message?.length, 
+      filesCount: files?.length || 0,
+      historyLength: history?.length || 0,
+      mode 
+    })
+
+    if (!message || typeof message !== 'string') {
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
+    }
+
+    // Check token balance
+    console.log('[LeafAI Chat] Checking token balance...')
+    const validBalance = await getValidTokenBalance(user.id)
+    
+    if (validBalance < MIN_TOKENS_TO_GENERATE) {
+      console.log('[LeafAI Chat] Insufficient balance:', validBalance)
       return NextResponse.json({ 
-        error: `AI generation failed: ${genError.message}` 
-      }, { status: 500 })
+        error: 'Insufficient tokens',
+        currentBalance: validBalance
+      }, { status: 402 })
+    }
+    console.log('[LeafAI Chat] Valid balance:', validBalance)
+
+    // Build the message with file context
+    let fullMessage = message
+    
+    // Add file descriptions if present (Groq doesn't support images directly yet)
+    if (files && files.length > 0) {
+      const fileDescriptions = files.map((f: any) => 
+        `[Attached file: ${f.name} (${f.type})]`
+      ).join('\n')
+      fullMessage = `${fileDescriptions}\n\n${message}`
     }
 
-    // Calculate token cost
+    // Generate response
+    const { text, model } = await generateResponse(
+      fullMessage,
+      history || [],
+      mode
+    )
+
+    console.log('[LeafAI Chat] Generated response length:', text.length)
+
+    // Calculate and deduct tokens
     const outputWords = countWords(text)
-    let tokenCost = calculateOutputTokenCost(outputWords)
+    const fileTokens = (files?.length || 0) * 10
+    const tokenCost = Math.ceil(outputWords / 4) + fileTokens + (mode === 'heavy' ? 10 : 5)
     
-    // Add cost for files (2 tokens per file)
-    tokenCost += fileCount * 2
+    console.log('[LeafAI Chat] Token cost:', tokenCost)
     
-    // Double cost for heavy mode
-    if (mode === 'heavy') {
-      tokenCost = tokenCost * 2
-    }
-    
-    // Minimum cost
-    tokenCost = Math.max(tokenCost, mode === 'heavy' ? 2 : 1)
-    console.log('[LeafAI Chat] Token cost:', tokenCost, '(output words:', outputWords, ', files:', fileCount, ')')
-
-    // Deduct tokens
-    console.log('[LeafAI Chat] Deducting tokens...')
     const deductSuccess = await deductTokensWithExpiry(user.id, tokenCost)
     console.log('[LeafAI Chat] Deduct success:', deductSuccess)
-    
-    if (!deductSuccess) {
-      console.error('[LeafAI Chat] Token deduction failed for user:', user.id)
-    }
 
-    // Get updated balance
+    // Get new balance
     const newBalance = await getValidTokenBalance(user.id)
     console.log('[LeafAI Chat] New balance:', newBalance)
 
     // Log activity
+    const requestInfo = getRequestInfo(request)
     await logActivity({
       user_id: user.id,
-      user_email: user.email,
       action_type: ActionTypes.LEAF_AI_CHAT,
-      endpoint: '/api/leafai/chat',
-      method: 'POST',
       tokens_used: tokenCost,
-      model: modelName,
-      metadata: { 
-        mode, 
-        outputWords,
-        filesCount: fileCount,
-        fileTypes: files?.map(f => f.type) || []
+      model,
+      metadata: {
+        messageLength: message.length,
+        responseLength: text.length,
+        filesCount: files?.length || 0,
+        mode,
+        provider: 'groq'
       },
-      ip_address: ip,
-      user_agent: userAgent,
-      response_status: 200,
-      duration_ms: Date.now() - startTime,
+      ip_address: requestInfo.ip,
+      user_agent: requestInfo.userAgent
     })
 
     return NextResponse.json({
       response: text,
       tokensUsed: tokenCost,
       remainingTokens: newBalance,
-      mode
+      model,
+      provider: 'groq'
     })
+
   } catch (error: any) {
-    console.error('[LeafAI Chat] Unexpected error:', error.message)
-    console.error('[LeafAI Chat] Error stack:', error.stack)
-    return NextResponse.json(
-      { error: `Failed to process request: ${error.message}` },
-      { status: 500 }
-    )
+    console.error('[LeafAI Chat] Error:', error)
+    
+    if (error.message === 'RATE_LIMITED') {
+      return NextResponse.json({ 
+        error: 'AI service temporarily unavailable. Please try again.',
+      }, { status: 429 })
+    }
+    
+    return NextResponse.json({ 
+      error: 'Failed to generate response',
+      details: error.message 
+    }, { status: 500 })
   }
 }

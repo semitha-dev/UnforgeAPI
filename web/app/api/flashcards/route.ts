@@ -1,41 +1,20 @@
 // app/api/flashcards/route.ts
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Groq from 'groq-sdk';
 import { deductTokensWithExpiry, getValidTokenBalance, getUserSubscription, calculateOutputTokenCost, countWords, hasActiveAccess, SubscriptionProfile, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription';
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+// Initialize Groq - 100% FREE!
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+
+// Models optimized for production - high rate limits
+const PRIMARY_MODEL = 'llama-3.1-8b-instant'; // 14,400 requests/day
+const FALLBACK_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'; // 30K tokens/min
 
 interface Flashcard {
   front: string;
   back: string;
-}
-
-// Exponential backoff retry helper
-async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
-): Promise<T> {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fn();
-    } catch (error: any) {
-      const isRateLimitError = error?.status === 429 || error?.message?.includes('rate limit');
-      const isLastRetry = i === maxRetries - 1;
-
-      if (!isRateLimitError || isLastRetry) {
-        throw error;
-      }
-
-      // Exponential backoff with jitter
-      const delay = baseDelay * Math.pow(2, i) + Math.random() * 1000;
-      console.log(`Rate limit hit, retrying in ${delay}ms... (attempt ${i + 1}/${maxRetries})`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Max retries exceeded');
 }
 
 // Get all flashcard sets for a project or specific set with cards
@@ -177,7 +156,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ set, success: true }, { status: 201 });
     }
 
-    // AI Generation with Gemini
+    // AI Generation with Groq
     if (!sourceMaterial || !cardCount) {
       return NextResponse.json(
         { error: 'Source material and card count required for AI generation' },
@@ -216,10 +195,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Generating flashcards with Gemini AI...');
+    console.log('[Flashcards] Generating with Groq AI...');
 
     // Trim source material to avoid token limits
-    const trimmedMaterial = sourceMaterial.slice(0, 15000); // Gemini has higher limits
+    const trimmedMaterial = sourceMaterial.slice(0, 15000);
 
     const prompt = `You are an educational flashcard generator. Create exactly ${cardCount} high-quality flashcards based on the following study material.
 
@@ -247,96 +226,104 @@ Response format:
   ]
 }`;
 
-    let flashcards: Flashcard[];
+    let flashcards: Flashcard[] = [];
+    let modelUsed = PRIMARY_MODEL;
 
     try {
-      // Use Gemini Flash 2.5 with retry logic
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-2.5-flash-lite',
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        }
+      // Try primary model first
+      console.log(`[Flashcards] Using model: ${PRIMARY_MODEL}`);
+      const completion = await groq.chat.completions.create({
+        model: PRIMARY_MODEL,
+        messages: [
+          { role: 'system', content: 'You are a helpful AI that generates educational flashcards. Always respond with valid JSON only.' },
+          { role: 'user', content: prompt }
+        ],
+        max_tokens: 2048,
+        temperature: 0.7,
       });
-
-      const result = await retryWithBackoff(async () => {
-        return await model.generateContent(prompt);
-      });
-
-      const response = await result.response;
-      const text = response.text();
       
-      if (!text) {
-        throw new Error('No response from Gemini AI');
-      }
-
+      let responseText = completion.choices[0]?.message?.content || '';
+      
       // Clean the response - remove markdown code blocks if present
-      let cleanedText = text.trim();
-      if (cleanedText.startsWith('```json')) {
-        cleanedText = cleanedText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      } else if (cleanedText.startsWith('```')) {
-        cleanedText = cleanedText.replace(/```\n?/g, '');
+      if (responseText.startsWith('```json')) {
+        responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (responseText.startsWith('```')) {
+        responseText = responseText.replace(/```\n?/g, '');
       }
 
-      const parsed = JSON.parse(cleanedText);
+      const parsed = JSON.parse(responseText.trim());
       flashcards = parsed.flashcards || parsed;
       
-      if (!Array.isArray(flashcards)) {
-        throw new Error('Flashcards is not an array');
-      }
-
-      // Validate flashcard structure
-      flashcards = flashcards.filter(card => 
-        card && 
-        typeof card.front === 'string' && 
-        typeof card.back === 'string' &&
-        card.front.trim() !== '' && 
-        card.back.trim() !== ''
-      );
-
-      // Ensure we have the requested number of cards
-      if (flashcards.length === 0) {
-        throw new Error('No valid flashcards generated');
-      }
-
-      if (flashcards.length !== cardCount) {
-        console.warn(`Expected ${cardCount} cards, got ${flashcards.length}`);
-        // Truncate or pad as needed
-        if (flashcards.length > cardCount) {
-          flashcards = flashcards.slice(0, cardCount);
+      console.log(`[Flashcards] ${PRIMARY_MODEL} generated ${flashcards.length} cards`);
+    } catch (primaryError: any) {
+      console.error(`[Flashcards] ${PRIMARY_MODEL} failed:`, primaryError.message);
+      
+      // Try fallback model
+      try {
+        console.log(`[Flashcards] Trying fallback: ${FALLBACK_MODEL}`);
+        modelUsed = FALLBACK_MODEL;
+        
+        const completion = await groq.chat.completions.create({
+          model: FALLBACK_MODEL,
+          messages: [
+            { role: 'system', content: 'You are a helpful AI that generates educational flashcards. Always respond with valid JSON only.' },
+            { role: 'user', content: prompt }
+          ],
+          max_tokens: 2048,
+          temperature: 0.7,
+        });
+        
+        let responseText = completion.choices[0]?.message?.content || '';
+        
+        if (responseText.startsWith('```json')) {
+          responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+        } else if (responseText.startsWith('```')) {
+          responseText = responseText.replace(/```\n?/g, '');
         }
+        
+        const parsed = JSON.parse(responseText.trim());
+        flashcards = parsed.flashcards || parsed;
+        
+        console.log(`[Flashcards] ${FALLBACK_MODEL} generated ${flashcards.length} cards`);
+      } catch (fallbackError: any) {
+        console.error(`[Flashcards] Fallback also failed:`, fallbackError.message);
+        
+        if (fallbackError?.status === 429) {
+          return NextResponse.json(
+            { error: 'AI service rate limit exceeded. Please try again in a few moments.' },
+            { status: 429 }
+          );
+        }
+        
+        throw new Error('Failed to generate flashcards: ' + (fallbackError.message || 'Unknown error'));
       }
-
-      console.log(`Generated ${flashcards.length} flashcards successfully`);
-    } catch (error: any) {
-      console.error('Gemini AI Error:', error);
-
-      // Handle specific Gemini errors
-      if (error?.message?.includes('rate limit') || error?.status === 429) {
-        return NextResponse.json(
-          { 
-            error: 'AI service rate limit exceeded. Please try again in a few moments.' 
-          },
-          { status: 429 }
-        );
-      }
-
-      if (error?.message?.includes('API key')) {
-        return NextResponse.json(
-          { error: 'AI service configuration error. Please contact support.' },
-          { status: 500 }
-        );
-      }
-
-      if (error?.message?.includes('quota')) {
-        return NextResponse.json(
-          { error: 'AI service quota exceeded. Please try again later.' },
-          { status: 402 }
-        );
-      }
-
-      throw new Error('Failed to generate flashcards with AI: ' + (error.message || 'Unknown error'));
     }
+
+    // Validate flashcard structure
+    if (!Array.isArray(flashcards)) {
+      throw new Error('Flashcards is not an array');
+    }
+    
+    flashcards = flashcards.filter(card => 
+      card && 
+      typeof card.front === 'string' && 
+      typeof card.back === 'string' &&
+      card.front.trim() !== '' && 
+      card.back.trim() !== ''
+    );
+
+    if (flashcards.length === 0) {
+      throw new Error('No valid flashcards generated');
+    }
+
+    if (flashcards.length !== cardCount) {
+      console.warn(`Expected ${cardCount} cards, got ${flashcards.length}`);
+      if (flashcards.length > cardCount) {
+        flashcards = flashcards.slice(0, cardCount);
+      }
+    }
+
+    console.log(`[Flashcards] Generated ${flashcards.length} flashcards successfully`);
 
     // Create flashcard set
     const { data: set, error: setError } = await supabase
@@ -378,17 +365,15 @@ Response format:
     }
 
     // Calculate token cost based on OUTPUT word count
-    // Count all words in the generated flashcard content
     const outputText = flashcards.map(card => `${card.front} ${card.back}`).join(' ');
     const outputWordCount = countWords(outputText);
     const tokensRequired = calculateOutputTokenCost(outputWordCount);
-    console.log(`Flashcards generated: ${flashcards.length} cards, ${outputWordCount} words, deducting ${tokensRequired} tokens`);
+    console.log(`[Flashcards] ${flashcards.length} cards, ${outputWordCount} words, deducting ${tokensRequired} tokens`);
 
     // Deduct tokens AFTER successful generation (uses FIFO with expiry)
     const deducted = await deductTokensWithExpiry(user.id, tokensRequired);
     if (!deducted) {
-      console.error('Failed to deduct tokens after flashcard generation - user may have insufficient valid balance');
-      // Don't fail the request - flashcards are already created, log for monitoring
+      console.error('[Flashcards] Failed to deduct tokens');
     }
 
     // Log activity
@@ -399,26 +384,27 @@ Response format:
       endpoint: '/api/flashcards',
       method: 'POST',
       tokens_used: tokensRequired,
-      model: 'gemini-2.5-flash-lite',
-      metadata: { cardCount: flashcards.length, projectId, noteId, setId: set.id },
+      model: modelUsed,
+      metadata: { cardCount: flashcards.length, projectId, noteId, setId: set.id, provider: 'groq' },
       ip_address: ip,
       user_agent: userAgent,
       response_status: 201,
       duration_ms: Date.now() - startTime,
     });
 
-    console.log('Flashcards created successfully');
+    console.log('[Flashcards] Created successfully');
 
     return NextResponse.json({ 
       set, 
       success: true,
       tokensUsed: tokensRequired,
-      outputWords: outputWordCount
+      outputWords: outputWordCount,
+      model: modelUsed,
+      provider: 'groq'
     }, { status: 201 });
   } catch (error: any) {
-    console.error('Error creating flashcards:', error);
+    console.error('[Flashcards] Error:', error);
     
-    // Return user-friendly error messages
     let errorMessage = 'Failed to create flashcards';
     let statusCode = 500;
 
@@ -468,7 +454,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Error deleting flashcard set:', error);
+    console.error('[Flashcards] Error deleting:', error);
     return NextResponse.json(
       { error: 'Failed to delete flashcard set' },
       { status: 500 }
