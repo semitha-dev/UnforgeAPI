@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, Coins, Sparkles } from 'lucide-react'
+import { useCurrency } from '@/lib/useCurrency'
 
 interface TokenPurchaseModalProps {
   isOpen: boolean
@@ -21,6 +22,7 @@ const CHECKOUT_KEY = 'token_checkout_initiated'
 export function TokenPurchaseModal({ isOpen, onClose, currentBalance }: TokenPurchaseModalProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const { isLKR, format } = useCurrency()
 
   if (!isOpen) return null
 
@@ -143,6 +145,9 @@ export function TokenPurchaseModal({ isOpen, onClose, currentBalance }: TokenPur
                   <p className="text-2xl font-bold text-gray-900">{pack.tokens.toLocaleString()}</p>
                   <p className="text-xs text-gray-500 mb-1">tokens</p>
                   <p className="text-xl font-semibold text-gray-900">${pack.price}</p>
+                  {isLKR && (
+                    <p className="text-xs text-gray-500 mb-1">{format(pack.price)}</p>
+                  )}
                   <p className="text-xs text-gray-400 mb-4">${pack.perToken}/token</p>
                   
                   <button

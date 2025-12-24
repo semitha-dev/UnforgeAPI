@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { DollarSign, CheckCircle, FileText, Layers, ClipboardCheck, Calendar, GraduationCap, ShieldCheck, RefreshCw, Lock } from 'lucide-react';
 import ConversionCTA from '@/components/common/ConversionCTA';
+import { useCurrency } from '@/lib/useCurrency';
 
 interface TokenPack {
   tokens: number;
@@ -15,6 +16,7 @@ interface TokenPack {
 const PricingSection = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [selectedTokens, setSelectedTokens] = useState(2500);
+  const { isLKR, format } = useCurrency();
 
   useEffect(() => {
     setIsHydrated(true);
@@ -86,6 +88,11 @@ const PricingSection = () => {
                 <div className="text-3xl font-bold font-headline text-accent">
                   ${pack.price}
                 </div>
+                {isLKR && (
+                  <div className="text-sm text-text-secondary font-body">
+                    {format(pack.price)}
+                  </div>
+                )}
                 <div className="text-xs text-text-secondary font-body">
                   ${pack.perToken.toFixed(4)}/token
                 </div>
