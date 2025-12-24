@@ -20,94 +20,67 @@ interface ChatMessage {
   }[]
 }
 
+// Fallback models for multimodal support (in order of preference)
+const FALLBACK_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro']
+
+// Helper to try a single model with a specific API instance
+async function tryModel(
+  genAIInstance: GoogleGenerativeAI,
+  modelName: string,
+  parts: Part[],
+  history: { role: string; parts: Part[] }[]
+): Promise<string> {
+  const model = genAIInstance.getGenerativeModel({ model: modelName })
+  const chat = model.startChat({
+    history: history.map(msg => ({
+      role: msg.role as 'user' | 'model',
+      parts: msg.parts
+    }))
+  })
+  const result = await chat.sendMessage(parts)
+  return result.response.text()
+}
+
 // Helper function to try generation with fallback
 async function generateWithFallback(
   parts: Part[], 
   modelName: string,
   history: { role: string; parts: Part[] }[]
 ): Promise<{ text: string; usedFallbackKey: boolean }> {
-  const fallbackModel = 'gemini-2.0-flash'
   
-  // Try primary API key
-  try {
-    console.log('[LeafAI Chat] Trying primary API key with model:', modelName)
-    const model = genAI.getGenerativeModel({ model: modelName })
-    
-    const chat = model.startChat({
-      history: history.map(msg => ({
-        role: msg.role as 'user' | 'model',
-        parts: msg.parts
-      }))
-    })
-    
-    const result = await chat.sendMessage(parts)
-    return { text: result.response.text(), usedFallbackKey: false }
-  } catch (primaryError: any) {
-    console.error('[LeafAI Chat] Primary API error:', primaryError.message)
-    
-    const isRateLimit = primaryError.message?.includes('429') || 
-                        primaryError.message?.includes('quota') || 
-                        primaryError.message?.includes('Too Many Requests')
-    
-    if (isRateLimit && genAI2) {
-      console.log('[LeafAI Chat] Rate limited on primary, trying GEMINI_API_KEY2...')
-      try {
-        const fallbackKeyModel = genAI2.getGenerativeModel({ model: modelName })
-        const chat = fallbackKeyModel.startChat({
-          history: history.map(msg => ({
-            role: msg.role as 'user' | 'model',
-            parts: msg.parts
-          }))
-        })
-        const result = await chat.sendMessage(parts)
-        console.log('[LeafAI Chat] Fallback API key succeeded!')
-        return { text: result.response.text(), usedFallbackKey: true }
-      } catch (fallbackKeyError: any) {
-        console.error('[LeafAI Chat] Fallback API key also failed:', fallbackKeyError.message)
-        
-        // Try fallback model on fallback key
-        if (modelName !== fallbackModel) {
-          console.log(`[LeafAI Chat] Trying ${fallbackModel} on fallback key...`)
-          try {
-            const lastResort = genAI2.getGenerativeModel({ model: fallbackModel })
-            const chat = lastResort.startChat({
-              history: history.map(msg => ({
-                role: msg.role as 'user' | 'model',
-                parts: msg.parts
-              }))
-            })
-            const result = await chat.sendMessage(parts)
-            return { text: result.response.text(), usedFallbackKey: true }
-          } catch (e) {
-            // Fall through
-          }
-        }
-      }
+  // Build list of models to try (requested model first, then fallbacks)
+  const modelsToTry = [modelName, ...FALLBACK_MODELS.filter(m => m !== modelName)]
+  
+  // Try primary API key with all models
+  for (const model of modelsToTry) {
+    try {
+      console.log('[LeafAI Chat] Trying primary API key with model:', model)
+      const text = await tryModel(genAI, model, parts, history)
+      console.log('[LeafAI Chat] Success with primary key, model:', model)
+      return { text, usedFallbackKey: false }
+    } catch (error: any) {
+      console.error(`[LeafAI Chat] Primary key failed with ${model}:`, error.message?.substring(0, 100))
+      // Continue to next model
     }
-    
-    // Try fallback model on primary key
-    if (modelName !== fallbackModel) {
-      console.log(`[LeafAI Chat] Trying ${fallbackModel} on primary key...`)
-      try {
-        const fallbackModelInstance = genAI.getGenerativeModel({ model: fallbackModel })
-        const chat = fallbackModelInstance.startChat({
-          history: history.map(msg => ({
-            role: msg.role as 'user' | 'model',
-            parts: msg.parts
-          }))
-        })
-        const result = await chat.sendMessage(parts)
-        return { text: result.response.text(), usedFallbackKey: false }
-      } catch (e) {
-        // Fall through
-      }
-    }
-    
-    if (isRateLimit) {
-      throw new Error('RATE_LIMITED')
-    }
-    throw primaryError
   }
+  
+  // Try fallback API key with all models
+  if (genAI2) {
+    for (const model of modelsToTry) {
+      try {
+        console.log('[LeafAI Chat] Trying fallback API key with model:', model)
+        const text = await tryModel(genAI2, model, parts, history)
+        console.log('[LeafAI Chat] Success with fallback key, model:', model)
+        return { text, usedFallbackKey: true }
+      } catch (error: any) {
+        console.error(`[LeafAI Chat] Fallback key failed with ${model}:`, error.message?.substring(0, 100))
+        // Continue to next model
+      }
+    }
+  }
+  
+  // All attempts failed
+  throw new Error('RATE_LIMITED')
 }
 
 // Convert file to Gemini-compatible format
