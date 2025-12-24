@@ -355,8 +355,11 @@ export default function LeafAIChatPage() {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900">Leaf AI</h1>
-                <p className="text-sm text-slate-500">Your intelligent study assistant</p>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl font-bold text-slate-900">Leaf AI</h1>
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">FREE</span>
+                </div>
+                <p className="text-sm text-slate-500">Your intelligent study assistant • Unlimited & Free!</p>
               </div>
             </div>
             
@@ -387,12 +390,10 @@ export default function LeafAIChatPage() {
                 </button>
               </div>
 
-              {/* Token display */}
-              {remainingTokens !== null && (
-                <div className="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium">
-                  {remainingTokens} tokens
-                </div>
-              )}
+              {/* Free badge */}
+              <div className="px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 rounded-lg text-sm font-medium border border-emerald-200">
+                ✨ Unlimited Free
+              </div>
 
               {/* Clear chat */}
               {messages.length > 0 && (
@@ -420,9 +421,12 @@ export default function LeafAIChatPage() {
                 <Sparkles className="w-10 h-10 text-emerald-600" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome to Leaf AI</h2>
-              <p className="text-slate-500 max-w-md mb-8">
+              <p className="text-slate-500 max-w-md mb-3">
                 Your powerful AI assistant for learning. Upload images, PDFs, or documents and ask me anything about them!
               </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-full text-sm font-semibold mb-8">
+                ✨ 100% Free &amp; Unlimited
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
                 {[
@@ -541,11 +545,9 @@ export default function LeafAIChatPage() {
                               )}
                             </button>
                           </div>
-                          {message.tokensUsed && (
-                            <span className="text-xs text-slate-400">
-                              {message.tokensUsed} tokens used
-                            </span>
-                          )}
+                          <span className="text-xs text-emerald-500 font-medium">
+                            ✨ Free
+                          </span>
                         </div>
                       </div>
                     )}
