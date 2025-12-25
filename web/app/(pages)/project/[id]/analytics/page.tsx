@@ -492,26 +492,34 @@ export default function AnalyticsPage() {
             <h2 className="text-lg font-semibold text-gray-900">Weekly Activity</h2>
           </div>
           
-          <div className="flex items-end justify-between h-40 px-2">
+          <div className="flex items-end justify-between h-32 px-2">
             {weeklyActivity.map((day, index) => {
               const maxActivity = Math.max(...weeklyActivity.map(d => d.quizzes + d.tasks), 1)
-              const height = ((day.quizzes + day.tasks) / maxActivity) * 100
-              const quizHeight = day.quizzes > 0 ? (day.quizzes / (day.quizzes + day.tasks)) * height : 0
-              const taskHeight = day.tasks > 0 ? (day.tasks / (day.quizzes + day.tasks)) * height : 0
+              const totalActivity = day.quizzes + day.tasks
+              const heightPercent = (totalActivity / maxActivity) * 100
+              const quizPercent = totalActivity > 0 ? (day.quizzes / totalActivity) * 100 : 0
+              const taskPercent = totalActivity > 0 ? (day.tasks / totalActivity) * 100 : 0
               
               return (
                 <div key={day.date} className="flex flex-col items-center flex-1">
-                  <div className="relative w-full max-w-[40px] h-32 flex flex-col justify-end">
-                    {(day.quizzes + day.tasks) > 0 ? (
-                      <div className="flex flex-col w-full">
-                        <div 
-                          className="bg-purple-500 rounded-t"
-                          style={{ height: `${quizHeight}%`, minHeight: day.quizzes > 0 ? '4px' : '0' }}
-                        />
-                        <div 
-                          className="bg-indigo-500 rounded-b"
-                          style={{ height: `${taskHeight}%`, minHeight: day.tasks > 0 ? '4px' : '0' }}
-                        />
+                  <div className="relative w-full max-w-[32px] h-24 flex flex-col justify-end">
+                    {totalActivity > 0 ? (
+                      <div 
+                        className="flex flex-col w-full rounded overflow-hidden"
+                        style={{ height: `${heightPercent}%`, minHeight: '6px' }}
+                      >
+                        {day.quizzes > 0 && (
+                          <div 
+                            className="bg-purple-500 w-full"
+                            style={{ height: `${quizPercent}%`, minHeight: '3px' }}
+                          />
+                        )}
+                        {day.tasks > 0 && (
+                          <div 
+                            className="bg-indigo-500 w-full"
+                            style={{ height: `${taskPercent}%`, minHeight: '3px' }}
+                          />
+                        )}
                       </div>
                     ) : (
                       <div className="w-full h-1 bg-gray-200 rounded" />
@@ -523,14 +531,14 @@ export default function AnalyticsPage() {
             })}
           </div>
           
-          <div className="flex items-center justify-center space-x-6 mt-4 pt-4 border-t">
+          <div className="flex items-center justify-center space-x-6 mt-3 pt-3 border-t">
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-purple-500 rounded" />
-              <span className="text-sm text-gray-600">Quizzes</span>
+              <div className="w-2.5 h-2.5 bg-purple-500 rounded" />
+              <span className="text-xs text-gray-600">Quizzes</span>
             </div>
             <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-indigo-500 rounded" />
-              <span className="text-sm text-gray-600">Tasks</span>
+              <div className="w-2.5 h-2.5 bg-indigo-500 rounded" />
+              <span className="text-xs text-gray-600">Tasks</span>
             </div>
           </div>
         </div>
