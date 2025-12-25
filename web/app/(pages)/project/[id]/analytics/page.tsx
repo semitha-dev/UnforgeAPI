@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Loading } from '@/components/ui/loading'
 import { 
   BarChart3, 
@@ -15,11 +15,15 @@ import {
   XCircle,
   Clock,
   BookOpen,
-  Layers,
-  HelpCircle,
-  AlertTriangle,
+  Lightbulb,
+  FileText,
   Calendar,
-  Award
+  Award,
+  ArrowRight,
+  ChevronRight,
+  Timer,
+  ClipboardCheck,
+  AlertTriangle
 } from 'lucide-react'
 
 interface AnalyticsData {
@@ -108,6 +112,7 @@ interface TimeTrackingData {
 
 export default function AnalyticsPage() {
   const params = useParams()
+  const router = useRouter()
   const projectId = params.id as string
   
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
@@ -207,31 +212,54 @@ export default function AnalyticsPage() {
 
   const { overview, quizPerformance, subjectsNeedingImprovement, scheduleProgress, flashcardProgress, weeklyActivity } = analytics
 
+  // Generate study tip based on performance
+  const getStudyTip = () => {
+    if (overview.currentStreak >= 3) {
+      return { icon: '🔥', title: 'Amazing Streak!', message: `You're on a ${overview.currentStreak}-day streak. Keep pushing forward!` }
+    }
+    if (overview.averageScore >= 80 && overview.totalQuestionsAnswered > 0) {
+      return { icon: '🌟', title: 'Great Progress!', message: `Your ${overview.averageScore}% average is excellent! Keep it up!` }
+    }
+    if (overview.averageScore < 60 && overview.totalQuestionsAnswered > 0) {
+      return { icon: '📚', title: 'Keep Learning!', message: 'Review your notes before quizzes to boost your score.' }
+    }
+    if (subjectsNeedingImprovement.length > 0) {
+      return { icon: '🎯', title: 'Focus Areas', message: `You have ${subjectsNeedingImprovement.reduce((sum, s) => sum + s.pendingMistakes, 0)} mistakes to review. Practice makes perfect!` }
+    }
+    return { icon: '💡', title: 'Study Tip', message: 'Consistent daily practice leads to better retention!' }
+  }
+
+  const studyTip = getStudyTip()
+
   return (
-    <div className="space-y-4 sm:space-y-6 px-4 sm:px-0">
+    <div className="w-full max-w-[1280px] mx-auto px-4 py-6 md:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-sm sm:text-base text-gray-600">Track your learning progress and identify areas for improvement</p>
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-8">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-black leading-tight tracking-tight text-gray-900">
+            Analytics
+          </h1>
+          <p className="text-sm md:text-base font-normal text-gray-500">
+            Track your learning progress and identify areas for improvement
+          </p>
         </div>
-        <div className="flex bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
+        <div className="flex h-12 w-fit items-center rounded-xl bg-white border border-gray-200 p-1 shadow-sm">
           <button
             onClick={() => setViewMode('project')}
-            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
+            className={`h-full px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
               viewMode === 'project'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-blue-50 text-sky-500'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             This Project
           </button>
           <button
             onClick={() => setViewMode('all')}
-            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
+            className={`h-full px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
               viewMode === 'all'
-                ? 'bg-white text-indigo-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'bg-blue-50 text-sky-500'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             All Projects
@@ -239,368 +267,322 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6 mb-8">
         <StatCard
-          icon={<Target className="w-5 h-5 text-indigo-600" />}
-          label="Average Score"
+          icon={<BarChart3 className="w-5 h-5" />}
+          label="Avg Score"
           value={`${overview.averageScore}%`}
-          subtext={`${overview.totalCorrect}/${overview.totalQuestionsAnswered} correct`}
-          color="indigo"
+          subtext={overview.totalCorrect > 0 ? `${overview.totalCorrect}/${overview.totalQuestionsAnswered} correct` : 'No data yet'}
+          trend={overview.averageScore >= 70 ? 'up' : undefined}
+          color="blue"
         />
         <StatCard
-          icon={<Brain className="w-5 h-5 text-purple-600" />}
-          label="Quizzes Created"
+          icon={<Brain className="w-5 h-5" />}
+          label="Quizzes"
           value={overview.totalQuizzes.toString()}
           subtext={`${overview.totalQuizAttempts || 0} attempts`}
           color="purple"
         />
         <StatCard
-          icon={<BookOpen className="w-5 h-5 text-blue-600" />}
-          label="Questions Answered"
+          icon={<CheckCircle2 className="w-5 h-5" />}
+          label="Answered"
           value={overview.totalQuestionsAnswered.toString()}
-          subtext={`from ${overview.totalQuizAttempts || 0} quiz attempts`}
-          color="blue"
+          subtext={overview.totalQuestionsAnswered > 0 ? 'Questions total' : 'No questions yet'}
+          trend={overview.totalQuestionsAnswered > 10 ? 'up' : undefined}
+          color="green"
         />
-        {viewMode === 'project' && timeTracking && (
+        {viewMode === 'project' && timeTracking ? (
           <StatCard
-            icon={<Clock className="w-5 h-5 text-emerald-600" />}
-            label="Time Spent"
+            icon={<Timer className="w-5 h-5" />}
+            label="Time"
             value={formatTime(timeTracking.totalSeconds)}
             subtext={`${timeTracking.totalSessions} sessions`}
-            color="emerald"
+            color="orange"
+          />
+        ) : (
+          <StatCard
+            icon={<Timer className="w-5 h-5" />}
+            label="Time"
+            value="--"
+            subtext="Select project"
+            color="orange"
           />
         )}
         <StatCard
-          icon={<Flame className="w-5 h-5 text-orange-600" />}
-          label="Current Streak"
-          value={`${overview.currentStreak} days`}
-          subtext={`${overview.activeDaysLast30} active days (30d)`}
-          color="orange"
+          icon={<Flame className="w-5 h-5" />}
+          label="Streak"
+          value={`${overview.currentStreak} Days`}
+          subtext={overview.currentStreak > 0 ? 'Keep it up!' : 'Start today!'}
+          trend={overview.currentStreak >= 3 ? 'streak' : undefined}
+          color="red"
         />
         <StatCard
-          icon={<CheckCircle2 className="w-5 h-5 text-green-600" />}
-          label="Task Completion"
+          icon={<ClipboardCheck className="w-5 h-5" />}
+          label="Tasks"
           value={`${scheduleProgress.completionRate}%`}
-          subtext={`${scheduleProgress.completedTasks}/${scheduleProgress.totalTasks} tasks`}
-          color="green"
+          subtext={`${scheduleProgress.pendingTasks} pending`}
+          color="teal"
         />
       </div>
 
-      {/* Personalized Study Tips */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100 p-6">
-        <div className="flex items-center space-x-2 mb-3">
-          <Brain className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-lg font-semibold text-gray-900">Study Tips</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Tip based on quiz performance */}
-          {overview.averageScore < 60 && overview.totalQuestionsAnswered > 0 && (
-            <div className="bg-white/80 rounded-lg p-4 border border-amber-200">
-              <div className="flex items-center space-x-2 text-amber-600 mb-2">
-                <TrendingUp className="w-4 h-4" />
-                <span className="font-medium text-sm">Review More</span>
-              </div>
-              <p className="text-sm text-gray-600">Your average score is {overview.averageScore}%. Try reviewing your notes before taking quizzes.</p>
+      {/* Study Tip Banner */}
+      <div className="relative w-full overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-violet-500 to-pink-500 p-6 md:p-8 shadow-xl mb-8">
+        <div className="absolute right-0 top-0 h-full w-1/3 bg-white/10 skew-x-12 mix-blend-overlay blur-3xl"></div>
+        <div className="relative z-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+          <div className="flex items-center gap-4 md:gap-5">
+            <div className="flex h-12 w-12 md:h-14 md:w-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-white backdrop-blur-sm shadow-inner border border-white/20">
+              <Lightbulb className="w-6 h-6 md:w-7 md:h-7" />
             </div>
-          )}
-          {overview.averageScore >= 80 && overview.totalQuestionsAnswered > 0 && (
-            <div className="bg-white/80 rounded-lg p-4 border border-green-200">
-              <div className="flex items-center space-x-2 text-green-600 mb-2">
-                <Award className="w-4 h-4" />
-                <span className="font-medium text-sm">Great Progress!</span>
-              </div>
-              <p className="text-sm text-gray-600">Your {overview.averageScore}% average is excellent! Challenge yourself with harder topics.</p>
+            <div className="flex flex-col gap-0.5">
+              <h3 className="text-lg md:text-xl font-bold text-white tracking-tight">{studyTip.title}</h3>
+              <p className="text-sm md:text-base font-medium text-white/90">{studyTip.message}</p>
             </div>
-          )}
-          
-          {/* Tip based on streak */}
-          {overview.currentStreak === 0 && (
-            <div className="bg-white/80 rounded-lg p-4 border border-orange-200">
-              <div className="flex items-center space-x-2 text-orange-600 mb-2">
-                <Flame className="w-4 h-4" />
-                <span className="font-medium text-sm">Start a Streak</span>
-              </div>
-              <p className="text-sm text-gray-600">Complete a quiz or task today to start building your study streak!</p>
-            </div>
-          )}
-          {overview.currentStreak >= 3 && (
-            <div className="bg-white/80 rounded-lg p-4 border border-orange-200">
-              <div className="flex items-center space-x-2 text-orange-600 mb-2">
-                <Flame className="w-4 h-4" />
-                <span className="font-medium text-sm">{overview.currentStreak} Day Streak! 🔥</span>
-              </div>
-              <p className="text-sm text-gray-600">Amazing consistency! Keep it going to maximize retention.</p>
-            </div>
-          )}
-          
-          {/* Tip based on mistakes */}
-          {subjectsNeedingImprovement.length > 0 && (
-            <div className="bg-white/80 rounded-lg p-4 border border-red-200">
-              <div className="flex items-center space-x-2 text-red-600 mb-2">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="font-medium text-sm">Focus Areas</span>
-              </div>
-              <p className="text-sm text-gray-600">You have {subjectsNeedingImprovement.reduce((sum, s) => sum + s.pendingMistakes, 0)} mistakes to review. Practice makes perfect!</p>
-            </div>
-          )}
-          
-          {/* Tip if no activity */}
-          {overview.totalQuizAttempts === 0 && (
-            <div className="bg-white/80 rounded-lg p-4 border border-blue-200">
-              <div className="flex items-center space-x-2 text-blue-600 mb-2">
-                <HelpCircle className="w-4 h-4" />
-                <span className="font-medium text-sm">Take Your First Quiz</span>
-              </div>
-              <p className="text-sm text-gray-600">Create a quiz from your notes to test your understanding!</p>
-            </div>
-          )}
-          
-          {/* Default encouraging tip */}
-          {overview.totalQuestionsAnswered > 0 && overview.averageScore >= 60 && overview.averageScore < 80 && (
-            <div className="bg-white/80 rounded-lg p-4 border border-indigo-200">
-              <div className="flex items-center space-x-2 text-indigo-600 mb-2">
-                <Target className="w-4 h-4" />
-                <span className="font-medium text-sm">Almost There!</span>
-              </div>
-              <p className="text-sm text-gray-600">You're at {overview.averageScore}%. A bit more practice and you'll hit 80%+!</p>
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Subjects Needing Improvement */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <AlertTriangle className="w-5 h-5 text-amber-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Needs Improvement</h2>
-          </div>
-          
-          {subjectsNeedingImprovement.length === 0 ? (
-            <div className="text-center py-8">
-              <Award className="w-12 h-12 text-green-500 mx-auto mb-3" />
-              <p className="text-gray-600">Great job! No subjects need immediate attention.</p>
-              <p className="text-sm text-gray-500 mt-1">Keep up the good work!</p>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Left Column */}
+        <div className="flex flex-col gap-6">
+          {/* Needs Improvement */}
+          <div className="flex flex-col rounded-xl bg-white shadow-lg border border-gray-200 overflow-hidden">
+            <div className="border-b border-gray-200 p-5 bg-gray-50/50">
+              <h3 className="text-lg md:text-xl font-bold leading-tight text-gray-900">Needs Improvement</h3>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {subjectsNeedingImprovement.map((subject, index) => (
-                <div 
-                  key={subject.projectId}
-                  className="p-4 bg-gray-50 rounded-lg border border-gray-100"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <span className={`w-2 h-2 rounded-full ${
-                          subject.pendingMistakes > 5 ? 'bg-red-500' :
-                          subject.pendingMistakes > 2 ? 'bg-amber-500' : 'bg-yellow-500'
-                        }`} />
-                        <h3 className="font-medium text-gray-900">{subject.projectName}</h3>
+            <div className="flex flex-col p-5 gap-4">
+              {subjectsNeedingImprovement.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Award className="w-12 h-12 text-green-500 mb-3" />
+                  <p className="font-semibold text-gray-900">Great job!</p>
+                  <p className="text-sm text-gray-500">No subjects need immediate attention.</p>
+                </div>
+              ) : (
+                subjectsNeedingImprovement.slice(0, 3).map((subject) => (
+                  <div
+                    key={subject.projectId}
+                    className="flex items-start justify-between rounded-xl bg-gray-50 border border-gray-100 p-4 hover:bg-white hover:shadow-md hover:border-gray-200 transition-all duration-200"
+                  >
+                    <div className="flex flex-col gap-2">
+                      <p className="font-semibold text-gray-900 text-base md:text-lg">{subject.projectName}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {subject.topics.slice(0, 2).map((topic, i) => (
+                          <span
+                            key={i}
+                            className="rounded-md bg-white border border-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 shadow-sm"
+                          >
+                            #{topic.length > 15 ? topic.slice(0, 15) + '...' : topic}
+                          </span>
+                        ))}
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {subject.pendingMistakes} mistakes to review
-                      </p>
-                      {subject.topics.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {subject.topics.slice(0, 3).map((topic, i) => (
-                            <span 
-                              key={i}
-                              className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded"
-                            >
-                              {topic.length > 30 ? topic.slice(0, 30) + '...' : topic}
-                            </span>
-                          ))}
-                          {subject.topics.length > 3 && (
-                            <span className="text-xs text-gray-500">
-                              +{subject.topics.length - 3} more
-                            </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className={`rounded-full px-3 py-1 text-xs font-bold border ${
+                        subject.pendingMistakes > 5 ? 'bg-red-100 border-red-200 text-red-500' :
+                        subject.pendingMistakes > 2 ? 'bg-orange-100 border-orange-200 text-orange-500' :
+                        'bg-yellow-100 border-yellow-200 text-yellow-600'
+                      }`}>
+                        {subject.pendingMistakes} Mistakes
+                      </span>
+                      <button 
+                        onClick={() => router.push(`/project/${subject.projectId}/mistakes`)}
+                        className={`flex items-center gap-1 rounded-full px-4 py-2 text-sm font-bold text-white shadow-md transition-all hover:scale-105 active:scale-95 ${
+                          subject.pendingMistakes > 5 ? 'bg-red-500 shadow-red-500/20 hover:bg-red-600' :
+                          subject.pendingMistakes > 2 ? 'bg-orange-500 shadow-orange-500/20 hover:bg-orange-600' :
+                          'bg-yellow-500 shadow-yellow-500/20 hover:bg-yellow-600'
+                        }`}
+                      >
+                        Review <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Weekly Activity */}
+          <div className="flex flex-col rounded-xl bg-white shadow-lg border border-gray-200 p-6">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-lg md:text-xl font-bold leading-tight text-gray-900">Weekly Activity</h3>
+              <div className="flex gap-4 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-sky-500 shadow-sm shadow-sky-200"></div>
+                  <span className="text-xs font-medium text-gray-500">Quizzes</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 w-2.5 rounded-full bg-slate-300 shadow-sm"></div>
+                  <span className="text-xs font-medium text-gray-500">Tasks</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex h-48 md:h-56 w-full items-end justify-between gap-2 md:gap-4 px-2">
+              {weeklyActivity.map((day) => {
+                // Find max total activity across all days for scaling
+                const maxActivity = Math.max(...weeklyActivity.map(d => d.quizzes + d.tasks), 1)
+                const totalActivity = day.quizzes + day.tasks
+                
+                // Calculate height as percentage of max (total bar height)
+                const totalHeightPercent = maxActivity > 0 ? (totalActivity / maxActivity) * 100 : 0
+                
+                // Calculate proportions within the stacked bar
+                const quizProportion = totalActivity > 0 ? (day.quizzes / totalActivity) * 100 : 0
+                const taskProportion = totalActivity > 0 ? (day.tasks / totalActivity) * 100 : 0
+                
+                const hasActivity = totalActivity > 0
+                const hasOnlyQuizzes = day.quizzes > 0 && day.tasks === 0
+                const hasOnlyTasks = day.tasks > 0 && day.quizzes === 0
+                const hasBoth = day.quizzes > 0 && day.tasks > 0
+                
+                return (
+                  <div key={day.date} className="group flex h-full w-full flex-col justify-end gap-2 cursor-pointer">
+                    <div className="relative flex w-full flex-col items-center h-full justify-end">
+                      {hasActivity ? (
+                        <div 
+                          className="flex flex-col w-full max-w-[28px] overflow-hidden"
+                          style={{ height: `${Math.max(totalHeightPercent, 8)}%` }}
+                        >
+                          {/* Quiz bar (top - blue) */}
+                          {day.quizzes > 0 && (
+                            <div 
+                              className={`w-full bg-sky-500 shadow-[0_4px_10px_-2px_rgba(14,165,233,0.3)] group-hover:bg-sky-600 transition-colors duration-300 ${
+                                hasOnlyQuizzes ? 'rounded-md' : hasBoth ? 'rounded-t-md' : ''
+                              }`}
+                              style={{ height: `${quizProportion}%`, minHeight: '4px' }}
+                            />
+                          )}
+                          {/* Task bar (bottom - slate) */}
+                          {day.tasks > 0 && (
+                            <div 
+                              className={`w-full bg-slate-300 group-hover:bg-slate-400 transition-colors duration-300 ${
+                                hasOnlyTasks ? 'rounded-md' : hasBoth ? 'rounded-b-md' : ''
+                              }`}
+                              style={{ height: `${taskProportion}%`, minHeight: '4px' }}
+                            />
                           )}
                         </div>
+                      ) : (
+                        /* Empty state - small gray indicator */
+                        <div className="w-full max-w-[28px] h-1 bg-gray-200 rounded-full" />
                       )}
+                      {/* Tooltip */}
+                      <div className="absolute -top-10 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900 text-white text-[10px] py-1 px-2 rounded pointer-events-none shadow-lg whitespace-nowrap z-10">
+                        {getDayName(day.date)}: {day.quizzes} quiz{day.quizzes !== 1 ? 'zes' : ''}, {day.tasks} task{day.tasks !== 1 ? 's' : ''}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className={`text-lg font-bold ${
-                        subject.pendingMistakes > 5 ? 'text-red-600' :
-                        subject.pendingMistakes > 2 ? 'text-amber-600' : 'text-yellow-600'
-                      }`}>
-                        {subject.totalMistakes}
-                      </span>
-                      <p className="text-xs text-gray-500">total mistakes</p>
-                    </div>
+                    <span className="text-center text-xs font-medium text-gray-500 group-hover:text-sky-500 transition-colors">
+                      {getDayName(day.date)}
+                    </span>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Recent Quiz Performance */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <HelpCircle className="w-5 h-5 text-indigo-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Recent Quizzes</h2>
-          </div>
-          
-          {quizPerformance.recentQuizzes.length === 0 ? (
-            <div className="text-center py-8">
-              <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-600">No quizzes taken yet</p>
-              <p className="text-sm text-gray-500 mt-1">Complete a quiz to see your results here</p>
+        {/* Right Column */}
+        <div className="flex flex-col gap-6">
+          {/* Recent Quizzes */}
+          <div className="flex flex-col rounded-xl bg-white shadow-lg border border-gray-200 overflow-hidden">
+            <div className="border-b border-gray-200 p-5 bg-gray-50/50 flex justify-between items-center">
+              <h3 className="text-lg md:text-xl font-bold leading-tight text-gray-900">Recent Quizzes</h3>
+              <button 
+                onClick={() => router.push(`/project/${projectId}/quiz`)}
+                className="text-sm font-semibold text-sky-500 hover:text-sky-600 transition-colors"
+              >
+                View All
+              </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {quizPerformance.recentQuizzes.map((quiz) => (
-                <div 
-                  key={quiz.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{quiz.quizTitle}</p>
-                    <p className="text-xs text-gray-500">{quiz.projectName} • {formatDate(quiz.date)}</p>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="text-right">
-                      <span className={`text-lg font-bold ${
-                        quiz.percentage >= 80 ? 'text-green-600' :
-                        quiz.percentage >= 60 ? 'text-amber-600' : 'text-red-600'
+            <div className="flex flex-col">
+              {quizPerformance.recentQuizzes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <FileText className="w-12 h-12 text-gray-300 mb-3" />
+                  <p className="font-semibold text-gray-900">No quizzes yet</p>
+                  <p className="text-sm text-gray-500">Complete a quiz to see your results here</p>
+                </div>
+              ) : (
+                quizPerformance.recentQuizzes.slice(0, 3).map((quiz, index) => (
+                  <div
+                    key={quiz.id}
+                    className={`flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer group ${
+                      index < quizPerformance.recentQuizzes.slice(0, 3).length - 1 ? 'border-b border-gray-200' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg transition-colors ${
+                        quiz.percentage >= 80 ? 'bg-green-100 text-green-600 group-hover:bg-green-200' :
+                        quiz.percentage >= 60 ? 'bg-orange-100 text-orange-500 group-hover:bg-orange-200' :
+                        'bg-red-100 text-red-500 group-hover:bg-red-200'
+                      }`}>
+                        <FileText className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 group-hover:text-sky-600 transition-colors">
+                          {quiz.quizTitle}
+                        </p>
+                        <p className="text-xs text-gray-500">{quiz.projectName} • {formatDate(quiz.date)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className={`font-bold ${
+                        quiz.percentage >= 80 ? 'text-green-500' :
+                        quiz.percentage >= 60 ? 'text-yellow-500' :
+                        'text-red-500'
                       }`}>
                         {quiz.percentage}%
-                      </span>
-                      <p className="text-xs text-gray-500">{quiz.score}/{quiz.totalQuestions}</p>
+                      </p>
+                      {quiz.percentage >= 60 ? (
+                        <TrendingUp className={`w-4 h-4 ${quiz.percentage >= 80 ? 'text-green-500' : 'text-yellow-500'}`} />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-red-500" />
+                      )}
                     </div>
-                    {quiz.percentage >= 80 ? (
-                      <TrendingUp className="w-5 h-5 text-green-500" />
-                    ) : quiz.percentage >= 60 ? (
-                      <TrendingUp className="w-5 h-5 text-amber-500" />
-                    ) : (
-                      <TrendingDown className="w-5 h-5 text-red-500" />
-                    )}
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Weekly Activity Chart */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <Calendar className="w-5 h-5 text-blue-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Weekly Activity</h2>
           </div>
-          
-          <div className="flex items-end justify-between h-32 px-2">
-            {weeklyActivity.map((day, index) => {
-              const maxActivity = Math.max(...weeklyActivity.map(d => d.quizzes + d.tasks), 1)
-              const totalActivity = day.quizzes + day.tasks
-              const heightPercent = (totalActivity / maxActivity) * 100
-              const quizPercent = totalActivity > 0 ? (day.quizzes / totalActivity) * 100 : 0
-              const taskPercent = totalActivity > 0 ? (day.tasks / totalActivity) * 100 : 0
+
+          {/* Time Breakdown - Only show for project view with time tracking data */}
+          {viewMode === 'project' && timeTracking && timeTracking.totalSessions > 0 && (
+            <div className="flex flex-col rounded-xl bg-white shadow-lg border border-gray-200 p-6 gap-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg md:text-xl font-bold leading-tight text-gray-900">Time Breakdown</h3>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  <p className="text-[11px] font-medium uppercase text-gray-500 tracking-wide">Total Time</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{formatTime(timeTracking.totalSeconds)}</p>
+                </div>
+                <div className="flex flex-col gap-1 border-l border-gray-200 pl-4 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  <p className="text-[11px] font-medium uppercase text-gray-500 tracking-wide">Sessions</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{timeTracking.totalSessions}</p>
+                </div>
+                <div className="flex flex-col gap-1 border-l border-gray-200 pl-4 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  <p className="text-[11px] font-medium uppercase text-gray-500 tracking-wide">Avg Session</p>
+                  <p className="text-xl md:text-2xl font-bold text-gray-900">{formatTime(timeTracking.avgSessionSeconds)}</p>
+                </div>
+              </div>
               
-              return (
-                <div key={day.date} className="flex flex-col items-center flex-1">
-                  <div className="relative w-full max-w-[32px] h-24 flex flex-col justify-end">
-                    {totalActivity > 0 ? (
-                      <div 
-                        className="flex flex-col w-full rounded overflow-hidden"
-                        style={{ height: `${heightPercent}%`, minHeight: '6px' }}
-                      >
-                        {day.quizzes > 0 && (
-                          <div 
-                            className="bg-purple-500 w-full"
-                            style={{ height: `${quizPercent}%`, minHeight: '3px' }}
-                          />
-                        )}
-                        {day.tasks > 0 && (
-                          <div 
-                            className="bg-indigo-500 w-full"
-                            style={{ height: `${taskPercent}%`, minHeight: '3px' }}
-                          />
-                        )}
-                      </div>
-                    ) : (
-                      <div className="w-full h-1 bg-gray-200 rounded" />
-                    )}
-                  </div>
-                  <span className="text-xs text-gray-500 mt-2">{getDayName(day.date)}</span>
-                </div>
-              )
-            })}
-          </div>
-          
-          <div className="flex items-center justify-center space-x-6 mt-3 pt-3 border-t">
-            <div className="flex items-center space-x-2">
-              <div className="w-2.5 h-2.5 bg-purple-500 rounded" />
-              <span className="text-xs text-gray-600">Quizzes</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <div className="w-2.5 h-2.5 bg-indigo-500 rounded" />
-              <span className="text-xs text-gray-600">Tasks</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Time Tracking Section - Only show for project view */}
-        {viewMode === 'project' && timeTracking && timeTracking.totalSessions > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-center space-x-2 mb-4">
-              <Clock className="w-5 h-5 text-emerald-500" />
-              <h2 className="text-lg font-semibold text-gray-900">Time Spent on Project</h2>
-            </div>
-
-            {/* Time Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <div className="bg-emerald-50 rounded-lg p-4">
-                <div className="flex items-center justify-center mb-2">
-                  <Clock className="w-5 h-5 text-emerald-600" />
-                </div>
-                <p className="text-2xl font-bold text-emerald-700 text-center">
-                  {formatTime(timeTracking.totalSeconds)}
-                </p>
-                <p className="text-xs text-emerald-600 text-center mt-1">Total Time</p>
-              </div>
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="flex items-center justify-center mb-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                </div>
-                <p className="text-2xl font-bold text-blue-700 text-center">
-                  {timeTracking.totalSessions}
-                </p>
-                <p className="text-xs text-blue-600 text-center mt-1">Sessions</p>
-              </div>
-              <div className="bg-purple-50 rounded-lg p-4">
-                <div className="flex items-center justify-center mb-2">
-                  <BarChart3 className="w-5 h-5 text-purple-600" />
-                </div>
-                <p className="text-2xl font-bold text-purple-700 text-center">
-                  {formatTime(timeTracking.avgSessionSeconds)}
-                </p>
-                <p className="text-xs text-purple-600 text-center mt-1">Avg Session</p>
-              </div>
-            </div>
-
-            {/* Time by Page */}
-            {timeTracking.pageStats.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Time by Activity</h3>
-                <div className="space-y-2">
+              {/* Time by Activity */}
+              {timeTracking.pageStats.length > 0 && (
+                <div className="flex flex-col gap-4">
                   {timeTracking.pageStats
                     .sort((a, b) => b.totalSeconds - a.totalSeconds)
-                    .slice(0, 5)
+                    .slice(0, 3)
                     .map((stat, index) => {
-                      const percentage = (stat.totalSeconds / timeTracking.totalSeconds) * 100
+                      const percentage = Math.round((stat.totalSeconds / timeTracking.totalSeconds) * 100)
+                      const colors = ['bg-sky-500', 'bg-violet-500', 'bg-teal-500']
                       return (
-                        <div key={index}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="text-gray-600">{formatPageName(stat.page)}</span>
-                            <span className="font-medium text-gray-900">{formatTime(stat.totalSeconds)}</span>
+                        <div key={index} className="flex flex-col gap-2">
+                          <div className="flex justify-between text-xs font-medium">
+                            <span className="text-gray-500">{formatPageName(stat.page)}</span>
+                            <span className="text-gray-900 font-semibold">{percentage}%</span>
                           </div>
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
                             <div 
-                              className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                              className={`h-full ${colors[index % colors.length]} rounded-full`}
                               style={{ width: `${percentage}%` }}
                             />
                           </div>
@@ -608,154 +590,102 @@ export default function AnalyticsPage() {
                       )
                     })}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Daily Activity Chart */}
-            {timeTracking.dailyStats.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Daily Time Spent (Last 7 Days)</h3>
-                <div className="flex items-end justify-between h-32 px-2">
-                  {timeTracking.dailyStats
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                    .slice(-7)
-                    .map((stat, index) => {
-                      const maxTime = Math.max(...timeTracking.dailyStats.map(s => s.totalSeconds), 1)
-                      const height = (stat.totalSeconds / maxTime) * 100
-                      
-                      return (
-                        <div key={stat.date} className="flex flex-col items-center flex-1">
-                          <div className="relative w-full max-w-[40px] h-24 flex flex-col justify-end">
-                            <div 
-                              className="bg-gradient-to-t from-emerald-500 to-teal-400 rounded-t w-full"
-                              style={{ height: `${height}%`, minHeight: '4px' }}
-                              title={`${formatTime(stat.totalSeconds)} (${stat.sessions} sessions)`}
-                            />
-                          </div>
-                          <span className="text-xs text-gray-500 mt-2">
-                            {new Date(stat.date).toLocaleDateString('en-US', { weekday: 'short' })}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {formatTime(stat.totalSeconds)}
-                          </span>
-                        </div>
-                      )
-                    })}
+              {/* Daily Trend */}
+              {timeTracking.dailyStats.length > 0 && (
+                <div className="flex flex-col gap-2 mt-2">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Daily Trend (Last 7 Days)</p>
+                  <div className="flex h-16 items-end gap-1.5 pt-2 border-t border-dashed border-gray-200">
+                    {timeTracking.dailyStats
+                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                      .slice(-7)
+                      .map((stat, index, arr) => {
+                        const maxTime = Math.max(...arr.map(s => s.totalSeconds), 1)
+                        const height = (stat.totalSeconds / maxTime) * 100
+                        const isLast = index === arr.length - 1
+                        return (
+                          <div
+                            key={stat.date}
+                            className={`flex-1 rounded-sm transition-colors ${
+                              isLast ? 'bg-sky-500 shadow-md shadow-sky-500/30' : 'bg-gray-200 hover:bg-sky-400/70'
+                            }`}
+                            style={{ height: `${Math.max(height, 10)}%` }}
+                            title={`${formatTime(stat.totalSeconds)}`}
+                          />
+                        )
+                      })}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Schedule & Flashcard Progress */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center space-x-2 mb-4">
-            <BarChart3 className="w-5 h-5 text-green-500" />
-            <h2 className="text-lg font-semibold text-gray-900">Progress Breakdown</h2>
-          </div>
-
-          {/* Quiz Performance Stats */}
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Quiz Performance</h3>
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-indigo-50 text-indigo-600 rounded-lg p-3 text-center">
-                <div className="flex justify-center mb-1">
-                  <HelpCircle className="w-4 h-4" />
-                </div>
-                <p className="text-lg font-bold">{overview.totalQuizAttempts}</p>
-                <p className="text-xs opacity-75">Quizzes Taken</p>
-              </div>
-              <div className="bg-green-50 text-green-600 rounded-lg p-3 text-center">
-                <div className="flex justify-center mb-1">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-                <p className="text-lg font-bold">{overview.totalCorrect}</p>
-                <p className="text-xs opacity-75">Correct</p>
-              </div>
-              <div className="bg-red-50 text-red-600 rounded-lg p-3 text-center">
-                <div className="flex justify-center mb-1">
-                  <XCircle className="w-4 h-4" />
-                </div>
-                <p className="text-lg font-bold">{overview.totalWrong || 0}</p>
-                <p className="text-xs opacity-75">Wrong</p>
-              </div>
-            </div>
-            
-            {/* Quiz accuracy bar */}
-            {overview.totalQuestionsAnswered > 0 && (
-              <div className="mt-4">
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Accuracy</span>
-                  <span className="font-medium text-gray-900">{overview.averageScore}%</span>
-                </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all"
-                    style={{ width: `${overview.averageScore}%` }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Schedule Tasks - only show if user has a schedule */}
-          {(scheduleProgress.hasSchedule || scheduleProgress.totalTasks > 0) ? (
-            <div className="mb-6">
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Schedule Tasks</h3>
-              <div className="grid grid-cols-5 gap-2">
-                <TaskTypeCard icon={<BookOpen className="w-4 h-4" />} label="Lessons" count={scheduleProgress.tasksByType.lesson} color="blue" />
-                <TaskTypeCard icon={<Layers className="w-4 h-4" />} label="Flashcards" count={scheduleProgress.tasksByType.flashcard} color="purple" />
-                <TaskTypeCard icon={<HelpCircle className="w-4 h-4" />} label="Q&A" count={scheduleProgress.tasksByType.qa} color="indigo" />
-                <TaskTypeCard icon={<CheckCircle2 className="w-4 h-4" />} label="Revision" count={scheduleProgress.tasksByType.revision} color="green" />
-                <TaskTypeCard icon={<XCircle className="w-4 h-4" />} label="Mistakes" count={scheduleProgress.tasksByType.revise_mistake} color="red" />
-              </div>
-              
-              {/* Progress bar */}
-              <div className="mt-4">
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Completion</span>
-                  <span className="font-medium text-gray-900">{scheduleProgress.completionRate}%</span>
-                </div>
-                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all"
-                    style={{ width: `${scheduleProgress.completionRate}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>{scheduleProgress.completedTasks} completed</span>
-                  <span>{scheduleProgress.pendingTasks} pending</span>
-                  <span>{scheduleProgress.needWorkTasks} need work</span>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Calendar className="w-4 h-4" />
-                <span className="text-sm">No study schedule created yet</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Create a schedule to track lessons, flashcards, and revision tasks</p>
+              )}
             </div>
           )}
 
-          {/* Flashcard Progress */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Flashcard Progress</h3>
-            {flashcardProgress.total === 0 ? (
-              <p className="text-sm text-gray-500">No flashcards created yet</p>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between p-2 bg-purple-50 rounded-lg">
-                  <span className="text-sm text-purple-700">Total Sets</span>
-                  <span className="font-medium text-purple-900">{flashcardProgress.sets}</span>
+          {/* Quiz Performance & Scheduled Tasks */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Quiz Performance */}
+            <div className="flex flex-col rounded-xl bg-white shadow-lg border border-gray-200 p-5 hover:shadow-xl transition-shadow">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
+                  <Target className="w-5 h-5" />
                 </div>
-                <div className="flex items-center justify-between p-2 bg-indigo-50 rounded-lg">
-                  <span className="text-sm text-indigo-700">Total Cards</span>
-                  <span className="font-medium text-indigo-900">{flashcardProgress.total}</span>
+                <p className="text-sm md:text-base font-bold text-gray-900">Quiz Performance</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between text-xs text-gray-500 font-medium">
+                  <span>Accuracy</span>
+                  <span className="text-gray-900 font-semibold">{overview.averageScore}%</span>
+                </div>
+                <div className="flex h-3 w-full rounded-full bg-gray-100 overflow-hidden mb-3">
+                  <div 
+                    className="h-full bg-green-500"
+                    style={{ width: `${overview.averageScore}%` }}
+                  />
+                  <div 
+                    className="h-full bg-red-500"
+                    style={{ width: `${100 - overview.averageScore}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs mt-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-green-500"></div>
+                    <span className="text-gray-500 font-medium">{overview.totalCorrect} Correct</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-full bg-red-500"></div>
+                    <span className="text-gray-500 font-medium">{overview.totalWrong || 0} Wrong</span>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Scheduled Tasks */}
+            <div className="flex flex-col rounded-xl bg-white shadow-lg border border-gray-200 p-5 hover:shadow-xl transition-shadow">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="bg-orange-100 p-2 rounded-lg text-orange-500">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <p className="text-sm md:text-base font-bold text-gray-900">Scheduled Tasks</p>
+              </div>
+              <div className="flex flex-col gap-3 justify-center h-full pb-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-gray-500">{scheduleProgress.pendingTasks} Tasks Remaining</span>
+                  <span className="text-sm font-bold text-gray-900">{scheduleProgress.completedTasks}/{scheduleProgress.totalTasks} Done</span>
+                </div>
+                <div className="h-3 w-full rounded-full bg-gray-100 overflow-hidden">
+                  <div 
+                    className="h-full bg-orange-500 rounded-full"
+                    style={{ width: `${scheduleProgress.completionRate}%` }}
+                  />
+                </div>
+                <button 
+                  onClick={() => router.push(`/project/${projectId}/schedule`)}
+                  className="flex items-center justify-center gap-1 rounded-full bg-sky-500 px-4 py-2 text-sm font-bold text-white shadow-md shadow-sky-500/20 transition-all hover:bg-sky-600 hover:scale-105 active:scale-95 mt-2"
+                >
+                  View Tasks <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -768,30 +698,45 @@ function StatCard({
   label, 
   value, 
   subtext, 
-  color 
+  color,
+  trend
 }: { 
   icon: React.ReactNode
   label: string
   value: string
   subtext: string
   color: string
+  trend?: 'up' | 'down' | 'streak'
 }) {
-  const bgColors: Record<string, string> = {
-    indigo: 'bg-indigo-50',
-    purple: 'bg-purple-50',
-    orange: 'bg-orange-50',
-    green: 'bg-green-50',
-    blue: 'bg-blue-50'
+  const colorConfig: Record<string, { bg: string, iconBg: string, iconBorder: string, text: string }> = {
+    blue: { bg: 'bg-white', iconBg: 'bg-blue-100', iconBorder: 'border-blue-200', text: 'text-sky-500' },
+    purple: { bg: 'bg-white', iconBg: 'bg-purple-100', iconBorder: 'border-purple-200', text: 'text-violet-500' },
+    green: { bg: 'bg-white', iconBg: 'bg-green-100', iconBorder: 'border-green-200', text: 'text-green-500' },
+    orange: { bg: 'bg-white', iconBg: 'bg-orange-100', iconBorder: 'border-orange-200', text: 'text-orange-500' },
+    red: { bg: 'bg-white', iconBg: 'bg-red-100', iconBorder: 'border-red-200', text: 'text-red-500' },
+    teal: { bg: 'bg-white', iconBg: 'bg-teal-100', iconBorder: 'border-teal-200', text: 'text-teal-600' },
   }
   
+  const config = colorConfig[color] || colorConfig.blue
+  
   return (
-    <div className={`${bgColors[color] || 'bg-gray-50'} rounded-xl p-4`}>
-      <div className="flex items-center space-x-2 mb-2">
-        {icon}
-        <span className="text-sm text-gray-600">{label}</span>
+    <div className={`flex flex-col gap-3 rounded-xl ${config.bg} p-4 md:p-5 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-200 hover:-translate-y-1`}>
+      <div className="flex items-center gap-2 md:gap-3">
+        <div className={`flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-full ${config.iconBg} ${config.text} border ${config.iconBorder}`}>
+          {icon}
+        </div>
+        <p className="text-[10px] md:text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-500 mt-1">{subtext}</p>
+      <p className={`text-2xl md:text-4xl font-extrabold tracking-tight ${config.text}`}>{value}</p>
+      <div className={`flex items-center gap-1 mt-1 text-xs md:text-sm font-medium ${
+        trend === 'up' ? 'text-green-600' : 
+        trend === 'streak' ? 'text-red-500' : 
+        'text-gray-500'
+      }`}>
+        {trend === 'up' && <TrendingUp className="w-3 h-3 md:w-4 md:h-4" />}
+        {trend === 'streak' && <Flame className="w-3 h-3 md:w-4 md:h-4" />}
+        <span>{subtext}</span>
+      </div>
     </div>
   )
 }
@@ -824,6 +769,7 @@ function TaskTypeCard({
   )
 }
 
+// Keep ProgressRow for potential future use
 function ProgressRow({ 
   label, 
   count, 
