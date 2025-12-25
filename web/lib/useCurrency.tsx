@@ -66,11 +66,31 @@ export function useCurrency(): CurrencyInfo {
     return `≈ Rs. ${lkr.toLocaleString()}`
   }
 
+  // Format price - shows LKR only for Sri Lankan users, USD for others
+  const formatPrice = (usd: number): string => {
+    if (isLKR) {
+      const lkr = convert(usd)
+      return `Rs. ${lkr.toLocaleString()}`
+    }
+    return `$${usd}`
+  }
+
+  // Format price per token - shows LKR only for Sri Lankan users
+  const formatPerToken = (usd: number): string => {
+    if (isLKR) {
+      const lkr = usd * USD_TO_LKR
+      return `Rs. ${lkr.toFixed(2)}/token`
+    }
+    return `$${usd.toFixed(4)}/token`
+  }
+
   return {
     isLKR,
     rate: USD_TO_LKR,
     convert,
     format,
+    formatPrice,
+    formatPerToken,
     loading
   }
 }

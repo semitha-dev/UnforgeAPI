@@ -229,23 +229,27 @@ export default function SharedFlashcardsPage() {
             className={`relative w-full aspect-[4/3] cursor-pointer transition-all duration-700 preserve-3d shadow-2xl shadow-emerald-100/40 rounded-[2.5rem] ${isFlipped ? 'rotate-y-180' : ''}`}
           >
             {/* Front */}
-            <div className="absolute inset-0 backface-hidden bg-white border border-slate-100 rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center">
-              <div className="absolute top-8 left-8 text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Question</div>
-              <p className="text-2xl md:text-3xl font-bold text-slate-800 leading-snug">
-                {currentCard?.front}
-              </p>
-              <div className="absolute bottom-8 text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+            <div className="absolute inset-0 backface-hidden bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-10 flex flex-col">
+              <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-2 md:mb-4 flex-shrink-0">Question</div>
+              <div className="flex-1 overflow-y-auto flex items-center justify-center min-h-0">
+                <p className="text-lg md:text-2xl lg:text-3xl font-bold text-slate-800 leading-relaxed text-center">
+                  {currentCard?.front}
+                </p>
+              </div>
+              <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 mt-2 md:mt-4 flex-shrink-0">
                 <RotateCcw size={12} /> Tap to reveal
               </div>
             </div>
 
             {/* Back */}
-            <div className="absolute inset-0 backface-hidden bg-emerald-600 text-white rounded-[2.5rem] p-10 flex flex-col items-center justify-center text-center rotate-y-180">
-              <div className="absolute top-8 left-8 text-[10px] font-black text-emerald-200/50 uppercase tracking-[0.3em]">Answer</div>
-              <p className="text-2xl md:text-3xl font-bold leading-snug">
-                {currentCard?.back}
-              </p>
-              <div className="absolute bottom-8 flex items-center gap-2 text-emerald-100/70 text-[10px] font-black uppercase tracking-widest bg-white/10 px-4 py-2 rounded-full">
+            <div className="absolute inset-0 backface-hidden bg-emerald-600 text-white rounded-[2.5rem] p-6 md:p-10 flex flex-col rotate-y-180">
+              <div className="text-[10px] font-black text-emerald-200/50 uppercase tracking-[0.3em] mb-2 md:mb-4 flex-shrink-0">Answer</div>
+              <div className="flex-1 overflow-y-auto flex items-center justify-center min-h-0">
+                <p className="text-lg md:text-2xl lg:text-3xl font-bold leading-relaxed text-center">
+                  {currentCard?.back}
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-2 text-emerald-100/70 text-[10px] font-black uppercase tracking-widest bg-white/10 px-4 py-2 rounded-full mt-2 md:mt-4 flex-shrink-0 self-center">
                 <CheckCircle2 size={12} /> Verified
               </div>
             </div>

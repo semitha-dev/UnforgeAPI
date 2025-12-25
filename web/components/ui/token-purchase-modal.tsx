@@ -22,7 +22,7 @@ const CHECKOUT_KEY = 'token_checkout_initiated'
 export function TokenPurchaseModal({ isOpen, onClose, currentBalance }: TokenPurchaseModalProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
-  const { isLKR, format } = useCurrency()
+  const { isLKR, formatPrice, formatPerToken } = useCurrency()
 
   if (!isOpen) return null
 
@@ -144,11 +144,8 @@ export function TokenPurchaseModal({ isOpen, onClose, currentBalance }: TokenPur
                 <div className="text-center">
                   <p className="text-2xl font-bold text-gray-900">{pack.tokens.toLocaleString()}</p>
                   <p className="text-xs text-gray-500 mb-1">tokens</p>
-                  <p className="text-xl font-semibold text-gray-900">${pack.price}</p>
-                  {isLKR && (
-                    <p className="text-xs text-gray-500 mb-1">{format(pack.price)}</p>
-                  )}
-                  <p className="text-xs text-gray-400 mb-4">${pack.perToken}/token</p>
+                  <p className="text-xl font-semibold text-gray-900">{formatPrice(pack.price)}</p>
+                  <p className="text-xs text-gray-400 mb-4">{formatPerToken(pack.perToken)}</p>
                   
                   <button
                     onClick={() => handleBuyTokens(pack.id)}

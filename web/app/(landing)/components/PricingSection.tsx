@@ -16,7 +16,7 @@ interface TokenPack {
 const PricingSection = () => {
   const [isHydrated, setIsHydrated] = useState(false);
   const [selectedTokens, setSelectedTokens] = useState(2500);
-  const { isLKR, format } = useCurrency();
+  const { isLKR, formatPrice, formatPerToken } = useCurrency();
 
   useEffect(() => {
     setIsHydrated(true);
@@ -86,15 +86,10 @@ const PricingSection = () => {
                 <div className="text-4xl font-bold font-headline text-primary">{pack.tokens.toLocaleString()}</div>
                 <div className="text-sm text-text-secondary font-body">Tokens</div>
                 <div className="text-3xl font-bold font-headline text-accent">
-                  ${pack.price}
+                  {formatPrice(pack.price)}
                 </div>
-                {isLKR && (
-                  <div className="text-sm text-text-secondary font-body">
-                    {format(pack.price)}
-                  </div>
-                )}
                 <div className="text-xs text-text-secondary font-body">
-                  ${pack.perToken.toFixed(4)}/token
+                  {formatPerToken(pack.perToken)}
                 </div>
                 <button
                   onClick={() => setSelectedTokens(pack.tokens)}
