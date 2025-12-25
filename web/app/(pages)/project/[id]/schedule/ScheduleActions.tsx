@@ -1,7 +1,7 @@
 // app/(pages)/project/[id]/schedule/ScheduleActions.tsx
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface ScheduleActionsProps {
   scheduleId: string
@@ -301,10 +301,6 @@ function CramModeModal({
   } | null>(null)
   const [error, setError] = useState('')
 
-  useState(() => {
-    checkCramStatus()
-  })
-
   const checkCramStatus = async () => {
     setChecking(true)
     try {
@@ -318,6 +314,10 @@ function CramModeModal({
       setChecking(false)
     }
   }
+
+  useEffect(() => {
+    checkCramStatus()
+  }, [scheduleId])
 
   const handleCramMode = async (action: 'activate' | 'deactivate') => {
     setLoading(true)
