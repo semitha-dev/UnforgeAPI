@@ -411,50 +411,50 @@ export default function LeafAIChatPage() {
     <div className="flex flex-col h-[calc(100vh-64px)] bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
       {/* Header - Sticky */}
       <div className="sticky top-0 z-20 flex-shrink-0 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200">
-                <Sparkles className="w-6 h-6 text-white" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200 flex-shrink-0">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-slate-900">Leaf AI</h1>
-                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full">FREE</span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <h1 className="text-base sm:text-xl font-bold text-slate-900">Leaf AI</h1>
+                  <span className="px-1.5 sm:px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] sm:text-xs font-bold rounded-full">FREE</span>
                 </div>
-                <p className="text-sm text-slate-500">Your intelligent study assistant • Unlimited & Free!</p>
+                <p className="text-xs sm:text-sm text-slate-500 truncate hidden sm:block">Your intelligent study assistant • Unlimited & Free!</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
               {/* Mode Toggle */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-lg sm:rounded-xl">
                 <button
                   onClick={() => setMode('light')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all ${
                     mode === 'light' 
                       ? 'bg-white text-emerald-600 shadow-sm' 
                       : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
-                  <Zap className="w-4 h-4" />
-                  Fast
+                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Fast</span>
                 </button>
                 <button
                   onClick={() => setMode('heavy')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all ${
                     mode === 'heavy' 
                       ? 'bg-white text-purple-600 shadow-sm' 
                       : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
-                  <Brain className="w-4 h-4" />
-                  Deep
+                  <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Deep</span>
                 </button>
               </div>
 
-              {/* Free badge */}
-              <div className="px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 rounded-lg text-sm font-medium border border-emerald-200">
+              {/* Free badge - hidden on mobile */}
+              <div className="hidden md:block px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 rounded-lg text-sm font-medium border border-emerald-200">
                 ✨ Unlimited Free
               </div>
 
@@ -464,7 +464,7 @@ export default function LeafAIChatPage() {
                   variant="ghost"
                   size="sm"
                   onClick={clearChat}
-                  className="text-slate-500 hover:text-red-500"
+                  className="text-slate-500 hover:text-red-500 p-2"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -476,22 +476,22 @@ export default function LeafAIChatPage() {
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-4xl mx-auto px-6 py-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
           {messages.length === 0 ? (
             // Welcome state
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-350px)] text-center">
-              <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mb-6">
-                <Sparkles className="w-10 h-10 text-emerald-600" />
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-350px)] text-center px-2">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mb-4 sm:mb-6">
+                <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-600" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Welcome to Leaf AI</h2>
-              <p className="text-slate-500 max-w-md mb-3">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">Welcome to Leaf AI</h2>
+              <p className="text-sm sm:text-base text-slate-500 max-w-md mb-3">
                 Your powerful AI assistant for learning. Upload images, PDFs, or documents and ask me anything about them!
               </p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-full text-sm font-semibold mb-8">
+              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-full text-xs sm:text-sm font-semibold mb-6 sm:mb-8">
                 ✨ 100% Free &amp; Unlimited
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-lg">
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full max-w-lg">
                 {[
                   { icon: '📚', text: 'Explain quantum physics', color: 'from-blue-50 to-indigo-50' },
                   { icon: '📝', text: 'Help me write an essay', color: 'from-amber-50 to-orange-50' },
@@ -638,7 +638,7 @@ export default function LeafAIChatPage() {
 
       {/* Input Area - Fixed at bottom */}
       <div className="flex-shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur-sm sticky bottom-0">
-        <div className="max-w-4xl mx-auto px-6 py-4">
+        <div className="max-w-4xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
           {/* Attachments preview */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">

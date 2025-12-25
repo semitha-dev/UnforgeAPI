@@ -91,16 +91,16 @@ const PricingSection = () => {
                 <div className="text-[10px] sm:text-xs text-text-secondary font-body">
                   {formatPerToken(pack.perToken)}
                 </div>
-                <button
-                  onClick={() => setSelectedTokens(pack.tokens)}
-                  className={`w-full px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold font-cta transition-all duration-250 text-xs sm:text-sm ${
+                <a
+                  href="/signup"
+                  className={`w-full px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg font-bold font-cta transition-all duration-250 text-xs sm:text-sm text-center block ${
                     selectedTokens === pack.tokens
                       ? 'bg-accent text-accent-foreground'
                       : 'bg-muted text-text-primary hover:bg-accent/10'
                   }`}
                 >
-                  Select
-                </button>
+                  Get Started
+                </a>
               </div>
             </div>
           ))}

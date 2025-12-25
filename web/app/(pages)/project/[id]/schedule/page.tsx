@@ -113,40 +113,41 @@ export default function SchedulePage() {
   }
 
   return (
-    <div>
+    <div className="px-4 sm:px-0">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
-        <p className="text-gray-600">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6 sm:mb-8">
+        <p className="text-sm sm:text-base text-gray-600">
           {schedule 
             ? `Your personalized study plan until ${new Date(schedule.exam_date).toLocaleDateString()}`
             : 'Create a personalized study schedule for your exams'
           }
         </p>
         {schedule ? (
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:space-x-3 sm:gap-0">
             <button
               onClick={() => setShowEditModal(true)}
-              className="px-5 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors flex items-center space-x-2 font-medium text-sm"
+              className="px-4 sm:px-5 py-2 sm:py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2 font-medium text-sm"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              <span>Add More Subjects</span>
+              <span className="hidden sm:inline">Add More Subjects</span>
+              <span className="sm:hidden">Add Subjects</span>
             </button>
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="px-5 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors flex items-center space-x-2 font-medium text-sm"
+              className="px-4 sm:px-5 py-2 sm:py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors flex items-center justify-center space-x-2 font-medium text-sm"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-              <span>Delete Schedule</span>
+              <span>Delete</span>
             </button>
           </div>
         ) : (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="px-5 py-2.5 text-white rounded-xl transition-colors flex items-center space-x-2 font-medium text-sm"
+            className="w-full sm:w-auto px-4 sm:px-5 py-2.5 text-white rounded-xl transition-colors flex items-center justify-center space-x-2 font-medium text-sm"
             style={{ backgroundColor: '#4285F4' }}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

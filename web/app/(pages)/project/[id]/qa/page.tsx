@@ -201,18 +201,23 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
   )
 
   return (
-    <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl border border-white/20 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl shadow-2xl border border-white/20 overflow-hidden flex flex-col max-h-[95vh] sm:max-h-[90vh]">
+        {/* Mobile drag handle */}
+        <div className="sm:hidden flex justify-center pt-2 pb-1">
+          <div className="w-10 h-1 bg-zinc-300 rounded-full" />
+        </div>
+        
         {/* Header */}
-        <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-white">
-          <h2 className="text-lg font-semibold text-zinc-900">Create New Quiz</h2>
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-zinc-100 flex items-center justify-between bg-white">
+          <h2 className="text-base sm:text-lg font-semibold text-zinc-900">Create New Quiz</h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto">
+        <div className="p-4 sm:p-6 overflow-y-auto">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
@@ -235,11 +240,11 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
             {/* Source Selection */}
             <div className="space-y-3">
               <label className="text-sm font-medium text-zinc-700">Source Material</label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
                 {[
-                  { id: 'text', label: 'Paste Text', icon: FileText },
-                  { id: 'note', label: 'From Note', icon: BookOpen },
-                  { id: 'pdf', label: 'Upload PDF', icon: Upload },
+                  { id: 'text', label: 'Text', mobileLabel: 'Text', icon: FileText },
+                  { id: 'note', label: 'From Note', mobileLabel: 'Note', icon: BookOpen },
+                  { id: 'pdf', label: 'Upload PDF', mobileLabel: 'PDF', icon: Upload },
                 ].map((type) => (
                   <button
                     key={type.id}
@@ -248,14 +253,14 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
                       setSelectedNoteId(null)
                       setPdfFileName('')
                     }}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                    className={`flex flex-col items-center gap-1.5 sm:gap-2 p-3 sm:p-4 rounded-xl border-2 transition-all ${
                       sourceType === type.id 
                         ? 'border-indigo-600 bg-indigo-50 text-indigo-700' 
                         : 'border-zinc-100 bg-white text-zinc-500 hover:border-zinc-200 hover:bg-zinc-50'
                     }`}
                   >
-                    <type.icon className="w-6 h-6" />
-                    <span className="text-xs font-medium">{type.label}</span>
+                    <type.icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <span className="text-[10px] sm:text-xs font-medium">{type.mobileLabel}</span>
                   </button>
                 ))}
               </div>
@@ -425,17 +430,17 @@ function CreateQuizModal({ projectId, onClose, onSuccess }: CreateQuizModalProps
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-zinc-100 bg-zinc-50/50 flex justify-end gap-3">
+        <div className="p-4 sm:p-6 border-t border-zinc-100 bg-zinc-50/50 flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3">
           <button 
             onClick={onClose}
-            className="px-5 py-2.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors"
+            className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl transition-colors"
           >
             Cancel
           </button>
           <button 
             onClick={handleGenerate}
             disabled={!title || !studyMaterial || isGenerating}
-            className="px-5 py-2.5 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:shadow-none transition-all flex items-center gap-2"
+            className="w-full sm:w-auto px-5 py-2.5 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
           >
             {isGenerating ? (
               <>
@@ -949,10 +954,10 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
     <div className="min-h-screen bg-zinc-50 flex flex-col">
       {/* Top Bar */}
       <div className="bg-white border-b border-zinc-200 sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <button 
             onClick={onBack}
-            className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 text-zinc-500 hover:text-zinc-900 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="font-medium text-sm">Exit</span>
@@ -971,9 +976,9 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
       </div>
 
       {/* Question Area */}
-      <div className="flex-1 max-w-3xl w-full mx-auto px-6 py-12 flex flex-col justify-center">
+      <div className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-12 flex flex-col justify-center">
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-12 leading-tight">
+          <h2 className="text-xl sm:text-3xl md:text-4xl font-bold text-zinc-900 mb-6 sm:mb-12 leading-tight">
             {currentQ?.question_text}
           </h2>
 
@@ -998,9 +1003,9 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
                   key={option}
                   onClick={() => handleAnswer(option)}
                   disabled={showFeedback}
-                  className={`w-full p-6 text-left rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 group ${stateStyle}`}
+                  className={`w-full p-4 sm:p-6 text-left rounded-xl sm:rounded-2xl border-2 transition-all duration-200 flex items-start gap-3 sm:gap-4 group ${stateStyle}`}
                 >
-                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm shrink-0 transition-colors ${
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center font-bold text-xs sm:text-sm shrink-0 transition-colors ${
                     showFeedback && isCorrect 
                       ? 'border-emerald-500 bg-emerald-500 text-white'
                       : showFeedback && isSelected
@@ -1011,7 +1016,7 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
                   }`}>
                     {option}
                   </div>
-                  <span className="text-lg font-medium">{text}</span>
+                  <span className="text-sm sm:text-lg font-medium">{text}</span>
                   
                   {showFeedback && isCorrect && (
                     <Check className="w-6 h-6 text-emerald-600 ml-auto shrink-0" />
@@ -1026,30 +1031,30 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
 
           {/* Explanation / Next */}
           {showFeedback && (
-            <div className="mt-8 animate-in fade-in slide-in-from-bottom-2">
-              <div className={`p-6 rounded-2xl mb-6 flex gap-4 ${
+            <div className="mt-6 sm:mt-8 animate-in fade-in slide-in-from-bottom-2">
+              <div className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl mb-4 sm:mb-6 flex gap-3 sm:gap-4 ${
                 answers[currentIdx] === currentQ.correct_answer 
                   ? 'bg-emerald-50/50 border border-emerald-100' 
                   : 'bg-indigo-50/50 border border-indigo-100' 
               }`}>
-                <div className="shrink-0 p-2 bg-white rounded-full shadow-sm">
+                <div className="shrink-0 p-1.5 sm:p-2 bg-white rounded-full shadow-sm">
                   {answers[currentIdx] === currentQ.correct_answer 
-                    ? <Check className="w-5 h-5 text-emerald-600" />
-                    : <AlertCircle className="w-5 h-5 text-indigo-600" />
+                    ? <Check className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                    : <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
                   }
                 </div>
                 <div>
-                  <h4 className="font-bold text-zinc-900 mb-1">
+                  <h4 className="font-bold text-zinc-900 mb-1 text-sm sm:text-base">
                     {answers[currentIdx] === currentQ.correct_answer ? 'Correct!' : 'Explanation'}
                   </h4>
-                  <p className="text-zinc-600 leading-relaxed">{currentQ.explanation}</p>
+                  <p className="text-sm sm:text-base text-zinc-600 leading-relaxed">{currentQ.explanation}</p>
                 </div>
               </div>
 
               <button 
                 onClick={handleNext}
                 disabled={submitting}
-                className="w-full py-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-2xl font-semibold text-lg transition-all shadow-xl shadow-zinc-900/10 hover:shadow-zinc-900/20 flex items-center justify-center gap-2"
+                className="w-full py-3 sm:py-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl sm:rounded-2xl font-semibold text-base sm:text-lg transition-all shadow-xl shadow-zinc-900/10 hover:shadow-zinc-900/20 flex items-center justify-center gap-2"
               >
                 {submitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -1142,46 +1147,47 @@ export default function QuizPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Top Header */}
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
-        <div className="px-8 py-6 max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Quiz Library</h1>
-              <p className="text-zinc-500 mt-1">Review your automated quizzes and track progress.</p>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
-                <input 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search quizzes..."
-                  className="pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
-                />
+        <div className="px-3 sm:px-8 py-3 sm:py-6 max-w-7xl mx-auto">
+          <div className="flex flex-col gap-3 sm:gap-6">
+            <div className="flex items-center justify-between gap-2 sm:gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight truncate">Quiz Library</h1>
+                <p className="text-sm sm:text-base text-zinc-500 mt-0.5 sm:mt-1 hidden sm:block">Review your automated quizzes and track progress.</p>
               </div>
               <button 
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 hover:shadow-zinc-900/20 hover:-translate-y-0.5"
+                className="flex items-center justify-center gap-1 sm:gap-2 px-2.5 sm:px-5 py-1.5 sm:py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg sm:rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 text-xs sm:text-base flex-shrink-0 whitespace-nowrap"
               >
-                <Plus className="w-4 h-4" />
-                <span>New Quiz</span>
+                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">New Quiz</span>
+                <span className="sm:hidden">New</span>
               </button>
+            </div>
+            
+            <div className="relative group w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
+              <input 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search quizzes..."
+                className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
+              />
             </div>
           </div>
         </div>
       </div>
 
       {/* Grid Content */}
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto">
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 text-zinc-300 animate-spin" />
           </div>
         ) : filteredQuizzes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {filteredQuizzes.map(quiz => (
               <QuizCard 
                 key={quiz.id} 

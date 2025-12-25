@@ -172,42 +172,43 @@ export default function FlashcardsPage() {
     <div className="min-h-screen bg-white">
       {/* Top Header */}
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
-        <div className="px-8 py-6 max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Flashcard Library</h1>
-              <p className="text-zinc-500 mt-1">Create and study flashcards to master your material.</p>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
-                <input 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search flashcards..."
-                  className="pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
-                />
+        <div className="px-4 sm:px-8 py-4 sm:py-6 max-w-7xl mx-auto">
+          <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="flex items-start sm:items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">Flashcard Library</h1>
+                <p className="text-sm sm:text-base text-zinc-500 mt-0.5 sm:mt-1 hidden sm:block">Create and study flashcards to master your material.</p>
               </div>
               <button 
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 hover:shadow-zinc-900/20 hover:-translate-y-0.5"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 text-sm sm:text-base flex-shrink-0"
               >
                 <Plus className="w-4 h-4" />
-                <span>New Set</span>
+                <span className="hidden sm:inline">New Set</span>
+                <span className="sm:hidden">New</span>
               </button>
+            </div>
+            
+            <div className="relative group w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
+              <input 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search flashcards..."
+                className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
+              />
             </div>
           </div>
         </div>
       </div>
 
       {/* Grid Content */}
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto">
         {sets.filter(set => 
           set.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (set.description || '').toLowerCase().includes(searchQuery.toLowerCase())
         ).length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {sets
               .filter(set => 
                 set.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -230,40 +230,123 @@
   border: none !important;
   box-shadow: none !important;
   outline: none !important;
-  padding-left: 1rem;
+  padding-left: 0;
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  background: #ffffff !important;
 }
 
+.note-editor-container .quill,
+.note-editor-container .ql-snow {
+  background: #ffffff !important;
+}
+
+/* Mobile-first: Toolbar at bottom - but keep normal content flow */
+@media (max-width: 639px) {
+  .note-editor-container.mobile-editor {
+    position: relative;
+    background: white !important;
+  }
+  
+  .note-editor-container.mobile-editor .ql-toolbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white !important;
+    border-top: 1px solid #e4e4e7 !important;
+    border-bottom: none !important;
+    padding: 0.5rem 0.75rem;
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    z-index: 50;
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  
+  .note-editor-container.mobile-editor .ql-container {
+    border-top: none !important;
+    padding-top: 0;
+    background: white !important;
+  }
+  
+  .note-editor-container.mobile-editor .ql-editor {
+    padding: 0;
+    min-height: 300px;
+    padding-bottom: 80px; /* Space for bottom toolbar */
+    background: white !important;
+  }
+}
+
+@media (min-width: 640px) {
+  .note-editor-container {
+    padding-left: 1rem;
+  }
+}
+
+/* Desktop/Web toolbar - MUST have white background */
 .note-editor-container .ql-toolbar {
-  @apply border-0 bg-transparent px-0 py-3;
+  border: 0 !important;
+  background: white !important;
+  padding: 0.5rem 0;
   position: sticky;
   top: 0;
   z-index: 10;
   border-bottom: 1px solid #e4e4e7 !important;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .note-editor-container .ql-toolbar {
+    padding: 0.75rem 0;
+    margin-bottom: 1rem;
+    overflow-x: visible;
+    white-space: normal;
+  }
 }
 
 .note-editor-container .ql-container {
-  @apply border-0;
+  border: 0 !important;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 18px;
-  line-height: 1.8;
-  border: none !important;
+  font-size: 16px;
+  line-height: 1.7;
   border-top: 1px solid #f4f4f5 !important;
-  padding-top: 1rem;
+  padding-top: 0.75rem;
   flex: 1;
   display: flex;
   flex-direction: column;
+  background: white !important;
+}
+
+@media (min-width: 640px) {
+  .note-editor-container .ql-container {
+    font-size: 18px;
+    line-height: 1.8;
+    padding-top: 1rem;
+  }
 }
 
 .note-editor-container .ql-editor {
-  @apply min-h-[60vh] px-0 py-4;
+  min-height: 50vh;
+  padding: 0.75rem 0;
   border: none !important;
   outline: none !important;
   flex: 1;
   cursor: text;
+  background: white !important;
+}
+
+@media (min-width: 640px) {
+  .note-editor-container .ql-editor {
+    min-height: 60vh;
+    padding: 1rem 0;
+  }
 }
 
 .note-editor-container .ql-editor:focus {
@@ -308,15 +391,15 @@
 }
 
 .note-editor-container .ql-toolbar.ql-snow .ql-formats {
-  @apply mr-3;
+  @apply mr-1 sm:mr-3;
 }
 
 .note-editor-container .ql-toolbar.ql-snow .ql-formats button {
-  @apply w-7 h-7;
+  @apply w-6 h-6 sm:w-7 sm:h-7;
 }
 
 .note-editor-container .ql-snow .ql-picker-label {
-  @apply px-2;
+  @apply px-1 sm:px-2;
 }
 
 /* Fullscreen editor styles */

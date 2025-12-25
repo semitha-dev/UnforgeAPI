@@ -1447,25 +1447,49 @@ export default function NotesClient({
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden">
       {/* Top Header - Sticky with backdrop blur matching quiz/flashcard */}
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
-        <div className="px-8 py-6 max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">Notes Library</h1>
-              <p className="text-zinc-500 mt-1">Create and organize your project notes</p>
+        <div className="px-3 sm:px-8 py-3 sm:py-6 max-w-7xl mx-auto">
+          <div className="flex flex-col gap-3 sm:gap-6">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight truncate">Notes Library</h1>
+                <p className="text-zinc-500 mt-0.5 sm:mt-1 text-sm hidden sm:block">Create and organize your project notes</p>
+              </div>
+              
+              {/* Mobile: Show buttons in header row */}
+              <div className="flex items-center gap-1.5 sm:hidden">
+                {!isManagingFolders && (
+                  <>
+                    <button
+                      onClick={() => setShowSummarizeModal(true)}
+                      className="flex items-center justify-center w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg"
+                      title="AI Summarize"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={handleCreateNew}
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-zinc-900 text-white rounded-lg text-xs font-medium"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>New</span>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               {/* Search Bar */}
-              <div className="relative group">
+              <div className="relative group w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
                 <input 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search notes..."
-                  className="pl-10 pr-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm w-64 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
+                  className="pl-10 pr-4 py-2 sm:py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
                 />
               </div>
               
@@ -1473,7 +1497,7 @@ export default function NotesClient({
               {!isManagingFolders ? (
                 <button
                   onClick={() => setIsManagingFolders(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-xl font-medium transition-all"
+                  className="hidden sm:flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg sm:rounded-xl font-medium transition-all text-sm"
                 >
                   <FolderOpen className="w-4 h-4" />
                   <span className="hidden sm:inline">Organize</span>
@@ -1543,22 +1567,22 @@ export default function NotesClient({
                 </div>
               )}
 
-              {/* AI Summarize Button */}
+              {/* AI Summarize Button - Desktop only (mobile version in header row) */}
               {!isManagingFolders && (
                 <button
                   onClick={() => setShowSummarizeModal(true)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl font-medium transition-all shadow-lg shadow-purple-600/20 hover:shadow-purple-600/30"
+                  className="hidden sm:flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg sm:rounded-xl font-medium transition-all shadow-lg shadow-purple-600/20 hover:shadow-purple-600/30 text-sm"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span className="hidden sm:inline">AI Summarize</span>
+                  <span>AI Summarize</span>
                 </button>
               )}
 
-              {/* New Note Button */}
+              {/* New Note Button - Desktop only (mobile version in header row) */}
               {!isManagingFolders && (
                 <button 
                   onClick={handleCreateNew}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 hover:shadow-zinc-900/20 hover:-translate-y-0.5"
+                  className="hidden sm:flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg sm:rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 hover:shadow-zinc-900/20 hover:-translate-y-0.5 text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   <span>New Note</span>
@@ -1570,7 +1594,7 @@ export default function NotesClient({
       </div>
 
       {/* Grid Content */}
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-4 sm:p-8 max-w-7xl mx-auto">
         {/* Folders Section */}
         {folders.length > 0 && (
           <div className="space-y-6 mb-8">
@@ -1985,7 +2009,7 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   }
 
   return (
-    <div className={`bg-white h-full flex flex-col transition-all ${showLeafAI && !isFullscreen ? 'mr-96' : ''}`}>
+    <div className={`bg-white min-h-screen flex flex-col transition-all overflow-x-hidden ${showLeafAI && !isFullscreen ? 'sm:mr-96' : ''}`}>
       {/* Fullscreen Editor Overlay */}
       {isFullscreen && (
         <div className="fixed inset-0 z-[100] bg-white flex flex-col">
@@ -2029,8 +2053,8 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
           </div>
           
           {/* Fullscreen Editor */}
-          <div className="flex-1 overflow-hidden">
-            <div className="note-editor-container h-full">
+          <div className="flex-1 overflow-hidden bg-white">
+            <div className="note-editor-container mobile-editor h-full bg-white">
               <ReactQuill
                 theme="snow"
                 value={content}
@@ -2038,7 +2062,7 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
                 modules={quillModules}
                 formats={quillFormats}
                 placeholder="Start writing your notes..."
-                className="h-full"
+                className="h-full bg-white"
               />
             </div>
           </div>
@@ -2048,71 +2072,104 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
         </div>
       )}
 
-      {/* Clean Header - minimal */}
-      <div className="sticky top-0 z-20 bg-white px-8 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onBack}
-              className="p-2 hover:bg-zinc-100 rounded-xl transition-colors"
-            >
-              <svg className="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
-            <span className="text-xs font-medium text-zinc-400">New Note</span>
-          </div>
-          <div className="flex items-center gap-2">
+      {/* Mobile-First Clean Header - Hidden when fullscreen */}
+      {!isFullscreen && (
+      <header className="sticky top-0 z-20 bg-white border-b border-zinc-100 sm:border-none">
+        <div className="flex items-center justify-between px-3 sm:px-8 py-2.5 sm:py-4">
+          {/* Back Button */}
+          <button
+            onClick={onBack}
+            className="flex items-center justify-center w-10 h-10 -ml-2 hover:bg-zinc-100 rounded-full transition-colors"
+          >
+            <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          
+          {/* Desktop: Show "New Note" title */}
+          <span className="hidden sm:block text-sm font-medium text-zinc-500">New Note</span>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Leaf AI Toggle */}
             <button
               onClick={() => setShowLeafAI(!showLeafAI)}
-              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              className={`flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 sm:py-2 rounded-full sm:rounded-lg transition-colors ${
                 showLeafAI
                   ? 'bg-emerald-500 text-white'
-                  : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                  : 'text-emerald-600 hover:bg-emerald-50'
               }`}
+              title="AI Assistant"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
               </svg>
-              Ask AI
+              <span className="hidden sm:inline ml-2 text-sm font-medium">Ask AI</span>
             </button>
+            
+            {/* Music Button - Mobile icon only */}
+            <button
+              onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+              className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                showMusicPlayer
+                  ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white'
+                  : 'text-zinc-500 hover:bg-zinc-100'
+              }`}
+              title="Music"
+            >
+              <Music className="w-5 h-5" />
+            </button>
+            
+            {/* Save Button */}
             <button
               onClick={handleSave}
               disabled={isSaving || !title.trim()}
-              className="px-4 py-2 bg-zinc-900 text-white text-sm font-medium rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 sm:px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg font-bold text-sm sm:text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </div>
-      </div>
+      </header>
+      )}
 
-      {/* Full Page Editor Area */}
-      <div className="flex-1 overflow-y-auto px-8">
-        <div className="py-8">
+      {/* Full Page Editor Area - Hidden when fullscreen */}
+      {!isFullscreen && (
+      <div className="flex-1 overflow-y-auto" style={{ background: 'white' }}>
+        <div className="px-4 sm:px-8 pt-8 sm:pt-6 pb-24 bg-white min-h-full">
           {/* Title Input - Large and prominent */}
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled"
-            className="w-full text-4xl font-bold text-zinc-900 placeholder:text-zinc-300 border-none focus:outline-none focus:ring-0 bg-transparent mb-6 tracking-tight pl-4"
+            placeholder="Title"
+            className="w-full text-2xl sm:text-4xl font-bold text-zinc-900 placeholder:text-zinc-400 border-none focus:outline-none focus:ring-0 bg-transparent mb-2 sm:mb-4 tracking-tight"
           />
           
+          {/* Date Meta - Mobile friendly */}
+          <div className="text-xs text-zinc-400 font-medium mb-4 sm:mb-6">
+            {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          
           {/* Quill Editor - Full width seamless */}
-          <div className="note-editor-container">
+          <div className="note-editor-container mobile-editor">
             <ReactQuill
               theme="snow"
               value={content}
               onChange={setContent}
               modules={quillModules}
               formats={quillFormats}
-              placeholder="Start writing..."
+              placeholder="Start typing..."
             />
           </div>
         </div>
       </div>
+      )}
+      
+      {/* Music Player for non-fullscreen */}
+      {showMusicPlayer && !isFullscreen && (
+        <MusicPlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />
+      )}
 
       {/* Leaf AI Panel */}
       <LeafAIPanel
@@ -2342,8 +2399,8 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
   }
 
   return (
-    <div className="flex h-screen bg-white text-zinc-900 overflow-hidden">
-      {/* Editor Navigation Sidebar (Collapsed mini sidebar) */}
+    <div className="flex min-h-screen bg-white text-zinc-900 overflow-x-hidden">
+      {/* Editor Navigation Sidebar (Collapsed mini sidebar) - Desktop only */}
       <div className="hidden lg:flex flex-col items-center w-16 bg-zinc-50 border-r border-zinc-200 py-6 gap-4">
         <button onClick={onBack} className="p-3 hover:bg-zinc-200 rounded-xl transition-colors" title="Back to notes">
           <svg className="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2390,70 +2447,110 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
         </button>
       </div>
 
-      <main className="flex-1 flex flex-col relative bg-white">
-        {/* Editor Header - Minimal and clean */}
-        <div className="px-8 py-4 flex items-center justify-between sticky top-0 bg-white z-20">
-          <div className="flex items-center gap-4 lg:hidden">
-            <button onClick={onBack} className="p-2 -ml-2 hover:bg-zinc-100 rounded-lg">
-              <svg className="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="flex-1 flex justify-center">
-            <span className={`text-xs font-medium px-3 py-1 rounded-full ${
-              autoSaveStatus === 'saved' ? 'text-zinc-400' :
-              autoSaveStatus === 'saving' ? 'text-amber-500 bg-amber-50' :
-              'text-zinc-500 bg-zinc-100'
-            }`}>
-              {autoSaveStatus === 'saved' ? `Last edited ${new Date(note.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` :
-               autoSaveStatus === 'saving' ? 'Saving...' : 'Unsaved changes'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
+      <main className={`flex-1 flex flex-col relative bg-white overflow-hidden transition-all ${showLeafAI && !isFullscreen ? 'sm:mr-96' : ''}`}>
+        {/* Mobile-First Clean Header */}
+        <header className="sticky top-0 z-20 bg-white border-b border-zinc-100 sm:border-none">
+          <div className="flex items-center justify-between px-3 sm:px-8 py-2.5 sm:py-4">
+            {/* Back Button - Mobile only */}
             <button 
-              onClick={() => setShowLeafAI(!showLeafAI)}
-              className={`hidden sm:flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                showLeafAI ? 'bg-emerald-500 text-white' : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-              }`}
+              onClick={onBack} 
+              className="flex lg:hidden items-center justify-center w-10 h-10 -ml-2 hover:bg-zinc-100 rounded-full transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Ask AI
             </button>
-            <button
-              onClick={() => setIsFullscreen(true)}
-              className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
-              title="Fullscreen"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
+            
+            {/* Auto-save Status - Center on mobile */}
+            <div className="flex-1 flex justify-center lg:justify-start">
+              <span className={`text-[10px] sm:text-xs font-medium px-2 sm:px-3 py-1 rounded-full ${
+                autoSaveStatus === 'saved' ? 'text-zinc-400' :
+                autoSaveStatus === 'saving' ? 'text-amber-500 bg-amber-50' :
+                'text-zinc-500 bg-zinc-100'
+              }`}>
+                {autoSaveStatus === 'saved' ? `Saved ${new Date(note.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` :
+                 autoSaveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
+              </span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-1">
+              {/* Leaf AI Toggle - Mobile icon only */}
+              <button 
+                onClick={() => setShowLeafAI(!showLeafAI)}
+                className={`flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 sm:py-2 rounded-full sm:rounded-lg transition-colors ${
+                  showLeafAI ? 'bg-emerald-500 text-white' : 'text-emerald-600 hover:bg-emerald-50'
+                }`}
+                title="AI Assistant"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                <span className="hidden sm:inline ml-2 text-sm font-medium">Ask AI</span>
+              </button>
+              
+              {/* Music Button - Mobile icon only */}
+              <button
+                onClick={() => setShowMusicPlayer(!showMusicPlayer)}
+                className={`flex lg:hidden items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                  showMusicPlayer
+                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white'
+                    : 'text-zinc-500 hover:bg-zinc-100'
+                }`}
+                title="Music"
+              >
+                <Music className="w-5 h-5" />
+              </button>
+              
+              {/* Fullscreen Button */}
+              <button
+                onClick={() => setIsFullscreen(true)}
+                className="hidden sm:flex items-center justify-center w-10 h-10 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
+                title="Fullscreen"
+              >
+                <Maximize2 className="w-4 h-4" />
+              </button>
+              
+              {/* Delete Button - Mobile only */}
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex lg:hidden items-center justify-center w-10 h-10 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
+                title="Delete"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
+        </header>
 
         {/* Full Page Editor Area */}
-        <div className="flex-1 overflow-y-auto px-8">
-          <div className="py-8">
+        <div className="flex-1 overflow-y-auto" style={{ background: 'white' }}>
+          <div className="px-4 sm:px-8 pt-8 sm:pt-6 pb-24 bg-white min-h-full">
             {/* Title Input - Large and prominent */}
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
-              placeholder="Untitled"
-              className="w-full text-4xl font-bold text-zinc-900 placeholder:text-zinc-300 border-none focus:outline-none focus:ring-0 bg-transparent mb-6 tracking-tight pl-4"
+              placeholder="Title"
+              className="w-full text-2xl sm:text-4xl font-bold text-zinc-900 placeholder:text-zinc-400 border-none focus:outline-none focus:ring-0 bg-transparent mb-2 sm:mb-4 tracking-tight"
             />
             
+            {/* Date Meta - Mobile friendly */}
+            <div className="text-xs text-zinc-400 font-medium mb-4 sm:mb-6">
+              {formatDate(note.updated_at)}
+            </div>
+            
             {/* Quill Editor - Full width seamless */}
-            <div className="note-editor-container">
+            <div className="note-editor-container mobile-editor">
               <ReactQuill
                 theme="snow"
                 value={content}
                 onChange={setContent}
                 modules={quillModules}
                 formats={quillFormats}
-                placeholder="Start writing..."
+                placeholder="Start typing..."
               />
             </div>
 
@@ -2552,8 +2649,8 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
           </div>
           
           {/* Fullscreen Editor */}
-          <div className="flex-1 overflow-hidden">
-            <div className="note-editor-container h-full">
+          <div className="flex-1 overflow-hidden bg-white">
+            <div className="note-editor-container mobile-editor h-full bg-white">
               <ReactQuill
                 theme="snow"
                 value={content}
@@ -2561,7 +2658,7 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
                 modules={quillModules}
                 formats={quillFormats}
                 placeholder="Start writing your notes..."
-                className="h-full"
+                className="h-full bg-white"
               />
             </div>
           </div>

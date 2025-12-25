@@ -208,17 +208,17 @@ export default function AnalyticsPage() {
   const { overview, quizPerformance, subjectsNeedingImprovement, scheduleProgress, flashcardProgress, weeklyActivity } = analytics
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-0">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-gray-600">Track your learning progress and identify areas for improvement</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Analytics</h1>
+          <p className="text-sm sm:text-base text-gray-600">Track your learning progress and identify areas for improvement</p>
         </div>
-        <div className="flex bg-gray-100 rounded-lg p-1">
+        <div className="flex bg-gray-100 rounded-lg p-1 w-full sm:w-auto">
           <button
             onClick={() => setViewMode('project')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
               viewMode === 'project'
                 ? 'bg-white text-indigo-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
@@ -228,7 +228,7 @@ export default function AnalyticsPage() {
           </button>
           <button
             onClick={() => setViewMode('all')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors ${
               viewMode === 'all'
                 ? 'bg-white text-indigo-600 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900'
@@ -240,7 +240,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <StatCard
           icon={<Target className="w-5 h-5 text-indigo-600" />}
           label="Average Score"
