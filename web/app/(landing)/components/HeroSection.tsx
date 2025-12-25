@@ -62,48 +62,48 @@ const HeroSection = ({ onCTAClick }: HeroSectionProps) => {
             <ConversionCTA variant="hero" />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto pt-8">
-            <div className="bg-card/80 backdrop-blur-sm rounded-lg p-6 border border-border shadow-sm">
-              <div className="text-3xl font-bold font-headline text-primary">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 max-w-4xl mx-auto pt-8">
+            <div className="bg-card/80 backdrop-blur-sm rounded-lg p-3 sm:p-6 border border-border shadow-sm">
+              <div className="text-xl sm:text-3xl font-bold font-headline text-primary">
                 {isHydrated ? documentsProcessed.toLocaleString() : '125,847'}
               </div>
-              <div className="text-sm text-text-secondary font-body mt-1">Documents Processed</div>
+              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Documents Processed</div>
             </div>
 
-            <div className="bg-card/80 backdrop-blur-sm rounded-lg p-6 border border-border shadow-sm">
-              <div className="text-3xl font-bold font-headline text-primary">
+            <div className="bg-card/80 backdrop-blur-sm rounded-lg p-3 sm:p-6 border border-border shadow-sm">
+              <div className="text-xl sm:text-3xl font-bold font-headline text-primary">
                 {isHydrated ? studyHoursSaved.toLocaleString() : '45,293'}
               </div>
-              <div className="text-sm text-text-secondary font-body mt-1">Study Hours Saved</div>
+              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Study Hours Saved</div>
             </div>
 
-            <div className="bg-card/80 backdrop-blur-sm rounded-lg p-6 border border-border shadow-sm">
-              <div className="text-3xl font-bold font-headline text-accent">1K+</div>
-              <div className="text-sm text-text-secondary font-body mt-1">Active Students</div>
+            <div className="bg-card/80 backdrop-blur-sm rounded-lg p-3 sm:p-6 border border-border shadow-sm">
+              <div className="text-xl sm:text-3xl font-bold font-headline text-accent">1K+</div>
+              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Active Students</div>
             </div>
 
-            <div className="bg-card/80 backdrop-blur-sm rounded-lg p-6 border border-border shadow-sm">
-              <div className="text-3xl font-bold font-headline text-accent">4.9★</div>
-              <div className="text-sm text-text-secondary font-body mt-1">Student Rating</div>
+            <div className="bg-card/80 backdrop-blur-sm rounded-lg p-3 sm:p-6 border border-border shadow-sm">
+              <div className="text-xl sm:text-3xl font-bold font-headline text-accent">4.9★</div>
+              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Student Rating</div>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-8 pt-8 opacity-60">
-            <div className="flex items-center space-x-2">
-              <GraduationCap size={24} className="text-primary" />
-              <span className="text-sm font-medium font-body text-text-primary">Medical Students</span>
+          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 pt-8 opacity-60">
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
+              <GraduationCap size={20} className="text-primary w-4 h-4 sm:w-6 sm:h-6" />
+              <span className="text-xs sm:text-sm font-medium font-body text-text-primary">Medical Students</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <GraduationCap size={24} className="text-primary" />
-              <span className="text-sm font-medium font-body text-text-primary">Law Students</span>
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
+              <GraduationCap size={20} className="text-primary w-4 h-4 sm:w-6 sm:h-6" />
+              <span className="text-xs sm:text-sm font-medium font-body text-text-primary">Law Students</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <GraduationCap size={24} className="text-primary" />
-              <span className="text-sm font-medium font-body text-text-primary">Engineering Students</span>
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
+              <GraduationCap size={20} className="text-primary w-4 h-4 sm:w-6 sm:h-6" />
+              <span className="text-xs sm:text-sm font-medium font-body text-text-primary">Engineering Students</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <GraduationCap size={24} className="text-primary" />
-              <span className="text-sm font-medium font-body text-text-primary">Business Students</span>
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
+              <GraduationCap size={20} className="text-primary w-4 h-4 sm:w-6 sm:h-6" />
+              <span className="text-xs sm:text-sm font-medium font-body text-text-primary">Business Students</span>
             </div>
           </div>
         </div>

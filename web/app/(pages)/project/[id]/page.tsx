@@ -347,26 +347,26 @@ export default function ProjectOverview() {
   const totalContent = counts.notes + counts.qa_pairs + counts.flashcards
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="mb-8">
-        <p className="text-gray-600">
+      <div className="mb-6 sm:mb-8">
+        <p className="text-sm sm:text-base text-gray-600">
           {project?.description || 'Track your progress and manage your study materials'}
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
         <Link href={`/project/${projectId}/notes`}>
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-2xl">
-            <CardContent className="p-5">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-xl sm:rounded-2xl">
+            <CardContent className="p-3 sm:p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-400 font-medium">Notes</p>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{counts.notes}</p>
+                  <p className="text-xs sm:text-sm text-gray-400 font-medium">Notes</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5 sm:mt-1">{counts.notes}</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -374,15 +374,15 @@ export default function ProjectOverview() {
         </Link>
 
         <Link href={`/project/${projectId}/qa`}>
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-2xl">
-            <CardContent className="p-5">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-xl sm:rounded-2xl">
+            <CardContent className="p-3 sm:p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-400 font-medium">Q&A Pairs</p>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{counts.qa_pairs}</p>
+                  <p className="text-xs sm:text-sm text-gray-400 font-medium">Q&A Pairs</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5 sm:mt-1">{counts.qa_pairs}</p>
                 </div>
-                <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
-                  <HelpCircle className="h-5 w-5 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <HelpCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -390,15 +390,15 @@ export default function ProjectOverview() {
         </Link>
 
         <Link href={`/project/${projectId}/flashcards`}>
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-2xl">
-            <CardContent className="p-5">
+          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-xl sm:rounded-2xl">
+            <CardContent className="p-3 sm:p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-400 font-medium">Flashcards</p>
-                  <p className="text-2xl font-bold text-gray-800 mt-1">{counts.flashcards}</p>
+                  <p className="text-xs sm:text-sm text-gray-400 font-medium">Flashcards</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5 sm:mt-1">{counts.flashcards}</p>
                 </div>
-                <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
-                  <Layers className="h-5 w-5 text-white" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <Layers className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -406,16 +406,16 @@ export default function ProjectOverview() {
         </Link>
 
         {/* Streak Card */}
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl">
-          <CardContent className="p-5">
+        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl sm:rounded-2xl col-span-2 md:col-span-1">
+          <CardContent className="p-3 sm:p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-white/80 font-medium">Study Streak</p>
-                <p className="text-2xl font-bold text-white mt-1">{streak.currentStreak} days</p>
-                <p className="text-xs text-white/60 mt-1">Best: {streak.longestStreak} days</p>
+                <p className="text-xs sm:text-sm text-white/80 font-medium">Study Streak</p>
+                <p className="text-xl sm:text-2xl font-bold text-white mt-0.5 sm:mt-1">{streak.currentStreak} days</p>
+                <p className="text-[10px] sm:text-xs text-white/60 mt-0.5 sm:mt-1">Best: {streak.longestStreak} days</p>
               </div>
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <Flame className="h-6 w-6 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center">
+                <Flame className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
             </div>
           </CardContent>
@@ -423,15 +423,15 @@ export default function ProjectOverview() {
       </div>
 
       {/* Weekly Activity Chart */}
-      <Card className="border-0 shadow-lg bg-white rounded-2xl mb-8">
-        <CardHeader className="pb-2">
+      <Card className="border-0 shadow-lg bg-white rounded-xl sm:rounded-2xl mb-6 sm:mb-8">
+        <CardHeader className="pb-2 px-4 sm:px-6">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-gray-800">Weekly Activity</CardTitle>
-            <span className="text-sm text-gray-400">This Week</span>
+            <CardTitle className="text-base sm:text-lg font-semibold text-gray-800">Weekly Activity</CardTitle>
+            <span className="text-xs sm:text-sm text-gray-400">This Week</span>
           </div>
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="h-[200px] w-full">
+        <CardContent className="pt-0 px-2 sm:px-6">
+          <div className="h-[160px] sm:h-[200px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={weeklyActivity} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
@@ -480,11 +480,11 @@ export default function ProjectOverview() {
       </Card>
 
       {/* Recent Activity */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
+      <Card className="border-0 shadow-sm rounded-xl sm:rounded-2xl">
+        <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+          <CardTitle className="text-base sm:text-lg font-semibold">Recent Activity</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6">
           {recentItems.length === 0 ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">

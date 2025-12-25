@@ -137,10 +137,10 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-white px-8 py-12 lg:px-16">
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-white px-4 sm:px-8 py-8 sm:py-12 lg:px-16">
         <div className="w-full max-w-md">
           {/* Header */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
             Welcome Back
           </h1>
 

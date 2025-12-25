@@ -364,12 +364,12 @@ export default function Dashboard() {
         <main className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-[80px]' : 'lg:ml-[260px]'}`}>
           
           {/* Top Header */}
-          <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-5 flex items-center justify-between">
-            <div className="flex items-center gap-4 lg:hidden">
+          <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 sm:px-8 py-3 sm:py-5 flex items-center justify-between">
+            <div className="flex items-center gap-3 sm:gap-4 lg:hidden">
               <button onClick={() => setMobileMenuOpen(true)} className="p-2 -ml-2 text-gray-600">
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
-              <Leaf className="h-6 w-6 text-emerald-500" />
+              <Leaf className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-500" />
             </div>
 
             {/* Search */}
@@ -384,33 +384,33 @@ export default function Dashboard() {
               />
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-gray-900">{profile?.name || 'Student'}</p>
-                <p className="text-xs text-gray-500">{profile?.education_level || 'Lifelong Learner'}</p>
+                <p className="text-sm font-semibold text-gray-900 truncate max-w-[120px] sm:max-w-none">{profile?.name || 'Student'}</p>
+                <p className="text-xs text-gray-500 truncate max-w-[120px] sm:max-w-none">{profile?.education_level || 'Lifelong Learner'}</p>
               </div>
-              <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold border-2 border-white shadow-sm text-sm sm:text-base">
                 {profile?.name?.[0] || 'U'}
               </div>
             </div>
           </header>
 
-          <div className="p-8 max-w-7xl mx-auto">
+          <div className="p-4 sm:p-8 max-w-7xl mx-auto">
             
             {/* Page Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-6 sm:mb-10">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">{getGreeting()}, {profile?.name?.split(' ')[0]}</h1>
-                <p className="text-gray-500 flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
+                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">{getGreeting()}, {profile?.name?.split(' ')[0]}</h1>
+                <p className="text-gray-500 flex items-center gap-2 text-sm sm:text-base">
+                  <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </p>
               </div>
               <button 
                 onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 font-medium"
+                className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-emerald-600 text-white rounded-xl sm:rounded-2xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-95 font-medium text-sm sm:text-base w-full md:w-auto"
               >
-                <Plus className="h-5 w-5" />
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span>New Project</span>
               </button>
             </div>
@@ -439,11 +439,11 @@ export default function Dashboard() {
             ) : (
               
               /* Projects Grid */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {filteredProjects.map((project) => (
                   <div 
                     key={project.id}
-                    className="group relative bg-white rounded-3xl border border-gray-100 hover:border-emerald-200 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 flex flex-col overflow-hidden"
+                    className="group relative bg-white rounded-2xl sm:rounded-3xl border border-gray-100 hover:border-emerald-200 hover:shadow-xl hover:shadow-gray-200/50 transition-all duration-300 flex flex-col overflow-hidden"
                   >
                     {/* Card Actions */}
                     <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -470,43 +470,43 @@ export default function Dashboard() {
                       )}
                     </div>
 
-                    <Link href={`/project/${project.id}`} className="flex-1 p-6 flex flex-col h-full">
+                    <Link href={`/project/${project.id}`} className="flex-1 p-4 sm:p-6 flex flex-col h-full">
                       {/* Icon & Decor */}
-                      <div className="flex justify-between items-start mb-6">
+                      <div className="flex justify-between items-start mb-4 sm:mb-6">
                         <div 
-                          className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105"
+                          className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-105"
                           style={{ backgroundColor: project.color }}
                         >
                           {(() => {
                             const IconComp = projectIcons.find(i => i.name === project.icon)?.icon || BookOpen
-                            return <IconComp className="h-7 w-7" />
+                            return <IconComp className="h-6 w-6 sm:h-7 sm:w-7" />
                           })()}
                         </div>
                       </div>
 
                       {/* Text Content */}
-                      <div className="mb-6">
-                        <h3 className="font-bold text-gray-900 text-lg mb-2 line-clamp-1 group-hover:text-emerald-700 transition-colors">
+                      <div className="mb-4 sm:mb-6">
+                        <h3 className="font-bold text-gray-900 text-base sm:text-lg mb-1.5 sm:mb-2 line-clamp-1 group-hover:text-emerald-700 transition-colors">
                           {project.name}
                         </h3>
-                        <p className="text-sm text-gray-500 line-clamp-2 h-10">
+                        <p className="text-xs sm:text-sm text-gray-500 line-clamp-2 h-8 sm:h-10">
                           {project.description || 'No description provided.'}
                         </p>
                       </div>
 
                       {/* Stats Footer */}
-                      <div className="mt-auto pt-4 border-t border-gray-50 grid grid-cols-3 gap-2">
-                        <div className="text-center p-2 rounded-xl bg-gray-50 group-hover:bg-emerald-50/50 transition-colors">
-                          <div className="text-xs text-gray-400 mb-1 flex justify-center"><FileText className="h-3 w-3" /></div>
-                          <div className="font-bold text-gray-700">{project.notes_count}</div>
+                      <div className="mt-auto pt-3 sm:pt-4 border-t border-gray-50 grid grid-cols-3 gap-1.5 sm:gap-2">
+                        <div className="text-center p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gray-50 group-hover:bg-emerald-50/50 transition-colors">
+                          <div className="text-xs text-gray-400 mb-0.5 sm:mb-1 flex justify-center"><FileText className="h-2.5 w-2.5 sm:h-3 sm:w-3" /></div>
+                          <div className="font-bold text-gray-700 text-sm sm:text-base">{project.notes_count}</div>
                         </div>
-                        <div className="text-center p-2 rounded-xl bg-gray-50 group-hover:bg-emerald-50/50 transition-colors">
-                          <div className="text-xs text-gray-400 mb-1 flex justify-center"><HelpCircle className="h-3 w-3" /></div>
-                          <div className="font-bold text-gray-700">{project.qa_count}</div>
+                        <div className="text-center p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gray-50 group-hover:bg-emerald-50/50 transition-colors">
+                          <div className="text-xs text-gray-400 mb-0.5 sm:mb-1 flex justify-center"><HelpCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" /></div>
+                          <div className="font-bold text-gray-700 text-sm sm:text-base">{project.qa_count}</div>
                         </div>
-                        <div className="text-center p-2 rounded-xl bg-gray-50 group-hover:bg-emerald-50/50 transition-colors">
-                          <div className="text-xs text-gray-400 mb-1 flex justify-center"><Layers className="h-3 w-3" /></div>
-                          <div className="font-bold text-gray-700">{project.flashcards_count}</div>
+                        <div className="text-center p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-gray-50 group-hover:bg-emerald-50/50 transition-colors">
+                          <div className="text-xs text-gray-400 mb-0.5 sm:mb-1 flex justify-center"><Layers className="h-2.5 w-2.5 sm:h-3 sm:w-3" /></div>
+                          <div className="font-bold text-gray-700 text-sm sm:text-base">{project.flashcards_count}</div>
                         </div>
                       </div>
                     </Link>
@@ -521,23 +521,23 @@ export default function Dashboard() {
         
         {/* Create/Edit Modal */}
         {(showCreateModal || showEditModal) && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-8 animate-in fade-in zoom-in-95 duration-200">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-5 sm:p-8 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
                   {showEditModal ? 'Edit Project' : 'Create New Project'}
                 </h2>
                 <button 
                   onClick={() => { setShowCreateModal(false); setShowEditModal(false); }}
-                  className="p-2 text-gray-400 hover:bg-gray-100 rounded-full"
+                  className="p-1.5 sm:p-2 text-gray-400 hover:bg-gray-100 rounded-full"
                 >
-                  <Plus className="h-6 w-6 rotate-45" />
+                  <Plus className="h-5 w-5 sm:h-6 sm:w-6 rotate-45" />
                 </button>
               </div>
 
-              <form onSubmit={showEditModal ? handleUpdateProject : handleCreateProject} className="space-y-6">
+              <form onSubmit={showEditModal ? handleUpdateProject : handleCreateProject} className="space-y-4 sm:space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Project Name</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">Project Name</label>
                   <input
                     type="text"
                     required
@@ -546,28 +546,28 @@ export default function Dashboard() {
                       ? setEditingProject(prev => prev ? {...prev, name: e.target.value} : null)
                       : setNewProject(prev => ({...prev, name: e.target.value}))
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all text-sm sm:text-base"
                     placeholder="e.g., Biology 101"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Description (Optional)</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">Description (Optional)</label>
                   <textarea
                     value={showEditModal ? editingProject?.description : newProject.description}
                     onChange={(e) => showEditModal 
                       ? setEditingProject(prev => prev ? {...prev, description: e.target.value} : null)
                       : setNewProject(prev => ({...prev, description: e.target.value}))
                     }
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all resize-none h-24"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all resize-none h-20 sm:h-24 text-sm sm:text-base"
                     placeholder="What is this project about?"
                   />
                 </div>
 
                 {/* Color Picker */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Color Code</label>
-                  <div className="flex flex-wrap gap-3">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Color Code</label>
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
                     {projectColors.map(color => (
                       <button
                         key={color}
@@ -576,7 +576,7 @@ export default function Dashboard() {
                           ? setEditingProject(prev => prev ? {...prev, color} : null)
                           : setNewProject(prev => ({...prev, color}))
                         }
-                        className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 transition-transform hover:scale-110 ${
                           (showEditModal ? editingProject?.color : newProject.color) === color 
                             ? 'border-gray-900 scale-110' 
                             : 'border-transparent'
@@ -589,8 +589,8 @@ export default function Dashboard() {
 
                 {/* Icon Picker */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">Icon</label>
-                  <div className="grid grid-cols-6 gap-2 max-h-40 overflow-y-auto p-2 border border-gray-100 rounded-xl custom-scrollbar">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2 sm:mb-3">Icon</label>
+                  <div className="grid grid-cols-6 sm:grid-cols-6 gap-1.5 sm:gap-2 max-h-32 sm:max-h-40 overflow-y-auto p-1.5 sm:p-2 border border-gray-100 rounded-lg sm:rounded-xl custom-scrollbar">
                     {projectIcons.map(({ name, icon: Icon }) => (
                       <button
                         key={name}
@@ -599,25 +599,25 @@ export default function Dashboard() {
                           ? setEditingProject(prev => prev ? {...prev, icon: name} : null)
                           : setNewProject(prev => ({...prev, icon: name}))
                         }
-                        className={`p-2 rounded-lg flex items-center justify-center transition-all ${
+                        className={`p-1.5 sm:p-2 rounded-lg flex items-center justify-center transition-all ${
                           (showEditModal ? editingProject?.icon : newProject.icon) === name
                             ? 'bg-emerald-100 text-emerald-700 ring-2 ring-emerald-500'
                             : 'text-gray-500 hover:bg-gray-50'
                         }`}
                       >
-                        <Icon className="h-5 w-5" />
+                        <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
                       </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-1 sm:pt-2">
                   <button
                     type="submit"
                     disabled={isCreating || isUpdating}
-                    className="w-full py-3.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50"
+                    className="w-full py-3 sm:py-3.5 bg-emerald-600 text-white rounded-lg sm:rounded-xl font-bold hover:bg-emerald-700 active:scale-95 transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50 text-sm sm:text-base"
                   >
-                    {isCreating || isUpdating ? <div className="w-5 h-5 mx-auto border-2 border-white border-t-transparent rounded-full animate-spin" /> : (showEditModal ? 'Save Changes' : 'Create Project')}
+                    {isCreating || isUpdating ? <div className="w-4 h-4 sm:w-5 sm:h-5 mx-auto border-2 border-white border-t-transparent rounded-full animate-spin" /> : (showEditModal ? 'Save Changes' : 'Create Project')}
                   </button>
                 </div>
               </form>
@@ -627,26 +627,26 @@ export default function Dashboard() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 text-center animate-in fade-in zoom-in-95 duration-200">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="h-8 w-8 text-red-600" />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-2xl w-full max-w-sm p-5 sm:p-8 text-center animate-in fade-in zoom-in-95 duration-200">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <Trash2 className="h-6 w-6 sm:h-8 sm:w-8 text-red-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Project?</h3>
-              <p className="text-gray-500 text-sm mb-6">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1.5 sm:mb-2">Delete Project?</h3>
+              <p className="text-gray-500 text-xs sm:text-sm mb-4 sm:mb-6">
                 Are you sure you want to delete <span className="font-semibold text-gray-900">"{editingProject?.name}"</span>? This action cannot be undone.
               </p>
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 <button
                   onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+                  className="flex-1 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-lg sm:rounded-xl font-semibold hover:bg-gray-200 transition-colors text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteProject}
                   disabled={isDeleting}
-                  className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20"
+                  className="flex-1 py-2 sm:py-2.5 bg-red-600 text-white rounded-lg sm:rounded-xl font-semibold hover:bg-red-700 transition-colors shadow-lg shadow-red-500/20 text-sm sm:text-base"
                 >
                   {isDeleting ? 'Deleting...' : 'Delete'}
                 </button>

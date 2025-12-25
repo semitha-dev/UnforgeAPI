@@ -8,83 +8,83 @@ export default function TermsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           <Link 
             href="/"
-            className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 text-text-secondary hover:text-text-primary transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium font-body">Back to Home</span>
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="font-medium font-body text-sm sm:text-base">Back</span>
           </Link>
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-accent-foreground" />
+          <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-accent rounded-lg flex items-center justify-center">
+              <Leaf className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
             </div>
-            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
+            <span className="font-bold font-headline text-text-primary text-sm sm:text-base">LeafLearning</span>
           </Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="py-16 bg-gradient-to-br from-accent/5 via-background to-secondary/5">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full border border-accent/20 mb-6">
-            <FileText className="w-4 h-4 text-accent" />
-            <span className="text-sm font-semibold font-cta text-accent">Legal</span>
+      <section className="py-10 sm:py-16 bg-gradient-to-br from-accent/5 via-background to-secondary/5">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-accent/10 rounded-full border border-accent/20 mb-4 sm:mb-6">
+            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
+            <span className="text-xs sm:text-sm font-semibold font-cta text-accent">Legal</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-headline text-primary mb-3 sm:mb-4">
             Legal Policies
           </h1>
-          <p className="text-lg text-text-secondary font-body">
+          <p className="text-base sm:text-lg text-text-secondary font-body">
             Last Updated: January 15, 2025
           </p>
         </div>
       </section>
 
       {/* Quick Navigation */}
-      <section className="py-8 border-b border-border">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <a href="#terms" className="flex flex-col items-center p-4 bg-card rounded-xl border border-border hover:border-accent hover:shadow-card transition-all">
-              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-2">
-                <FileText className="w-5 h-5 text-accent" />
+      <section className="py-6 sm:py-8 border-b border-border">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+            <a href="#terms" className="flex flex-col items-center p-2.5 sm:p-4 bg-card rounded-lg sm:rounded-xl border border-border hover:border-accent hover:shadow-card transition-all">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-accent/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-1.5 sm:mb-2">
+                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
               </div>
-              <span className="text-sm font-medium font-body text-text-primary">Terms of Service</span>
+              <span className="text-xs sm:text-sm font-medium font-body text-text-primary text-center">Terms of Service</span>
             </a>
-            <a href="#privacy" className="flex flex-col items-center p-4 bg-card rounded-xl border border-border hover:border-success hover:shadow-card transition-all">
-              <div className="w-10 h-10 bg-success/10 rounded-xl flex items-center justify-center mb-2">
-                <Shield className="w-5 h-5 text-success" />
+            <a href="#privacy" className="flex flex-col items-center p-2.5 sm:p-4 bg-card rounded-lg sm:rounded-xl border border-border hover:border-success hover:shadow-card transition-all">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-success/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-1.5 sm:mb-2">
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
               </div>
-              <span className="text-sm font-medium font-body text-text-primary">Privacy Policy</span>
+              <span className="text-xs sm:text-sm font-medium font-body text-text-primary text-center">Privacy Policy</span>
             </a>
-            <a href="#refund" className="flex flex-col items-center p-4 bg-card rounded-xl border border-border hover:border-secondary hover:shadow-card transition-all">
-              <div className="w-10 h-10 bg-secondary/10 rounded-xl flex items-center justify-center mb-2">
-                <CreditCard className="w-5 h-5 text-secondary" />
+            <a href="#refund" className="flex flex-col items-center p-2.5 sm:p-4 bg-card rounded-lg sm:rounded-xl border border-border hover:border-secondary hover:shadow-card transition-all">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-secondary/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-1.5 sm:mb-2">
+                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
               </div>
-              <span className="text-sm font-medium font-body text-text-primary">Refund Policy</span>
+              <span className="text-xs sm:text-sm font-medium font-body text-text-primary text-center">Refund Policy</span>
             </a>
-            <a href="#contact" className="flex flex-col items-center p-4 bg-card rounded-xl border border-border hover:border-primary hover:shadow-card transition-all">
-              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mb-2">
-                <Mail className="w-5 h-5 text-primary" />
+            <a href="#contact" className="flex flex-col items-center p-2.5 sm:p-4 bg-card rounded-lg sm:rounded-xl border border-border hover:border-primary hover:shadow-card transition-all">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-1.5 sm:mb-2">
+                <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               </div>
-              <span className="text-sm font-medium font-body text-text-primary">Contact</span>
+              <span className="text-xs sm:text-sm font-medium font-body text-text-primary text-center">Contact</span>
             </a>
           </div>
         </div>
       </section>
 
       {/* Content */}
-      <section className="py-12">
-        <div className="max-w-4xl mx-auto px-6 space-y-12">
+      <section className="py-8 sm:py-12">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8 sm:space-y-12">
           
           {/* Terms of Service */}
           <div id="terms" className="scroll-mt-24">
-            <div className="bg-card rounded-2xl border border-border p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
-                  <FileText className="w-6 h-6 text-accent" />
+            <div className="bg-card rounded-xl sm:rounded-2xl border border-border p-4 sm:p-8 shadow-sm">
+              <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-6">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/10 rounded-lg sm:rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
                 </div>
-                <h2 className="text-2xl font-bold font-headline text-primary">1. Terms of Service</h2>
+                <h2 className="text-xl sm:text-2xl font-bold font-headline text-primary">1. Terms of Service</h2>
               </div>
 
               <div className="space-y-6 text-text-secondary font-body leading-relaxed">
