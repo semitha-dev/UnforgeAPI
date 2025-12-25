@@ -12,6 +12,7 @@ interface Project {
 interface Lesson {
   name: string
   priority: 'high' | 'medium' | 'low'
+  estimatedMinutes?: number
 }
 
 interface ProjectSelection {
@@ -37,6 +38,15 @@ const DAYS_OF_WEEK = [
   { value: 6, label: 'Saturday' }
 ]
 
+const DURATION_OPTIONS = [
+  { value: 15, label: '15 min' },
+  { value: 30, label: '30 min' },
+  { value: 45, label: '45 min' },
+  { value: 60, label: '1 hour' },
+  { value: 90, label: '1.5 hours' },
+  { value: 120, label: '2 hours' }
+]
+
 export default function CreateScheduleModal({ 
   onClose, 
   onSuccess, 
@@ -49,6 +59,7 @@ export default function CreateScheduleModal({
   const [difficulty, setDifficulty] = useState<'low' | 'medium' | 'high'>('medium')
   const [preferredDays, setPreferredDays] = useState<number[]>([1, 2, 3, 4, 5])
   const [preferredTimes, setPreferredTimes] = useState<string[]>(['morning'])
+  const [bufferDay, setBufferDay] = useState<number>(0) // Sunday default, -1 = disabled
   const [projects, setProjects] = useState<Project[]>([])
   const [selectedProjects, setSelectedProjects] = useState<ProjectSelection[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
@@ -64,6 +75,7 @@ export default function CreateScheduleModal({
       // Handle both old single value and new array format
       const times = existingSchedule.preferred_times || existingSchedule.preferred_time
       setPreferredTimes(Array.isArray(times) ? times : [times || 'morning'])
+      setBufferDay(existingSchedule.buffer_day ?? 0)
     }
   }, [])
 
@@ -98,7 +110,7 @@ export default function CreateScheduleModal({
         {
           projectId: project.id,
           projectName: project.name,
-          lessons: [{ name: 'Lesson 1', priority: 'medium' }]
+          lessons: [{ name: 'Lesson 1', priority: 'medium', estimatedMinutes: 30 }]
         }
       ])
     }
@@ -109,7 +121,7 @@ export default function CreateScheduleModal({
       if (p.projectId === projectId) {
         return {
           ...p,
-          lessons: [...p.lessons, { name: `Lesson ${p.lessons.length + 1}`, priority: 'medium' }]
+          lessons: [...p.lessons, { name: `Lesson ${p.lessons.length + 1}`, priority: 'medium', estimatedMinutes: 30 }]
         }
       }
       return p
@@ -131,15 +143,15 @@ export default function CreateScheduleModal({
   const handleLessonChange = (
     projectId: string, 
     lessonIndex: number, 
-    field: 'name' | 'priority', 
-    value: string
+    field: 'name' | 'priority' | 'estimatedMinutes', 
+    value: string | number
   ) => {
     setSelectedProjects(selectedProjects.map(p => {
       if (p.projectId === projectId) {
         return {
           ...p,
           lessons: p.lessons.map((l, i) => 
-            i === lessonIndex ? { ...l, [field]: value } : l
+            i === lessonIndex ? { ...l, [field]: field === 'estimatedMinutes' ? Number(value) : value } : l
           )
         }
       }
@@ -233,6 +245,7 @@ export default function CreateScheduleModal({
           difficulty,
           preferredDays,
           preferredTimes,
+          bufferDay,
           projects: selectedProjects,
           isEdit,
           existingScheduleId: existingSchedule?.id
@@ -372,6 +385,43 @@ export default function CreateScheduleModal({
             </div>
           )}
 
+          {/* Buffer Day (Catch-up Day) */}
+          {!isEdit && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Buffer Day <span className="text-xs text-gray-500">(light day for catching up)</span>
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  onClick={() => setBufferDay(-1)}
+                  className={`p-3 rounded-lg border-2 transition-colors text-sm ${
+                    bufferDay === -1
+                      ? 'border-gray-600 bg-gray-100 text-gray-700'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  None
+                </button>
+                {DAYS_OF_WEEK.filter(d => preferredDays.includes(d.value)).slice(0, 3).map((day) => (
+                  <button
+                    key={day.value}
+                    onClick={() => setBufferDay(day.value)}
+                    className={`p-3 rounded-lg border-2 transition-colors text-sm ${
+                      bufferDay === day.value
+                        ? 'border-amber-500 bg-amber-50 text-amber-700'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    {day.label.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                💡 Buffer days get lighter workloads to help you catch up if you fall behind
+              </p>
+            </div>
+          )}
+
           {/* Project Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -413,18 +463,28 @@ export default function CreateScheduleModal({
                 <h3 className="font-semibold text-gray-900 mb-3">{project.projectName}</h3>
                 <div className="space-y-3">
                   {project.lessons.map((lesson, index) => (
-                    <div key={index} className="flex items-center space-x-3">
+                    <div key={index} className="flex items-center space-x-2">
                       <input
                         type="text"
                         value={lesson.name}
                         onChange={(e) => handleLessonChange(project.projectId, index, 'name', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                         placeholder="Lesson name"
                       />
                       <select
+                        value={lesson.estimatedMinutes || 30}
+                        onChange={(e) => handleLessonChange(project.projectId, index, 'estimatedMinutes', e.target.value)}
+                        className="px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm w-24"
+                        title="Duration"
+                      >
+                        {DURATION_OPTIONS.map(opt => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                      <select
                         value={lesson.priority}
                         onChange={(e) => handleLessonChange(project.projectId, index, 'priority', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="px-2 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                       >
                         <option value="high">High</option>
                         <option value="medium">Medium</option>

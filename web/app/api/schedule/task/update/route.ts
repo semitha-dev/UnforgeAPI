@@ -2,10 +2,96 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 
+// SM-2 Algorithm quality ratings
+type SM2Quality = 0 | 1 | 2 | 3 | 4 | 5;
+// 0-2: "Again" (Failed) - Reset repetition
+// 3: "Hard" - Correct with difficulty
+// 4: "Good" - Correct
+// 5: "Easy" - Perfect recall
+
+interface SM2Result {
+  easinessFactor: number;
+  repetitionNumber: number;
+  intervalDays: number;
+  nextReviewDate: Date;
+}
+
+// Calculate SM-2 algorithm results
+function calculateSM2(
+  currentEF: number,
+  currentRep: number,
+  currentInterval: number,
+  quality: SM2Quality
+): SM2Result {
+  let newEF = currentEF;
+  let newRep = currentRep;
+  let newInterval = currentInterval;
+
+  // Update easiness factor
+  newEF = currentEF + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+  
+  // Clamp EF to minimum 1.3
+  if (newEF < 1.3) newEF = 1.3;
+
+  if (quality < 3) {
+    // Failed - reset repetition count
+    newRep = 0;
+    newInterval = 1;
+  } else {
+    // Passed
+    newRep = currentRep + 1;
+    
+    if (newRep === 1) {
+      newInterval = 1;
+    } else if (newRep === 2) {
+      newInterval = 6;
+    } else {
+      newInterval = Math.round(currentInterval * newEF);
+    }
+  }
+
+  // Calculate next review date
+  const nextReviewDate = new Date();
+  nextReviewDate.setDate(nextReviewDate.getDate() + newInterval);
+
+  return {
+    easinessFactor: Math.round(newEF * 100) / 100,
+    repetitionNumber: newRep,
+    intervalDays: newInterval,
+    nextReviewDate
+  };
+}
+
+// Map user-friendly quality to SM-2 numeric quality
+function mapQualityToSM2(feedback: string): SM2Quality {
+  switch (feedback) {
+    case 'again':
+    case 'hard':
+      return 3; // Correct but difficult
+    case 'good':
+    case 'understood':
+      return 4; // Correct
+    case 'easy':
+      return 5; // Perfect
+    case 'need_work':
+    case 'forgot':
+      return 1; // Failed
+    default:
+      return 4; // Default to "good"
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { taskId, status, scheduleId, isReset } = body;
+    const { 
+      taskId, 
+      status, 
+      scheduleId, 
+      isReset,
+      feedback,        // New: SM-2 quality feedback (easy/good/hard/again)
+      actualMinutes    // New: actual time spent on task
+    } = body;
 
     if (!taskId || !status || !scheduleId) {
       return NextResponse.json(
@@ -43,10 +129,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get current task to access SM-2 fields
+    const { data: currentTask, error: fetchError } = await supabase
+      .from('schedule_tasks')
+      .select('*')
+      .eq('id', taskId)
+      .single();
+
+    if (fetchError || !currentTask) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      );
+    }
+
+    // Prepare update object
+    const updateData: Record<string, any> = {
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    // Add actual minutes if provided
+    if (actualMinutes !== undefined) {
+      updateData.actual_minutes = actualMinutes;
+    }
+
+    // Calculate SM-2 if feedback provided and marking as understood
+    let sm2Result: SM2Result | null = null;
+    if (feedback && status === 'understood') {
+      const quality = mapQualityToSM2(feedback);
+      sm2Result = calculateSM2(
+        currentTask.easiness_factor || 2.5,
+        currentTask.repetition_number || 0,
+        currentTask.interval_days || 1,
+        quality
+      );
+
+      updateData.easiness_factor = sm2Result.easinessFactor;
+      updateData.repetition_number = sm2Result.repetitionNumber;
+      updateData.interval_days = sm2Result.intervalDays;
+      updateData.last_review_quality = quality;
+      updateData.next_review_date = sm2Result.nextReviewDate.toISOString().split('T')[0];
+    }
+
     // Update task status
     const { data: task, error: updateError } = await supabase
       .from('schedule_tasks')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq('id', taskId)
       .select()
       .single();
@@ -61,13 +190,23 @@ export async function POST(request: NextRequest) {
       await rescheduleTask(supabase, task, scheduleId, user.id);
     }
 
+    // If SM-2 calculated and needs future review, schedule it
+    if (sm2Result && status === 'understood' && feedback !== 'easy') {
+      await scheduleNextReview(supabase, task, schedule, sm2Result);
+    }
+
     return NextResponse.json({ 
       success: true,
       message: status === 'pending' 
         ? 'Task status reset'
         : status === 'need_work' 
           ? 'Task marked as need work and rescheduled' 
-          : 'Task marked as understood'
+          : 'Task marked as understood',
+      sm2Result: sm2Result ? {
+        nextReviewDate: sm2Result.nextReviewDate.toISOString().split('T')[0],
+        intervalDays: sm2Result.intervalDays,
+        easinessFactor: sm2Result.easinessFactor
+      } : null
     });
   } catch (error: any) {
     console.error('Error updating task:', error);
@@ -75,6 +214,76 @@ export async function POST(request: NextRequest) {
       { error: error.message || 'Failed to update task' },
       { status: 500 }
     );
+  }
+}
+
+// Schedule next review based on SM-2 calculation
+async function scheduleNextReview(
+  supabase: any,
+  task: any,
+  schedule: any,
+  sm2Result: SM2Result
+) {
+  try {
+    const examDate = new Date(schedule.exam_date);
+    const nextReviewDate = sm2Result.nextReviewDate;
+    
+    // Only schedule if before exam date
+    if (nextReviewDate >= examDate) {
+      console.log('Next review is after exam date, skipping');
+      return;
+    }
+
+    // Check if there's already a future review for this lesson
+    const { data: existingReview, error: checkError } = await supabase
+      .from('schedule_tasks')
+      .select('*')
+      .eq('schedule_id', schedule.id)
+      .eq('lesson_reference', task.lesson_reference)
+      .eq('status', 'pending')
+      .gt('task_date', task.task_date)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing review:', checkError);
+      return;
+    }
+
+    // If already scheduled, update its date instead
+    if (existingReview) {
+      await supabase
+        .from('schedule_tasks')
+        .update({ 
+          task_date: nextReviewDate.toISOString().split('T')[0],
+          easiness_factor: sm2Result.easinessFactor,
+          interval_days: sm2Result.intervalDays
+        })
+        .eq('id', existingReview.id);
+      return;
+    }
+
+    // Create new review task
+    await supabase
+      .from('schedule_tasks')
+      .insert({
+        schedule_id: schedule.id,
+        task_date: nextReviewDate.toISOString().split('T')[0],
+        task_type: 'flashcard',
+        task_name: `Review: ${task.task_name.replace('Review: ', '')}`,
+        project_id: task.project_id,
+        project_name: task.project_name,
+        priority: task.priority,
+        lesson_reference: task.lesson_reference,
+        status: 'pending',
+        estimated_minutes: 15,
+        easiness_factor: sm2Result.easinessFactor,
+        repetition_number: sm2Result.repetitionNumber,
+        interval_days: sm2Result.intervalDays
+      });
+
+    console.log(`Scheduled next review for ${nextReviewDate.toISOString().split('T')[0]}`);
+  } catch (error) {
+    console.error('Error scheduling next review:', error);
   }
 }
 

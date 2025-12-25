@@ -309,7 +309,7 @@ export default function ScheduleCalendar({ schedule, onUpdate }: { schedule: Sch
   )
 }
 
-// Task Status Modal
+// Task Status Modal with SM-2 Feedback
 interface TaskStatusModalProps {
   task: ScheduleTask
   date: Date
@@ -320,8 +320,9 @@ interface TaskStatusModalProps {
 function TaskStatusModal({ task, date, onClose, onUpdate }: TaskStatusModalProps) {
   const [isUpdating, setIsUpdating] = useState(false)
   const [error, setError] = useState('')
+  const [showFeedback, setShowFeedback] = useState(false)
 
-  const handleStatusUpdate = async (status: 'understood' | 'need_work' | 'pending') => {
+  const handleStatusUpdate = async (status: 'understood' | 'need_work' | 'pending', feedback?: string) => {
     setIsUpdating(true)
     setError('')
 
@@ -333,7 +334,8 @@ function TaskStatusModal({ task, date, onClose, onUpdate }: TaskStatusModalProps
           taskId: task.id,
           status,
           scheduleId: task.schedule_id,
-          isReset: status === 'pending'
+          isReset: status === 'pending',
+          feedback: feedback // SM-2 feedback: 'easy', 'good', 'hard', 'again'
         })
       })
 
@@ -404,13 +406,13 @@ function TaskStatusModal({ task, date, onClose, onUpdate }: TaskStatusModalProps
           )}
         </div>
 
-        {task.status === 'pending' && (
+        {task.status === 'pending' && !showFeedback && (
           <div className="space-y-3">
             <p className="text-sm text-gray-600 mb-4">
               Mark your progress on this task:
             </p>
             <button
-              onClick={() => handleStatusUpdate('understood')}
+              onClick={() => setShowFeedback(true)}
               disabled={isUpdating}
               className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
             >
@@ -420,7 +422,7 @@ function TaskStatusModal({ task, date, onClose, onUpdate }: TaskStatusModalProps
               <span>Understood</span>
             </button>
             <button
-              onClick={() => handleStatusUpdate('need_work')}
+              onClick={() => handleStatusUpdate('need_work', 'again')}
               disabled={isUpdating}
               className="w-full py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
             >
@@ -428,6 +430,47 @@ function TaskStatusModal({ task, date, onClose, onUpdate }: TaskStatusModalProps
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>Need Work</span>
+            </button>
+          </div>
+        )}
+
+        {/* SM-2 Feedback Selection */}
+        {task.status === 'pending' && showFeedback && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600 mb-4 text-center">
+              How well did you understand this material?
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleStatusUpdate('understood', 'hard')}
+                disabled={isUpdating}
+                className="py-3 px-4 bg-orange-100 text-orange-800 rounded-lg hover:bg-orange-200 disabled:opacity-50 transition-colors text-sm font-medium border border-orange-200"
+              >
+                😓 Hard
+                <span className="block text-xs opacity-70 mt-1">Got it, but struggled</span>
+              </button>
+              <button
+                onClick={() => handleStatusUpdate('understood', 'good')}
+                disabled={isUpdating}
+                className="py-3 px-4 bg-green-100 text-green-800 rounded-lg hover:bg-green-200 disabled:opacity-50 transition-colors text-sm font-medium border border-green-200"
+              >
+                😊 Good
+                <span className="block text-xs opacity-70 mt-1">Understood well</span>
+              </button>
+              <button
+                onClick={() => handleStatusUpdate('understood', 'easy')}
+                disabled={isUpdating}
+                className="py-3 px-4 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 disabled:opacity-50 transition-colors text-sm font-medium border border-blue-200 col-span-2"
+              >
+                🎯 Easy
+                <span className="block text-xs opacity-70 mt-1">Perfect recall, no hesitation</span>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowFeedback(false)}
+              className="w-full py-2 text-gray-500 hover:text-gray-700 text-sm"
+            >
+              ← Back
             </button>
           </div>
         )}

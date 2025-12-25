@@ -6,6 +6,7 @@ import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogg
 interface Lesson {
   name: string;
   priority: 'high' | 'medium' | 'low';
+  estimatedMinutes?: number; // New: time boxing
 }
 
 interface ProjectSelection {
@@ -14,8 +15,24 @@ interface ProjectSelection {
   lessons: Lesson[];
 }
 
+// Difficulty to daily study minutes mapping
+const DIFFICULTY_MINUTES: Record<string, number> = {
+  low: 60,      // 1 hour/day
+  medium: 120,  // 2 hours/day
+  high: 180     // 3 hours/day
+};
+
+// Default task durations by type
+const DEFAULT_TASK_MINUTES: Record<string, number> = {
+  lesson: 30,
+  flashcard: 15,
+  qa: 20,
+  revision: 45,
+  revise_mistake: 20
+};
+
 export async function POST(request: NextRequest) {
-  console.log('=== SCHEDULE GENERATION START ===');
+  console.log('=== SCHEDULE GENERATION V2 START ===');
   const startTime = Date.now();
   const { ip, userAgent } = getRequestInfo(request);
   
@@ -27,6 +44,7 @@ export async function POST(request: NextRequest) {
       preferredDays,
       preferredTimes,
       projects,
+      bufferDay = 0, // New: buffer day for catch-up (default Sunday)
       isEdit,
       existingScheduleId
     } = body;
@@ -36,6 +54,7 @@ export async function POST(request: NextRequest) {
       difficulty,
       preferredDays,
       preferredTimes,
+      bufferDay,
       projectCount: projects?.length,
       projects: projects?.map((p: ProjectSelection) => ({
         id: p.projectId,
@@ -68,6 +87,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const dailyStudyMinutes = DIFFICULTY_MINUTES[difficulty] || 120;
     let scheduleId = existingScheduleId;
 
     // Create or get existing schedule
@@ -80,7 +100,9 @@ export async function POST(request: NextRequest) {
           exam_date: examDate,
           difficulty,
           preferred_days: preferredDays,
-          preferred_times: preferredTimes // Now stored as PostgreSQL array
+          preferred_times: preferredTimes,
+          buffer_day: bufferDay,
+          daily_study_minutes: dailyStudyMinutes
         })
         .select()
         .single();
@@ -93,22 +115,24 @@ export async function POST(request: NextRequest) {
       console.log('✅ Schedule created with ID:', scheduleId);
     }
 
-    // Generate schedule using simple algorithm (no AI)
-    console.log('🔄 Generating schedule tasks...');
-    const scheduleTasks = generateSchedule(
+    // Generate schedule using V2 algorithm with time-boxing
+    console.log('🔄 Generating schedule tasks with time-boxing...');
+    const scheduleTasks = generateScheduleV2(
       examDate,
       difficulty,
       preferredDays,
       preferredTimes,
       projects,
+      bufferDay,
+      dailyStudyMinutes,
       isEdit
     );
     console.log('📊 Generated tasks count:', scheduleTasks.length);
     console.log('📊 Generated tasks sample:', scheduleTasks.slice(0, 3));
 
-    // Insert tasks into database
+    // Insert tasks into database with new fields
     const tasksToInsert = scheduleTasks
-      .filter(task => task.projectId && task.projectId !== '') // Filter out any invalid tasks
+      .filter(task => task.projectId && task.projectId !== '')
       .map(task => ({
         schedule_id: scheduleId,
         task_date: task.date,
@@ -118,17 +142,16 @@ export async function POST(request: NextRequest) {
         project_name: task.projectName,
         priority: task.priority,
         lesson_reference: task.lessonReference,
-        status: 'pending'
+        status: 'pending',
+        // New V2 fields
+        estimated_minutes: task.estimatedMinutes,
+        easiness_factor: 2.5,
+        repetition_number: 0,
+        interval_days: 1,
+        next_review_date: task.nextReviewDate || null
       }));
 
     console.log('📊 Tasks after filtering:', tasksToInsert.length);
-    console.log('📊 Tasks to insert sample:', tasksToInsert.slice(0, 3));
-
-    // Check for any invalid project IDs
-    const invalidTasks = scheduleTasks.filter(task => !task.projectId || task.projectId === '');
-    if (invalidTasks.length > 0) {
-      console.log('⚠️ Filtered out invalid tasks:', invalidTasks);
-    }
 
     if (tasksToInsert.length === 0) {
       console.log('❌ No valid tasks to insert');
@@ -158,6 +181,8 @@ export async function POST(request: NextRequest) {
         taskCount: tasksToInsert.length, 
         projectCount: projects.length,
         difficulty,
+        dailyStudyMinutes,
+        bufferDay,
         examDate 
       },
       ip_address: ip,
@@ -166,7 +191,7 @@ export async function POST(request: NextRequest) {
       duration_ms: Date.now() - startTime,
     });
 
-    console.log('✅ Schedule generation complete!');
+    console.log('✅ Schedule generation V2 complete!');
     return NextResponse.json({ success: true, scheduleId }, { status: 201 });
   } catch (error: any) {
     console.error('❌ Error generating schedule:', error);
@@ -177,6 +202,302 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// V2 Schedule Generation with Time-Boxing
+function generateScheduleV2(
+  examDate: string,
+  difficulty: string,
+  preferredDays: number[],
+  preferredTimes: string[],
+  projects: ProjectSelection[],
+  bufferDay: number,
+  dailyStudyMinutes: number,
+  isEdit: boolean
+) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const exam = new Date(examDate);
+  exam.setHours(23, 59, 59, 999);
+  
+  const daysUntilExam = Math.ceil((exam.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  // Collect all lessons with metadata and estimated duration
+  const allLessons: Array<{ 
+    project: ProjectSelection; 
+    lesson: Lesson;
+    weight: number;
+    estimatedMinutes: number;
+  }> = [];
+
+  const priorityWeights = { high: 3, medium: 2, low: 1 };
+
+  projects.forEach(project => {
+    project.lessons.forEach(lesson => {
+      allLessons.push({ 
+        project, 
+        lesson,
+        weight: priorityWeights[lesson.priority],
+        estimatedMinutes: lesson.estimatedMinutes || DEFAULT_TASK_MINUTES.lesson
+      });
+    });
+  });
+
+  // Sort by priority (high first)
+  allLessons.sort((a, b) => {
+    if (b.weight !== a.weight) return b.weight - a.weight;
+    return a.project.projectName.localeCompare(b.project.projectName);
+  });
+
+  // Get all available study dates (excluding buffer days for regular scheduling)
+  const studyDates: Date[] = [];
+  const bufferDates: Date[] = [];
+  let currentDate = new Date(today);
+  currentDate.setDate(currentDate.getDate() + 1);
+  
+  while (currentDate < exam) {
+    const dayOfWeek = currentDate.getDay();
+    if (dayOfWeek === bufferDay && bufferDay !== -1) {
+      // This is a buffer day - keep it light
+      bufferDates.push(new Date(currentDate));
+    } else if (preferredDays.includes(dayOfWeek)) {
+      studyDates.push(new Date(currentDate));
+    }
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  if (studyDates.length === 0) {
+    return [];
+  }
+
+  // Calculate phases
+  const totalStudyDays = studyDates.length;
+  const revisionDays = Math.max(2, Math.min(7, Math.floor(totalStudyDays * 0.2)));
+  const learningDays = totalStudyDays - revisionDays;
+
+  const tasks: Array<{
+    date: string;
+    type: string;
+    name: string;
+    projectId: string;
+    projectName: string;
+    priority: string;
+    lessonReference: string;
+    estimatedMinutes: number;
+    nextReviewDate?: string;
+  }> = [];
+
+  // Track daily time budget
+  const dayTimeUsed: Map<string, number> = new Map();
+  
+  const getDateKey = (date: Date) => date.toISOString().split('T')[0];
+  
+  const getRemainingTime = (date: Date) => {
+    const key = getDateKey(date);
+    const used = dayTimeUsed.get(key) || 0;
+    // Buffer days get 30% of normal time
+    const isBuffer = bufferDates.some(d => d.getTime() === date.getTime());
+    const maxTime = isBuffer ? dailyStudyMinutes * 0.3 : dailyStudyMinutes;
+    return maxTime - used;
+  };
+
+  const addTask = (date: Date, task: typeof tasks[0]): boolean => {
+    const remaining = getRemainingTime(date);
+    if (remaining >= task.estimatedMinutes) {
+      const key = getDateKey(date);
+      tasks.push({ ...task, date: key });
+      dayTimeUsed.set(key, (dayTimeUsed.get(key) || 0) + task.estimatedMinutes);
+      return true;
+    }
+    return false;
+  };
+
+  // Find next date with enough time
+  const findNextSlot = (startDate: Date, maxDate: Date, requiredMinutes: number, includeBuffer = false): Date | null => {
+    let checkDate = new Date(startDate);
+    const datesToCheck = includeBuffer ? [...studyDates, ...bufferDates].sort((a, b) => a.getTime() - b.getTime()) : studyDates;
+    
+    for (const date of datesToCheck) {
+      if (date >= checkDate && date <= maxDate) {
+        if (getRemainingTime(date) >= requiredMinutes) {
+          return date;
+        }
+      }
+    }
+    return null;
+  };
+
+  // Phase 1: Schedule initial learning of all lessons
+  let lessonDateIndex = 0;
+  const lessonScheduledDates: Map<number, Date> = new Map();
+  
+  for (let i = 0; i < allLessons.length; i++) {
+    const { project, lesson, estimatedMinutes } = allLessons[i];
+    
+    const learningEndDate = studyDates[Math.min(learningDays - 1, studyDates.length - 1)];
+    const startSearchDate = lessonDateIndex < studyDates.length ? studyDates[lessonDateIndex] : studyDates[0];
+    const slotDate = findNextSlot(startSearchDate, learningEndDate, estimatedMinutes);
+    
+    if (slotDate) {
+      addTask(slotDate, {
+        date: '',
+        type: 'lesson',
+        name: lesson.name,
+        projectId: project.projectId,
+        projectName: project.projectName,
+        priority: lesson.priority,
+        lessonReference: lesson.name,
+        estimatedMinutes
+      });
+      lessonScheduledDates.set(i, new Date(slotDate));
+      
+      // Move forward based on time used
+      const idx = studyDates.findIndex(d => d >= slotDate);
+      lessonDateIndex = idx + 1;
+    }
+  }
+
+  // Phase 2: Add spaced repetition reviews (SM-2 initial intervals)
+  // Initial review after 1 day, then calculated based on feedback
+  lessonScheduledDates.forEach((learnDate, lessonIdx) => {
+    const { project, lesson, estimatedMinutes } = allLessons[lessonIdx];
+    const reviewMinutes = DEFAULT_TASK_MINUTES.flashcard;
+    
+    // First review after 1 day
+    const firstReview = new Date(learnDate);
+    firstReview.setDate(firstReview.getDate() + 1);
+    
+    const revisionStartDate = studyDates[studyDates.length - revisionDays];
+    if (firstReview <= exam && firstReview < revisionStartDate) {
+      // Try buffer day first, then regular days
+      let slotDate = findNextSlot(firstReview, revisionStartDate, reviewMinutes, true);
+      if (slotDate) {
+        // Calculate next review date based on SM-2 (Good response assumed)
+        const nextReview = new Date(slotDate);
+        nextReview.setDate(nextReview.getDate() + 4); // SM-2: Good = 4 days
+        
+        addTask(slotDate, {
+          date: '',
+          type: 'flashcard',
+          name: `Review: ${lesson.name}`,
+          projectId: project.projectId,
+          projectName: project.projectName,
+          priority: lesson.priority,
+          lessonReference: lesson.name,
+          estimatedMinutes: reviewMinutes,
+          nextReviewDate: nextReview <= exam ? getDateKey(nextReview) : undefined
+        });
+      }
+    }
+  });
+
+  // Phase 3: Add Q&A practice sessions
+  const qaMinutes = DEFAULT_TASK_MINUTES.qa;
+  const qaInterval = Math.max(3, Math.floor(learningDays / Math.min(allLessons.length, 5)));
+  let qaDateIndex = qaInterval;
+  
+  for (let i = 0; i < Math.min(allLessons.length, Math.floor(learningDays / qaInterval)); i++) {
+    if (qaDateIndex < learningDays && qaDateIndex < studyDates.length) {
+      const { project, lesson } = allLessons[i % allLessons.length];
+      const qaDate = studyDates[qaDateIndex];
+      
+      const slotDate = findNextSlot(qaDate, studyDates[learningDays - 1] || qaDate, qaMinutes, true);
+      if (slotDate) {
+        addTask(slotDate, {
+          date: '',
+          type: 'qa',
+          name: `Practice Q&A: ${lesson.name}`,
+          projectId: project.projectId,
+          projectName: project.projectName,
+          priority: lesson.priority,
+          lessonReference: lesson.name,
+          estimatedMinutes: qaMinutes
+        });
+      }
+      qaDateIndex += qaInterval;
+    }
+  }
+
+  // Phase 4: Final revision period
+  const revisionMinutes = DEFAULT_TASK_MINUTES.revision;
+  const revisionStartIndex = studyDates.length - revisionDays;
+  
+  if (revisionStartIndex >= 0 && revisionStartIndex < studyDates.length) {
+    // Group lessons by project
+    const projectLessons = new Map<string, typeof allLessons>();
+    allLessons.forEach(item => {
+      const key = item.project.projectId;
+      if (!projectLessons.has(key)) {
+        projectLessons.set(key, []);
+      }
+      projectLessons.get(key)!.push(item);
+    });
+
+    let revisionDayIdx = revisionStartIndex;
+    
+    projectLessons.forEach((lessons, projectId) => {
+      if (revisionDayIdx < studyDates.length) {
+        const project = lessons[0].project;
+        const slotDate = findNextSlot(studyDates[revisionDayIdx], exam, revisionMinutes);
+        
+        if (slotDate) {
+          addTask(slotDate, {
+            date: '',
+            type: 'revision',
+            name: `Full Review: ${project.projectName}`,
+            projectId: project.projectId,
+            projectName: project.projectName,
+            priority: 'high',
+            lessonReference: 'comprehensive_review',
+            estimatedMinutes: revisionMinutes
+          });
+        }
+        revisionDayIdx++;
+      }
+    });
+
+    // Final day task
+    const finalDayDate = studyDates[studyDates.length - 1];
+    if (finalDayDate && allLessons.length > 0) {
+      const firstProject = allLessons[0].project;
+      addTask(finalDayDate, {
+        date: '',
+        type: 'revision',
+        name: 'Final Review & Rest',
+        projectId: firstProject.projectId,
+        projectName: 'All Subjects',
+        priority: 'high',
+        lessonReference: 'final_review',
+        estimatedMinutes: 30
+      });
+    }
+
+    // Day before exam - quick high-priority reviews
+    if (studyDates.length >= 2) {
+      const dayBeforeExam = studyDates[studyDates.length - 2];
+      if (dayBeforeExam) {
+        const highPriorityLessons = allLessons.filter(l => l.lesson.priority === 'high').slice(0, 3);
+        highPriorityLessons.forEach(item => {
+          addTask(dayBeforeExam, {
+            date: '',
+            type: 'flashcard',
+            name: `Quick Review: ${item.lesson.name}`,
+            projectId: item.project.projectId,
+            projectName: item.project.projectName,
+            priority: 'high',
+            lessonReference: item.lesson.name,
+            estimatedMinutes: 10
+          });
+        });
+      }
+    }
+  }
+
+  // Sort tasks by date
+  tasks.sort((a, b) => a.date.localeCompare(b.date));
+
+  return tasks;
+}
+
+// Legacy function for backwards compatibility
 function generateSchedule(
   examDate: string,
   difficulty: string,

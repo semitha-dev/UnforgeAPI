@@ -7,6 +7,9 @@ import { createClient } from '@/app/lib/supabaseClient'
 import { Loading } from '@/components/ui/loading'
 import CreateScheduleModal from './CreateScheduleModal'
 import ScheduleCalendar from './ScheduleCalendar'
+import TodayFocusView from './TodayFocusView'
+import ExamReadinessScore from './ExamReadinessScore'
+import ScheduleActions from './ScheduleActions'
 
 interface Schedule {
   id: string
@@ -16,7 +19,12 @@ interface Schedule {
   preferred_days: number[]
   preferred_time: string
   created_at: string
+  buffer_day?: number
+  daily_study_minutes?: number
+  cram_mode_enabled?: boolean
 }
+
+type ViewMode = 'calendar' | 'today' | 'analytics'
 
 export default function SchedulePage() {
   const params = useParams()
@@ -30,6 +38,7 @@ export default function SchedulePage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>('calendar')
 
   useEffect(() => {
     loadSchedule()
@@ -161,10 +170,75 @@ export default function SchedulePage() {
       {/* Content */}
       <div>
         {schedule ? (
-          <ScheduleCalendar 
-            schedule={schedule} 
-            onUpdate={loadSchedule}
-          />
+          <div className="space-y-6">
+            {/* View Mode Tabs */}
+            <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1 w-fit">
+              <button
+                onClick={() => setViewMode('today')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === 'today'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                📋 Today
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === 'calendar'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                📅 Calendar
+              </button>
+              <button
+                onClick={() => setViewMode('analytics')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === 'analytics'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                📊 Analytics
+              </button>
+            </div>
+
+            {/* View Content */}
+            {viewMode === 'today' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <TodayFocusView 
+                    scheduleId={schedule.id}
+                    onTaskClick={(taskId) => setViewMode('calendar')}
+                  />
+                </div>
+                <div className="space-y-6">
+                  <ExamReadinessScore scheduleId={schedule.id} compact />
+                  <ScheduleActions scheduleId={schedule.id} onUpdate={loadSchedule} />
+                </div>
+              </div>
+            )}
+
+            {viewMode === 'calendar' && (
+              <ScheduleCalendar 
+                schedule={schedule} 
+                onUpdate={loadSchedule}
+              />
+            )}
+
+            {viewMode === 'analytics' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <ExamReadinessScore scheduleId={schedule.id} />
+                </div>
+                <div>
+                  <ScheduleActions scheduleId={schedule.id} onUpdate={loadSchedule} />
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="text-center py-16">
             <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
