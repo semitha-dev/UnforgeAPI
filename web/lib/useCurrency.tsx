@@ -10,6 +10,8 @@ interface CurrencyInfo {
   rate: number
   convert: (usd: number) => number
   format: (usd: number) => string
+  formatPrice: (usd: number) => string
+  formatPerToken: (usd: number) => string
   loading: boolean
 }
 
