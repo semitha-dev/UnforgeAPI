@@ -24,7 +24,7 @@ interface Schedule {
   cram_mode_enabled?: boolean
 }
 
-type ViewMode = 'calendar' | 'today' | 'analytics'
+type ViewMode = 'calendar' | 'today' | 'analytics' | 'actions'
 
 export default function SchedulePage() {
   const params = useParams()
@@ -203,6 +203,16 @@ export default function SchedulePage() {
               >
                 📊 Analytics
               </button>
+              <button
+                onClick={() => setViewMode('actions')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  viewMode === 'actions'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                ⚡ Actions
+              </button>
             </div>
 
             {/* View Content */}
@@ -214,9 +224,8 @@ export default function SchedulePage() {
                     onTaskClick={(taskId) => setViewMode('calendar')}
                   />
                 </div>
-                <div className="space-y-6">
+                <div>
                   <ExamReadinessScore scheduleId={schedule.id} compact />
-                  <ScheduleActions scheduleId={schedule.id} onUpdate={loadSchedule} />
                 </div>
               </div>
             )}
@@ -229,14 +238,11 @@ export default function SchedulePage() {
             )}
 
             {viewMode === 'analytics' && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <ExamReadinessScore scheduleId={schedule.id} />
-                </div>
-                <div>
-                  <ScheduleActions scheduleId={schedule.id} onUpdate={loadSchedule} />
-                </div>
-              </div>
+              <ExamReadinessScore scheduleId={schedule.id} />
+            )}
+
+            {viewMode === 'actions' && (
+              <ScheduleActions scheduleId={schedule.id} onUpdate={loadSchedule} />
             )}
           </div>
         ) : (

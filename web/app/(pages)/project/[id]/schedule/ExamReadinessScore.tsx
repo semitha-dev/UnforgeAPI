@@ -85,370 +85,364 @@ export default function ExamReadinessScore({ scheduleId, compact = false }: Exam
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6 animate-pulse">
-        <div className="h-32 bg-gray-200 rounded"></div>
+      <div className="space-y-6 animate-pulse">
+        <div className="bg-white rounded-2xl p-8 h-48"></div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <div key={i} className="bg-white rounded-xl h-24"></div>)}
+        </div>
       </div>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-6 text-center text-red-500">
+      <div className="bg-white rounded-2xl p-8 text-center text-red-500">
         {error || 'No data available'}
       </div>
     )
   }
 
-  const { readinessScore, progress, time, overdue, streak, daysUntilExam, priority } = data
+  const { readinessScore, progress, time, overdue, streak, daysUntilExam, priority, burnDown } = data
+
+  // Get theme colors based on score
+  const getThemeColors = (score: number) => {
+    if (score >= 90) return { bg: 'bg-green-50', border: 'border-green-100', accent: '#22c55e', badge: 'bg-green-100 text-green-700' }
+    if (score >= 75) return { bg: 'bg-blue-50', border: 'border-blue-100', accent: '#3b82f6', badge: 'bg-blue-100 text-blue-700' }
+    if (score >= 50) return { bg: 'bg-amber-50', border: 'border-amber-100', accent: '#f59e0b', badge: 'bg-amber-100 text-amber-700' }
+    if (score >= 25) return { bg: 'bg-orange-50', border: 'border-orange-100', accent: '#f97316', badge: 'bg-orange-100 text-orange-700' }
+    return { bg: 'bg-red-50', border: 'border-red-100', accent: '#ef4444', badge: 'bg-red-100 text-red-700' }
+  }
+
+  const theme = getThemeColors(readinessScore.score)
 
   // Compact view for sidebar/dashboard
   if (compact) {
     return (
-      <div className="bg-white rounded-xl shadow-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-700">Exam Readiness</h3>
-          <span className="text-xs text-gray-500">{daysUntilExam} days left</span>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Exam Readiness</h3>
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{daysUntilExam} days left</span>
         </div>
         
         {/* Circular Progress */}
-        <div className="flex items-center justify-center mb-3">
-          <div className="relative w-20 h-20">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke="#e5e7eb"
-                strokeWidth="12"
-              />
-              <circle
-                cx="50"
-                cy="50"
-                r="40"
-                fill="none"
-                stroke={readinessScore.color}
-                strokeWidth="12"
-                strokeLinecap="round"
-                strokeDasharray={`${(readinessScore.score / 100) * 251} 251`}
-              />
+        <div className="flex items-center justify-center mb-4">
+          <div className="relative w-24 h-24">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="#e5e7eb" strokeWidth="8" />
+              <circle cx="50" cy="50" r="42" fill="none" stroke={readinessScore.color} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(readinessScore.score / 100) * 264} 264`} />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-xl font-bold" style={{ color: readinessScore.color }}>
-                {readinessScore.score}
-              </span>
+              <span className="text-2xl font-black text-gray-900">{readinessScore.score}</span>
+              <span className="text-xs text-gray-400">/ 100</span>
             </div>
           </div>
         </div>
         
-        <p className="text-center text-sm font-medium" style={{ color: readinessScore.color }}>
+        <div className={`text-center text-sm font-bold px-3 py-1.5 rounded-full inline-flex items-center gap-1.5 w-full justify-center ${theme.badge}`}>
+          <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: readinessScore.color }}></span>
           {readinessScore.label}
-        </p>
+        </div>
       </div>
     )
   }
 
+  // Calculate burn-down chart path
+  const burnDownPath = generateBurnDownPath(burnDown, progress.total)
+
   // Full view
   return (
     <div className="space-y-6">
-      {/* Main Readiness Card */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-        <div 
-          className="p-6"
-          style={{ backgroundColor: `${readinessScore.color}15` }}
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Exam Readiness</h2>
-              <p className="text-gray-600">
-                {daysUntilExam} days until {new Date(data.examDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
-              </p>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">Performance Overview</h1>
+          <p className="text-gray-500 mt-2">Track your study progress and exam readiness metrics.</p>
+        </div>
+        <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
+          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span className="text-sm font-medium text-gray-700">
+            {daysUntilExam} days until exam ({new Date(data.examDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* Left Column: Main Readiness & Stats (8 cols) */}
+        <div className="xl:col-span-8 flex flex-col gap-6">
+          {/* Main Readiness Card */}
+          <div className={`relative overflow-hidden rounded-2xl ${theme.bg} p-8 border ${theme.border} shadow-sm flex flex-col md:flex-row items-center justify-between gap-8`}>
+            <div className="flex flex-col gap-4 max-w-md z-10">
+              <div className={`inline-flex items-center gap-2 self-start rounded-full ${theme.badge} px-3 py-1 text-xs font-bold uppercase tracking-wide`}>
+                <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: theme.accent }}></span>
+                {readinessScore.label}
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">{getMotivationalTitle(readinessScore.score)}</h2>
+              <p className="text-gray-600">{getMotivationalDescription(readinessScore.score, priority.high)}</p>
+              <button className="mt-2 w-fit text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg flex items-center gap-2" style={{ backgroundColor: theme.accent }}>
+                <span>Continue Studying</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
             
-            {/* Big Score Circle */}
-            <div className="relative w-28 h-28">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="42"
-                  fill="none"
-                  stroke="#e5e7eb"
-                  strokeWidth="10"
-                />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="42"
-                  fill="none"
-                  stroke={readinessScore.color}
-                  strokeWidth="10"
-                  strokeLinecap="round"
-                  strokeDasharray={`${(readinessScore.score / 100) * 264} 264`}
-                />
+            {/* Circular Progress */}
+            <div className="relative w-40 md:w-48 h-40 md:h-48 shrink-0 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" className="text-gray-200" strokeWidth="8" />
+                <circle cx="50" cy="50" r="42" fill="none" stroke={theme.accent} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${(readinessScore.score / 100) * 264} 264`} />
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-3xl font-bold" style={{ color: readinessScore.color }}>
-                  {readinessScore.score}
-                </span>
-                <span className="text-xs text-gray-500">/ 100</span>
+              <div className="absolute flex flex-col items-center">
+                <span className="text-4xl md:text-5xl font-black text-gray-900">{readinessScore.score}</span>
+                <span className="text-sm font-medium text-gray-400">/ 100</span>
+              </div>
+            </div>
+            
+            {/* Abstract bg pattern */}
+            <div className="absolute right-0 top-0 h-full w-1/3 opacity-10 pointer-events-none" style={{ background: `radial-gradient(circle at center, ${theme.accent} 0%, transparent 70%)` }} />
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard icon={<FireIcon />} label="Current Streak" value={streak.current} unit="Days" />
+            <StatCard icon={<CheckCircleIcon />} label="Completed" value={progress.completed} unit={`/${progress.total}`} />
+            <StatCard icon={<TimerIcon />} label="Invested" value={Math.round(time.completedMinutes / 60 * 10) / 10} unit="hrs" />
+            <StatCard icon={<TrophyIcon />} label="Best Streak" value={streak.longest} unit="Days" />
+          </div>
+
+          {/* Burn-down Chart */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col gap-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Burn-down Chart</h3>
+                <p className="text-sm text-gray-500">Tasks remaining vs. Ideal pace</p>
+              </div>
+              <div className="flex gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                  <span className="text-gray-600">Actual</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border border-gray-400 border-dashed"></span>
+                  <span className="text-gray-600">Ideal</span>
+                </div>
+              </div>
+            </div>
+            <div className="w-full h-64 relative">
+              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                {[0, 25, 50, 75].map(y => (
+                  <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="#e5e7eb" strokeDasharray="2" strokeWidth="0.5" />
+                ))}
+                <line x1="0" y1="100" x2="100" y2="100" stroke="#e5e7eb" strokeWidth="0.5" />
+                <path d="M0,0 L100,100" fill="none" stroke="#9ca3af" strokeDasharray="4" strokeWidth="1.5" opacity="0.6" />
+                <path d={burnDownPath.linePath} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                {burnDownPath.currentPoint && (
+                  <circle cx={burnDownPath.currentPoint.x} cy={burnDownPath.currentPoint.y} r="2" fill="white" stroke="#3b82f6" strokeWidth="1.5" />
+                )}
+                <defs>
+                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.1" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d={burnDownPath.fillPath} fill="url(#chartGradient)" stroke="none" />
+              </svg>
+              <div className="flex justify-between mt-2 text-xs text-gray-400 font-medium uppercase">
+                <span>Start</span>
+                <span>Week 1</span>
+                <span>Week 2</span>
+                <span>Week 3</span>
+                <span>Finals</span>
               </div>
             </div>
           </div>
-          
-          <div 
-            className="mt-4 px-4 py-2 rounded-full inline-block text-sm font-semibold"
-            style={{ 
-              backgroundColor: readinessScore.color,
-              color: 'white'
-            }}
-          >
-            {readinessScore.label}
-          </div>
         </div>
 
-        {/* Score Breakdown */}
-        <div className="p-6 border-t border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Score Breakdown</h3>
-          <div className="space-y-3">
-            <BreakdownBar 
-              label="Completion" 
-              value={readinessScore.breakdown.completion}
-              color="#6366f1"
-            />
-            <BreakdownBar 
-              label="High Priority" 
-              value={readinessScore.breakdown.highPriority}
-              color="#ef4444"
-            />
-            <BreakdownBar 
-              label="Schedule Adherence" 
-              value={readinessScore.breakdown.adherence}
-              color="#f59e0b"
-            />
-            <BreakdownBar 
-              label="Time Comfort" 
-              value={readinessScore.breakdown.timeComfort}
-              color="#10b981"
-            />
-            <BreakdownBar 
-              label="Consistency" 
-              value={readinessScore.breakdown.consistency}
-              color="#8b5cf6"
-            />
+        {/* Right Column: Breakdown & Tips (4 cols) */}
+        <div className="xl:col-span-4 flex flex-col gap-6">
+          {/* Score Breakdown */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col gap-6">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Score Breakdown</h3>
+              <p className="text-sm text-gray-500">Weighted factors contributing to your score</p>
+            </div>
+            <div className="flex flex-col gap-5">
+              <BreakdownBar label="Completion" weight="30%" value={readinessScore.breakdown.completion} color="#6366f1" />
+              <BreakdownBar label="High Priority" weight="25%" value={readinessScore.breakdown.highPriority} color="#ef4444" />
+              <BreakdownBar label="Adherence" weight="20%" value={readinessScore.breakdown.adherence} color="#f59e0b" />
+              <BreakdownBar label="Time Comfort" weight="15%" value={readinessScore.breakdown.timeComfort} color="#22c55e" />
+              <BreakdownBar label="Consistency" weight="10%" value={readinessScore.breakdown.consistency} color="#a855f7" />
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard 
-          icon="🔥"
-          label="Current Streak"
-          value={streak.current}
-          subtext="days"
-          color="orange"
-        />
-        <StatCard 
-          icon="🏆"
-          label="Longest Streak"
-          value={streak.longest}
-          subtext="days"
-          color="yellow"
-        />
-        <StatCard 
-          icon="✅"
-          label="Completed"
-          value={progress.completed}
-          subtext={`of ${progress.total}`}
-          color="green"
-        />
-        <StatCard 
-          icon="⏱️"
-          label="Time Left"
-          value={Math.round(time.remainingMinutes / 60)}
-          subtext="hours"
-          color="blue"
-        />
-      </div>
-
-      {/* Priority Progress */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Priority Progress</h3>
-        <div className="space-y-4">
-          <PriorityProgress 
-            label="High Priority"
-            completed={priority.high.completed}
-            total={priority.high.total}
-            color="#ef4444"
-          />
-          <PriorityProgress 
-            label="Medium Priority"
-            completed={priority.medium.completed}
-            total={priority.medium.total}
-            color="#f59e0b"
-          />
-          <PriorityProgress 
-            label="Low Priority"
-            completed={priority.low.completed}
-            total={priority.low.total}
-            color="#22c55e"
-          />
-        </div>
-      </div>
-
-      {/* Overdue Warning */}
-      {overdue.count > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-          <div className="flex items-center space-x-3 mb-3">
-            <span className="text-2xl">⚠️</span>
-            <h3 className="text-lg font-semibold text-red-800">
-              {overdue.count} Overdue Tasks
-            </h3>
+          {/* Priority Progress */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col gap-5">
+            <h3 className="text-lg font-bold text-gray-900">Priority Focus</h3>
+            <PriorityRow level="HIGH" completed={priority.high.completed} total={priority.high.total} color="red" label="Critical" />
+            <PriorityRow level="MED" completed={priority.medium.completed} total={priority.medium.total} color="blue" label="Standard" />
+            <PriorityRow level="LOW" completed={priority.low.completed} total={priority.low.total} color="gray" label="Optional" />
           </div>
-          <p className="text-sm text-red-600 mb-4">
-            These tasks were scheduled for past dates and haven't been completed yet.
-          </p>
-          <div className="space-y-2">
-            {overdue.tasks.slice(0, 3).map(task => (
-              <div key={task.id} className="flex items-center justify-between bg-white p-3 rounded-lg">
-                <span className="text-sm font-medium text-gray-900">{task.name}</span>
-                <span className="text-xs text-red-500">{task.date}</span>
+
+          {/* Smart Tips Widget */}
+          <div className="bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-xl shadow-lg p-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl"></div>
+            <div className="flex items-start gap-3 relative z-10">
+              <span className="text-yellow-300 text-2xl">💡</span>
+              <div>
+                <h3 className="font-bold text-lg mb-2">Smart Tip</h3>
+                <p className="text-sm text-gray-300 leading-relaxed mb-4">
+                  {getStudyTip(readinessScore.score, daysUntilExam, overdue.count, priority.high)}
+                </p>
+                {overdue.count > 0 && (
+                  <span className="inline-flex items-center text-xs font-bold text-yellow-300 hover:text-yellow-200 tracking-wide uppercase cursor-pointer">
+                    View Overdue Tasks
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                )}
               </div>
-            ))}
-            {overdue.count > 3 && (
-              <p className="text-xs text-red-500 text-center">
-                +{overdue.count - 3} more overdue tasks
-              </p>
-            )}
+            </div>
           </div>
+
+          {/* Overdue Warning */}
+          {overdue.count > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xl">⚠️</span>
+                <h3 className="text-base font-bold text-red-800">{overdue.count} Overdue Tasks</h3>
+              </div>
+              <div className="space-y-2">
+                {overdue.tasks.slice(0, 3).map(task => (
+                  <div key={task.id} className="flex items-center justify-between bg-white p-2.5 rounded-lg text-sm">
+                    <span className="font-medium text-gray-700 truncate">{task.name}</span>
+                    <span className="text-xs text-red-500 ml-2">{task.date}</span>
+                  </div>
+                ))}
+                {overdue.count > 3 && <p className="text-xs text-red-500 text-center pt-1">+{overdue.count - 3} more</p>}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Study Tip */}
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
-        <div className="flex items-start space-x-4">
-          <span className="text-3xl">💡</span>
-          <div>
-            <h3 className="font-semibold mb-1">Study Tip</h3>
-            <p className="text-sm text-indigo-100">
-              {getStudyTip(readinessScore.score, daysUntilExam, overdue.count)}
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   )
 }
 
-// Breakdown Bar Component
-function BreakdownBar({ label, value, color }: { label: string; value: number; color: string }) {
+// Icons
+function FireIcon() {
+  return <svg className="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" /></svg>
+}
+function CheckCircleIcon() {
+  return <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+}
+function TimerIcon() {
+  return <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
+}
+function TrophyIcon() {
+  return <svg className="w-5 h-5 text-purple-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 5a3 3 0 015-2.236A3 3 0 0114.83 6H16a2 2 0 110 4h-1a1 1 0 01-1-1v-.17A3.001 3.001 0 0114 10a3 3 0 11-5.83 1H7a1 1 0 01-1 1H4a2 2 0 110-4h1.17A3.001 3.001 0 015 6V5zm5 3a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" /></svg>
+}
+
+function StatCard({ icon, label, value, unit }: { icon: React.ReactNode; label: string; value: number; unit: string }) {
   return (
-    <div>
-      <div className="flex items-center justify-between text-sm mb-1">
-        <span className="text-gray-600">{label}</span>
-        <span className="font-semibold" style={{ color }}>{value}%</span>
+    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-1">
+      <div className="flex items-center gap-2 text-gray-500 mb-1">
+        {icon}
+        <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
       </div>
-      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-        <div 
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${value}%`, backgroundColor: color }}
-        />
-      </div>
+      <p className="text-2xl font-bold text-gray-900">{value}<span className="text-base text-gray-400 font-normal ml-1">{unit}</span></p>
     </div>
   )
 }
 
-// Stat Card Component
-function StatCard({ 
-  icon, 
-  label, 
-  value, 
-  subtext, 
-  color 
-}: { 
-  icon: string
-  label: string
-  value: number
-  subtext: string
-  color: string
-}) {
-  const bgColors: Record<string, string> = {
-    orange: 'bg-orange-50',
-    yellow: 'bg-yellow-50',
-    green: 'bg-green-50',
-    blue: 'bg-blue-50'
-  }
-  
+function BreakdownBar({ label, weight, value, color }: { label: string; weight: string; value: number; color: string }) {
   return (
-    <div className={`${bgColors[color] || 'bg-gray-50'} rounded-xl p-4`}>
-      <span className="text-2xl">{icon}</span>
-      <div className="mt-2">
-        <span className="text-2xl font-bold text-gray-900">{value}</span>
-        <span className="text-sm text-gray-500 ml-1">{subtext}</span>
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-between text-sm font-medium">
+        <span className="text-gray-700">{label} ({weight})</span>
+        <span style={{ color }}>{value}%</span>
       </div>
-      <p className="text-xs text-gray-600 mt-1">{label}</p>
+      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${value}%`, backgroundColor: color }} />
+      </div>
     </div>
   )
 }
 
-// Priority Progress Component
-function PriorityProgress({ 
-  label, 
-  completed, 
-  total, 
-  color 
-}: { 
-  label: string
-  completed: number
-  total: number
-  color: string
-}) {
+function PriorityRow({ level, completed, total, color, label }: { level: string; completed: number; total: number; color: string; label: string }) {
   const percentage = total > 0 ? Math.round((completed / total) * 100) : 0
+  const colorMap: Record<string, { bg: string; icon: string; bar: string }> = {
+    red: { bg: 'bg-red-50', icon: 'text-red-500', bar: 'bg-red-500' },
+    blue: { bg: 'bg-blue-50', icon: 'text-blue-500', bar: 'bg-blue-500' },
+    gray: { bg: 'bg-gray-50', icon: 'text-gray-400', bar: 'bg-gray-400' }
+  }
+  const colors = colorMap[color] || colorMap.gray
+  const isHigh = level === 'HIGH'
   
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-700">{label}</span>
-        <span className="text-sm text-gray-500">
-          {completed}/{total} ({percentage}%)
-        </span>
+    <div className="flex items-center gap-4">
+      <div className={`flex flex-col items-center justify-center p-2.5 ${colors.bg} rounded-lg min-w-[60px] ${!isHigh ? 'opacity-80' : ''}`}>
+        {level === 'HIGH' && <span className={`text-lg ${colors.icon}`}>⚡</span>}
+        {level === 'MED' && <span className={`text-lg ${colors.icon}`}>—</span>}
+        {level === 'LOW' && <span className={`text-lg ${colors.icon}`}>↓</span>}
+        <span className={`text-[10px] font-bold ${colors.icon}`}>{level}</span>
       </div>
-      <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-        <div 
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${percentage}%`, backgroundColor: color }}
-        />
+      <div className="flex-1 flex flex-col gap-1.5">
+        <div className="flex justify-between text-xs font-medium text-gray-500">
+          <span>{completed}/{total} Tasks</span>
+          <span>{label}</span>
+        </div>
+        <div className={`${isHigh ? 'h-3' : 'h-2'} w-full bg-gray-100 rounded-full overflow-hidden`}>
+          <div className={`h-full ${colors.bar} rounded-full transition-all duration-500`} style={{ width: `${percentage}%` }} />
+        </div>
       </div>
     </div>
   )
 }
 
-// Get contextual study tip
-function getStudyTip(score: number, daysLeft: number, overdueCount: number): string {
-  if (overdueCount > 3) {
-    return "You have several overdue tasks. Consider using the 'Shift Schedule' feature to redistribute your workload more evenly."
-  }
-  
-  if (score >= 85) {
-    return "Excellent progress! Keep up the great work. Remember to take short breaks to maintain your focus and retention."
-  }
-  
-  if (score >= 70) {
-    return "You're doing well! Focus on completing your high-priority tasks first to maximize your exam readiness."
-  }
-  
-  if (score >= 50 && daysLeft > 7) {
-    return "You're on track. Try to maintain consistency by studying at the same time each day to build a strong routine."
-  }
-  
-  if (score >= 50 && daysLeft <= 7) {
-    return "The exam is approaching! Prioritize reviewing your high-priority topics and use flashcards for quick revision."
-  }
-  
-  if (score < 50 && daysLeft > 3) {
-    return "You might be falling behind. Consider activating Cram Mode to compress your remaining tasks into a more intensive schedule."
-  }
-  
-  return "Focus on the most important topics. Even reviewing key concepts briefly is better than not studying at all!"
+function generateBurnDownPath(burnDown: ReadinessData['burnDown'], totalTasks: number): { linePath: string; fillPath: string; currentPoint: { x: number; y: number } | null } {
+  if (!burnDown || burnDown.length === 0) return { linePath: 'M0,0', fillPath: 'M0,0', currentPoint: null }
+  const points: { x: number; y: number }[] = []
+  const validPoints = burnDown.filter(d => d.actual !== null)
+  validPoints.forEach((d, i) => {
+    const x = (i / (burnDown.length - 1)) * 100
+    const y = totalTasks > 0 ? ((totalTasks - (d.completed || 0)) / totalTasks) * 100 : 0
+    points.push({ x, y })
+  })
+  if (points.length === 0) return { linePath: 'M0,0', fillPath: 'M0,0', currentPoint: null }
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')
+  const lastPoint = points[points.length - 1]
+  const fillPath = `${linePath} L${lastPoint.x},100 L0,100 Z`
+  return { linePath, fillPath, currentPoint: lastPoint }
+}
+
+function getMotivationalTitle(score: number): string {
+  if (score >= 90) return "Outstanding progress! You're exam-ready!"
+  if (score >= 75) return "You're doing great! Keep pushing."
+  if (score >= 50) return "Good momentum! Stay consistent."
+  if (score >= 25) return "Time to pick up the pace!"
+  return "Let's get started! Every step counts."
+}
+
+function getMotivationalDescription(score: number, highPriority: { total: number; completed: number }): string {
+  const highPriorityRemaining = highPriority.total - highPriority.completed
+  if (score >= 90) return "Your dedication is paying off! Focus on reviewing challenging topics and take time to rest before the exam."
+  if (score >= 75) return `Your readiness score is calculated based on completion, consistency, and comprehension. ${highPriorityRemaining > 0 ? `You need just a bit more focus on ${highPriorityRemaining} High Priority tasks to reach the "Ready!" zone.` : 'Keep up the great work!'}`
+  if (score >= 50) return `You're making progress! ${highPriorityRemaining > 0 ? `Focus on completing your ${highPriorityRemaining} remaining high-priority tasks first.` : 'Try to maintain your current study rhythm.'}`
+  if (score >= 25) return `There's still time to improve! ${highPriorityRemaining > 0 ? `Prioritize the ${highPriorityRemaining} high-priority tasks that need attention.` : 'Start with the most important topics.'}`
+  return "Don't worry, everyone starts somewhere. Create a study plan and tackle one task at a time. You've got this!"
+}
+
+function getStudyTip(score: number, daysLeft: number, overdueCount: number, highPriority: { total: number; completed: number }): string {
+  const highPriorityPercentage = highPriority.total > 0 ? Math.round((highPriority.completed / highPriority.total) * 100) : 0
+  if (overdueCount > 3) return `You have ${overdueCount} overdue tasks piling up. Use the 'Shift Schedule' feature in Actions to redistribute your workload.`
+  if (highPriorityPercentage < 50 && highPriority.total > 0) return `You're falling behind on High Priority tasks (${highPriorityPercentage}% done). Try using the Pomodoro technique for 2 hours today to clear the backlog.`
+  if (score >= 85) return "Excellent progress! Remember to take short breaks to maintain your focus and retention. You're almost there!"
+  if (score >= 70) return "Great consistency! Focus on completing your remaining high-priority tasks to maximize your exam readiness."
+  if (score >= 50 && daysLeft > 7) return "You're on track. Try studying at the same time each day to build a strong routine and boost retention."
+  if (score >= 50 && daysLeft <= 7) return "The exam is approaching! Prioritize reviewing high-priority topics and use flashcards for quick revision."
+  if (score < 50 && daysLeft > 3) return "Consider activating Cram Mode from Actions to compress your remaining tasks into a more intensive schedule."
+  return "Focus on the most important topics first. Even brief review sessions are better than nothing. You can do this!"
 }
