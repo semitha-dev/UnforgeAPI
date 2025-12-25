@@ -1,47 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import dynamic from 'next/dynamic'
 import { Note, Project } from './page'
 import { 
   Maximize2, Minimize2, Music, X, Youtube, ExternalLink, ChevronUp, ChevronDown,
   Search, Plus, FileText, MoreVertical, Trash2, FolderOpen, Sparkles, Clock, Loader2
 } from 'lucide-react'
+import RichTextEditor, { FullscreenEditor } from './RichTextEditor'
 import 'react-quill-new/dist/quill.snow.css'
-
-// Dynamically import Quill to avoid SSR issues
-const ReactQuill = dynamic(() => import('react-quill-new'), { 
-  ssr: false,
-  loading: () => <div className="h-[400px] bg-gray-50 animate-pulse rounded-lg" />
-})
-
-// Quill modules configuration
-const quillModules = {
-  toolbar: [
-    [{ 'header': [1, 2, 3, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ 'color': [] }, { 'background': [] }],
-    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-    [{ 'indent': '-1' }, { 'indent': '+1' }],
-    [{ 'align': [] }],
-    ['blockquote', 'code-block'],
-    ['link'],
-    ['clean']
-  ],
-  clipboard: {
-    matchVisual: false
-  }
-}
-
-const quillFormats = [
-  'header',
-  'bold', 'italic', 'underline', 'strike',
-  'color', 'background',
-  'list', 'indent',
-  'align',
-  'blockquote', 'code-block',
-  'link'
-]
 
 // Music Player Component for Fullscreen Mode
 interface MusicPlayerProps {
@@ -2011,66 +1977,20 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   return (
     <div className={`bg-white min-h-screen flex flex-col transition-all overflow-x-hidden ${showLeafAI && !isFullscreen ? 'sm:mr-96' : ''}`}>
       {/* Fullscreen Editor Overlay */}
-      {isFullscreen && (
-        <div className="fixed inset-0 z-[100] bg-white flex flex-col">
-          {/* Fullscreen Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-white">
-            <div className="flex items-center gap-4">
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Untitled"
-                className="text-xl font-semibold text-zinc-900 placeholder-zinc-400 bg-transparent border-none focus:outline-none"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Music Button */}
-              <button
-                onClick={() => setShowMusicPlayer(!showMusicPlayer)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                  showMusicPlayer 
-                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-md' 
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                }`}
-                title="Toggle music player"
-              >
-                <Music className="w-5 h-5" />
-                <span className="text-sm font-medium">Music</span>
-              </button>
-              {/* Exit Fullscreen Button */}
-              <button
-                onClick={() => {
-                  setIsFullscreen(false)
-                  setShowMusicPlayer(false)
-                }}
-                className="p-2 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
-                title="Exit fullscreen"
-              >
-                <Minimize2 className="w-5 h-5 text-zinc-600" />
-              </button>
-            </div>
-          </div>
-          
-          {/* Fullscreen Editor */}
-          <div className="flex-1 overflow-hidden bg-white">
-            <div className="note-editor-container mobile-editor h-full bg-white">
-              <ReactQuill
-                theme="snow"
-                value={content}
-                onChange={setContent}
-                modules={quillModules}
-                formats={quillFormats}
-                placeholder="Start writing your notes..."
-                className="h-full bg-white"
-              />
-            </div>
-          </div>
-          
-          {/* Music Player */}
-          <MusicPlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />
-        </div>
-      )}
+      <FullscreenEditor
+        isOpen={isFullscreen}
+        onClose={() => {
+          setIsFullscreen(false)
+          setShowMusicPlayer(false)
+        }}
+        title={title}
+        onTitleChange={setTitle}
+        content={content}
+        onContentChange={setContent}
+        showMusicPlayer={showMusicPlayer}
+        onToggleMusicPlayer={() => setShowMusicPlayer(!showMusicPlayer)}
+        musicPlayerComponent={<MusicPlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />}
+      />
 
       {/* Mobile-First Clean Header - Hidden when fullscreen */}
       {!isFullscreen && (
@@ -2135,7 +2055,7 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
 
       {/* Full Page Editor Area - Hidden when fullscreen */}
       {!isFullscreen && (
-      <div className="flex-1 overflow-y-auto" style={{ background: 'white' }}>
+      <div className="flex-1" style={{ background: 'white' }}>
         <div className="px-4 sm:px-8 pt-8 sm:pt-6 pb-24 bg-white min-h-full">
           {/* Title Input - Large and prominent */}
           <input
@@ -2151,17 +2071,12 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
             {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
           
-          {/* Quill Editor - Full width seamless */}
-          <div className="note-editor-container mobile-editor">
-            <ReactQuill
-              theme="snow"
-              value={content}
-              onChange={setContent}
-              modules={quillModules}
-              formats={quillFormats}
-              placeholder="Start typing..."
-            />
-          </div>
+          {/* Rich Text Editor with sticky toolbar */}
+          <RichTextEditor
+            value={content}
+            onChange={setContent}
+            placeholder="Start typing..."
+          />
         </div>
       </div>
       )}
@@ -2527,7 +2442,7 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
         </header>
 
         {/* Full Page Editor Area */}
-        <div className="flex-1 overflow-y-auto" style={{ background: 'white' }}>
+        <div className="flex-1" style={{ background: 'white' }}>
           <div className="px-4 sm:px-8 pt-8 sm:pt-6 pb-24 bg-white min-h-full">
             {/* Title Input - Large and prominent */}
             <input
@@ -2542,17 +2457,12 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
               {formatDate(note.updated_at)}
             </div>
             
-            {/* Quill Editor - Full width seamless */}
-            <div className="note-editor-container mobile-editor">
-              <ReactQuill
-                theme="snow"
-                value={content}
-                onChange={setContent}
-                modules={quillModules}
-                formats={quillFormats}
-                placeholder="Start typing..."
-              />
-            </div>
+            {/* Rich Text Editor with sticky toolbar */}
+            <RichTextEditor
+              value={content}
+              onChange={setContent}
+              placeholder="Start typing..."
+            />
 
             {/* Summary Section */}
             {inlineSummary && (
@@ -2601,72 +2511,21 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
       </main>
 
       {/* Fullscreen Editor Overlay */}
-      {isFullscreen && (
-        <div className="fixed inset-0 z-[100] bg-white flex flex-col">
-          {/* Fullscreen Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 bg-white">
-            <div className="flex items-center gap-4">
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Untitled"
-                className="text-xl font-semibold text-zinc-900 placeholder-zinc-400 bg-transparent border-none focus:outline-none"
-              />
-              <span className={`text-xs px-2 py-0.5 rounded-full ${
-                autoSaveStatus === 'saved' ? 'bg-green-100 text-green-600' :
-                autoSaveStatus === 'saving' ? 'bg-yellow-100 text-yellow-600' :
-                'bg-zinc-100 text-zinc-500'
-              }`}>
-                {autoSaveStatus === 'saved' ? '✓ Saved' :
-                 autoSaveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowMusicPlayer(!showMusicPlayer)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-                  showMusicPlayer 
-                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-md' 
-                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200'
-                }`}
-                title="Toggle music player"
-              >
-                <Music className="w-5 h-5" />
-                <span className="text-sm font-medium">Music</span>
-              </button>
-              <button
-                onClick={() => {
-                  setIsFullscreen(false)
-                  setShowMusicPlayer(false)
-                }}
-                className="p-2 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
-                title="Exit fullscreen"
-              >
-                <Minimize2 className="w-5 h-5 text-zinc-600" />
-              </button>
-            </div>
-          </div>
-          
-          {/* Fullscreen Editor */}
-          <div className="flex-1 overflow-hidden bg-white">
-            <div className="note-editor-container mobile-editor h-full bg-white">
-              <ReactQuill
-                theme="snow"
-                value={content}
-                onChange={setContent}
-                modules={quillModules}
-                formats={quillFormats}
-                placeholder="Start writing your notes..."
-                className="h-full bg-white"
-              />
-            </div>
-          </div>
-          
-          {/* Music Player */}
-          <MusicPlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />
-        </div>
-      )}
+      <FullscreenEditor
+        isOpen={isFullscreen}
+        onClose={() => {
+          setIsFullscreen(false)
+          setShowMusicPlayer(false)
+        }}
+        title={title}
+        onTitleChange={setTitle}
+        content={content}
+        onContentChange={setContent}
+        autoSaveStatus={autoSaveStatus}
+        showMusicPlayer={showMusicPlayer}
+        onToggleMusicPlayer={() => setShowMusicPlayer(!showMusicPlayer)}
+        musicPlayerComponent={<MusicPlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />}
+      />
 
       {/* Leaf AI Panel */}
       <LeafAIPanel

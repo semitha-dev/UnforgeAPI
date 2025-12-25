@@ -288,13 +288,11 @@
 }
 
 /* Desktop/Web toolbar - MUST have white background */
-.note-editor-container .ql-toolbar {
+.note-editor-container .ql-toolbar,
+.rich-text-editor .ql-toolbar {
   border: 0 !important;
   background: white !important;
   padding: 0.5rem 0;
-  position: sticky;
-  top: 0;
-  z-index: 10;
   border-bottom: 1px solid #e4e4e7 !important;
   margin-bottom: 0.5rem;
   overflow-x: auto;
@@ -302,8 +300,19 @@
   white-space: nowrap;
 }
 
+/* Sticky toolbar that attaches to top nav when scrolling */
+.sticky-quill .ql-toolbar,
+.rich-text-editor.sticky .ql-toolbar {
+  position: sticky !important;
+  top: 57px; /* Height of the top nav */
+  z-index: 40;
+  background: white !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
 @media (min-width: 640px) {
-  .note-editor-container .ql-toolbar {
+  .note-editor-container .ql-toolbar,
+  .rich-text-editor .ql-toolbar {
     padding: 0.75rem 0;
     margin-bottom: 1rem;
     overflow-x: visible;
@@ -311,7 +320,8 @@
   }
 }
 
-.note-editor-container .ql-container {
+.note-editor-container .ql-container,
+.rich-text-editor .ql-container {
   border: 0 !important;
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 16px;
@@ -325,14 +335,16 @@
 }
 
 @media (min-width: 640px) {
-  .note-editor-container .ql-container {
+  .note-editor-container .ql-container,
+  .rich-text-editor .ql-container {
     font-size: 18px;
     line-height: 1.8;
     padding-top: 1rem;
   }
 }
 
-.note-editor-container .ql-editor {
+.note-editor-container .ql-editor,
+.rich-text-editor .ql-editor {
   min-height: 50vh;
   padding: 0.75rem 0;
   border: none !important;
@@ -343,62 +355,77 @@
 }
 
 @media (min-width: 640px) {
-  .note-editor-container .ql-editor {
+  .note-editor-container .ql-editor,
+  .rich-text-editor .ql-editor {
     min-height: 60vh;
     padding: 1rem 0;
   }
 }
 
-.note-editor-container .ql-editor:focus {
+.note-editor-container .ql-editor:focus,
+.rich-text-editor .ql-editor:focus {
   outline: none !important;
   box-shadow: none !important;
 }
 
-.note-editor-container .ql-editor.ql-blank::before {
+.note-editor-container .ql-editor.ql-blank::before,
+.rich-text-editor .ql-editor.ql-blank::before {
   @apply text-zinc-300 not-italic pl-0;
   left: 0;
   font-style: normal;
 }
 
-.note-editor-container .ql-snow .ql-picker {
+.note-editor-container .ql-snow .ql-picker,
+.rich-text-editor .ql-snow .ql-picker {
   @apply text-gray-600;
 }
 
-.note-editor-container .ql-snow .ql-stroke {
+.note-editor-container .ql-snow .ql-stroke,
+.rich-text-editor .ql-snow .ql-stroke {
   stroke: #4B5563;
 }
 
-.note-editor-container .ql-snow .ql-fill {
+.note-editor-container .ql-snow .ql-fill,
+.rich-text-editor .ql-snow .ql-fill {
   fill: #4B5563;
 }
 
 .note-editor-container .ql-snow button:hover .ql-stroke,
-.note-editor-container .ql-snow .ql-picker-label:hover .ql-stroke {
+.note-editor-container .ql-snow .ql-picker-label:hover .ql-stroke,
+.rich-text-editor .ql-snow button:hover .ql-stroke,
+.rich-text-editor .ql-snow .ql-picker-label:hover .ql-stroke {
   stroke: #3B82F6;
 }
 
 .note-editor-container .ql-snow button:hover .ql-fill,
-.note-editor-container .ql-snow .ql-picker-label:hover .ql-fill {
+.note-editor-container .ql-snow .ql-picker-label:hover .ql-fill,
+.rich-text-editor .ql-snow button:hover .ql-fill,
+.rich-text-editor .ql-snow .ql-picker-label:hover .ql-fill {
   fill: #3B82F6;
 }
 
-.note-editor-container .ql-snow button.ql-active .ql-stroke {
+.note-editor-container .ql-snow button.ql-active .ql-stroke,
+.rich-text-editor .ql-snow button.ql-active .ql-stroke {
   stroke: #3B82F6;
 }
 
-.note-editor-container .ql-snow button.ql-active .ql-fill {
+.note-editor-container .ql-snow button.ql-active .ql-fill,
+.rich-text-editor .ql-snow button.ql-active .ql-fill {
   fill: #3B82F6;
 }
 
-.note-editor-container .ql-toolbar.ql-snow .ql-formats {
+.note-editor-container .ql-toolbar.ql-snow .ql-formats,
+.rich-text-editor .ql-toolbar.ql-snow .ql-formats {
   @apply mr-1 sm:mr-3;
 }
 
-.note-editor-container .ql-toolbar.ql-snow .ql-formats button {
+.note-editor-container .ql-toolbar.ql-snow .ql-formats button,
+.rich-text-editor .ql-toolbar.ql-snow .ql-formats button {
   @apply w-6 h-6 sm:w-7 sm:h-7;
 }
 
-.note-editor-container .ql-snow .ql-picker-label {
+.note-editor-container .ql-snow .ql-picker-label,
+.rich-text-editor .ql-snow .ql-picker-label {
   @apply px-1 sm:px-2;
 }
 
