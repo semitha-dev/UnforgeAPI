@@ -498,12 +498,12 @@ export async function POST(request: NextRequest) {
 
           if (type === 'subscription.revoked') {
             // Immediate revocation - downgrade now
+            // NOTE: Do NOT reset tokens_balance - user may have purchased token packs
             await supabase
               .from('profiles')
               .update({
                 subscription_tier: 'free',
                 subscription_status: 'inactive',
-                tokens_balance: 0,
                 polar_subscription_id: null,
                 subscription_ends_at: null,
                 next_billing_date: null,

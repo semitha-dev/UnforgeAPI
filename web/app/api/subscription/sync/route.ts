@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
     if (!activeSubscription) {
       console.log('No active subscriptions found for this user, setting to free tier');
       
+      // NOTE: Do NOT reset tokens_balance - user may have purchased token packs
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
@@ -94,7 +95,6 @@ export async function POST(request: NextRequest) {
           next_billing_date: null,
           canceled_at: null,
           auto_renew: false,
-          tokens_balance: 0,
         })
         .eq('id', user.id);
 

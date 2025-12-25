@@ -213,12 +213,12 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionP
     new Date(profile.subscription_ends_at) <= now
   ) {
     // Subscription period has ended, downgrade to free
+    // NOTE: Do NOT reset tokens_balance - user may have purchased token packs
     await supabase
       .from('profiles')
       .update({
         subscription_tier: 'free',
         subscription_status: 'inactive',
-        tokens_balance: 0,
         polar_subscription_id: null,
         auto_renew: false,
         current_period_start: null,
@@ -240,12 +240,12 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionP
     new Date(profile.grace_period_ends_at) <= now
   ) {
     // Grace period has ended, downgrade to free
+    // NOTE: Do NOT reset tokens_balance - user may have purchased token packs
     await supabase
       .from('profiles')
       .update({
         subscription_tier: 'free',
         subscription_status: 'inactive',
-        tokens_balance: 0,
         polar_subscription_id: null,
         auto_renew: false,
         grace_period_ends_at: null,

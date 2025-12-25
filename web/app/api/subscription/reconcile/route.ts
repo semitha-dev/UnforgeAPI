@@ -114,12 +114,12 @@ export async function POST(request: NextRequest) {
             
             // If subscription_ends_at has passed, downgrade
             if (user.subscription_ends_at && new Date(user.subscription_ends_at) <= now) {
+              // NOTE: Do NOT reset tokens_balance - user may have purchased token packs
               await supabase
                 .from('profiles')
                 .update({
                   subscription_tier: 'free',
                   subscription_status: 'inactive',
-                  tokens_balance: 0,
                   polar_subscription_id: null,
                   auto_renew: false,
                   updated_at: now.toISOString(),
@@ -145,12 +145,12 @@ export async function POST(request: NextRequest) {
           results.details.push(`${user.email}: SECURITY - subscription email mismatch, downgrading`);
           
           // This is a security issue - clear the mismatched subscription
+          // NOTE: Do NOT reset tokens_balance - user may have purchased token packs
           await supabase
             .from('profiles')
             .update({
               subscription_tier: 'free',
               subscription_status: 'inactive',
-              tokens_balance: 0,
               polar_subscription_id: null,
               polar_customer_id: null,
               auto_renew: false,
@@ -262,12 +262,12 @@ export async function POST(request: NextRequest) {
 
     if (!expiredError && expiredUsers) {
       for (const user of expiredUsers) {
+        // NOTE: Do NOT reset tokens_balance - user may have purchased token packs
         await supabase
           .from('profiles')
           .update({
             subscription_tier: 'free',
             subscription_status: 'inactive',
-            tokens_balance: 0,
             polar_subscription_id: null,
             auto_renew: false,
             current_period_start: null,
@@ -290,12 +290,12 @@ export async function POST(request: NextRequest) {
 
     if (!pastDueError && pastDueUsers) {
       for (const user of pastDueUsers) {
+        // NOTE: Do NOT reset tokens_balance - user may have purchased token packs
         await supabase
           .from('profiles')
           .update({
             subscription_tier: 'free',
             subscription_status: 'inactive',
-            tokens_balance: 0,
             polar_subscription_id: null,
             auto_renew: false,
             grace_period_ends_at: null,
