@@ -2386,19 +2386,6 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
                 <span className="hidden sm:inline ml-2 text-sm font-medium">Ask AI</span>
               </button>
               
-              {/* Music Button */}
-              <button
-                onClick={() => setShowMusicPlayer(!showMusicPlayer)}
-                className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
-                  showMusicPlayer
-                    ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white'
-                    : 'text-zinc-500 hover:bg-zinc-100'
-                }`}
-                title="Music"
-              >
-                <Music className="w-5 h-5" />
-              </button>
-              
               {/* Fullscreen Button */}
               <button
                 onClick={() => setIsFullscreen(true)}
