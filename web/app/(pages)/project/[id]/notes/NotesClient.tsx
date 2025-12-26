@@ -2327,69 +2327,22 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
 
   return (
     <div className="flex min-h-screen bg-white text-zinc-900 overflow-x-hidden">
-      {/* Editor Navigation Sidebar (Collapsed mini sidebar) - Desktop only */}
-      <div className="hidden lg:flex flex-col items-center w-16 bg-zinc-50 border-r border-zinc-200 py-6 gap-4">
-        <button onClick={onBack} className="p-3 hover:bg-zinc-200 rounded-xl transition-colors" title="Back to notes">
-          <svg className="w-5 h-5 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </button>
-        <div className="w-8 h-[1px] bg-zinc-200 my-2" />
-        <button 
-          onClick={() => setShowLeafAI(!showLeafAI)} 
-          className={`p-3 rounded-xl transition-colors ${showLeafAI ? 'bg-emerald-100 text-emerald-600' : 'hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600'}`} 
-          title="AI Assistant"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-          </svg>
-        </button>
-        <button 
-          onClick={handleInlineSummarize}
-          disabled={isSummarizing}
-          className="p-3 hover:bg-purple-50 text-zinc-400 hover:text-purple-600 rounded-xl transition-colors disabled:opacity-50" 
-          title="Summarize"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </button>
-        <div className="flex-1" />
-        <button 
-          onClick={() => setShowMusicPlayer(!showMusicPlayer)} 
-          className={`p-3 rounded-xl transition-colors ${showMusicPlayer ? 'bg-pink-100 text-pink-600' : 'hover:bg-zinc-200 text-zinc-600'}`} 
-          title="Focus Music"
-        >
-          <Music className="w-5 h-5" />
-        </button>
-        <button 
-          onClick={handleDelete}
-          disabled={isDeleting}
-          className="p-3 hover:bg-red-50 text-zinc-400 hover:text-red-500 rounded-xl transition-colors disabled:opacity-50" 
-          title="Delete note"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
-      </div>
-
       <main className={`flex-1 flex flex-col relative bg-white overflow-hidden transition-all ${showLeafAI && !isFullscreen ? 'sm:mr-96' : ''}`}>
         {/* Mobile-First Clean Header */}
         <header className="sticky top-0 z-20 bg-white border-b border-zinc-100 sm:border-none">
           <div className="flex items-center justify-between px-3 sm:px-8 py-2.5 sm:py-4">
-            {/* Back Button - Mobile only */}
+            {/* Back Button */}
             <button 
               onClick={onBack} 
-              className="flex lg:hidden items-center justify-center w-10 h-10 -ml-2 hover:bg-zinc-100 rounded-full transition-colors"
+              className="flex items-center justify-center w-10 h-10 -ml-2 hover:bg-zinc-100 rounded-full transition-colors"
             >
               <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
             
-            {/* Auto-save Status - Center on mobile */}
-            <div className="flex-1 flex justify-center lg:justify-start">
+            {/* Auto-save Status */}
+            <div className="flex-1 flex justify-center sm:justify-start">
               <span className={`text-[10px] sm:text-xs font-medium px-2 sm:px-3 py-1 rounded-full ${
                 autoSaveStatus === 'saved' ? 'text-zinc-400' :
                 autoSaveStatus === 'saving' ? 'text-amber-500 bg-amber-50' :
@@ -2402,6 +2355,23 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
 
             {/* Action Buttons */}
             <div className="flex items-center gap-1">
+              {/* Summarize Button */}
+              <button 
+                onClick={handleInlineSummarize}
+                disabled={isSummarizing}
+                className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 sm:py-2 rounded-full sm:rounded-lg transition-colors text-purple-600 hover:bg-purple-50 disabled:opacity-50"
+                title="Summarize"
+              >
+                {isSummarizing ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                )}
+                <span className="hidden sm:inline ml-2 text-sm font-medium">Summarize</span>
+              </button>
+              
               {/* Leaf AI Toggle - Mobile icon only */}
               <button 
                 onClick={() => setShowLeafAI(!showLeafAI)}
@@ -2416,10 +2386,10 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
                 <span className="hidden sm:inline ml-2 text-sm font-medium">Ask AI</span>
               </button>
               
-              {/* Music Button - Mobile icon only */}
+              {/* Music Button */}
               <button
                 onClick={() => setShowMusicPlayer(!showMusicPlayer)}
-                className={`flex lg:hidden items-center justify-center w-10 h-10 rounded-full transition-colors ${
+                className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
                   showMusicPlayer
                     ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white'
                     : 'text-zinc-500 hover:bg-zinc-100'
@@ -2438,11 +2408,11 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
                 <Maximize2 className="w-4 h-4" />
               </button>
               
-              {/* Delete Button - Mobile only */}
+              {/* Delete Button */}
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="flex lg:hidden items-center justify-center w-10 h-10 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
+                className="flex items-center justify-center w-10 h-10 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
                 title="Delete"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
