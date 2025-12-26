@@ -212,50 +212,81 @@ export default function ExamReadinessScore({ scheduleId, compact = false }: Exam
             <StatCard icon={<TrophyIcon />} label="Best Streak" value={streak.longest} unit="Days" />
           </div>
 
-          {/* Burn-down Chart */}
+          {/* Progress Chart */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex flex-col gap-6">
             <div className="flex justify-between items-center">
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Burn-down Chart</h3>
-                <p className="text-sm text-gray-500">Tasks remaining vs. Ideal pace</p>
+                <h3 className="text-lg font-bold text-gray-900">Progress Chart</h3>
+                <p className="text-sm text-gray-500">Tasks completed vs. Ideal pace</p>
               </div>
-              <div className="flex gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                  <span className="text-gray-600">Actual</span>
+              {burnDownPath.hasData && (
+                <div className="flex gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                    <span className="text-gray-600">Actual</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-gray-300"></span>
+                    <span className="text-gray-600">Ideal</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-gray-300 border border-gray-400 border-dashed"></span>
-                  <span className="text-gray-600">Ideal</span>
-                </div>
-              </div>
+              )}
             </div>
             <div className="w-full h-64 relative">
-              <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
-                {[0, 25, 50, 75].map(y => (
-                  <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="#e5e7eb" strokeDasharray="2" strokeWidth="0.5" />
-                ))}
-                <line x1="0" y1="100" x2="100" y2="100" stroke="#e5e7eb" strokeWidth="0.5" />
-                <path d="M0,0 L100,100" fill="none" stroke="#9ca3af" strokeDasharray="4" strokeWidth="1.5" opacity="0.6" />
-                <path d={burnDownPath.linePath} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                {burnDownPath.currentPoint && (
-                  <circle cx={burnDownPath.currentPoint.x} cy={burnDownPath.currentPoint.y} r="2" fill="white" stroke="#3b82f6" strokeWidth="1.5" />
-                )}
-                <defs>
-                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.1" />
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path d={burnDownPath.fillPath} fill="url(#chartGradient)" stroke="none" />
-              </svg>
-              <div className="flex justify-between mt-2 text-xs text-gray-400 font-medium uppercase">
-                <span>Start</span>
-                <span>Week 1</span>
-                <span>Week 2</span>
-                <span>Week 3</span>
-                <span>Finals</span>
-              </div>
+              {burnDownPath.hasData ? (
+                <>
+                  <svg className="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 100">
+                    {/* Grid lines */}
+                    {[0, 25, 50, 75, 100].map(y => (
+                      <line key={y} x1="0" y1={y} x2="100" y2={y} stroke="#f3f4f6" strokeWidth="0.5" />
+                    ))}
+                    {/* Vertical grid lines */}
+                    {[0, 25, 50, 75, 100].map(x => (
+                      <line key={x} x1={x} y1="0" x2={x} y2="100" stroke="#f3f4f6" strokeWidth="0.5" />
+                    ))}
+                    {/* Ideal line - diagonal from top-left (0% done) to bottom-right (100% done) */}
+                    <path d="M0,0 L100,100" fill="none" stroke="#d1d5db" strokeDasharray="4" strokeWidth="1.5" />
+                    {/* Gradient fill under actual line */}
+                    <defs>
+                      <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                    {burnDownPath.fillPath && (
+                      <path d={burnDownPath.fillPath} fill="url(#chartGradient)" stroke="none" />
+                    )}
+                    {/* Actual progress line */}
+                    {burnDownPath.linePath && (
+                      <path d={burnDownPath.linePath} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    )}
+                    {/* Current point indicator */}
+                    {burnDownPath.currentPoint && (
+                      <circle cx={burnDownPath.currentPoint.x} cy={burnDownPath.currentPoint.y} r="4" fill="white" stroke="#3b82f6" strokeWidth="2" />
+                    )}
+                  </svg>
+                  {/* Y-axis labels */}
+                  <div className="absolute left-0 top-0 bottom-0 -ml-10 flex flex-col justify-between text-xs text-gray-400 py-1">
+                    <span>0%</span>
+                    <span>50%</span>
+                    <span>100%</span>
+                  </div>
+                  {/* X-axis labels */}
+                  <div className="flex justify-between mt-3 text-xs text-gray-400">
+                    <span>Start</span>
+                    <span>Today</span>
+                    <span>Exam</span>
+                  </div>
+                </>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                  <svg className="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  <p className="text-sm font-medium">No progress data yet</p>
+                  <p className="text-xs mt-1">Complete tasks to see your progress</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -402,20 +433,50 @@ function PriorityRow({ level, completed, total, color, label }: { level: string;
   )
 }
 
-function generateBurnDownPath(burnDown: ReadinessData['burnDown'], totalTasks: number): { linePath: string; fillPath: string; currentPoint: { x: number; y: number } | null } {
-  if (!burnDown || burnDown.length === 0) return { linePath: 'M0,0', fillPath: 'M0,0', currentPoint: null }
+function generateBurnDownPath(burnDown: ReadinessData['burnDown'], totalTasks: number): { linePath: string; fillPath: string; currentPoint: { x: number; y: number } | null; hasData: boolean } {
+  if (!burnDown || burnDown.length === 0 || totalTasks === 0) {
+    return { linePath: '', fillPath: '', currentPoint: null, hasData: false }
+  }
+  
   const points: { x: number; y: number }[] = []
   const validPoints = burnDown.filter(d => d.actual !== null)
+  
+  if (validPoints.length === 0) {
+    return { linePath: '', fillPath: '', currentPoint: null, hasData: false }
+  }
+  
+  const totalDataPoints = burnDown.length
+  
   validPoints.forEach((d, i) => {
-    const x = (i / (burnDown.length - 1)) * 100
-    const y = totalTasks > 0 ? ((totalTasks - (d.completed || 0)) / totalTasks) * 100 : 0
+    // Find the index of this point in the full burnDown array for correct x positioning
+    const fullIndex = burnDown.findIndex(b => b.date === d.date)
+    const x = totalDataPoints > 1 ? (fullIndex / (totalDataPoints - 1)) * 100 : 50
+    // y = percentage of tasks completed (0% at top, 100% at bottom)
+    const y = (d.completed / totalTasks) * 100
     points.push({ x, y })
   })
-  if (points.length === 0) return { linePath: 'M0,0', fillPath: 'M0,0', currentPoint: null }
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')
+  
+  if (points.length === 0) {
+    return { linePath: '', fillPath: '', currentPoint: null, hasData: false }
+  }
+  
+  // For single point, just show a dot
+  if (points.length === 1) {
+    const p = points[0]
+    return { 
+      linePath: `M${p.x},${p.y}`, 
+      fillPath: '', 
+      currentPoint: p,
+      hasData: true 
+    }
+  }
+  
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(' ')
   const lastPoint = points[points.length - 1]
-  const fillPath = `${linePath} L${lastPoint.x},100 L0,100 Z`
-  return { linePath, fillPath, currentPoint: lastPoint }
+  const firstPoint = points[0]
+  const fillPath = `${linePath} L${lastPoint.x.toFixed(2)},100 L${firstPoint.x.toFixed(2)},100 Z`
+  
+  return { linePath, fillPath, currentPoint: lastPoint, hasData: true }
 }
 
 function getMotivationalTitle(score: number): string {

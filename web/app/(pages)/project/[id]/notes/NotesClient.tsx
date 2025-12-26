@@ -1676,19 +1676,31 @@ export default function NotesClient({
 
         {/* Empty State */}
         {filteredNotes.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-24 text-zinc-400">
-            <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6">
-              <FileText className="w-10 h-10 opacity-20" />
-            </div>
+          <div className="flex flex-col items-center justify-center py-16 text-zinc-400">
             {searchQuery ? (
               <>
+                <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6">
+                  <FileText className="w-10 h-10 opacity-20" />
+                </div>
                 <h3 className="text-lg font-medium text-zinc-900 mb-1">No notes found</h3>
                 <p className="text-zinc-500">Try adjusting your search or create a new note.</p>
               </>
             ) : (
               <>
-                <h3 className="text-lg font-medium text-zinc-900 mb-1">No notes yet</h3>
-                <p className="text-zinc-500 mb-6">Get started by creating your first note.</p>
+                <div className="w-full max-w-md mb-8 rounded-2xl overflow-hidden">
+                  <video 
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline
+                    className="w-full h-auto"
+                  >
+                    <source src="/vid.webm" type="video/webm" />
+                    <source src="/vid.mp4" type="video/mp4" />
+                  </video>
+                </div>
+                <h3 className="text-xl font-semibold text-zinc-900 mb-2">Create Your First Note</h3>
+                <p className="text-zinc-500 mb-6 text-center max-w-sm">Start capturing your ideas and study materials in one organized place.</p>
                 <button 
                   onClick={handleCreateNew}
                   className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10"
