@@ -1316,6 +1316,7 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [completed, setCompleted] = useState(false)
 
   useEffect(() => {
     loadFlashcards()
@@ -1340,6 +1341,8 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
     if (currentIndex < cards.length - 1) {
       setCurrentIndex(currentIndex + 1)
       setIsFlipped(false)
+    } else {
+      setCompleted(true)
     }
   }
 
@@ -1350,8 +1353,10 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
     }
   }
 
-  const handleFlip = () => {
-    setIsFlipped(!isFlipped)
+  const handleRestart = () => {
+    setCurrentIndex(0)
+    setIsFlipped(false)
+    setCompleted(false)
   }
 
   if (loading) {
@@ -1374,110 +1379,195 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
     )
   }
 
+  // Completion screen
+  if (completed) {
+    return (
+      <div className="min-h-[80vh] bg-white flex flex-col items-center justify-center p-4 sm:p-6 text-center">
+        <div className="max-w-md w-full bg-white rounded-[1.5rem] sm:rounded-[2.5rem] shadow-xl sm:shadow-2xl shadow-emerald-200/40 p-6 sm:p-10 relative overflow-hidden border border-zinc-100">
+          <div className="absolute -top-16 -right-16 sm:-top-24 sm:-right-24 w-32 h-32 sm:w-48 sm:h-48 bg-emerald-50 rounded-full" />
+          <div className="relative">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-emerald-500 rounded-2xl sm:rounded-3xl rotate-12 flex items-center justify-center mx-auto mb-6 sm:mb-8 shadow-lg shadow-emerald-200">
+              <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white -rotate-12" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 mb-2">Great Job! 🎉</h1>
+            <p className="text-sm sm:text-base text-zinc-500 mb-6 sm:mb-8">You completed <span className="font-semibold text-emerald-600">"{set?.title}"</span></p>
+            
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+              <div className="bg-zinc-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl">
+                <div className="text-xl sm:text-2xl font-bold text-zinc-900">{cards.length}</div>
+                <div className="text-[9px] sm:text-[10px] text-zinc-400 uppercase tracking-wider sm:tracking-widest font-black">Cards</div>
+              </div>
+              <div className="bg-emerald-50 p-3 sm:p-4 rounded-xl sm:rounded-2xl">
+                <div className="text-xl sm:text-2xl font-bold text-emerald-600">100%</div>
+                <div className="text-[9px] sm:text-[10px] text-emerald-400 uppercase tracking-wider sm:tracking-widest font-black">Completed</div>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 sm:space-y-3">
+              <button
+                onClick={handleRestart}
+                className="w-full py-3 sm:py-4 bg-zinc-100 text-zinc-700 rounded-xl sm:rounded-2xl font-bold hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
+                <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Study Again
+              </button>
+              <button
+                onClick={onBack}
+                className="w-full py-3 sm:py-4 bg-zinc-900 text-white rounded-xl sm:rounded-2xl font-bold hover:bg-zinc-800 transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+              >
+                <svg className="w-4 h-4 sm:w-[18px] sm:h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Library
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const currentCard = cards[currentIndex]
+  const progress = cards.length > 0 ? ((currentIndex + 1) / cards.length) * 100 : 0
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-white text-zinc-900">
+      {/* Header */}
+      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <button
             onClick={onBack}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            <span>Back to Sets</span>
+            <span className="text-sm font-medium hidden sm:inline">Back</span>
           </button>
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">{set.title}</h1>
-            <p className="text-sm text-gray-600">
-              Card {currentIndex + 1} of {cards.length}
-            </p>
+          <div className="text-center flex-1 px-4">
+            <h1 className="text-sm sm:text-base font-bold text-zinc-900 truncate">{set.title}</h1>
           </div>
-          <div className="w-24" /> {/* Spacer for alignment */}
+          <div className="w-12 sm:w-20" />
+        </div>
+      </div>
+
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
+        {/* Progress bar */}
+        <div className="max-w-xl mx-auto mb-6 sm:mb-10">
+          <div className="flex items-center justify-between text-[10px] font-black text-zinc-400 mb-2 sm:mb-3 uppercase tracking-wider sm:tracking-widest">
+            <span>Progress</span>
+            <span>{currentIndex + 1} / {cards.length}</span>
+          </div>
+          <div className="h-1.5 sm:h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
 
         {/* Flashcard */}
-        <div className="mb-8">
+        <div className="relative max-w-xl mx-auto mb-8 sm:mb-12" style={{ perspective: '1000px' }}>
           <div
-            onClick={handleFlip}
-            className="relative bg-white rounded-2xl shadow-2xl cursor-pointer transition-all duration-500 hover:shadow-3xl"
+            onClick={() => setIsFlipped(!isFlipped)}
+            className="relative w-full aspect-[3/4] sm:aspect-[4/3] cursor-pointer transition-all duration-700 shadow-xl sm:shadow-2xl shadow-emerald-100/40 rounded-[1.5rem] sm:rounded-[2.5rem]"
             style={{
-              minHeight: '400px',
               transformStyle: 'preserve-3d',
               transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
             }}
           >
             {/* Front */}
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center p-12 backface-hidden"
+            <div 
+              className="absolute inset-0 bg-white border border-zinc-100 rounded-[1.5rem] sm:rounded-[2.5rem] p-4 sm:p-6 md:p-10 flex flex-col"
               style={{ backfaceVisibility: 'hidden' }}
             >
-              <div className="text-base font-medium text-indigo-600 mb-4">QUESTION</div>
-              <p className="text-3xl font-medium text-gray-900 text-center leading-relaxed">
-                {currentCard.front}
-              </p>
-              <div className="absolute bottom-6 text-sm text-gray-400">Click to flip</div>
+              <div className="text-[9px] sm:text-[10px] font-black text-zinc-300 uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-2 flex-shrink-0">Question</div>
+              <div className="flex-1 overflow-y-auto flex items-center justify-center min-h-0 px-1">
+                <p className="text-base sm:text-lg md:text-2xl lg:text-3xl font-bold text-zinc-800 leading-relaxed text-center break-words">
+                  {currentCard?.front}
+                </p>
+              </div>
+              <div className="text-zinc-400 text-[9px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-widest flex items-center justify-center gap-1.5 sm:gap-2 mt-2 flex-shrink-0">
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Tap to reveal
+              </div>
             </div>
 
             {/* Back */}
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center p-12 bg-indigo-600 text-white rounded-2xl"
-              style={{
+            <div 
+              className="absolute inset-0 bg-emerald-600 text-white rounded-[1.5rem] sm:rounded-[2.5rem] p-4 sm:p-6 md:p-10 flex flex-col"
+              style={{ 
                 backfaceVisibility: 'hidden',
                 transform: 'rotateY(180deg)'
               }}
             >
-              <div className="text-base font-medium mb-4">ANSWER</div>
-              <p className="text-3xl font-medium text-center leading-relaxed">
-                {currentCard.back}
-              </p>
-              <div className="absolute bottom-6 text-sm opacity-75">Click to flip back</div>
+              <div className="text-[9px] sm:text-[10px] font-black text-emerald-200/50 uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-2 flex-shrink-0">Answer</div>
+              <div className="flex-1 overflow-y-auto flex items-center justify-center min-h-0 px-1">
+                <p className="text-base sm:text-lg md:text-2xl lg:text-3xl font-bold leading-relaxed text-center break-words">
+                  {currentCard?.back}
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-emerald-100/70 text-[9px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-widest bg-white/10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full mt-2 flex-shrink-0 self-center">
+                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                Got it!
+              </div>
             </div>
           </div>
         </div>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between max-w-xl mx-auto gap-2 sm:gap-4">
           <button
             onClick={handlePrevious}
             disabled={currentIndex === 0}
-            className="px-6 py-3 bg-white text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow"
+            className="w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center bg-white border border-zinc-200 rounded-xl sm:rounded-2xl text-zinc-600 hover:bg-zinc-50 disabled:opacity-20 transition-all shadow-sm flex-shrink-0"
           >
-            ← Previous
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
           </button>
 
-          <div className="flex space-x-2">
-            {cards.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setCurrentIndex(index)
-                  setIsFlipped(false)
-                }}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentIndex ? 'bg-indigo-600 w-8' : 'bg-gray-300'
-                }`}
-              />
-            ))}
+          <div className="flex items-center gap-1 sm:gap-1.5 bg-zinc-100/50 p-2 sm:p-2.5 rounded-xl sm:rounded-2xl overflow-hidden">
+            {cards.length > 0 && Array.from({ length: Math.min(cards.length, 7) }).map((_, idx) => {
+              // Show dots around current index for longer sets
+              let displayIdx = idx
+              if (cards.length > 7) {
+                const start = Math.max(0, Math.min(currentIndex - 3, cards.length - 7))
+                displayIdx = start + idx
+              }
+              return (
+                <div 
+                  key={idx}
+                  className={`h-1 sm:h-1.5 rounded-full transition-all duration-300 ${displayIdx === currentIndex ? 'w-4 sm:w-6 bg-emerald-500' : 'w-1 sm:w-1.5 bg-zinc-300'}`}
+                />
+              )
+            })}
           </div>
 
           <button
             onClick={handleNext}
-            disabled={currentIndex === cards.length - 1}
-            className="px-6 py-3 bg-white text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow"
+            className="px-4 sm:px-8 h-11 sm:h-14 bg-zinc-900 text-white rounded-xl sm:rounded-2xl font-bold flex items-center gap-1.5 sm:gap-2 hover:bg-zinc-800 transition-all shadow-lg active:scale-95 text-sm sm:text-base flex-shrink-0"
           >
-            Next →
+            {currentIndex === cards.length - 1 ? 'Finish' : 'Next'}
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
           </button>
         </div>
 
-        {/* Keyboard shortcuts hint */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>💡 Tip: Click the card to flip it, or use arrow keys to navigate</p>
+        {/* Keyboard hint */}
+        <div className="mt-8 text-center text-xs text-zinc-400">
+          <p>💡 Click the card to flip • Use arrow keys to navigate</p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }
