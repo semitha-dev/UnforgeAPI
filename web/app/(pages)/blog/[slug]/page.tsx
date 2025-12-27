@@ -1131,14 +1131,25 @@ export default function BlogPostPage() {
           >
             <div className="prose prose-lg max-w-none prose-headings:font-headline prose-headings:text-primary prose-p:text-text-secondary prose-p:font-body prose-strong:text-primary prose-a:text-accent prose-a:no-underline hover:prose-a:underline prose-li:text-text-secondary prose-code:text-accent prose-code:bg-accent/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded">
               {post.content.split('\n').map((paragraph, index) => {
+                // Helper function to parse inline bold text
+                const parseInlineBold = (text: string) => {
+                  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+                  return parts.map((part, i) => {
+                    if (part.startsWith('**') && part.endsWith('**')) {
+                      return <strong key={i} className="text-primary font-semibold">{part.slice(2, -2)}</strong>;
+                    }
+                    return part;
+                  });
+                };
+
                 if (paragraph.startsWith('## ')) {
-                  return <h2 key={index} className="text-2xl font-bold mt-8 mb-4">{paragraph.replace('## ', '')}</h2>
+                  return <h2 key={index} className="text-2xl font-bold mt-8 mb-4">{parseInlineBold(paragraph.replace('## ', ''))}</h2>
                 } else if (paragraph.startsWith('### ')) {
-                  return <h3 key={index} className="text-xl font-bold mt-6 mb-3">{paragraph.replace('### ', '')}</h3>
+                  return <h3 key={index} className="text-xl font-bold mt-6 mb-3">{parseInlineBold(paragraph.replace('### ', ''))}</h3>
                 } else if (paragraph.startsWith('- ')) {
-                  return <li key={index} className="ml-6">{paragraph.replace('- ', '')}</li>
+                  return <li key={index} className="ml-6">{parseInlineBold(paragraph.replace('- ', ''))}</li>
                 } else if (paragraph.startsWith('1. ') || paragraph.startsWith('2. ') || paragraph.startsWith('3. ') || paragraph.startsWith('4. ') || paragraph.startsWith('5. ')) {
-                  return <li key={index} className="ml-6 list-decimal">{paragraph.replace(/^\d+\. /, '')}</li>
+                  return <li key={index} className="ml-6 list-decimal">{parseInlineBold(paragraph.replace(/^\d+\. /, ''))}</li>
                 } else if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
                   return <p key={index} className="font-bold">{paragraph.replace(/\*\*/g, '')}</p>
                 } else if (paragraph.startsWith('---')) {
@@ -1146,25 +1157,11 @@ export default function BlogPostPage() {
                 } else if (paragraph.trim() === '') {
                   return <br key={index} />
                 } else {
-                  return <p key={index} className="mb-4">{paragraph}</p>
+                  return <p key={index} className="mb-4">{parseInlineBold(paragraph)}</p>
                 }
               })}
             </div>
           </motion.article>
-
-          {/* Author Bio */}
-          <div className="mt-8 bg-card rounded-2xl border border-border p-6 md:p-8">
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="w-8 h-8 text-accent" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold font-headline text-primary">About {post.author}</h3>
-                <p className="text-sm text-accent mb-2">{post.authorRole}</p>
-                <p className="text-text-secondary font-body">{post.authorBio}</p>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
