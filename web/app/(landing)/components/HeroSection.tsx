@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Sparkles, GraduationCap } from 'lucide-react';
 import ConversionCTA from '@/components/common/ConversionCTA';
 
@@ -9,30 +8,6 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ onCTAClick }: HeroSectionProps) => {
-  const [isHydrated, setIsHydrated] = useState(false);
-  const [documentsProcessed, setDocumentsProcessed] = useState(125847);
-  const [studyHoursSaved, setStudyHoursSaved] = useState(45293);
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    if (!isHydrated) return;
-
-    const docInterval = setInterval(() => {
-      setDocumentsProcessed(prev => prev + Math.floor(Math.random() * 3) + 1);
-    }, 3000);
-
-    const hoursInterval = setInterval(() => {
-      setStudyHoursSaved(prev => prev + Math.floor(Math.random() * 2) + 1);
-    }, 4000);
-
-    return () => {
-      clearInterval(docInterval);
-      clearInterval(hoursInterval);
-    };
-  }, [isHydrated]);
 
   return (
     <section id="hero" className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 pt-16">
@@ -64,27 +39,23 @@ const HeroSection = ({ onCTAClick }: HeroSectionProps) => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 max-w-4xl mx-auto pt-8">
             <div className="bg-card/80 backdrop-blur-sm rounded-lg p-3 sm:p-6 border border-border shadow-sm">
-              <div className="text-xl sm:text-3xl font-bold font-headline text-primary">
-                {isHydrated ? documentsProcessed.toLocaleString() : '125,847'}
-              </div>
-              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Documents Processed</div>
+              <div className="text-xl sm:text-3xl font-bold font-headline text-primary">10X</div>
+              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Faster Learning</div>
             </div>
 
             <div className="bg-card/80 backdrop-blur-sm rounded-lg p-3 sm:p-6 border border-border shadow-sm">
-              <div className="text-xl sm:text-3xl font-bold font-headline text-primary">
-                {isHydrated ? studyHoursSaved.toLocaleString() : '45,293'}
-              </div>
-              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Study Hours Saved</div>
+              <div className="text-xl sm:text-3xl font-bold font-headline text-primary">&lt;30s</div>
+              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">To Generate Flashcards</div>
             </div>
 
             <div className="bg-card/80 backdrop-blur-sm rounded-lg p-3 sm:p-6 border border-border shadow-sm">
-              <div className="text-xl sm:text-3xl font-bold font-headline text-accent">1K+</div>
-              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Active Students</div>
+              <div className="text-xl sm:text-3xl font-bold font-headline text-accent">100%</div>
+              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Free to Start</div>
             </div>
 
             <div className="bg-card/80 backdrop-blur-sm rounded-lg p-3 sm:p-6 border border-border shadow-sm">
-              <div className="text-xl sm:text-3xl font-bold font-headline text-accent">4.9★</div>
-              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Student Rating</div>
+              <div className="text-xl sm:text-3xl font-bold font-headline text-accent">PDF</div>
+              <div className="text-[10px] sm:text-sm text-text-secondary font-body mt-0.5 sm:mt-1">Upload Any Document</div>
             </div>
           </div>
 

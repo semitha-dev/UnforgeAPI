@@ -29,7 +29,8 @@ const StickyNavigation = () => {
   const navLinks = [
     { label: 'Features', href: '#features', id: 'features' },
     { label: 'Pricing', href: '#pricing', id: 'pricing' },
-    { label: 'FAQ', href: '#faq', id: 'faq' }
+    { label: 'FAQ', href: '#faq', id: 'faq' },
+    { label: 'Blog', href: '/blog', id: 'blog', isExternal: true }
   ];
 
   return (
@@ -61,16 +62,28 @@ const StickyNavigation = () => {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.href}
-                onClick={(e) => handleSmoothScroll(e, link.id)}
-                className={`text-sm font-medium transition-colors hover:text-emerald-600 ${
-                  isScrolled ? 'text-gray-600' : 'text-gray-700'
-                }`}
-              >
-                {link.label}
-              </a>
+              link.isExternal ? (
+                <Link
+                  key={link.id}
+                  href={link.href}
+                  className={`text-sm font-medium transition-colors hover:text-emerald-600 ${
+                    isScrolled ? 'text-gray-600' : 'text-gray-700'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.id}
+                  href={link.href}
+                  onClick={(e) => handleSmoothScroll(e, link.id)}
+                  className={`text-sm font-medium transition-colors hover:text-emerald-600 ${
+                    isScrolled ? 'text-gray-600' : 'text-gray-700'
+                  }`}
+                >
+                  {link.label}
+                </a>
+              )
             ))}
           </nav>
 
@@ -118,14 +131,24 @@ const StickyNavigation = () => {
         >
           <nav className="flex flex-col p-4 space-y-2">
             {navLinks.map((link) => (
-              <a
-                key={link.id}
-                href={link.href}
-                onClick={(e) => handleSmoothScroll(e, link.id)}
-                className="px-4 py-3 text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg font-medium transition-colors"
-              >
-                {link.label}
-              </a>
+              link.isExternal ? (
+                <Link
+                  key={link.id}
+                  href={link.href}
+                  className="px-4 py-3 text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg font-medium transition-colors"
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.id}
+                  href={link.href}
+                  onClick={(e) => handleSmoothScroll(e, link.id)}
+                  className="px-4 py-3 text-gray-700 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg font-medium transition-colors"
+                >
+                  {link.label}
+                </a>
+              )
             ))}
             <hr className="my-2" />
             <Link
