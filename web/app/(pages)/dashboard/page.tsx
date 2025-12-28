@@ -11,7 +11,8 @@ import {
   BookOpen, GraduationCap, FlaskConical, Calculator, Globe, Code, Music, 
   Palette, Camera, Dumbbell, Heart, Star, Lightbulb, Rocket, Trophy,
   Brain, Atom, Languages, PenTool, Microscope, Scale, Briefcase, Coffee,
-  MoreVertical, Pencil, Trash2, Leaf, Search, Plus, Calendar, FileText, HelpCircle, Layers
+  MoreVertical, Pencil, Trash2, Leaf, Search, Plus, Calendar, FileText, HelpCircle, Layers,
+  Sparkles, AlertTriangle, Clock, ArrowRight
 } from 'lucide-react'
 import {
   Tooltip,
@@ -22,6 +23,7 @@ import {
 import { Loading } from '@/components/ui/loading'
 import { useTokenSync } from '@/lib/useTokenRefresh'
 import { TokenPurchaseModal } from '@/components/ui/token-purchase-modal'
+import DailyBriefingModal from '@/components/DailyBriefingModal'
 
 // --- Types ---
 interface Profile {
@@ -78,8 +80,34 @@ const projectColors = [
 
 const sidebarItems = [
   { name: 'Projects', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Insights', href: '/insights', icon: Sparkles },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
+
+interface InsightSummary {
+  total: number
+  critical: number
+  topInsight: {
+    type: string
+    title: string
+    message: string
+  } | null
+}
+
+interface InsightData {
+  id: string
+  insight_type: string
+  category: string
+  title: string
+  message: string
+  severity: 'info' | 'warning' | 'critical' | 'success'
+  related_project_id?: string
+  metadata: Record<string, unknown>
+  is_actionable: boolean
+  action_type?: string
+  action_data?: Record<string, unknown>
+  is_dismissed: boolean
+}
 
 export default function Dashboard() {
   // --- State ---
@@ -87,6 +115,9 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [insightsSummary, setInsightsSummary] = useState<InsightSummary>({ total: 0, critical: 0, topInsight: null })
+  const [showBriefingModal, setShowBriefingModal] = useState(false)
+  const [briefingInsights, setBriefingInsights] = useState<InsightData[]>([])
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showTokenModal, setShowTokenModal] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
@@ -187,6 +218,79 @@ export default function Dashboard() {
           flashcards_count: project.flashcards?.[0]?.count || 0
         }))
         setProjects(projectsWithCounts)
+      }
+
+      // Load insights summary and auto-generate if needed (Morning Report)
+      try {
+        const insightsRes = await fetch('/api/insights?days=1')
+        if (insightsRes.ok) {
+          const insightsData = await insightsRes.json()
+          const allInsights = Object.values(insightsData.insights || {}).flat() as InsightData[]
+          const activeInsights = allInsights.filter((i) => !i.is_dismissed)
+          
+          // Auto-generate insights if none exist for today (runs once per day)
+          if (activeInsights.length === 0) {
+            console.log('[Dashboard] No insights for today, auto-generating...')
+            const generateRes = await fetch('/api/insights', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ forceRegenerate: false })
+            })
+            
+            if (generateRes.ok) {
+              const generateData = await generateRes.json()
+              // If insights were generated (not already existing), reload them
+              if (!generateData.alreadyGenerated && generateData.insightsGenerated > 0) {
+                const reloadRes = await fetch('/api/insights?days=1')
+                if (reloadRes.ok) {
+                  const reloadData = await reloadRes.json()
+                  const reloadedInsights = Object.values(reloadData.insights || {}).flat() as InsightData[]
+                  const reloadedActive = reloadedInsights.filter((i) => !i.is_dismissed)
+                  const reloadedCritical = reloadedActive.filter((i) => i.severity === 'critical')
+                  setInsightsSummary({
+                    total: reloadedActive.length,
+                    critical: reloadedCritical.length,
+                    topInsight: reloadedActive[0] ? {
+                      type: reloadedActive[0].insight_type,
+                      title: reloadedActive[0].title,
+                      message: reloadedActive[0].message
+                    } : null
+                  })
+                  
+                  // Show briefing modal if not seen today
+                  const today = new Date().toISOString().split('T')[0]
+                  const seenKey = `leaflearning_briefing_seen_${today}`
+                  if (!localStorage.getItem(seenKey) && reloadedActive.length > 0) {
+                    setBriefingInsights(reloadedActive)
+                    setShowBriefingModal(true)
+                  }
+                  return // Exit early, we've set the insights
+                }
+              }
+            }
+          }
+          
+          const criticalInsights = activeInsights.filter((i) => i.severity === 'critical')
+          setInsightsSummary({
+            total: activeInsights.length,
+            critical: criticalInsights.length,
+            topInsight: activeInsights[0] ? {
+              type: activeInsights[0].insight_type,
+              title: activeInsights[0].title,
+              message: activeInsights[0].message
+            } : null
+          })
+          
+          // Show briefing modal if not seen today
+          const today = new Date().toISOString().split('T')[0]
+          const seenKey = `leaflearning_briefing_seen_${today}`
+          if (!localStorage.getItem(seenKey) && activeInsights.length > 0) {
+            setBriefingInsights(activeInsights)
+            setShowBriefingModal(true)
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load insights:', e)
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -414,6 +518,42 @@ export default function Dashboard() {
                 <span>New Project</span>
               </button>
             </div>
+
+            {/* Daily Insights Widget */}
+            {!isLoading && insightsSummary.total > 0 && (
+              <Link href="/insights" className="block mb-6 sm:mb-8">
+                <div className="bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 rounded-2xl sm:rounded-3xl p-4 sm:p-6 text-white shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30 transition-all group">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="p-2.5 sm:p-3 bg-white/20 rounded-xl sm:rounded-2xl backdrop-blur-sm">
+                        <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-base sm:text-lg flex items-center gap-2">
+                          Daily Insights
+                          {insightsSummary.critical > 0 && (
+                            <span className="px-2 py-0.5 bg-red-500/30 rounded-full text-xs font-medium flex items-center gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              {insightsSummary.critical} urgent
+                            </span>
+                          )}
+                        </h3>
+                        <p className="text-emerald-100 text-xs sm:text-sm mt-0.5">
+                          {insightsSummary.topInsight 
+                            ? insightsSummary.topInsight.message.slice(0, 80) + (insightsSummary.topInsight.message.length > 80 ? '...' : '')
+                            : `You have ${insightsSummary.total} insight${insightsSummary.total !== 1 ? 's' : ''} to review`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-emerald-100 group-hover:text-white transition-colors">
+                      <span className="hidden sm:inline text-sm font-medium">View All</span>
+                      <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            )}
 
             {/* Content Grid */}
             {isLoading ? (
@@ -663,6 +803,19 @@ export default function Dashboard() {
             currentBalance={profile?.tokens_balance || 0}
           />
         )}
+
+        {/* Daily Briefing Modal */}
+        <DailyBriefingModal
+          isOpen={showBriefingModal}
+          onClose={() => {
+            setShowBriefingModal(false)
+            // Mark as seen for today
+            const today = new Date().toISOString().split('T')[0]
+            localStorage.setItem(`leaflearning_briefing_seen_${today}`, 'true')
+          }}
+          insights={briefingInsights}
+          userName={profile?.name || user?.email?.split('@')[0] || 'there'}
+        />
 
       </div>
     </TooltipProvider>

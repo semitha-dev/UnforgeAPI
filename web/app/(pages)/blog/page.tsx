@@ -24,8 +24,8 @@ The results speak for themselves: students using AI-powered study tools report 4
     category: 'AI & Education',
     date: 'Dec 24, 2025',
     readTime: '5 min read',
-    author: 'Dr. Sarah Chen',
-    authorRole: 'Head of AI Research',
+    author: 'LeafLearning Team',
+    authorRole: 'Content Team',
     icon: Brain,
     color: 'from-purple-500/20 to-blue-500/20',
     featured: true
@@ -232,8 +232,8 @@ At LeafLearning, we're building toward this future - making AI-powered education
     category: 'AI & Education',
     date: 'Dec 8, 2025',
     readTime: '7 min read',
-    author: 'Dr. Sarah Chen',
-    authorRole: 'Head of AI Research',
+    author: 'LeafLearning Team',
+    authorRole: 'Content Team',
     icon: Sparkles,
     color: 'from-violet-500/20 to-purple-500/20'
   }

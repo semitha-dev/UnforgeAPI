@@ -1413,7 +1413,7 @@ export default function NotesClient({
   }
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="overflow-x-hidden -m-6">
       {/* Top Header - Sticky with backdrop blur matching quiz/flashcard */}
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="px-3 sm:px-8 py-3 sm:py-6 max-w-7xl mx-auto">

@@ -115,7 +115,7 @@ export default function TodayFocusView({ scheduleId, onTaskClick }: TodayFocusVi
     )
   }
 
-  if (!data || data.summary.totalTasks === 0) {
+  if (!data || !data.summary || data.summary.totalTasks === 0) {
     return (
       <div className="bg-white rounded-xl border border-zinc-200 p-8 text-center">
         <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4">

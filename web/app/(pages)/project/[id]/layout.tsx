@@ -420,7 +420,8 @@ const sidebarItems = [
   { name: 'Q&A', href: '/qa', icon: HelpCircle },
   { name: 'Flashcards', href: '/flashcards', icon: Layers },
   { name: 'Schedule', href: '/schedule', icon: Calendar },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 }
+  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'Insights', href: '/insights', icon: Sparkles }
 ]
 
 // Markdown to HTML converter for AI responses
@@ -1161,7 +1162,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
             </div>
           </header>
 
-          <main className="min-h-[calc(100vh-4rem)] p-6">
+          <main className="flex-1 min-h-[calc(100vh-4rem)] p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50">
             {children}
           </main>
         </div>

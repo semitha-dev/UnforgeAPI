@@ -154,7 +154,7 @@ export default function FlashcardsPage() {
   }
 
   if (selectedSet) {
-    return <FlashcardViewer setId={selectedSet} onBack={() => {
+    return <FlashcardViewer setId={selectedSet} projectId={projectId} onBack={() => {
       setSelectedSet(null)
       loadSets()
     }} />
@@ -162,14 +162,14 @@ export default function FlashcardsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-zinc-300 animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="overflow-x-hidden -m-6">
       {/* Top Header */}
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="px-4 sm:px-8 py-4 sm:py-6 max-w-7xl mx-auto">
@@ -1306,10 +1306,11 @@ function AIFlashcardCreator({ projectId, onClose, onSuccess, onBack }: AICreator
 // Flashcard Viewer Component
 interface FlashcardViewerProps {
   setId: string
+  projectId: string
   onBack: () => void
 }
 
-function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
+function FlashcardViewer({ setId, projectId, onBack }: FlashcardViewerProps) {
   const supabase = createClient()
   const [set, setSet] = useState<FlashcardSet | null>(null)
   const [cards, setCards] = useState<Flashcard[]>([])
@@ -1317,10 +1318,16 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
   const [isFlipped, setIsFlipped] = useState(false)
   const [loading, setLoading] = useState(true)
   const [completed, setCompleted] = useState(false)
+  const [cardStartTime, setCardStartTime] = useState<number>(Date.now())
 
   useEffect(() => {
     loadFlashcards()
   }, [setId])
+
+  // Track card view time
+  useEffect(() => {
+    setCardStartTime(Date.now())
+  }, [currentIndex])
 
   const loadFlashcards = async () => {
     try {
@@ -1337,7 +1344,31 @@ function FlashcardViewer({ setId, onBack }: FlashcardViewerProps) {
     }
   }
 
+  // Track study session
+  const trackStudySession = async (flashcardId: string, isCorrect: boolean | null = null) => {
+    try {
+      const responseTimeMs = Date.now() - cardStartTime
+      await fetch('/api/flashcards/study-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          flashcardSetId: setId,
+          flashcardId,
+          projectId,
+          isCorrect,
+          responseTimeMs
+        })
+      })
+    } catch (error) {
+      console.error('Error tracking study session:', error)
+    }
+  }
+
   const handleNext = () => {
+    // Track that the user viewed this card (neutral - not marked correct/incorrect)
+    if (cards[currentIndex]) {
+      trackStudySession(cards[currentIndex].id, true) // Assume user knows it if they move on
+    }
     if (currentIndex < cards.length - 1) {
       setCurrentIndex(currentIndex + 1)
       setIsFlipped(false)

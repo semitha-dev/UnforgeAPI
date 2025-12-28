@@ -408,7 +408,7 @@ export default function LeafAIChatPage() {
   }, [])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)] bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
+    <div className="flex flex-col h-[calc(100vh-64px-3rem)]">
       {/* Header - Sticky */}
       <div className="sticky top-0 z-20 flex-shrink-0 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-sm pt-4 sm:pt-0">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">

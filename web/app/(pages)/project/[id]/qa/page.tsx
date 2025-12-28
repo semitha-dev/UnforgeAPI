@@ -896,7 +896,7 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
       </div>
     )
@@ -905,7 +905,7 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
   if (isFinished) {
     const percentage = Math.round((score / questions.length) * 100)
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-6 animate-in fade-in">
+      <div className="flex items-center justify-center p-6 animate-in fade-in min-h-[60vh]">
         <div className="bg-white max-w-md w-full rounded-3xl shadow-xl p-8 text-center border border-zinc-100">
           <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${percentage >= 70 ? 'bg-emerald-50' : 'bg-yellow-50'}`}>
             <Trophy className={`w-12 h-12 ${percentage >= 70 ? 'text-emerald-500' : 'text-yellow-500'}`} />
@@ -951,7 +951,7 @@ function QuizTaker({ quizId, onBack }: QuizTakerProps) {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex flex-col">
+    <div className="flex flex-col -m-6">
       {/* Top Bar */}
       <div className="bg-white border-b border-zinc-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
@@ -1147,7 +1147,7 @@ export default function QuizPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div className="overflow-x-hidden -m-6">
       {/* Top Header */}
       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="px-3 sm:px-8 py-3 sm:py-6 max-w-7xl mx-auto">

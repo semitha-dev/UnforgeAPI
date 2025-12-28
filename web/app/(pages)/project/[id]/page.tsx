@@ -4,13 +4,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/app/lib/supabaseClient'
-import { FileText, HelpCircle, Layers, Clock, TrendingUp, Flame } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { FileText, HelpCircle, Layers, Clock, TrendingUp, TrendingDown, Flame, Minus, Trophy, ChevronRight, Calendar, Plus, X, History } from 'lucide-react'
 import { Loading } from '@/components/ui/loading'
+import { Button } from '@/components/ui/button'
 
 interface ProjectData {
   id: string
@@ -43,14 +39,24 @@ interface StreakData {
   longestStreak: number
 }
 
+interface ContentChange {
+  notes: number
+  qa_pairs: number
+  flashcards: number
+}
+
 export default function ProjectOverview() {
   const [project, setProject] = useState<ProjectData | null>(null)
   const [counts, setCounts] = useState<ContentCounts>({ notes: 0, qa_pairs: 0, flashcards: 0 })
+  const [changes, setChanges] = useState<ContentChange>({ notes: 0, qa_pairs: 0, flashcards: 0 })
   const [recentItems, setRecentItems] = useState<RecentItem[]>([])
+  const [allHistoryItems, setAllHistoryItems] = useState<RecentItem[]>([])
   const [weeklyActivity, setWeeklyActivity] = useState<WeeklyActivity[]>([])
   const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, longestStreak: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
 
   const params = useParams()
   const router = useRouter()
@@ -114,10 +120,31 @@ export default function ProjectOverview() {
         supabase.from('flashcard_sets').select('id', { count: 'exact' }).eq('project_id', projectId)
       ])
 
+      const notesCount = (notesResult.status === 'fulfilled' ? notesResult.value.count : 0) || 0
+      const qaCount = (qaResult.status === 'fulfilled' ? qaResult.value.count : 0) || 0
+      const flashcardsCount = (flashcardsResult.status === 'fulfilled' ? flashcardsResult.value.count : 0) || 0
+
       setCounts({
-        notes: (notesResult.status === 'fulfilled' ? notesResult.value.count : 0) || 0,
-        qa_pairs: (qaResult.status === 'fulfilled' ? qaResult.value.count : 0) || 0,
-        flashcards: (flashcardsResult.status === 'fulfilled' ? flashcardsResult.value.count : 0) || 0
+        notes: notesCount,
+        qa_pairs: qaCount,
+        flashcards: flashcardsCount
+      })
+
+      // Calculate changes from last 7 days
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      const sevenDaysAgoISO = sevenDaysAgo.toISOString()
+
+      const [recentNotesCount, recentQaCount, recentFlashcardsCount] = await Promise.allSettled([
+        supabase.from('notes').select('id', { count: 'exact' }).eq('project_id', projectId).gte('created_at', sevenDaysAgoISO),
+        supabase.from('quizzes').select('id', { count: 'exact' }).eq('project_id', projectId).gte('created_at', sevenDaysAgoISO),
+        supabase.from('flashcard_sets').select('id', { count: 'exact' }).eq('project_id', projectId).gte('created_at', sevenDaysAgoISO)
+      ])
+
+      setChanges({
+        notes: (recentNotesCount.status === 'fulfilled' ? recentNotesCount.value.count : 0) || 0,
+        qa_pairs: (recentQaCount.status === 'fulfilled' ? recentQaCount.value.count : 0) || 0,
+        flashcards: (recentFlashcardsCount.status === 'fulfilled' ? recentFlashcardsCount.value.count : 0) || 0
       })
 
       // Load recent items with better error handling
@@ -181,11 +208,8 @@ export default function ProjectOverview() {
       // Calculate weekly activity - fetch all items from last 7 days
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
       const today = new Date()
-      const sevenDaysAgo = new Date(today)
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const sevenDaysAgoISO = sevenDaysAgo.toISOString()
       
-      // Fetch all activity from last 7 days for accurate chart
+      // Fetch all activity from last 7 days for accurate chart (reuse sevenDaysAgoISO from above)
       const [weekNotes, weekQuizzes, weekFlashcards] = await Promise.allSettled([
         supabase
           .from('notes')
@@ -299,6 +323,71 @@ export default function ProjectOverview() {
     }
   }
 
+  const loadAllHistory = async () => {
+    if (allHistoryItems.length > 0) {
+      setShowHistoryModal(true)
+      return
+    }
+
+    setIsLoadingHistory(true)
+    try {
+      const [allNotes, allQA, allFlashcards] = await Promise.allSettled([
+        supabase
+          .from('notes')
+          .select('id, title, created_at')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('quizzes')
+          .select('id, title, created_at')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('flashcard_sets')
+          .select('id, title, created_at')
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false })
+      ])
+
+      const history: RecentItem[] = []
+
+      if (allNotes.status === 'fulfilled' && allNotes.value.data) {
+        history.push(...allNotes.value.data.map(item => ({
+          id: item.id,
+          title: item.title || 'Untitled Note',
+          type: 'note' as const,
+          created_at: item.created_at
+        })))
+      }
+
+      if (allQA.status === 'fulfilled' && allQA.value.data) {
+        history.push(...allQA.value.data.map(item => ({
+          id: item.id,
+          title: item.title || 'Untitled Quiz',
+          type: 'qa' as const,
+          created_at: item.created_at
+        })))
+      }
+
+      if (allFlashcards.status === 'fulfilled' && allFlashcards.value.data) {
+        history.push(...allFlashcards.value.data.map(item => ({
+          id: item.id,
+          title: item.title || 'Untitled Flashcard Set',
+          type: 'flashcard' as const,
+          created_at: item.created_at
+        })))
+      }
+
+      history.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      setAllHistoryItems(history)
+      setShowHistoryModal(true)
+    } catch (error) {
+      console.error('Error loading history:', error)
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }
+
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString('en-US', {
@@ -346,191 +435,419 @@ export default function ProjectOverview() {
 
   const totalContent = counts.notes + counts.qa_pairs + counts.flashcards
 
+  const getRelativeTime = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMins / 60)
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins} min ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+    if (diffDays === 1) return 'Yesterday'
+    if (diffDays < 7) return `${diffDays} days ago`
+    return formatDate(dateString)
+  }
+
   return (
-    <div className="p-4 sm:p-6">
-      {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <p className="text-sm sm:text-base text-gray-600">
-          {project?.description || 'Track your progress and manage your study materials'}
-        </p>
-      </div>
+    <div className="flex-1 overflow-y-auto -m-6 p-6 sm:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Overview</h2>
+            <p className="text-slate-500 mt-1">
+              Track your learning progress and bridge knowledge gaps.
+            </p>
+          </div>
+        </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-        <Link href={`/project/${projectId}/notes`}>
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-xl sm:rounded-2xl">
-            <CardContent className="p-3 sm:p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-400 font-medium">Notes</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5 sm:mt-1">{counts.notes}</p>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Notes Card */}
+          <Link href={`/project/${projectId}/notes`}>
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all group cursor-pointer">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2.5 bg-yellow-50 rounded-xl text-yellow-600 group-hover:scale-110 transition-transform duration-300">
+                  <FileText className="w-5 h-5" />
                 </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-lg sm:rounded-xl flex items-center justify-center">
-                  <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
+                <span className={`flex items-center text-xs font-semibold px-2 py-1 rounded-full border ${
+                  changes.notes > 0 
+                    ? 'text-green-600 bg-green-50 border-green-100' 
+                    : 'text-slate-500 bg-slate-50 border-slate-100'
+                }`}>
+                  {changes.notes > 0 ? (
+                    <><TrendingUp className="w-3.5 h-3.5 mr-0.5" /> +{changes.notes}</>
+                  ) : (
+                    <><Minus className="w-3.5 h-3.5 mr-0.5" /> 0</>
+                  )}
+                </span>
               </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href={`/project/${projectId}/qa`}>
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-xl sm:rounded-2xl">
-            <CardContent className="p-3 sm:p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-400 font-medium">Q&A Pairs</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5 sm:mt-1">{counts.qa_pairs}</p>
-                </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-lg sm:rounded-xl flex items-center justify-center">
-                  <HelpCircle className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
+              <div className="space-y-1">
+                <p className="text-slate-500 text-sm font-medium">Total Notes</p>
+                <p className="text-3xl font-bold text-slate-900">{counts.notes}</p>
               </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href={`/project/${projectId}/flashcards`}>
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer hover:-translate-y-1 bg-white rounded-xl sm:rounded-2xl">
-            <CardContent className="p-3 sm:p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-400 font-medium">Flashcards</p>
-                  <p className="text-xl sm:text-2xl font-bold text-gray-800 mt-0.5 sm:mt-1">{counts.flashcards}</p>
-                </div>
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg sm:rounded-xl flex items-center justify-center">
-                  <Layers className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
+              <div className="w-full bg-slate-100 h-1.5 mt-4 rounded-full overflow-hidden">
+                <div 
+                  className="bg-yellow-400 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${totalContent > 0 ? Math.min((counts.notes / totalContent) * 100, 100) : 0}%` }}
+                />
               </div>
-            </CardContent>
-          </Card>
-        </Link>
+            </div>
+          </Link>
 
-        {/* Streak Card */}
-        <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl sm:rounded-2xl col-span-2 md:col-span-1">
-          <CardContent className="p-3 sm:p-5">
-            <div className="flex items-center justify-between">
+          {/* Q&A Card */}
+          <Link href={`/project/${projectId}/qa`}>
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all group cursor-pointer">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600 group-hover:scale-110 transition-transform duration-300">
+                  <HelpCircle className="w-5 h-5" />
+                </div>
+                <span className={`flex items-center text-xs font-semibold px-2 py-1 rounded-full border ${
+                  changes.qa_pairs > 0 
+                    ? 'text-green-600 bg-green-50 border-green-100' 
+                    : 'text-slate-500 bg-slate-50 border-slate-100'
+                }`}>
+                  {changes.qa_pairs > 0 ? (
+                    <><TrendingUp className="w-3.5 h-3.5 mr-0.5" /> +{changes.qa_pairs}</>
+                  ) : (
+                    <><Minus className="w-3.5 h-3.5 mr-0.5" /> 0</>
+                  )}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-slate-500 text-sm font-medium">Q&A Pairs</p>
+                <p className="text-3xl font-bold text-slate-900">{counts.qa_pairs}</p>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 mt-4 rounded-full overflow-hidden">
+                <div 
+                  className="bg-blue-500 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${totalContent > 0 ? Math.min((counts.qa_pairs / totalContent) * 100, 100) : 0}%` }}
+                />
+              </div>
+            </div>
+          </Link>
+
+          {/* Flashcards Card */}
+          <Link href={`/project/${projectId}/flashcards`}>
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all group cursor-pointer">
+              <div className="flex justify-between items-start mb-4">
+                <div className="p-2.5 bg-purple-50 rounded-xl text-purple-600 group-hover:scale-110 transition-transform duration-300">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <span className={`flex items-center text-xs font-semibold px-2 py-1 rounded-full border ${
+                  changes.flashcards > 0 
+                    ? 'text-green-600 bg-green-50 border-green-100' 
+                    : 'text-slate-500 bg-slate-50 border-slate-100'
+                }`}>
+                  {changes.flashcards > 0 ? (
+                    <><TrendingUp className="w-3.5 h-3.5 mr-0.5" /> +{changes.flashcards}</>
+                  ) : (
+                    <><Minus className="w-3.5 h-3.5 mr-0.5" /> 0</>
+                  )}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-slate-500 text-sm font-medium">Flashcards</p>
+                <p className="text-3xl font-bold text-slate-900">{counts.flashcards}</p>
+              </div>
+              <div className="w-full bg-slate-100 h-1.5 mt-4 rounded-full overflow-hidden">
+                <div 
+                  className="bg-purple-500 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${totalContent > 0 ? Math.min((counts.flashcards / totalContent) * 100, 100) : 0}%` }}
+                />
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Study Streak & Weekly Activity Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Study Streak Card */}
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-5 pointer-events-none">
+              <Flame className="w-28 h-28 text-slate-900" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Study Streak</h3>
+            <div className="flex items-center gap-5 mb-8">
+              <div className="size-20 rounded-full bg-gradient-to-br from-orange-100 to-orange-50 flex items-center justify-center ring-4 ring-white shadow-lg">
+                <Flame className="w-9 h-9 text-orange-500 drop-shadow-sm" />
+              </div>
               <div>
-                <p className="text-xs sm:text-sm text-white/80 font-medium">Study Streak</p>
-                <p className="text-xl sm:text-2xl font-bold text-white mt-0.5 sm:mt-1">{streak.currentStreak} days</p>
-                <p className="text-[10px] sm:text-xs text-white/60 mt-0.5 sm:mt-1">Best: {streak.longestStreak} days</p>
-              </div>
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-lg sm:rounded-xl flex items-center justify-center">
-                <Flame className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold text-slate-900">{streak.currentStreak}</span>
+                  <span className="text-lg font-medium text-slate-500">days</span>
+                </div>
+                <p className="text-sm font-medium text-orange-500">
+                  {streak.currentStreak > 0 ? "You're on fire! 🔥" : "Start your streak today!"}
+                </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Weekly Activity Chart */}
-      <Card className="border-0 shadow-lg bg-white rounded-xl sm:rounded-2xl mb-6 sm:mb-8">
-        <CardHeader className="pb-2 px-4 sm:px-6">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base sm:text-lg font-semibold text-gray-800">Weekly Activity</CardTitle>
-            <span className="text-xs sm:text-sm text-gray-400">This Week</span>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0 px-2 sm:px-6">
-          <div className="h-[160px] sm:h-[200px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={weeklyActivity} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="activityGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#4F8CF7" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#4F8CF7" stopOpacity={0.05} />
-                  </linearGradient>
-                </defs>
-                <XAxis 
-                  dataKey="day" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                  tickFormatter={(value) => `${value}%`}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#4F8CF7', 
-                    border: 'none', 
-                    borderRadius: '8px',
-                    color: 'white',
-                    fontSize: '12px',
-                    padding: '8px 12px'
-                  }}
-                  labelStyle={{ color: 'white', fontWeight: 'bold' }}
-                  formatter={(value?: number) => [`${(value ?? 0).toFixed(2)}`, 'Activity']}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="activity" 
-                  stroke="#4F8CF7" 
-                  strokeWidth={2}
-                  fill="url(#activityGradient)"
-                  dot={{ fill: '#4F8CF7', strokeWidth: 2, r: 4, stroke: 'white' }}
-                  activeDot={{ fill: '#4F8CF7', strokeWidth: 2, r: 6, stroke: 'white' }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity */}
-      <Card className="border-0 shadow-sm rounded-xl sm:rounded-2xl">
-        <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
-          <CardTitle className="text-base sm:text-lg font-semibold">Recent Activity</CardTitle>
-        </CardHeader>
-        <CardContent className="px-3 sm:px-6">
-          {recentItems.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Layers className="h-8 w-8 text-gray-400" />
+            <div className="mt-auto bg-slate-50 rounded-xl p-4 border border-slate-100 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-slate-400" />
+                <span className="text-sm font-medium text-slate-500">Best Streak</span>
               </div>
-              <h3 className="text-sm font-medium text-gray-900">No content yet</h3>
-              <p className="mt-1 text-sm text-gray-500">Get started by creating your first note, Q&A, or flashcard.</p>
+              <span className="text-base font-bold text-slate-900">{streak.longestStreak} days</span>
             </div>
-          ) : (
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-3">
-                {recentItems.map((item) => (
-                  <div
-                    key={`${item.type}-${item.id}`}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      item.type === 'note' ? 'bg-blue-100 text-blue-600' :
-                      item.type === 'qa' ? 'bg-green-100 text-green-600' :
-                      'bg-purple-100 text-purple-600'
-                    }`}>
-                      {getItemIcon(item.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
-                      <div className="flex items-center gap-2 text-xs text-gray-500">
-                        <Clock className="h-3 w-3" />
-                        <span className="capitalize">{item.type}</span>
-                        <span>•</span>
-                        <span>{formatDate(item.created_at)}</span>
-                      </div>
-                    </div>
-                    <Badge className={`${
-                      item.type === 'note' ? 'bg-blue-100 text-blue-700' :
-                      item.type === 'qa' ? 'bg-green-100 text-green-700' :
-                      'bg-purple-100 text-purple-700'
-                    }`}>
-                      {item.type === 'note' ? 'Note' : item.type === 'qa' ? 'Q&A' : 'Flashcard'}
-                    </Badge>
-                  </div>
+          </div>
+
+          {/* Weekly Activity Chart */}
+          <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Weekly Activity</h3>
+                <p className="text-sm text-slate-500">Daily content created</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="size-3 rounded-full bg-teal-500"></span>
+                <span className="text-xs font-medium text-slate-500">Current Week</span>
+              </div>
+            </div>
+            <div className="flex-1 w-full h-[180px] relative">
+              {/* Grid lines */}
+              <div className="absolute inset-x-0 top-0 bottom-6 flex flex-col justify-between">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="w-full h-px bg-slate-100" />
                 ))}
               </div>
-            </ScrollArea>
-          )}
-        </CardContent>
-      </Card>
+              
+              {/* SVG Chart */}
+              <svg 
+                className="absolute inset-x-0 top-0 w-full h-[calc(100%-24px)]" 
+                preserveAspectRatio="none" 
+                viewBox="0 0 700 150"
+              >
+                <defs>
+                  <linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="#14b8a6" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#14b8a6" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {weeklyActivity.length > 0 && (() => {
+                  const width = 700
+                  const height = 150
+                  const paddingX = 50
+                  const paddingY = 20
+                  const chartHeight = height - paddingY * 2
+                  const chartWidth = width - paddingX * 2
+                  const max = Math.max(...weeklyActivity.map(d => d.activity), 1)
+                  
+                  const pts = weeklyActivity.map((d, i) => ({
+                    x: paddingX + (i / (weeklyActivity.length - 1 || 1)) * chartWidth,
+                    y: paddingY + chartHeight - (d.activity / max) * chartHeight,
+                    value: d.activity
+                  }))
+
+                  let line = `M${pts[0].x},${pts[0].y}`
+                  for (let i = 1; i < pts.length; i++) {
+                    line += ` L${pts[i].x},${pts[i].y}`
+                  }
+                  const area = `${line} L${pts[pts.length - 1].x},${height - paddingY} L${pts[0].x},${height - paddingY} Z`
+
+                  return (
+                    <>
+                      <path d={area} fill="url(#chartGradient)" stroke="none" />
+                      <path 
+                        d={line} 
+                        fill="none" 
+                        stroke="#14b8a6" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth="3" 
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      {pts.map((point, i) => (
+                        <g key={i}>
+                          <circle cx={point.x} cy={point.y} fill="white" r="6" stroke="#14b8a6" strokeWidth="3" vectorEffect="non-scaling-stroke" />
+                          {i === weeklyActivity.length - 1 && point.value > 0 && (
+                            <>
+                              <circle cx={point.x} cy={point.y} fill="rgba(20, 184, 166, 0.2)" r="12">
+                                <animate attributeName="r" dur="2s" repeatCount="indefinite" values="8;14;8" />
+                              </circle>
+                            </>
+                          )}
+                        </g>
+                      ))}
+                    </>
+                  )
+                })()}
+              </svg>
+              
+              {/* Day labels */}
+              <div className="absolute bottom-0 w-full flex justify-between text-xs font-medium text-slate-400 px-2">
+                {weeklyActivity.map((d, i) => (
+                  <span 
+                    key={i} 
+                    className={`text-center ${i === weeklyActivity.length - 1 ? 'text-slate-900 font-bold' : ''}`}
+                  >
+                    {d.day}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Activity */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0">
+            <h3 className="text-lg font-bold text-slate-900">Recent Activity</h3>
+            <button 
+              onClick={loadAllHistory}
+              disabled={isLoadingHistory}
+              className="text-sm font-semibold text-teal-600 hover:text-teal-700 hover:bg-teal-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {isLoadingHistory ? 'Loading...' : 'View Full History'}
+            </button>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {recentItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <Layers className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-sm font-medium text-slate-900">No content yet</h3>
+                <p className="mt-1 text-sm text-slate-500">Get started by creating your first note, Q&A, or flashcard.</p>
+              </div>
+            ) : (
+              recentItems.map((item) => (
+                <Link 
+                  key={`${item.type}-${item.id}`}
+                  href={`/project/${projectId}/${item.type === 'note' ? 'notes' : item.type === 'qa' ? 'qa' : 'flashcards'}`}
+                >
+                  <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50 transition-colors group cursor-pointer">
+                    <div className="flex items-center gap-4">
+                      <div className={`size-12 rounded-xl flex items-center justify-center border group-hover:scale-105 transition-transform ${
+                        item.type === 'note' 
+                          ? 'bg-yellow-50 text-yellow-600 border-yellow-100' 
+                          : item.type === 'qa' 
+                          ? 'bg-blue-50 text-blue-600 border-blue-100' 
+                          : 'bg-purple-50 text-purple-600 border-purple-100'
+                      }`}>
+                        {item.type === 'note' && <FileText className="w-5 h-5" />}
+                        {item.type === 'qa' && <HelpCircle className="w-5 h-5" />}
+                        {item.type === 'flashcard' && <Layers className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 mb-0.5 group-hover:text-teal-600 transition-colors">
+                          {item.title}
+                        </h4>
+                        <p className="text-xs text-slate-500">
+                          {project?.name} • {item.type === 'note' ? 'Notes' : item.type === 'qa' ? 'Q&A' : 'Flashcards'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-8 w-full sm:w-auto">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
+                        item.type === 'note' 
+                          ? 'bg-slate-100 text-slate-600 border-slate-200' 
+                          : item.type === 'qa' 
+                          ? 'bg-slate-100 text-slate-600 border-slate-200' 
+                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
+                        <span className={`size-1.5 rounded-full ${
+                          item.type === 'note' ? 'bg-yellow-500' : item.type === 'qa' ? 'bg-blue-500' : 'bg-purple-500'
+                        }`} />
+                        {item.type === 'note' ? 'Note' : item.type === 'qa' ? 'Quiz' : 'Flashcard'}
+                      </span>
+                      <span className="text-sm text-slate-400 font-medium">{getRelativeTime(item.created_at)}</span>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 hidden sm:block" />
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Full History Modal */}
+      {showHistoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-gradient-to-r from-teal-500 to-teal-600">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                  <History className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-white">Full Activity History</h2>
+                  <p className="text-sm text-white/70">{allHistoryItems.length} items in {project?.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+              {allHistoryItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <Layers className="h-8 w-8 text-slate-400" />
+                  </div>
+                  <h3 className="text-sm font-medium text-slate-900">No history yet</h3>
+                  <p className="mt-1 text-sm text-slate-500">Start creating content to see your activity history.</p>
+                </div>
+              ) : (
+                allHistoryItems.map((item) => (
+                  <Link 
+                    key={`history-${item.type}-${item.id}`}
+                    href={`/project/${projectId}/${item.type === 'note' ? 'notes' : item.type === 'qa' ? 'qa' : 'flashcards'}`}
+                    onClick={() => setShowHistoryModal(false)}
+                  >
+                    <div className="p-4 flex items-center justify-between gap-4 hover:bg-slate-50 transition-colors group cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <div className={`size-10 rounded-xl flex items-center justify-center border ${
+                          item.type === 'note' 
+                            ? 'bg-yellow-50 text-yellow-600 border-yellow-100' 
+                            : item.type === 'qa' 
+                            ? 'bg-blue-50 text-blue-600 border-blue-100' 
+                            : 'bg-purple-50 text-purple-600 border-purple-100'
+                        }`}>
+                          {item.type === 'note' && <FileText className="w-4 h-4" />}
+                          {item.type === 'qa' && <HelpCircle className="w-4 h-4" />}
+                          {item.type === 'flashcard' && <Layers className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-slate-900 group-hover:text-teal-600 transition-colors">
+                            {item.title}
+                          </h4>
+                          <p className="text-xs text-slate-500">
+                            {item.type === 'note' ? 'Note' : item.type === 'qa' ? 'Quiz' : 'Flashcard Set'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-slate-400">{formatDate(item.created_at)}</span>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500" />
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 bg-slate-50">
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
