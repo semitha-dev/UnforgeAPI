@@ -31,7 +31,8 @@ import {
   FileText as FileTextIcon,
   Image as ImageIcon,
   Lock,
-  Crown
+  Crown,
+  Menu
 } from 'lucide-react'
 import {
   Tooltip,
@@ -42,6 +43,7 @@ import {
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import GlobalSidebar from '@/components/GlobalSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
+import MobileNav from '@/components/MobileNav'
 
 interface Citation {
   number: number
@@ -229,7 +231,12 @@ export default function GlobalOverviewPage() {
           projectName: 'Global',
           searchMode,
           files: fileContents,
-          userId // Pass user ID for study set creation
+          userId, // Pass user ID for study set creation
+          // Pass conversation history for context
+          conversationHistory: messages.slice(-6).map(m => ({
+            role: m.role,
+            content: m.content
+          }))
         })
       })
 
@@ -514,7 +521,7 @@ export default function GlobalOverviewPage() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-neutral-900">
-        {/* Global Sidebar */}
+        {/* Global Sidebar - Desktop Only */}
         <div className="hidden lg:block">
           <GlobalSidebar
             isPro={profile?.subscription_tier === 'pro'}
@@ -526,6 +533,11 @@ export default function GlobalOverviewPage() {
           />
         </div>
 
+        {/* Mobile Navigation */}
+        <MobileNav 
+          onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
+        />
+
         {/* Chats Panel */}
         <ChatsPanel
           isOpen={showChatsPanel}
@@ -535,18 +547,18 @@ export default function GlobalOverviewPage() {
           currentChatId={currentChatId}
         />
 
-        {/* Main Content */}
-        <main className="lg:ml-[72px] min-h-screen flex flex-col">
+        {/* Main Content - Add bottom padding on mobile for nav */}
+        <main className="lg:ml-[72px] min-h-screen flex flex-col pb-20 lg:pb-0">
           {messages.length === 0 ? (
             /* Perplexity-style empty state */
-            <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+            <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 lg:py-12">
               {/* Logo */}
-              <div className="flex items-center justify-center mb-8">
-                <h1 className="text-5xl font-bold text-white tracking-tight">leaflearning</h1>
+              <div className="flex items-center justify-center mb-6 lg:mb-8">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white tracking-tight">leaflearning</h1>
               </div>
 
               {/* Search Input */}
-              <div className="w-full max-w-3xl mb-8">
+              <div className="w-full max-w-3xl mb-6 lg:mb-8 px-2 sm:px-0">
                 {/* Attached Files Preview */}
                 {attachedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3 px-2">
@@ -674,14 +686,14 @@ export default function GlobalOverviewPage() {
               </div>
 
               {/* Quick Actions */}
-              <div className="flex flex-wrap justify-center gap-3 mb-12">
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8 sm:mb-12 px-2">
                 {quickActions.map((action) => (
                   <button
                     key={action.label}
                     onClick={() => setQuery(action.query)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl text-neutral-300 hover:bg-neutral-800 hover:text-white transition-all text-sm"
+                    className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-neutral-900 border border-neutral-800 rounded-lg sm:rounded-xl text-neutral-300 hover:bg-neutral-800 hover:text-white transition-all text-xs sm:text-sm"
                   >
-                    <action.icon className="w-4 h-4" />
+                    <action.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     {action.label}
                   </button>
                 ))}
@@ -692,15 +704,15 @@ export default function GlobalOverviewPage() {
             /* ChatGPT-style with messages */
             <div className="flex-1 flex flex-col">
               {/* Header */}
-              <header className="sticky top-0 z-20 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-800 px-6 py-4">
+              <header className="sticky top-0 z-20 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-800 px-4 sm:px-6 py-3 sm:py-4">
                 <div className="flex items-center justify-between max-w-4xl mx-auto">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-white" />
-                    <span className="font-semibold text-white">LeafLearning</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    <span className="font-semibold text-white text-sm sm:text-base">LeafLearning</span>
                   </div>
                   <button
                     onClick={startNewChat}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
+                    className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg transition-all"
                   >
                     <Plus className="w-4 h-4" />
                     New search
@@ -709,13 +721,13 @@ export default function GlobalOverviewPage() {
               </header>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-4 py-6">
-                <div className="max-w-4xl mx-auto space-y-6">
+              <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6">
+                <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
                   {messages.map((message) => (
                     <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       {message.role === 'user' ? (
-                        <div className="max-w-[80%] bg-neutral-800 rounded-2xl px-5 py-3">
-                          <p className="text-white">{message.content}</p>
+                        <div className="max-w-[90%] sm:max-w-[80%] bg-neutral-800 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3">
+                          <p className="text-white text-sm sm:text-base">{message.content}</p>
                         </div>
                       ) : (
                         <div className="max-w-full w-full">
@@ -728,26 +740,26 @@ export default function GlobalOverviewPage() {
 
                             {/* Citations */}
                             {message.citations && message.citations.length > 0 && (
-                              <div className="mt-4 pt-4 border-t border-neutral-800">
+                              <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-neutral-800">
                                 <p className="text-neutral-500 text-xs font-medium uppercase tracking-wider mb-2">
                                   Sources
                                 </p>
-                                <div className="flex flex-wrap gap-2">
+                                <div className="flex flex-wrap gap-1.5 sm:gap-2">
                                   {message.citations.map((citation) => (
                                     <a
                                       key={citation.number}
                                       href={citation.url}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="flex items-center gap-2 px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors group"
+                                      className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors group"
                                     >
-                                      <span className="w-5 h-5 bg-neutral-700 rounded text-xs flex items-center justify-center text-white font-medium">
+                                      <span className="w-4 h-4 sm:w-5 sm:h-5 bg-neutral-700 rounded text-[10px] sm:text-xs flex items-center justify-center text-white font-medium">
                                         {citation.number}
                                       </span>
-                                      <span className="text-sm text-neutral-400 group-hover:text-white truncate max-w-[200px]">
+                                      <span className="text-xs sm:text-sm text-neutral-400 group-hover:text-white truncate max-w-[120px] sm:max-w-[200px]">
                                         {citation.title}
                                       </span>
-                                      <ExternalLink className="w-3 h-3 text-neutral-600" />
+                                      <ExternalLink className="w-3 h-3 text-neutral-600 hidden sm:block" />
                                     </a>
                                   ))}
                                 </div>
@@ -805,19 +817,19 @@ export default function GlobalOverviewPage() {
               </div>
 
               {/* Bottom Input */}
-              <div className="sticky bottom-0 bg-gradient-to-t from-black via-black to-transparent pt-6 pb-6 px-4">
-                <div className="max-w-4xl mx-auto space-y-3">
+              <div className="sticky bottom-0 bg-gradient-to-t from-black via-black to-transparent pt-4 sm:pt-6 pb-24 lg:pb-6 px-3 sm:px-4">
+                <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
                   {/* Mode Selector */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <button
                       onClick={() => setSearchMode('fast')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
                         searchMode === 'fast'
                           ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
                           : 'bg-neutral-800/50 text-neutral-400 border border-transparent hover:text-white'
                       }`}
                     >
-                      <Zap className="w-3.5 h-3.5" />
+                      <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       Fast
                     </button>
                     <Tooltip>
@@ -830,16 +842,17 @@ export default function GlobalOverviewPage() {
                               setShowUpgradeModal(true)
                             }
                           }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all relative ${
+                          className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all relative ${
                             searchMode === 'research'
                               ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40'
                               : 'bg-neutral-800/50 text-neutral-400 border border-transparent hover:text-white'
                           }`}
                         >
-                          <Brain className="w-3.5 h-3.5" />
-                          Research
+                          <Brain className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                          <span className="hidden xs:inline">Research</span>
+                          <span className="xs:hidden">Pro</span>
                           {profile?.subscription_tier !== 'pro' && (
-                            <Lock className="w-2.5 h-2.5 text-amber-400 ml-0.5" />
+                            <Lock className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-amber-400 ml-0.5" />
                           )}
                         </button>
                       </TooltipTrigger>
@@ -922,7 +935,7 @@ export default function GlobalOverviewPage() {
 
         {/* Study Set Popup Modal */}
         {showStudySetPopup && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
             {/* Backdrop */}
             <div 
               className="absolute inset-0 bg-black/80 backdrop-blur-sm"
@@ -930,19 +943,19 @@ export default function GlobalOverviewPage() {
             />
             
             {/* Modal */}
-            <div className="relative w-full max-w-2xl bg-neutral-900 rounded-2xl border border-neutral-800 shadow-2xl overflow-hidden">
+            <div className="relative w-full sm:max-w-2xl max-h-[90vh] sm:max-h-[85vh] bg-neutral-900 rounded-t-2xl sm:rounded-2xl border-t sm:border border-neutral-800 shadow-2xl overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-500/20 rounded-lg">
-                    <BookOpen className="w-5 h-5 text-emerald-400" />
+              <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-800">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="p-1.5 sm:p-2 bg-emerald-500/20 rounded-lg">
+                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-white">
+                    <h2 className="font-semibold text-white text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">
                       {activeStudySet?.title || 'Loading...'}
                     </h2>
                     {activeStudySet && (
-                      <p className="text-sm text-neutral-400">
+                      <p className="text-xs sm:text-sm text-neutral-400">
                         {currentItemIndex + 1} of {activeStudySet.items.length} items
                       </p>
                     )}
@@ -950,14 +963,14 @@ export default function GlobalOverviewPage() {
                 </div>
                 <button
                   onClick={closeStudySet}
-                  className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                  className="p-1.5 sm:p-2 hover:bg-neutral-800 rounded-lg transition-colors"
                 >
                   <X className="w-5 h-5 text-neutral-400" />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="p-6 min-h-[400px] flex flex-col">
+              <div className="p-4 sm:p-6 min-h-[350px] sm:min-h-[400px] flex flex-col overflow-y-auto">
                 {isLoadingStudySet ? (
                   <div className="flex-1 flex items-center justify-center">
                     <div className="flex items-center gap-3 text-neutral-400">
@@ -976,10 +989,10 @@ export default function GlobalOverviewPage() {
                       if (item.item_type === 'flashcard') {
                         return (
                           <div className="flex-1 flex flex-col">
-                            <div className="flex-1 flex items-center justify-center perspective-1000">
+                            <div className="flex-1 flex items-center justify-center perspective-1000 px-2">
                               <div 
                                 onClick={() => setShowAnswer(!showAnswer)}
-                                className="relative w-full max-w-lg h-64 cursor-pointer group"
+                                className="relative w-full max-w-lg h-52 sm:h-64 cursor-pointer group"
                                 style={{ perspective: '1000px' }}
                               >
                                 {/* Card Container with 3D flip */}
@@ -992,36 +1005,36 @@ export default function GlobalOverviewPage() {
                                 >
                                   {/* Front Side */}
                                   <div 
-                                    className="absolute inset-0 w-full h-full p-8 bg-neutral-800 rounded-2xl border border-neutral-700 flex flex-col items-center justify-center shadow-xl"
+                                    className="absolute inset-0 w-full h-full p-4 sm:p-8 bg-neutral-800 rounded-xl sm:rounded-2xl border border-neutral-700 flex flex-col items-center justify-center shadow-xl"
                                     style={{ backfaceVisibility: 'hidden' }}
                                   >
-                                    <div className="absolute top-4 left-4 flex items-center gap-2">
-                                      <div className="w-2 h-2 rounded-full bg-neutral-600" />
-                                      <span className="text-xs font-medium text-neutral-500 uppercase tracking-wider">Front</span>
+                                    <div className="absolute top-3 sm:top-4 left-3 sm:left-4 flex items-center gap-1.5 sm:gap-2">
+                                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-neutral-600" />
+                                      <span className="text-[10px] sm:text-xs font-medium text-neutral-500 uppercase tracking-wider">Front</span>
                                     </div>
-                                    <p className="text-xl text-white text-center leading-relaxed">{item.front}</p>
-                                    <div className="absolute bottom-4 flex items-center gap-2 text-neutral-500">
-                                      <RotateCcw className="w-4 h-4" />
-                                      <span className="text-xs">Click to flip</span>
+                                    <p className="text-base sm:text-xl text-white text-center leading-relaxed px-2">{item.front}</p>
+                                    <div className="absolute bottom-3 sm:bottom-4 flex items-center gap-1.5 sm:gap-2 text-neutral-500">
+                                      <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                      <span className="text-[10px] sm:text-xs">Tap to flip</span>
                                     </div>
                                   </div>
                                   
                                   {/* Back Side - Emerald themed */}
                                   <div 
-                                    className="absolute inset-0 w-full h-full p-8 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl border border-emerald-500/50 flex flex-col items-center justify-center shadow-xl shadow-emerald-500/20"
+                                    className="absolute inset-0 w-full h-full p-4 sm:p-8 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl sm:rounded-2xl border border-emerald-500/50 flex flex-col items-center justify-center shadow-xl shadow-emerald-500/20"
                                     style={{ 
                                       backfaceVisibility: 'hidden',
                                       transform: 'rotateY(180deg)'
                                     }}
                                   >
-                                    <div className="absolute top-4 left-4 flex items-center gap-2">
-                                      <div className="w-2 h-2 rounded-full bg-emerald-300" />
-                                      <span className="text-xs font-medium text-emerald-200 uppercase tracking-wider">Answer</span>
+                                    <div className="absolute top-3 sm:top-4 left-3 sm:left-4 flex items-center gap-1.5 sm:gap-2">
+                                      <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-300" />
+                                      <span className="text-[10px] sm:text-xs font-medium text-emerald-200 uppercase tracking-wider">Answer</span>
                                     </div>
-                                    <p className="text-xl text-white text-center leading-relaxed font-medium">{item.back}</p>
-                                    <div className="absolute bottom-4 flex items-center gap-2 text-emerald-200/70">
-                                      <RotateCcw className="w-4 h-4" />
-                                      <span className="text-xs">Click to flip back</span>
+                                    <p className="text-base sm:text-xl text-white text-center leading-relaxed font-medium px-2">{item.back}</p>
+                                    <div className="absolute bottom-3 sm:bottom-4 flex items-center gap-1.5 sm:gap-2 text-emerald-200/70">
+                                      <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                      <span className="text-[10px] sm:text-xs">Tap to flip back</span>
                                     </div>
                                   </div>
                                 </div>
@@ -1062,17 +1075,17 @@ export default function GlobalOverviewPage() {
                         return (
                           <div className="flex-1 flex flex-col">
                             {/* Quiz Question Card */}
-                            <div className="mb-6 p-5 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
-                              <div className="flex items-center gap-2 mb-3">
-                                <div className="p-1.5 bg-blue-500/20 rounded-lg">
-                                  <Sparkles className="w-4 h-4 text-blue-400" />
+                            <div className="mb-4 sm:mb-6 p-3.5 sm:p-5 bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
+                              <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+                                <div className="p-1 sm:p-1.5 bg-blue-500/20 rounded-lg">
+                                  <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
                                 </div>
-                                <p className="text-xs font-medium text-blue-400 uppercase tracking-wider">Quiz Question</p>
+                                <p className="text-[10px] sm:text-xs font-medium text-blue-400 uppercase tracking-wider">Quiz Question</p>
                               </div>
-                              <p className="text-lg text-white leading-relaxed">{item.question}</p>
+                              <p className="text-sm sm:text-lg text-white leading-relaxed">{item.question}</p>
                             </div>
                             
-                            <div className="grid grid-cols-1 gap-3 flex-1">
+                            <div className="grid grid-cols-1 gap-2 sm:gap-3 flex-1">
                               {options.map((opt, optIdx) => {
                                 const isCorrect = item.correct_answer === opt.key
                                 const isSelected = selectedQuizAnswer === opt.key
@@ -1100,21 +1113,21 @@ export default function GlobalOverviewPage() {
                                     key={opt.key}
                                     onClick={() => !showAnswer && handleQuizAnswer(opt.key)}
                                     disabled={showAnswer}
-                                    className={`w-full p-4 rounded-xl border text-left transition-all duration-300 flex items-center gap-4 ${optionStyle} ${!showAnswer ? 'active:scale-[0.98]' : ''}`}
+                                    className={`w-full p-3 sm:p-4 rounded-lg sm:rounded-xl border text-left transition-all duration-300 flex items-center gap-3 sm:gap-4 ${optionStyle} ${!showAnswer ? 'active:scale-[0.98]' : ''}`}
                                     style={{ animationDelay: `${optIdx * 50}ms` }}
                                   >
-                                    <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-lg transition-all duration-300 ${iconBg} ${iconText}`}>
+                                    <span className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center font-semibold text-base sm:text-lg transition-all duration-300 flex-shrink-0 ${iconBg} ${iconText}`}>
                                       {showAnswer && isCorrect ? (
-                                        <Check className="w-5 h-5" />
+                                        <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                                       ) : showAnswer && isSelected && !isCorrect ? (
-                                        <XCircle className="w-5 h-5" />
+                                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                                       ) : (
                                         opt.key
                                       )}
                                     </span>
-                                    <span className="text-white flex-1">{opt.value}</span>
+                                    <span className="text-white flex-1 text-sm sm:text-base">{opt.value}</span>
                                     {showAnswer && isCorrect && (
-                                      <span className="text-emerald-400 text-sm font-medium">Correct!</span>
+                                      <span className="text-emerald-400 text-xs sm:text-sm font-medium">Correct!</span>
                                     )}
                                   </button>
                                 )
@@ -1122,14 +1135,14 @@ export default function GlobalOverviewPage() {
                             </div>
 
                             {showAnswer && item.explanation && (
-                              <div className="mt-5 p-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                <div className="flex items-start gap-3">
-                                  <div className="p-1.5 bg-blue-500/20 rounded-lg mt-0.5">
-                                    <MessageSquare className="w-4 h-4 text-blue-400" />
+                              <div className="mt-3 sm:mt-5 p-3 sm:p-4 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border border-blue-500/30 rounded-lg sm:rounded-xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="flex items-start gap-2 sm:gap-3">
+                                  <div className="p-1 sm:p-1.5 bg-blue-500/20 rounded-lg mt-0.5">
+                                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />
                                   </div>
                                   <div>
-                                    <p className="text-sm font-medium text-blue-300 mb-1">Explanation</p>
-                                    <p className="text-sm text-neutral-300 leading-relaxed">{item.explanation}</p>
+                                    <p className="text-xs sm:text-sm font-medium text-blue-300 mb-0.5 sm:mb-1">Explanation</p>
+                                    <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed">{item.explanation}</p>
                                   </div>
                                 </div>
                               </div>
@@ -1156,32 +1169,32 @@ export default function GlobalOverviewPage() {
 
               {/* Footer Navigation */}
               {activeStudySet && activeStudySet.items.length > 0 && (
-                <div className="flex items-center justify-between px-6 py-4 border-t border-neutral-800 bg-neutral-900/50">
+                <div className="flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 border-t border-neutral-800 bg-neutral-900/50">
                   <button
                     onClick={prevItem}
                     disabled={currentItemIndex === 0}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-all"
+                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-all"
                   >
-                    <ChevronLeft className="w-5 h-5" />
-                    <span>Previous</span>
-                    <kbd className="hidden sm:inline-flex ml-1 px-1.5 py-0.5 text-[10px] bg-neutral-800 rounded text-neutral-500">←</kbd>
+                    <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span className="text-sm sm:text-base">Prev</span>
+                    <kbd className="hidden lg:inline-flex ml-1 px-1.5 py-0.5 text-[10px] bg-neutral-800 rounded text-neutral-500">←</kbd>
                   </button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <button
                       onClick={() => {
                         setCurrentItemIndex(0)
                         setShowAnswer(false)
                         setSelectedQuizAnswer(null)
                       }}
-                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all"
+                      className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 transition-all"
                     >
-                      <RotateCcw className="w-4 h-4" />
+                      <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       <span className="hidden sm:inline">Restart</span>
                     </button>
                     
                     {/* Item type badge */}
-                    <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-neutral-800 rounded-lg">
+                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-neutral-800 rounded-lg">
                       {activeStudySet.items[currentItemIndex]?.item_type === 'flashcard' ? (
                         <>
                           <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
@@ -1199,11 +1212,11 @@ export default function GlobalOverviewPage() {
                   <button
                     onClick={nextItem}
                     disabled={currentItemIndex === activeStudySet.items.length - 1}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-all"
+                    className="flex items-center gap-1 sm:gap-2 px-2.5 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-all"
                   >
-                    <kbd className="hidden sm:inline-flex mr-1 px-1.5 py-0.5 text-[10px] bg-neutral-800 rounded text-neutral-500">→</kbd>
-                    <span>Next</span>
-                    <ChevronRight className="w-5 h-5" />
+                    <kbd className="hidden lg:inline-flex mr-1 px-1.5 py-0.5 text-[10px] bg-neutral-800 rounded text-neutral-500">→</kbd>
+                    <span className="text-sm sm:text-base">Next</span>
+                    <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
               )}

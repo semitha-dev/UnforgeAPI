@@ -117,7 +117,8 @@ interface RouterClassification {
 async function classifyRequest(
   query: string, 
   projectName: string,
-  hasNotes: boolean
+  hasNotes: boolean,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
 ): Promise<RouterClassification> {
   // Quick check for obvious greetings (saves API call)
   const greetingCheck = isGreetingOrCasual(query)
@@ -130,23 +131,37 @@ async function classifyRequest(
     }
   }
 
+  // Build conversation context for the router
+  const recentHistory = conversationHistory.slice(-4).map(m => 
+    `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 100)}...`
+  ).join('\n')
+
   try {
     const { text } = await generateText({
       model: groq('llama-3.1-8b-instant'),
       prompt: `You are the "Router Brain" for an educational AI. Your job is to classify the user's request into one of 3 distinct paths.
 
 PATHS:
-1. "CHAT": Casual conversation, greetings, jokes, emotional support, or simple acknowledgments. Examples: "How are you?", "That's cool", "Thanks!", "Tell me a joke", "I'm stressed about exams". DO NOT SEARCH THE WEB.
+1. "CHAT": ONLY for greetings, thanks, acknowledgments, or emotional support. Examples: "How are you?", "Thanks!", "I'm stressed". NOT for questions that need factual answers!
 
-2. "COMMAND": User wants to perform a specific app action. Examples: "Create flashcards from my notes", "Quiz me on this", "Make a study set about biology", "Summarize my notes", "Generate practice questions". DO NOT SEARCH THE WEB unless they explicitly ask for web info.
+2. "COMMAND": User wants to perform a specific app action. Examples: "Create flashcards from my notes", "Quiz me on this", "Make a study set about biology", "Summarize my notes". DO NOT SEARCH THE WEB unless they explicitly ask for web info.
 
-3. "RESEARCH": User is asking for NEW information, facts, or topics they don't know. Examples: "How does photosynthesis work?", "What caused World War 2?", "Explain quantum computing", "Tell me about the French Revolution". This is the ONLY path that searches the web.
+3. "RESEARCH": User is asking ANY QUESTION that needs a factual answer. Examples:
+   - "Compare ChatGPT vs Gemini" → RESEARCH (needs factual comparison)
+   - "What's better: X or Y?" → RESEARCH (needs analysis)
+   - "How does photosynthesis work?" → RESEARCH
+   - "Tell me about the French Revolution" → RESEARCH
+   - "Call of Duty vs Battlefield" → RESEARCH (needs factual comparison)
+   - "yes" or "everything please" after a question → RESEARCH (continuation)
 
 CRITICAL RULES:
-- If user says "create", "make", "generate" + "flashcards"/"quiz"/"study set" → COMMAND, not RESEARCH
-- If user is asking about their OWN notes/content → COMMAND, not RESEARCH  
-- If user is making small talk or reacting → CHAT, not RESEARCH
-- Only use RESEARCH when user genuinely needs external information
+- If user asks "which is better", "compare", "vs", or any comparison → ALWAYS RESEARCH
+- If user says "yes", "sure", "everything", "go ahead" after a previous question → RESEARCH (continue the topic)
+- If user asks for opinions, facts, or information → RESEARCH
+- Only use CHAT for pure social interaction (greetings, thanks, emotional support)
+- When in doubt, choose RESEARCH - it's better to give information than deflect
+
+${recentHistory ? `CONVERSATION CONTEXT:\n${recentHistory}\n\n` : ''}
 
 USER MESSAGE: "${query}"
 CONTEXT: Project "${projectName}". User has notes: ${hasNotes}
@@ -156,9 +171,8 @@ Respond with JSON only:
   "path": "CHAT" | "COMMAND" | "RESEARCH",
   "reason": "Brief explanation of why you chose this path",
   "command_type": "create_study_set" | "quiz_me" | "summarize_notes" | "explain_more" | null,
-  "topic": "extracted topic if any",
-  "from_notes": true/false,
-  "chat_response": "response text if CHAT path"
+  "topic": "extracted topic if any, or topic from conversation context",
+  "from_notes": true/false
 }`,
       temperature: 0.1,
       maxOutputTokens: 200
@@ -217,30 +231,44 @@ Respond with JSON only:
 /**
  * Generate a conversational response for CHAT path
  * Uses LLM to respond naturally without web search
+ * Now includes conversation history for context
+ * Uses fast model (8b) to keep costs low for free users
  */
 async function generateChatResponse(
   query: string,
-  projectName: string
+  projectName: string,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
 ): Promise<string> {
   try {
+    // Build conversation context
+    const historyContext = conversationHistory.length > 0 
+      ? `\n\nPrevious conversation:\n${conversationHistory.map(m => `${m.role === 'user' ? 'User' : 'You'}: ${m.content}`).join('\n')}\n\n`
+      : ''
+    
     const { text } = await generateText({
-      model: groq('llama-3.1-8b-instant'),
-      prompt: `You are a friendly, helpful study companion AI called LeafAI. The user is working on their "${projectName}" project.
+      model: groq('llama-3.1-8b-instant'), // Fast model for free users
+      prompt: `You are LeafAI, a helpful and knowledgeable AI study companion. You are friendly, engaging, and always provide substantive answers.
 
-Respond to their message naturally and helpfully. Be warm, encouraging, and supportive.
-- If they're stressed, offer encouragement
-- If they're chatting, be friendly
-- If they have a question about studying, give helpful tips
-- Keep responses concise (2-3 sentences)
+IMPORTANT RULES:
+1. NEVER ask "what would you like to know?" or "what do you think?" - instead, ANSWER the question directly
+2. If user asks for a comparison (e.g., "ChatGPT vs Gemini"), provide a helpful comparison with key differences
+3. If user asks a question, ANSWER it with real information
+4. Be conversational but informative - give real value in every response
+5. If you need clarification, ask a SPECIFIC question, not a vague one
+6. Remember the conversation context and refer back to previous topics when relevant
+7. Keep responses concise but helpful (3-5 sentences for simple questions)
 
-User: ${query}
+The user is working in: "${projectName}"
+${historyContext}
+User's current message: ${query}
 
-Your response:`,
+Provide a helpful, substantive response:`,
       temperature: 0.7,
-      maxOutputTokens: 150
+      maxOutputTokens: 400
     })
     return text.trim()
   } catch (error) {
+    console.error('[generateChatResponse] Error:', error)
     return "I'm here to help! Feel free to ask me anything about your studies. 📚"
   }
 }
@@ -521,7 +549,8 @@ export async function POST(request: NextRequest) {
         projectName, 
         searchMode = 'research',  // Default to research mode
         files = [],               // File attachments
-        userId: requestUserId     // User ID from frontend
+        userId: requestUserId,    // User ID from frontend
+        conversationHistory = []  // Previous messages for context
       } = body as {
         query: string
         projectId?: string
@@ -529,6 +558,7 @@ export async function POST(request: NextRequest) {
         searchMode?: SearchMode
         files?: FileAttachment[]
         userId?: string
+        conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
       }
 
       if (!query) {
@@ -668,7 +698,7 @@ export async function POST(request: NextRequest) {
       // === STEP 0: Route the request ===
       await sendEvent('status', { step: 'understanding', message: 'Understanding your request...' })
       
-      const classification = await classifyRequest(query, projectName || 'Global', hasNotes)
+      const classification = await classifyRequest(query, projectName || 'Global', hasNotes, conversationHistory)
       console.log('[Stream API] Router classification:', classification)
 
       // ============================================
@@ -678,8 +708,8 @@ export async function POST(request: NextRequest) {
       if (classification.path === 'CHAT') {
         console.log('[Stream API] Taking CHAT path - no web search')
         
-        // Use pre-generated response or generate one
-        const chatResponse = classification.chat_response || await generateChatResponse(query, projectName || 'Study')
+        // Use pre-generated response or generate one with conversation context
+        const chatResponse = classification.chat_response || await generateChatResponse(query, projectName || 'Study', conversationHistory)
         
         await sendEvent('text', { content: chatResponse })
         await sendEvent('done', { 
@@ -942,18 +972,29 @@ export async function POST(request: NextRequest) {
         console.log(`[Stream API] Including ${files.length} file(s) in context`)
       }
 
+      // Build conversation context for continuity
+      let conversationContext = ''
+      if (conversationHistory && conversationHistory.length > 0) {
+        conversationContext = '\n\nPREVIOUS CONVERSATION:\n' + conversationHistory.slice(-4).map(m => 
+          `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 200)}${m.content.length > 200 ? '...' : ''}`
+        ).join('\n')
+      }
+
       // Stream the answer!
       const { textStream } = streamText({
         model: groq(modelId),
-        system: `You are a research assistant that ONLY answers based on the provided search results${files && files.length > 0 ? ' and attached files' : ''}.
+        system: `You are a research assistant that provides comprehensive, factual answers based on the provided search results${files && files.length > 0 ? ' and attached files' : ''}.
 
 CRITICAL RULES:
+- Provide DIRECT, SUBSTANTIVE answers - never ask "what would you like to know?" or deflect
+- For comparisons (X vs Y, which is better), provide a detailed comparison with pros/cons
 - ONLY use information from the search results provided${files && files.length > 0 ? ' and the user\'s attached files' : ''}
 - Do NOT use your training data or prior knowledge
 - If the search results don't contain enough information, say "Based on the search results, I found limited information about this topic"
 - Always cite sources using [1], [2], etc. inline with your text
 - Every claim must have a citation from the provided sources
 ${files && files.length > 0 ? '- When referencing attached files, mention the file name\n' : ''}- Include specific data, numbers, and quotes from the sources when available
+- If this is a follow-up question, connect your answer to the previous conversation context
 - Today's date is ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
 
 FORMATTING RULES:
@@ -965,7 +1006,7 @@ FORMATTING RULES:
 - Use **bold** for emphasis on important terms
 - Keep paragraphs concise (2-3 sentences max)
 - Organize information logically with clear sections based on the topic`,
-        prompt: `Question: ${query}
+        prompt: `${conversationContext ? conversationContext + '\n\n' : ''}Question: ${query}
 
 WEB SEARCH RESULTS (use ONLY these sources):
 ${context}${fileContext}

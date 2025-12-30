@@ -27,6 +27,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import GlobalSidebar from '@/components/GlobalSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
+import MobileNav from '@/components/MobileNav'
 
 interface InsightMetadata {
   periodsAnalyzed?: Array<{ name: string; accuracy: number; total: number; correct: number }>
@@ -428,16 +429,16 @@ export default function InsightsPage() {
         />
 
         {/* Main Content */}
-        <main className="lg:ml-[72px] min-h-screen">
-          <div className="max-w-[1400px] mx-auto px-4 md:px-10 py-8 md:py-10">
+        <main className="lg:ml-[72px] min-h-screen pb-20 lg:pb-0">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-10 py-6 md:py-10">
             {/* Header */}
-            <div className="flex flex-wrap justify-between items-end gap-6 mb-8">
-              <div className="flex flex-col gap-2 max-w-2xl">
-                <h1 className="text-white text-3xl md:text-5xl font-black leading-tight tracking-[-0.033em]">
+            <div className="flex flex-wrap justify-between items-start sm:items-end gap-4 sm:gap-6 mb-6 sm:mb-8">
+              <div className="flex flex-col gap-1.5 sm:gap-2 max-w-2xl">
+                <h1 className="text-white text-2xl sm:text-3xl md:text-5xl font-black leading-tight tracking-[-0.033em]">
                   All Insights
                 </h1>
-                <p className="text-[#9db9b0] text-base md:text-lg font-normal leading-normal flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-[#13eca4]" />
+                <p className="text-[#9db9b0] text-sm sm:text-base md:text-lg font-normal leading-normal flex flex-wrap items-center gap-1.5 sm:gap-2">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#13eca4]" />
                   {totalInsights === 0 ? (
                     "No insights yet. Generate some to see your study patterns."
                   ) : (
@@ -463,16 +464,16 @@ export default function InsightsPage() {
                 )}
               </div>
               
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                 {isPro ? (
                   /* Pro users get refresh button */
                   <button
                     onClick={() => generateInsights(true)}
                     disabled={isGenerating}
-                    className="flex items-center justify-center gap-2 h-10 px-4 rounded-xl border border-[#283933] bg-[#1c2723] text-white text-sm font-medium hover:bg-[#283933] transition-colors disabled:opacity-50"
+                    className="flex items-center justify-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-[#283933] bg-[#1c2723] text-white text-xs sm:text-sm font-medium hover:bg-[#283933] transition-colors disabled:opacity-50"
                   >
-                    <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-                    {isGenerating ? 'Analyzing...' : 'Refresh Insights'}
+                    <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isGenerating ? 'animate-spin' : ''}`} />
+                    {isGenerating ? 'Analyzing...' : 'Refresh'}
                   </button>
                 ) : (
                   /* Free users get generate button only if not generated today */
@@ -480,18 +481,18 @@ export default function InsightsPage() {
                     <button
                       onClick={() => generateInsights(false)}
                       disabled={isGenerating}
-                      className="flex items-center justify-center gap-2 h-10 px-5 rounded-xl bg-[#13eca4] text-[#111816] text-sm font-bold hover:bg-[#0ebf84] transition-colors disabled:opacity-50"
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-4 sm:px-5 rounded-lg sm:rounded-xl bg-[#13eca4] text-[#111816] text-xs sm:text-sm font-bold hover:bg-[#0ebf84] transition-colors disabled:opacity-50"
                     >
-                      <Zap className={`h-4 w-4 ${isGenerating ? 'animate-pulse' : ''}`} />
-                      {isGenerating ? 'Generating...' : 'Generate Morning Report'}
+                      <Zap className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isGenerating ? 'animate-pulse' : ''}`} />
+                      {isGenerating ? 'Generating...' : 'Morning Report'}
                     </button>
                   ) : (
                     <button
                       onClick={() => setShowUpgradeModal(true)}
-                      className="flex items-center justify-center gap-2 h-10 px-4 rounded-xl border border-[#13eca4]/30 bg-[#13eca4]/10 text-[#13eca4] text-sm font-medium hover:bg-[#13eca4]/20 transition-colors"
+                      className="flex items-center justify-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-3 sm:px-4 rounded-lg sm:rounded-xl border border-[#13eca4]/30 bg-[#13eca4]/10 text-[#13eca4] text-xs sm:text-sm font-medium hover:bg-[#13eca4]/20 transition-colors"
                     >
-                      <Sparkles className="h-4 w-4" />
-                      Upgrade for Refresh
+                      <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      Upgrade
                     </button>
                   )
                 )}
@@ -499,17 +500,17 @@ export default function InsightsPage() {
             </div>
 
             {/* Filter Tabs */}
-            <div className="mb-10 overflow-x-auto pb-2 -mx-4 md:mx-0 px-4 md:px-0">
-              <div className="flex border-b border-[#283933] min-w-max gap-8">
+            <div className="mb-6 sm:mb-10 overflow-x-auto pb-2 -mx-4 md:mx-0 px-4 md:px-0 scrollbar-hide">
+              <div className="flex border-b border-[#283933] min-w-max gap-4 sm:gap-8">
                 <button
                   onClick={() => setActiveFilter('all')}
-                  className={`group flex flex-col items-center justify-center border-b-[3px] pb-3 pt-2 transition-colors ${
+                  className={`group flex flex-col items-center justify-center border-b-[3px] pb-2 sm:pb-3 pt-1.5 sm:pt-2 transition-colors ${
                     activeFilter === 'all'
                       ? 'border-[#13eca4] text-white'
                       : 'border-transparent text-[#9db9b0] hover:border-[#283933]'
                   }`}
                 >
-                  <p className={`text-sm font-bold leading-normal tracking-wide transition-colors ${
+                  <p className={`text-xs sm:text-sm font-bold leading-normal tracking-wide transition-colors ${
                     activeFilter === 'all' ? 'text-white' : 'text-[#9db9b0] group-hover:text-white'
                   }`}>
                     All ({totalInsights})
@@ -530,14 +531,14 @@ export default function InsightsPage() {
                     <button
                       key={type}
                       onClick={() => setActiveFilter(type)}
-                      className={`group flex flex-col items-center justify-center border-b-[3px] pb-3 pt-2 transition-colors ${
+                      className={`group flex flex-col items-center justify-center border-b-[3px] pb-2 sm:pb-3 pt-1.5 sm:pt-2 transition-colors ${
                         activeFilter === type
                           ? `text-white`
                           : 'border-transparent text-[#9db9b0] hover:border-[#283933]'
                       }`}
                       style={activeFilter === type ? { borderColor: color } : {}}
                     >
-                      <p className={`text-sm font-bold leading-normal tracking-wide transition-colors ${
+                      <p className={`text-xs sm:text-sm font-bold leading-normal tracking-wide transition-colors ${
                         activeFilter === type ? 'text-white' : 'text-[#9db9b0] group-hover:text-white'
                       }`}>
                         {label} ({count})
@@ -557,34 +558,34 @@ export default function InsightsPage() {
 
             {/* Insights Grid */}
             {filteredInsights.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#13eca4]/20 to-[#7c3aed]/20 flex items-center justify-center mb-6">
-                  <Sparkles className="h-10 w-10 text-[#13eca4]" />
+              <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#13eca4]/20 to-[#7c3aed]/20 flex items-center justify-center mb-4 sm:mb-6">
+                  <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-[#13eca4]" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  {isPro ? 'No Insights Yet' : '🌅 Generate Your Morning Report'}
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2">
+                  {isPro ? 'No Insights Yet' : '🌅 Morning Report'}
                 </h3>
-                <p className="text-[#9db9b0] max-w-md mb-6">
+                <p className="text-[#9db9b0] text-sm sm:text-base max-w-md mb-4 sm:mb-6">
                   {isPro 
                     ? 'Generate insights to analyze your study patterns, identify knowledge gaps, and optimize your learning.'
-                    : 'Start your day with AI-powered insights about your study patterns, memory retention, and personalized recommendations.'}
+                    : 'Start your day with AI-powered insights about your study patterns and memory retention.'}
                 </p>
                 <button
                   onClick={() => generateInsights(false)}
                   disabled={isGenerating}
-                  className="flex items-center gap-2 px-6 py-3 bg-[#13eca4] text-[#111816] rounded-xl font-bold hover:bg-[#0ebf84] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-[#13eca4] text-[#111816] rounded-lg sm:rounded-xl text-sm font-bold hover:bg-[#0ebf84] transition-colors disabled:opacity-50"
                 >
-                  <Zap className={`h-5 w-5 ${isGenerating ? 'animate-pulse' : ''}`} />
-                  {isGenerating ? 'Analyzing Your Data...' : isPro ? 'Generate Insights' : 'Generate Morning Report'}
+                  <Zap className={`h-4 w-4 sm:h-5 sm:w-5 ${isGenerating ? 'animate-pulse' : ''}`} />
+                  {isGenerating ? 'Analyzing...' : isPro ? 'Generate Insights' : 'Generate Report'}
                 </button>
                 {!isPro && (
-                  <p className="mt-4 text-[#9db9b0]/60 text-xs">
-                    Free users: 1 report per day • Pro users: Unlimited refreshes
+                  <p className="mt-3 sm:mt-4 text-[#9db9b0]/60 text-[10px] sm:text-xs">
+                    Free: 1 report/day • Pro: Unlimited
                   </p>
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                 {filteredInsights.map((insight, index) => {
                   const categoryColor = getCategoryColor(insight.insight_type)
                   const categoryLabel = getCategoryLabel(insight.insight_type)
@@ -594,7 +595,7 @@ export default function InsightsPage() {
                   // Large featured card with image (for first critical or memory insights)
                   if ((isFirstCard && isCritical) || (insight.insight_type === 'forgetting_curve' && insight.severity === 'critical')) {
                     return (
-                      <div key={insight.id} className="xl:col-span-2 group relative flex flex-col md:flex-row items-stretch bg-[#1c2723] rounded-2xl overflow-hidden border border-[#283933] shadow-lg hover:border-[#13eca4]/50 transition-all duration-300">
+                      <div key={insight.id} className="sm:col-span-2 xl:col-span-2 group relative flex flex-col md:flex-row items-stretch bg-[#1c2723] rounded-xl sm:rounded-2xl overflow-hidden border border-[#283933] shadow-lg hover:border-[#13eca4]/50 transition-all duration-300">
                         {/* Image Section */}
                         <div 
                           className="w-full md:w-2/5 min-h-[200px] md:min-h-full bg-cover bg-center relative"
@@ -959,18 +960,18 @@ export default function InsightsPage() {
 
             {/* Bottom Message */}
             {filteredInsights.length > 0 && (
-              <div className="mt-16 text-center pb-10">
-                <p className="text-[#9db9b0] text-sm">
+              <div className="mt-10 sm:mt-16 text-center pb-6 sm:pb-10">
+                <p className="text-[#9db9b0] text-xs sm:text-sm">
                   {!isPro ? (
-                    <>You're viewing {filteredInsights.length} of {allInsights.length} insights. <span className="text-[#13eca4] cursor-pointer hover:underline" onClick={() => setShowUpgradeModal(true)}>Upgrade for full access</span>.</>
+                    <>Viewing {filteredInsights.length} of {allInsights.length} insights. <span className="text-[#13eca4] cursor-pointer hover:underline" onClick={() => setShowUpgradeModal(true)}>Upgrade</span>.</>
                   ) : activeFilter === 'all' 
                     ? "You've viewed all critical insights for today."
                     : `Showing all ${getCategoryLabel(activeFilter)} insights.`
                   }
                 </p>
                 {isPro && (
-                  <button className="mt-4 text-[#13eca4] hover:text-white text-sm font-medium transition-colors flex items-center justify-center gap-2 mx-auto">
-                    <History className="w-4 h-4" />
+                  <button className="mt-3 sm:mt-4 text-[#13eca4] hover:text-white text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 sm:gap-2 mx-auto">
+                    <History className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     View Past Insights
                   </button>
                 )}
@@ -978,6 +979,9 @@ export default function InsightsPage() {
             )}
           </div>
         </main>
+
+        {/* Mobile Navigation */}
+        <MobileNav onChatsClick={() => setShowChatsPanel(!showChatsPanel)} />
 
         {/* Upgrade Modal */}
         <UpgradeModal

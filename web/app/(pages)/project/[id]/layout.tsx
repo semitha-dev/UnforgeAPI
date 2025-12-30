@@ -53,6 +53,7 @@ import { useProjectTimeTracking } from '@/lib/useProjectTimeTracking'
 import GlobalSidebar from '@/components/GlobalSidebar'
 import SpaceSidebar from '@/components/SpaceSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
+import MobileNav from '@/components/MobileNav'
 
 // YouTube URL helpers
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -942,10 +943,13 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
           </header>
 
           {/* Page Content */}
-          <main className="flex-1 min-h-[calc(100vh-4rem)] p-6 bg-neutral-900">
+          <main className="flex-1 min-h-[calc(100vh-4rem)] p-4 lg:p-6 pb-24 lg:pb-6 bg-neutral-900">
             {children}
           </main>
         </div>
+
+        {/* Mobile Navigation */}
+        <MobileNav onChatsClick={() => setShowChatsPanel(!showChatsPanel)} />
 
         {/* Upgrade Modal */}
         <UpgradeModal 

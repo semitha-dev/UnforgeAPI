@@ -160,15 +160,21 @@ export default function ChatsPanel({ isOpen, onClose, onSelectChat, onNewChat, c
 
   return (
     <>
-      {/* Backdrop - positioned to the right of the panel, closes when mouse enters */}
+      {/* Backdrop */}
       <div 
-        className="fixed top-0 left-[392px] right-0 bottom-0 z-40"
-        onMouseEnter={onClose}
+        className="fixed inset-0 z-40 bg-black/50 lg:bg-transparent lg:left-[392px]"
+        onClick={onClose}
+        onMouseEnter={() => {
+          // Only auto-close on desktop when hovering outside
+          if (window.innerWidth >= 1024) {
+            onClose()
+          }
+        }}
       />
 
       {/* Panel */}
       <div 
-        className={`fixed top-0 left-0 lg:left-[72px] h-full w-[320px] bg-neutral-950 border-r border-neutral-800 z-50 transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 lg:left-[72px] h-full w-full sm:w-[320px] bg-neutral-950 border-r border-neutral-800 z-50 transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-neutral-800">
