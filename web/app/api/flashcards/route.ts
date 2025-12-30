@@ -2,7 +2,7 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
-import { deductTokensWithExpiry, getValidTokenBalance, getUserSubscription, calculateOutputTokenCost, countWords, hasActiveAccess, SubscriptionProfile, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription';
+import { getUserSubscription, hasActiveAccess, isPro, SubscriptionProfile } from '@/lib/subscription';
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger';
 
 // Initialize Groq - 100% FREE!
@@ -182,18 +182,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Check if user has minimum tokens to start generation (using valid non-expired tokens)
-    const validBalance = await getValidTokenBalance(user.id);
-    if (validBalance < MIN_TOKENS_TO_GENERATE) {
-      return NextResponse.json(
-        { 
-          error: `Insufficient tokens. You need at least ${MIN_TOKENS_TO_GENERATE} tokens to generate flashcards. Current balance: ${validBalance}`,
-          tokensRequired: MIN_TOKENS_TO_GENERATE,
-          currentBalance: validBalance
-        },
-        { status: 402 }
-      );
-    }
+    // Free users can still generate flashcards - no token check needed with new subscription model
 
     console.log('[Flashcards] Generating with Groq AI...');
 
@@ -364,26 +353,14 @@ Response format:
       throw cardsError;
     }
 
-    // Calculate token cost based on OUTPUT word count
-    const outputText = flashcards.map(card => `${card.front} ${card.back}`).join(' ');
-    const outputWordCount = countWords(outputText);
-    const tokensRequired = calculateOutputTokenCost(outputWordCount);
-    console.log(`[Flashcards] ${flashcards.length} cards, ${outputWordCount} words, deducting ${tokensRequired} tokens`);
-
-    // Deduct tokens AFTER successful generation (uses FIFO with expiry)
-    const deducted = await deductTokensWithExpiry(user.id, tokensRequired);
-    if (!deducted) {
-      console.error('[Flashcards] Failed to deduct tokens');
-    }
-
-    // Log activity
+    // Log activity (no token deduction in new subscription model)
     await logActivity({
       user_id: user.id,
       user_email: user.email,
       action_type: ActionTypes.FLASHCARD_GENERATE,
       endpoint: '/api/flashcards',
       method: 'POST',
-      tokens_used: tokensRequired,
+      tokens_used: 0,
       model: modelUsed,
       metadata: { cardCount: flashcards.length, projectId, noteId, setId: set.id, provider: 'groq' },
       ip_address: ip,
@@ -397,8 +374,7 @@ Response format:
     return NextResponse.json({ 
       set, 
       success: true,
-      tokensUsed: tokensRequired,
-      outputWords: outputWordCount,
+      tokensUsed: 0,
       model: modelUsed,
       provider: 'groq'
     }, { status: 201 });

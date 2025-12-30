@@ -1,6 +1,6 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserSubscription, getValidTokenBalance, getTokenBreakdown, SUBSCRIPTION_TIERS, LIMITS } from '@/lib/subscription';
+import { getUserSubscription, SUBSCRIPTION_TIERS, LIMITS } from '@/lib/subscription';
 
 // Disable caching for this route - token balance must always be fresh
 export const dynamic = 'force-dynamic';
@@ -20,12 +20,6 @@ export async function GET(request: NextRequest) {
     const tier = subscription.subscription_tier || SUBSCRIPTION_TIERS.FREE;
     const limits = LIMITS[tier];
 
-    // Get valid (non-expired) token balance and breakdown
-    const [validBalance, tokenBreakdown] = await Promise.all([
-      getValidTokenBalance(user.id),
-      getTokenBreakdown(user.id),
-    ]);
-
     // Get current usage counts
     const [projectsResult, notesResult, flashcardsResult, qaResult] = await Promise.all([
       supabase.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
@@ -38,9 +32,7 @@ export async function GET(request: NextRequest) {
       subscription: {
         tier: subscription.subscription_tier || 'free',
         status: subscription.subscription_status || 'inactive',
-        tokens_balance: validBalance, // Use valid (non-expired) token balance
-        tokens_breakdown: tokenBreakdown, // Include breakdown for UI
-        tokens_reset_date: subscription.tokens_reset_date,
+        tokens_balance: 0,
         ends_at: subscription.subscription_ends_at,
         next_billing: subscription.next_billing_date,
         canceled_at: subscription.canceled_at,
@@ -52,11 +44,15 @@ export async function GET(request: NextRequest) {
         current_period_end: subscription.current_period_end,
       },
       limits: {
-        projects: limits.projects === Infinity ? 'Unlimited' : limits.projects,
+        spaces: limits.spaces === Infinity ? 'Unlimited' : limits.spaces,
         notes: limits.notes === Infinity ? 'Unlimited' : limits.notes,
         flashcard_sets: limits.flashcard_sets === Infinity ? 'Unlimited' : limits.flashcard_sets,
         qa_pairs: limits.qa_pairs === Infinity ? 'Unlimited' : limits.qa_pairs,
         schedule: limits.schedule,
+        searchRateLimit: limits.searchRateLimit === Infinity ? 'Unlimited' : limits.searchRateLimit,
+        researchSearch: limits.researchSearch,
+        contentGapAudit: limits.contentGapAudit,
+        morningReport: limits.morningReport,
       },
       usage: {
         projects: projectsResult.count || 0,

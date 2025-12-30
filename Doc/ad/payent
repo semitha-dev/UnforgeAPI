@@ -1,0 +1,5 @@
+Feature	Atlas Starter (Free)	Atlas Pro ($6.99/mo)	Dev Logic (Middleware)
+Normal Search	3 / Day	Unlimited	count < 3 check on 8b model route.
+Research Search	LOCKED (0)	Unlimited*	Return 403 Upgrade Required if Free user hits this route.
+AI Model	llama-3.1-8b	llama-3.3-70b	Hardcode model ID based on mode selection.
+Gap Audit	1 / Week	Unlimited	No change.

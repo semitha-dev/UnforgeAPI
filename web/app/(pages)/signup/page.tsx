@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import { createClient } from '@/app/lib/supabaseClient'
 import { Eye, EyeOff } from 'lucide-react'
 
 interface FormData {
@@ -33,17 +33,15 @@ export default function SignUpPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false)
 
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
 
-    // Name validation
     if (!formData.name) {
       newErrors.name = 'Name is required'
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!formData.email) {
       newErrors.email = 'Email is required'
@@ -51,14 +49,12 @@ export default function SignUpPage() {
       newErrors.email = 'Please enter a valid email address'
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required'
     } else if (formData.password.length < 6) {
       newErrors.password = 'Password must be at least 6 characters long'
     }
 
-    // Terms validation
     if (!agreedToTerms) {
       newErrors.terms = 'You must agree to the terms & policy'
     }
@@ -104,7 +100,7 @@ export default function SignUpPage() {
 
       if (data.user) {
         if (data.user.email_confirmed_at) {
-          router.push('/dashboard')
+          router.push('/overview')
         } else {
           router.push('/auth/verify-email')
         }
@@ -133,19 +129,35 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-white px-4 sm:px-8 py-8 sm:py-12 lg:px-16">
-        <div className="w-full max-w-md">
-          {/* Header */}
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 sm:mb-8">
+    <div className="min-h-screen flex items-center justify-center bg-black px-4 py-8">
+      {/* Background gradient effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-emerald-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-emerald-500/5 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="relative w-full max-w-md">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="p-2 bg-emerald-500/20 rounded-xl">
+            <Image src="/new_logo.png" alt="LeafLearning" width={32} height={32} className="object-contain" />
+          </div>
+          <span className="text-2xl font-bold text-white">LeafLearning</span>
+        </div>
+
+        {/* Card */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8">
+          <h1 className="text-2xl font-bold text-white mb-2 text-center">
             Get Started Now
           </h1>
+          <p className="text-neutral-400 text-center mb-8">
+            Create an account to start learning smarter
+          </p>
 
           {/* General Error */}
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{errors.general}</p>
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+              <p className="text-red-400 text-sm">{errors.general}</p>
             </div>
           )}
 
@@ -153,7 +165,7 @@ export default function SignUpPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name Field */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="name" className="block text-sm font-medium text-neutral-300 mb-2">
                 Name
               </label>
               <input
@@ -163,19 +175,19 @@ export default function SignUpPage() {
                 autoComplete="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-2.5 text-gray-900 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#4A7C59] focus:border-[#4A7C59] ${
-                  errors.name ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-4 py-3 bg-neutral-800 text-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors ${
+                  errors.name ? 'border-red-500' : 'border-neutral-700'
                 }`}
                 placeholder="Enter your name"
               />
               {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                <p className="mt-2 text-sm text-red-400">{errors.name}</p>
               )}
             </div>
 
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="email" className="block text-sm font-medium text-neutral-300 mb-2">
                 Email address
               </label>
               <input
@@ -185,19 +197,19 @@ export default function SignUpPage() {
                 autoComplete="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-2.5 text-gray-900 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#4A7C59] focus:border-[#4A7C59] ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-4 py-3 bg-neutral-800 text-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors ${
+                  errors.email ? 'border-red-500' : 'border-neutral-700'
                 }`}
                 placeholder="Enter your email"
               />
               {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                <p className="mt-2 text-sm text-red-400">{errors.email}</p>
               )}
             </div>
 
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="password" className="block text-sm font-medium text-neutral-300 mb-2">
                 Password
               </label>
               <div className="relative">
@@ -208,26 +220,26 @@ export default function SignUpPage() {
                   autoComplete="new-password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-2.5 pr-11 text-gray-900 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#4A7C59] focus:border-[#4A7C59] ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
+                  className={`w-full px-4 py-3 pr-12 bg-neutral-800 text-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors ${
+                    errors.password ? 'border-red-500' : 'border-neutral-700'
                   }`}
                   placeholder="Enter your password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                <p className="mt-2 text-sm text-red-400">{errors.password}</p>
               )}
             </div>
 
             {/* Terms Checkbox */}
-            <div className="flex items-start">
+            <div className="flex items-start gap-3">
               <input
                 id="terms"
                 type="checkbox"
@@ -238,95 +250,74 @@ export default function SignUpPage() {
                     setErrors(prev => ({ ...prev, terms: undefined }))
                   }
                 }}
-                className="mt-0.5 h-4 w-4 text-[#4A7C59] border-gray-300 rounded focus:ring-[#4A7C59]"
+                className="mt-1 h-4 w-4 bg-neutral-800 border-neutral-600 rounded text-emerald-500 focus:ring-emerald-500/50 focus:ring-offset-neutral-900"
               />
-              <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
+              <label htmlFor="terms" className="text-sm text-neutral-400">
                 I am at least 18 years old and agree to the{' '}
-                <Link href="/terms" className="text-gray-900 underline hover:text-[#4A7C59]">
+                <Link href="/terms" className="text-emerald-400 hover:text-emerald-300 transition-colors">
                   terms & policy
                 </Link>
               </label>
             </div>
             {errors.terms && (
-              <p className="text-sm text-red-600 -mt-3">{errors.terms}</p>
+              <p className="text-sm text-red-400 -mt-2">{errors.terms}</p>
             )}
 
             {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 rounded-full text-white bg-[#4A7C59] hover:bg-[#3d6649] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4A7C59] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
+              className="w-full py-3 px-4 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
             >
-              {isLoading ? 'Creating Account...' : 'Signup'}
+              {isLoading ? 'Creating Account...' : 'Sign Up'}
             </button>
           </form>
 
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
+              <div className="w-full border-t border-neutral-700"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Or</span>
+              <span className="px-4 bg-neutral-900 text-neutral-500">Or continue with</span>
             </div>
           </div>
 
           {/* Google Sign In */}
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              className="flex items-center justify-center gap-3 px-6 py-2.5 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors duration-200"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              <span className="text-gray-700 font-medium">Sign in with Google</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl hover:bg-neutral-700 hover:border-neutral-600 transition-colors"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              />
+            </svg>
+            <span className="text-white font-medium">Sign up with Google</span>
+          </button>
 
           {/* Sign In Link */}
-          <p className="mt-8 text-center text-sm text-gray-600">
-            Have an account?{' '}
-            <Link href="/signin" className="text-[#4A7C59] font-medium hover:underline">
+          <p className="mt-8 text-center text-sm text-neutral-400">
+            Already have an account?{' '}
+            <Link href="/signin" className="text-emerald-400 font-medium hover:text-emerald-300 transition-colors">
               Sign In
             </Link>
           </p>
         </div>
-      </div>
-
-      {/* Right Side - Image */}
-      <div className="hidden lg:block lg:w-1/2 relative">
-        {/* Glassy blur with gradient edges */}
-        <div className="absolute inset-y-0 left-0 w-16 z-10" style={{
-          background: 'linear-gradient(to right, white 0%, rgba(255,255,255,0.5) 30%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 80%, transparent 100%)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          maskImage: 'linear-gradient(to right, black 0%, black 40%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, black 0%, black 40%, transparent 100%)'
-        }}></div>
-        <Image
-          src="/leaf3.jpg"
-          alt="Leaf"
-          fill
-          className="object-cover object-right"
-          priority
-        />
       </div>
     </div>
   )

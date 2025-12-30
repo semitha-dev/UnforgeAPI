@@ -1,32 +1,27 @@
-import type { Metadata } from 'next';
-import StickyNavigation from './(landing)/components/StickyNavigation';
-import HeroSection from './(landing)/components/HeroSection';
-import ProblemSection from './(landing)/components/ProblemSection';
-import SolutionSection from './(landing)/components/SolutionSection';
-import FeaturesSection from './(landing)/components/FeaturesSection';
-import PricingSection from './(landing)/components/PricingSection';
-import FAQSection from './(landing)/components/FAQSection';
-import FinalCTASection from './(landing)/components/FinalCTASection';
-import FooterSection from './(landing)/components/FooterSection';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
 
-export const metadata: Metadata = {
-  title: 'LeafLearning - Study Smarter with AI | Learn 10X Faster',
-  description: 'Transform how you study with AI-powered document summarization, automatic flashcard generation, and adaptive study planning. Join 1K+ students learning faster and achieving better grades with LeafLearning.',
-};
-
-export default function LandingPage() {
-  return (
-    <main className="min-h-screen bg-background landing-page">
-      <StickyNavigation />
-      
-      <HeroSection />
-      <ProblemSection />
-      <SolutionSection />
-      <FeaturesSection />
-      <PricingSection />
-      <FAQSection />
-      <FinalCTASection />
-      <FooterSection />
-    </main>
-  );
+export default async function RootPage() {
+  // Initialize Supabase with service role for server-side auth check
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  
+  try {
+    // Check for auth cookie to get user session
+    const cookieStore = await cookies();
+    const authCookies = cookieStore.getAll().filter(c => c.name.includes('sb-') && c.name.includes('auth-token'));
+    
+    if (authCookies.length > 0) {
+      // User might be authenticated - let's get their last space or create one
+      // For now, redirect to a route that handles this client-side
+      redirect('/overview');
+    }
+    
+    // Not authenticated - redirect to signin
+    redirect('/signin');
+  } catch (error) {
+    // If redirect was called, this error is expected
+    throw error;
+  }
 }

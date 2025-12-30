@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, Leaf, Shield, FileText, CreditCard, Mail } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowLeft, Shield, FileText, CreditCard, Mail } from 'lucide-react'
 
 export default function TermsPage() {
   return (
@@ -17,8 +18,8 @@ export default function TermsPage() {
             <span className="font-medium font-body text-sm sm:text-base">Back</span>
           </Link>
           <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-accent rounded-lg flex items-center justify-center">
-              <Leaf className="w-4 h-4 sm:w-5 sm:h-5 text-accent-foreground" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
+              <Image src="/new_logo.png" alt="LeafLearning" width={20} height={20} className="object-contain" />
             </div>
             <span className="font-bold font-headline text-text-primary text-sm sm:text-base">LeafLearning</span>
           </Link>

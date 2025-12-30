@@ -20,9 +20,18 @@ import {
   File,
   FileImage,
   FileSpreadsheet,
-  Presentation
+  Presentation,
+  Crown,
+  Lock
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { UpgradeModal } from '@/components/ui/upgrade-modal'
 
 interface FileAttachment {
   id: string
@@ -65,20 +74,23 @@ function convertMarkdownToHtml(markdown: string): string {
   
   // Handle code blocks first
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre class="bg-slate-800 text-slate-100 p-4 rounded-xl text-sm overflow-x-auto my-3 font-mono"><code>${code.trim()}</code></pre>`
+    return `<pre class="bg-gray-900 text-gray-100 p-4 rounded-xl text-sm overflow-x-auto my-3 font-mono"><code>${code.trim()}</code></pre>`
   })
   
-  // Handle headers
-  html = html.replace(/^### (.+)$/gm, '<h3 class="font-semibold text-base mt-4 mb-2 text-slate-800">$1</h3>')
-  html = html.replace(/^## (.+)$/gm, '<h2 class="font-semibold text-lg mt-4 mb-2 text-slate-800">$1</h2>')
-  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-4 mb-3 text-slate-900">$1</h1>')
+  // Handle headers (order matters - process larger headers first)
+  html = html.replace(/^###### (.+)$/gm, '<h6 class="font-medium text-sm mt-3 mb-1.5 text-gray-700">$1</h6>')
+  html = html.replace(/^##### (.+)$/gm, '<h5 class="font-medium text-sm mt-3 mb-1.5 text-gray-800">$1</h5>')
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-semibold text-sm mt-4 mb-2 text-gray-800">$1</h4>')
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-semibold text-base mt-4 mb-2 text-gray-800">$1</h3>')
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-semibold text-lg mt-4 mb-2 text-gray-800">$1</h2>')
+  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-4 mb-3 text-gray-900">$1</h1>')
   
   // Handle bold and italic
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
   html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
   
   // Handle inline code
-  html = html.replace(/`([^`]+)`/g, '<code class="bg-slate-100 px-1.5 py-0.5 rounded text-sm font-mono text-emerald-700">$1</code>')
+  html = html.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-emerald-700">$1</code>')
   
   // Handle links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-emerald-600 hover:text-emerald-700 underline" target="_blank">$1</a>')
@@ -125,19 +137,19 @@ function convertMarkdownToHtml(markdown: string): string {
       
       if (!tableHeaderProcessed) {
         // This is the header row
-        processed.push('<thead class="bg-slate-100">')
+        processed.push('<thead class="bg-gray-100">')
         processed.push('<tr>')
         cells.forEach(cell => {
-          processed.push(`<th class="border border-slate-200 px-4 py-2 text-left text-sm font-semibold text-slate-700">${cell}</th>`)
+          processed.push(`<th class="border border-gray-200 px-4 py-2 text-left text-sm font-semibold text-gray-700">${cell}</th>`)
         })
         processed.push('</tr>')
         processed.push('</thead>')
         processed.push('<tbody>')
       } else {
         // This is a data row
-        processed.push('<tr class="hover:bg-slate-50">')
+        processed.push('<tr class="hover:bg-gray-50">')
         cells.forEach(cell => {
-          processed.push(`<td class="border border-slate-200 px-4 py-2 text-sm text-slate-600">${cell}</td>`)
+          processed.push(`<td class="border border-gray-200 px-4 py-2 text-sm text-gray-600">${cell}</td>`)
         })
         processed.push('</tr>')
       }
@@ -160,7 +172,7 @@ function convertMarkdownToHtml(markdown: string): string {
     if (bulletMatch) {
       if (!inList || listType !== 'ul') {
         if (inList) processed.push(listType === 'ul' ? '</ul>' : '</ol>')
-        processed.push('<ul class="list-disc list-inside my-3 space-y-1.5 text-slate-700">')
+        processed.push('<ul class="list-disc list-inside my-3 space-y-1.5 text-gray-700">')
         inList = true; listType = 'ul'
       }
       processed.push(`<li>${bulletMatch[1]}</li>`)
@@ -171,7 +183,7 @@ function convertMarkdownToHtml(markdown: string): string {
     if (numMatch) {
       if (!inList || listType !== 'ol') {
         if (inList) processed.push(listType === 'ul' ? '</ul>' : '</ol>')
-        processed.push('<ol class="list-decimal list-inside my-3 space-y-1.5 text-slate-700">')
+        processed.push('<ol class="list-decimal list-inside my-3 space-y-1.5 text-gray-700">')
         inList = true; listType = 'ol'
       }
       processed.push(`<li>${numMatch[1]}</li>`)
@@ -180,7 +192,7 @@ function convertMarkdownToHtml(markdown: string): string {
     
     if (inList) { processed.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; listType = '' }
     if (trimmed.startsWith('<')) { processed.push(trimmed); continue }
-    processed.push(`<p class="my-2 text-slate-700 leading-relaxed">${trimmed}</p>`)
+    processed.push(`<p class="my-2 text-gray-700 leading-relaxed">${trimmed}</p>`)
   }
   
   // Close any remaining open elements
@@ -207,10 +219,28 @@ export default function LeafAIChatPage() {
   const [mode, setMode] = useState<'light' | 'heavy'>('light')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [remainingTokens, setRemainingTokens] = useState<number | null>(null)
+  const [isPro, setIsPro] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Check subscription status
+  useEffect(() => {
+    const checkSubscription = async () => {
+      try {
+        const res = await fetch('/api/subscription')
+        if (res.ok) {
+          const data = await res.json()
+          setIsPro(data.subscription?.subscription_tier === 'pro')
+        }
+      } catch (err) {
+        console.error('Error checking subscription:', err)
+      }
+    }
+    checkSubscription()
+  }, [])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -408,118 +438,55 @@ export default function LeafAIChatPage() {
   }, [])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px-3rem)]">
-      {/* Header - Sticky */}
-      <div className="sticky top-0 z-20 flex-shrink-0 border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-sm pt-4 sm:pt-0">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200 flex-shrink-0">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <h1 className="text-base sm:text-xl font-bold text-slate-900">Leaf AI</h1>
-                  <span className="px-1.5 sm:px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] sm:text-xs font-bold rounded-full">FREE</span>
-                </div>
-                <p className="text-xs sm:text-sm text-slate-500 truncate hidden sm:block">Your intelligent study assistant • Unlimited & Free!</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
-              {/* Mode Toggle */}
-              <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-100 p-0.5 sm:p-1 rounded-lg sm:rounded-xl">
-                <button
-                  onClick={() => setMode('light')}
-                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                    mode === 'light' 
-                      ? 'bg-white text-emerald-600 shadow-sm' 
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Fast</span>
-                </button>
-                <button
-                  onClick={() => setMode('heavy')}
-                  className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                    mode === 'heavy' 
-                      ? 'bg-white text-purple-600 shadow-sm' 
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Deep</span>
-                </button>
-              </div>
-
-              {/* Free badge - hidden on mobile */}
-              <div className="hidden md:block px-3 py-1.5 bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 rounded-lg text-sm font-medium border border-emerald-200">
-                ✨ Unlimited Free
-              </div>
-
-              {/* Clear chat */}
-              {messages.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearChat}
-                  className="text-slate-500 hover:text-red-500 p-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Messages Area */}
+    <div className="flex flex-col h-[calc(100vh-64px-3rem)] bg-white -m-6">
+      {/* Messages Area - Full width, clean white background */}
       <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
           {messages.length === 0 ? (
-            // Welcome state
-            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-350px)] text-center px-2">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mb-4 sm:mb-6">
-                <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-600" />
+            // Welcome state - ChatGPT style
+            <div className="flex flex-col items-center justify-center min-h-[calc(100vh-300px)] text-center px-2">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-6 shadow-lg">
+                <Sparkles className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">Welcome to Leaf AI</h2>
-              <p className="text-sm sm:text-base text-slate-500 max-w-md mb-3">
-                Your powerful AI assistant for learning. Upload images, PDFs, or documents and ask me anything about them!
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Leaf AI</h1>
+              <p className="text-gray-500 max-w-md mb-8">
+                Your intelligent study assistant. Ask me anything about your studies, upload files, or get help with homework.
               </p>
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-700 rounded-full text-xs sm:text-sm font-semibold mb-6 sm:mb-8">
-                ✨ 100% Free &amp; Unlimited
-              </div>
               
-              <div className="grid grid-cols-2 gap-2 sm:gap-3 w-full max-w-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
                 {[
-                  { icon: '📚', text: 'Explain quantum physics', color: 'from-blue-50 to-indigo-50' },
-                  { icon: '📝', text: 'Help me write an essay', color: 'from-amber-50 to-orange-50' },
-                  { icon: '🎨', text: 'Generate image of a forest', color: 'from-pink-50 to-rose-50' },
-                  { icon: '📄', text: 'Summarize this PDF', color: 'from-green-50 to-emerald-50' },
+                  { icon: '📚', text: 'Explain a complex topic', desc: 'Get simple explanations' },
+                  { icon: '📝', text: 'Help me write an essay', desc: 'Writing assistance' },
+                  { icon: '📄', text: 'Summarize this document', desc: 'Upload files for analysis' },
+                  { icon: '🧮', text: 'Solve this math problem', desc: 'Step-by-step solutions' },
                 ].map((suggestion, idx) => (
                   <button
                     key={idx}
                     onClick={() => setInput(suggestion.text)}
-                    className={`flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br ${suggestion.color} border border-white/50 hover:scale-[1.02] transition-all text-left group`}
+                    className="flex items-start gap-3 p-4 rounded-xl border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50 transition-all text-left group"
                   >
                     <span className="text-2xl">{suggestion.icon}</span>
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">{suggestion.text}</span>
+                    <div>
+                      <span className="text-sm font-medium text-gray-800 group-hover:text-emerald-700 block">{suggestion.text}</span>
+                      <span className="text-xs text-gray-400">{suggestion.desc}</span>
+                    </div>
                   </button>
                 ))}
               </div>
               
-              <div className="mt-8 flex items-center gap-2 text-xs text-slate-400">
+              <div className="mt-8 flex items-center gap-4 text-xs text-gray-400">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full font-medium">
+                  <Zap className="w-3 h-3" />
+                  100% Free
+                </div>
                 <div className="flex items-center gap-1">
                   <FileImage className="w-3 h-3" />
                   Images
                 </div>
-                <span>•</span>
                 <div className="flex items-center gap-1">
                   <FileText className="w-3 h-3" />
                   PDFs
                 </div>
-                <span>•</span>
                 <div className="flex items-center gap-1">
                   <File className="w-3 h-3" />
                   Documents
@@ -527,43 +494,50 @@ export default function LeafAIChatPage() {
               </div>
             </div>
           ) : (
-            // Messages list
+            // Messages list - ChatGPT style
             <div className="space-y-6">
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className={`max-w-[85%] ${message.role === 'user' ? 'order-1' : ''}`}>
+                  {/* Assistant avatar */}
+                  {message.role === 'assistant' && (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-4 h-4 text-white" />
+                    </div>
+                  )}
+                  
+                  <div className={`max-w-[80%] ${message.role === 'user' ? 'order-1' : ''}`}>
                     {/* User message */}
                     {message.role === 'user' && (
-                      <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-2xl rounded-br-md px-4 py-3 shadow-lg shadow-emerald-200/50">
+                      <div className="bg-gray-100 text-gray-900 rounded-2xl rounded-tr-sm px-4 py-3">
                         {message.files && message.files.length > 0 && (
                           <div className="flex flex-wrap gap-2 mb-2">
                             {message.files.map(file => (
-                              <div key={file.id} className="flex items-center gap-2 bg-white/20 rounded-lg px-2 py-1">
+                              <div key={file.id} className="flex items-center gap-2 bg-white rounded-lg px-2 py-1 border border-gray-200">
                                 {file.preview ? (
                                   <img src={file.preview} alt={file.name} className="w-8 h-8 rounded object-cover" />
                                 ) : (
                                   (() => {
                                     const Icon = getFileIcon(file.type)
-                                    return <Icon className="w-4 h-4" />
+                                    return <Icon className="w-4 h-4 text-gray-500" />
                                   })()
                                 )}
-                                <span className="text-xs truncate max-w-[100px]">{file.name}</span>
+                                <span className="text-xs truncate max-w-[100px] text-gray-600">{file.name}</span>
                               </div>
                             ))}
                           </div>
                         )}
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
                       </div>
                     )}
                     
                     {/* Assistant message */}
                     {message.role === 'assistant' && (
-                      <div className="bg-white rounded-2xl rounded-bl-md px-5 py-4 shadow-lg border border-slate-100">
+                      <div className="text-gray-800">
                         <div 
-                          className="prose prose-sm max-w-none"
+                          className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mt-4 prose-headings:mb-2"
                           dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(message.content) }}
                         />
                         
@@ -573,7 +547,7 @@ export default function LeafAIChatPage() {
                             <img 
                               src={`data:${message.image.mimeType};base64,${message.image.data}`}
                               alt="Generated image"
-                              className="rounded-xl max-w-full h-auto shadow-lg border border-slate-200"
+                              className="rounded-xl max-w-full h-auto shadow-lg border border-gray-200"
                             />
                             <div className="mt-2 flex items-center gap-2">
                               <a
@@ -589,42 +563,48 @@ export default function LeafAIChatPage() {
                         )}
                         
                         {/* Message actions */}
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => copyMessage(message.id, message.content)}
-                              className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition-colors"
-                            >
-                              {copiedId === message.id ? (
-                                <>
-                                  <Check className="w-3 h-3" />
-                                  Copied
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3 h-3" />
-                                  Copy
-                                </>
-                              )}
-                            </button>
-                          </div>
-                          <span className="text-xs text-emerald-500 font-medium">
-                            ✨ Free
-                          </span>
+                        <div className="flex items-center gap-3 mt-3">
+                          <button
+                            onClick={() => copyMessage(message.id, message.content)}
+                            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {copiedId === message.id ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                Copied
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                Copy
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
                     )}
                   </div>
+                  
+                  {/* User avatar */}
+                  {message.role === 'user' && (
+                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-medium text-gray-600">U</span>
+                    </div>
+                  )}
                 </div>
               ))}
               
               {/* Loading indicator */}
               {isLoading && (
-                <div className="flex justify-start">
-                  <div className="bg-white rounded-2xl rounded-bl-md px-5 py-4 shadow-lg border border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
-                      <span className="text-sm text-slate-500">Thinking...</span>
+                <div className="flex gap-4 justify-start">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     </div>
                   </div>
                 </div>
@@ -636,16 +616,16 @@ export default function LeafAIChatPage() {
         </div>
       </div>
 
-      {/* Input Area - Fixed at bottom */}
-      <div className="flex-shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur-sm sticky bottom-0">
-        <div className="max-w-4xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+      {/* Input Area - Fixed at bottom, ChatGPT style */}
+      <div className="flex-shrink-0 border-t border-gray-100 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
           {/* Attachments preview */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               {attachments.map(attachment => (
                 <div
                   key={attachment.id}
-                  className="relative flex items-center gap-2 bg-slate-100 rounded-xl px-3 py-2 pr-8 group"
+                  className="relative flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 group"
                 >
                   {attachment.preview ? (
                     <img src={attachment.preview} alt={attachment.name} className="w-10 h-10 rounded-lg object-cover" />
@@ -653,19 +633,19 @@ export default function LeafAIChatPage() {
                     (() => {
                       const Icon = getFileIcon(attachment.type)
                       return (
-                        <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center">
-                          <Icon className="w-5 h-5 text-slate-500" />
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <Icon className="w-5 h-5 text-gray-500" />
                         </div>
                       )
                     })()
                   )}
                   <div className="flex flex-col">
-                    <span className="text-sm font-medium text-slate-700 truncate max-w-[120px]">{attachment.name}</span>
-                    <span className="text-xs text-slate-400">{(attachment.file.size / 1024).toFixed(1)} KB</span>
+                    <span className="text-sm font-medium text-gray-700 truncate max-w-[120px]">{attachment.name}</span>
+                    <span className="text-xs text-gray-400">{(attachment.file.size / 1024).toFixed(1)} KB</span>
                   </div>
                   <button
                     onClick={() => removeAttachment(attachment.id)}
-                    className="absolute top-1 right-1 p-1 bg-slate-200 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-500"
+                    className="absolute -top-1 -right-1 p-1 bg-gray-200 rounded-full hover:bg-red-100 hover:text-red-500 transition-colors"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -674,8 +654,8 @@ export default function LeafAIChatPage() {
             </div>
           )}
           
-          {/* Input box */}
-          <div className="flex items-center gap-3">
+          {/* Input box - ChatGPT style */}
+          <div className="relative flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 focus-within:border-emerald-400 focus-within:ring-1 focus-within:ring-emerald-400 transition-all">
             {/* File upload button */}
             <input
               ref={fileInputRef}
@@ -685,52 +665,128 @@ export default function LeafAIChatPage() {
               accept="image/*,.pdf,.doc,.docx,.txt,.md,.xls,.xlsx,.csv,.ppt,.pptx"
               className="hidden"
             />
-            <Button
-              variant="outline"
-              size="icon"
+            <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex-shrink-0 h-12 w-12 rounded-xl border-slate-200 hover:bg-slate-50 hover:border-emerald-300"
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <Paperclip className="w-5 h-5 text-slate-500" />
-            </Button>
+              <Paperclip className="w-5 h-5" />
+            </button>
             
             {/* Text input */}
-            <div className="flex-1">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask me anything..."
-                className="w-full h-12 rounded-xl border border-slate-200 bg-white px-4 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-              />
-            </div>
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Message Leaf AI..."
+              rows={1}
+              className="flex-1 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none resize-none max-h-[200px] py-2 text-sm"
+            />
+            
+            {/* Mode toggle */}
+            <TooltipProvider>
+              <div className="flex items-center gap-1 mr-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setMode('light')}
+                      className={`p-1.5 rounded-lg transition-colors ${
+                        mode === 'light' ? 'bg-emerald-100 text-emerald-600' : 'text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      <Zap className="w-4 h-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>Fast mode - Quick responses</p>
+                  </TooltipContent>
+                </Tooltip>
+                
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => {
+                        if (isPro) {
+                          setMode('heavy')
+                        } else {
+                          setShowUpgradeModal(true)
+                        }
+                      }}
+                      className={`p-1.5 rounded-lg transition-colors relative ${
+                        mode === 'heavy' ? 'bg-purple-100 text-purple-600' : 'text-gray-400 hover:text-gray-600'
+                      } ${!isPro ? 'cursor-pointer' : ''}`}
+                    >
+                      <Brain className="w-4 h-4" />
+                      {!isPro && (
+                        <div className="absolute -top-1 -right-1">
+                          <Lock className="w-2.5 h-2.5 text-amber-500" />
+                        </div>
+                      )}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent 
+                    side="bottom" 
+                    className={!isPro ? 'bg-gradient-to-r from-purple-600 to-indigo-600 border-0 px-4 py-3' : ''}
+                    sideOffset={8}
+                  >
+                    {isPro ? (
+                      <p>Research mode - Deep analysis</p>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1.5 text-white">
+                        <div className="flex items-center gap-2">
+                          <Crown className="w-4 h-4 text-amber-300" />
+                          <span className="font-semibold">Pro Feature</span>
+                        </div>
+                        <p className="text-xs text-purple-100">Upgrade to unlock Research mode</p>
+                      </div>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </TooltipProvider>
             
             {/* Send button */}
-            <Button
+            <button
               onClick={sendMessage}
               disabled={isLoading || (!input.trim() && attachments.length === 0)}
-              className="flex-shrink-0 h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 <Send className="w-5 h-5" />
               )}
-            </Button>
+            </button>
           </div>
           
-          {/* Tips */}
-          <div className="flex items-center justify-center gap-4 mt-3 text-xs text-slate-400">
+          {/* Footer info */}
+          <div className="flex items-center justify-center gap-4 mt-3 text-xs text-gray-400">
             <span className="flex items-center gap-1">
-              <Paperclip className="w-3 h-3" />
-              Attach files
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Free &amp; Unlimited
             </span>
             <span>•</span>
-            <span>{mode === 'light' ? 'Fast mode: Quick responses' : 'Deep mode: Thorough analysis (2x tokens)'}</span>
+            <span>{mode === 'light' ? 'Fast mode' : 'Research mode'}</span>
+            {messages.length > 0 && (
+              <>
+                <span>•</span>
+                <button
+                  onClick={clearChat}
+                  className="text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  Clear chat
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
     </div>
   )
 }

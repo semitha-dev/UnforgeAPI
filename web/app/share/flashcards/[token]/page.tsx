@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { 
-  Leaf, 
   ArrowRight, 
   RotateCcw, 
   ChevronLeft, 
@@ -12,7 +12,8 @@ import {
   Trophy,
   CheckCircle2,
   ExternalLink,
-  AlertCircle
+  AlertCircle,
+  Leaf
 } from 'lucide-react'
 
 interface FlashcardSet {
@@ -103,7 +104,7 @@ export default function SharedFlashcardsPage() {
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
         <div className="relative mb-4">
           <div className="w-16 h-16 border-4 border-emerald-100 border-t-emerald-600 rounded-full animate-spin"></div>
-          <Leaf className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-600 w-6 h-6" />
+          <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 object-contain" />
         </div>
         <p className="text-slate-500 font-medium animate-pulse">Growing your cards...</p>
       </div>
@@ -123,7 +124,7 @@ export default function SharedFlashcardsPage() {
             href="/"
             className="inline-flex items-center gap-2 px-8 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 transition-all"
           >
-            <Leaf size={18} />
+            <Image src="/new_logo.png" alt="LeafLearning" width={18} height={18} className="object-contain" />
             Back to LeafLearning
           </a>
         </div>
@@ -190,8 +191,8 @@ export default function SharedFlashcardsPage() {
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-500 rounded-lg flex items-center justify-center shadow-sm shadow-emerald-200">
-              <Leaf className="text-white w-4 h-4 sm:w-5 sm:h-5" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-500 rounded-lg flex items-center justify-center shadow-sm shadow-emerald-200 overflow-hidden">
+              <Image src="/new_logo.png" alt="LeafLearning" width={20} height={20} className="object-contain" />
             </div>
             <span className="font-bold text-base sm:text-lg tracking-tight">LeafLearning</span>
           </a>

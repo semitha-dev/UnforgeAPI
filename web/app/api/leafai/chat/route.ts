@@ -127,9 +127,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
-    // Leaf AI is FREE! No token checking needed
-    console.log('[LeafAI Chat] FREE mode - no token check')
-
     // Build the message with file context
     let fullMessage = message
     
@@ -152,23 +149,19 @@ export async function POST(request: NextRequest) {
 
     console.log('[LeafAI Chat] Generated response length:', text.length)
 
-    // Leaf AI is FREE - no token deduction!
-    console.log('[LeafAI Chat] FREE - no tokens deducted')
-
     // Log activity
     const requestInfo = getRequestInfo(request)
     await logActivity({
       user_id: user.id,
       action_type: ActionTypes.LEAF_AI_CHAT,
-      tokens_used: 0, // FREE!
+      tokens_used: 0,
       model,
       metadata: {
         messageLength: message.length,
         responseLength: text.length,
         filesCount: files?.length || 0,
         mode,
-        provider: 'groq',
-        free: true
+        provider: 'groq'
       },
       ip_address: requestInfo.ip,
       user_agent: requestInfo.userAgent
@@ -177,7 +170,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       response: text,
       tokensUsed: 0,
-      free: true,
       model,
       provider: 'groq'
     })

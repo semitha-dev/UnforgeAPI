@@ -10,7 +10,7 @@ interface LogoProps {
 export function Logo({ className = '', size = 24 }: LogoProps) {
   return (
     <Image
-      src="/logosvg.svg"
+      src="/new_logo.png"
       alt="LeafLearning"
       width={size}
       height={size}

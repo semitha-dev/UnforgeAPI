@@ -1,6 +1,6 @@
 'use client'
 
-import { Leaf } from 'lucide-react'
+import Image from 'next/image'
 
 interface LoadingProps {
   message?: string
@@ -10,10 +10,10 @@ interface LoadingProps {
 export function Loading({ message = 'Loading...', fullScreen = true }: LoadingProps) {
   const content = (
     <div className="flex flex-col items-center justify-center">
-      {/* Leaf Icon */}
+      {/* Logo Icon */}
       <div className="mb-6">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg">
-          <Leaf className="w-8 h-8 text-white" />
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg overflow-hidden">
+          <Image src="/new_logo.png" alt="LeafLearning" width={40} height={40} className="object-contain" />
         </div>
       </div>
       

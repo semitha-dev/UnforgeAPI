@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { 
-  Leaf, 
   ArrowRight, 
   RotateCcw, 
   ChevronRight, 
@@ -13,7 +13,8 @@ import {
   XCircle,
   ExternalLink,
   AlertCircle,
-  Brain
+  Brain,
+  Leaf
 } from 'lucide-react'
 
 interface Quiz {
@@ -238,8 +239,8 @@ export default function SharedQuizPage() {
       <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center shadow-sm shadow-emerald-200">
-              <Leaf className="text-white w-5 h-5" />
+            <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center shadow-sm shadow-emerald-200 overflow-hidden">
+              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
             </div>
             <span className="font-bold text-lg tracking-tight">LeafLearning</span>
           </a>

@@ -1,5 +1,6 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
+import { PRO_PRODUCT_ID } from '@/lib/subscription';
 
 // Use sandbox API for testing, production API for live
 const POLAR_API_URL = process.env.POLAR_SANDBOX === 'true' 
@@ -7,20 +8,12 @@ const POLAR_API_URL = process.env.POLAR_SANDBOX === 'true'
   : 'https://api.polar.sh/v1';
 const POLAR_ACCESS_TOKEN = process.env.POLAR_ACCESS_TOKEN;
 
-// Product IDs - You need to create these in Polar dashboard and update these values
-// Go to polar.sh > Products > Create Product
-const POLAR_PRODUCTS = {
-  pro: process.env.POLAR_PRO_PRODUCT_ID || '', // $10/month product ID
-  premium: process.env.POLAR_PREMIUM_PRODUCT_ID || '', // $100/month product ID
-};
-
 export async function POST(request: NextRequest) {
   // Only log debug info in development
   if (process.env.NODE_ENV === 'development') {
     console.log('=== CHECKOUT API CALLED ===');
     console.log('Environment check:');
     console.log('- POLAR_ACCESS_TOKEN exists:', !!POLAR_ACCESS_TOKEN);
-    console.log('- Products configured:', { pro: !!process.env.POLAR_PRO_PRODUCT_ID, premium: !!process.env.POLAR_PREMIUM_PRODUCT_ID });
   }
   
   try {
@@ -37,24 +30,19 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     console.log('Request body:', body);
-    const { plan } = body; // 'pro' or 'premium'
+    const { productId } = body;
 
-    if (!plan || !['pro', 'premium'].includes(plan)) {
-      console.log('ERROR: Invalid plan:', plan);
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+    // Use provided productId or default to Pro
+    const finalProductId = productId || PRO_PRODUCT_ID;
+    
+    if (!finalProductId) {
+      console.log('ERROR: No product ID provided');
+      return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
     }
 
     if (!POLAR_ACCESS_TOKEN) {
       console.log('ERROR: POLAR_ACCESS_TOKEN is not set');
       return NextResponse.json({ error: 'Polar not configured - missing access token' }, { status: 500 });
-    }
-
-    const productId = POLAR_PRODUCTS[plan as keyof typeof POLAR_PRODUCTS];
-    console.log('Product ID for plan', plan, ':', productId);
-    
-    if (!productId) {
-      console.log('ERROR: Product ID not configured for plan:', plan);
-      return NextResponse.json({ error: `Product not configured for plan: ${plan}` }, { status: 500 });
     }
 
     // Get user email from auth
@@ -67,12 +55,11 @@ export async function POST(request: NextRequest) {
     }
 
     const checkoutPayload = {
-      products: [productId],
+      products: [finalProductId],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings?subscription=success`,
       customer_email: customerEmail,
       metadata: {
         user_id: user.id,
-        plan: plan,
       },
     };
     
@@ -115,7 +102,7 @@ export async function POST(request: NextRequest) {
     console.log('Checkout ID:', checkoutData.id);
 
     return NextResponse.json({
-      checkoutUrl: checkoutData.url,
+      url: checkoutData.url,
       checkoutId: checkoutData.id,
     });
   } catch (error: any) {

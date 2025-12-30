@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Leaf, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 const StickyNavigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -47,10 +48,10 @@ const StickyNavigation = () => {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors overflow-hidden ${
               isScrolled ? 'bg-emerald-500' : 'bg-emerald-500/90'
             }`}>
-              <Leaf className="h-5 w-5 text-white" />
+              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
             </div>
             <span className={`font-bold text-lg transition-colors ${
               isScrolled ? 'text-gray-900' : 'text-gray-900'

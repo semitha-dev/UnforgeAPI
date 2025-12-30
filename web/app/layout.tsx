@@ -54,11 +54,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/logosvg.svg", type: "image/svg+xml" },
-      { url: "/logo.png", sizes: "192x192", type: "image/png" },
+      { url: "/new_logo.png", type: "image/png" },
+      { url: "/new_logo.png", sizes: "192x192", type: "image/png" },
     ],
-    shortcut: "/logo.png",
-    apple: "/logo.png",
+    shortcut: "/new_logo.png",
+    apple: "/new_logo.png",
   },
   manifest: "/site.webmanifest",
   openGraph: {
@@ -125,7 +125,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <script
           type="application/ld+json"
@@ -133,7 +133,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
         {children}
         <FeedbackButton />

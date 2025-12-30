@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/app/lib/supabaseServer'
 import Groq from 'groq-sdk'
-import { getValidTokenBalance, deductTokensWithExpiry, calculateOutputTokenCost, countWords, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription'
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger'
 
 // Initialize Groq - 100% FREE!
@@ -78,19 +77,6 @@ export async function POST(request: NextRequest) {
 
     if (!userMessage) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
-    }
-
-    // Check user's token balance
-    console.log('[LeafAI Notes] Checking token balance...')
-    const validBalance = await getValidTokenBalance(user.id)
-    console.log('[LeafAI Notes] Valid balance:', validBalance)
-    
-    if (validBalance < MIN_TOKENS_TO_GENERATE) {
-      return NextResponse.json({ 
-        error: `Insufficient tokens. You need at least ${MIN_TOKENS_TO_GENERATE} tokens. Current balance: ${validBalance}`,
-        tokensRequired: MIN_TOKENS_TO_GENERATE,
-        currentBalance: validBalance
-      }, { status: 402 })
     }
 
     // Select model based on mode
@@ -174,33 +160,6 @@ Provide a helpful, concise answer. If the question relates to the note content, 
       }, { status: 500 })
     }
 
-    // Calculate token cost based on output word count
-    const outputWords = countWords(text)
-    let tokenCost = calculateOutputTokenCost(outputWords)
-    console.log('[LeafAI Notes] Output words:', outputWords, 'Token cost:', tokenCost)
-    
-    // Double the cost for heavy mode
-    if (mode === 'heavy') {
-      tokenCost = tokenCost * 2
-    }
-    
-    // Minimum cost
-    tokenCost = Math.max(tokenCost, mode === 'heavy' ? 2 : 1)
-    console.log('[LeafAI Notes] Final token cost:', tokenCost)
-
-    // Deduct tokens using FIFO system
-    console.log('[LeafAI Notes] Deducting tokens...')
-    const deductSuccess = await deductTokensWithExpiry(user.id, tokenCost)
-    console.log('[LeafAI Notes] Deduct success:', deductSuccess)
-    
-    if (!deductSuccess) {
-      console.error('[LeafAI Notes] Token deduction failed')
-    }
-
-    // Get updated balance
-    const newBalance = await getValidTokenBalance(user.id)
-    console.log('[LeafAI Notes] New balance:', newBalance)
-
     // Log activity
     await logActivity({
       user_id: user.id,
@@ -208,9 +167,9 @@ Provide a helpful, concise answer. If the question relates to the note content, 
       action_type: action === 'generate' ? ActionTypes.LEAF_AI_GENERATE : ActionTypes.LEAF_AI_CHAT,
       endpoint: '/api/notes/leafai',
       method: 'POST',
-      tokens_used: tokenCost,
+      tokens_used: 0,
       model: modelUsed,
-      metadata: { action, mode, isGlobal, outputWords, provider: 'groq' },
+      metadata: { action, mode, isGlobal, provider: 'groq' },
       ip_address: ip,
       user_agent: userAgent,
       response_status: 200,
@@ -219,8 +178,7 @@ Provide a helpful, concise answer. If the question relates to the note content, 
 
     return NextResponse.json({
       response: text,
-      tokensUsed: tokenCost,
-      remainingTokens: newBalance,
+      tokensUsed: 0,
       mode,
       model: modelUsed,
       provider: 'groq'

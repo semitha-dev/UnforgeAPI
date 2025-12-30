@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Leaf, HelpCircle, Search, Book, CreditCard, Settings, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react'
+import Image from 'next/image'
+import { ArrowLeft, HelpCircle, Search, Book, CreditCard, Settings, Shield, Zap, ChevronDown, ChevronUp } from 'lucide-react'
 
 const helpCategories = [
   {
@@ -87,8 +88,8 @@ export default function HelpPage() {
             <span className="font-medium font-body">Back to Home</span>
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-accent-foreground" />
+            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
+              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
             </div>
             <span className="font-bold font-headline text-text-primary">LeafLearning</span>
           </Link>

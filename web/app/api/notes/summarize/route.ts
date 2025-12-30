@@ -2,7 +2,7 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
-import { deductTokensWithExpiry, getValidTokenBalance, getUserSubscription, calculateOutputTokenCost, countWords, hasActiveAccess, SubscriptionProfile, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription';
+import { getUserSubscription, hasActiveAccess, SubscriptionProfile } from '@/lib/subscription';
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger';
 
 // Initialize Groq - 100% FREE!
@@ -83,18 +83,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Your subscription has expired. Please renew to continue using AI features.' },
         { status: 403 }
-      );
-    }
-    
-    const validBalance = await getValidTokenBalance(user.id);
-    if (validBalance < MIN_TOKENS_TO_GENERATE) {
-      return NextResponse.json(
-        { 
-          error: `Insufficient tokens. You need at least ${MIN_TOKENS_TO_GENERATE} tokens to summarize. Current balance: ${validBalance}`,
-          tokensRequired: MIN_TOKENS_TO_GENERATE,
-          currentBalance: validBalance
-        },
-        { status: 402 }
       );
     }
 
@@ -206,17 +194,6 @@ Important:
       cleanSummary = cleanSummary.replace(/```\n?/g, '');
     }
 
-    // Calculate and deduct tokens
-    const outputWordCount = countWords(cleanSummary);
-    const tokensRequired = calculateOutputTokenCost(outputWordCount);
-    
-    console.log(`[Summarize] ${outputWordCount} words, deducting ${tokensRequired} tokens`);
-
-    const deducted = await deductTokensWithExpiry(user.id, tokensRequired);
-    if (!deducted) {
-      console.error('[Summarize] Failed to deduct tokens');
-    }
-
     // Save summary to the note in database
     if (noteId) {
       const { error: updateError } = await supabase
@@ -244,9 +221,9 @@ Important:
       action_type: ActionTypes.SUMMARIZE,
       endpoint: '/api/notes/summarize',
       method: 'POST',
-      tokens_used: tokensRequired,
+      tokens_used: 0,
       model: modelUsed,
-      metadata: { summaryType, noteId, outputWords: outputWordCount, provider: 'groq' },
+      metadata: { summaryType, noteId, provider: 'groq' },
       ip_address: ip,
       user_agent: userAgent,
       response_status: 200,
@@ -255,8 +232,7 @@ Important:
 
     return NextResponse.json({ 
       summary: cleanSummary,
-      tokensUsed: tokensRequired,
-      outputWords: outputWordCount,
+      tokensUsed: 0,
       savedToNote: !!noteId,
       model: modelUsed,
       provider: 'groq'

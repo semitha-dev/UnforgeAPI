@@ -2,7 +2,7 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
-import { deductTokensWithExpiry, getValidTokenBalance, getUserSubscription, calculateOutputTokenCost, countWords, hasActiveAccess, SubscriptionProfile, MIN_TOKENS_TO_GENERATE } from '@/lib/subscription';
+import { getUserSubscription, hasActiveAccess, SubscriptionProfile } from '@/lib/subscription';
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger';
 
 // Initialize Groq - 100% FREE!
@@ -66,19 +66,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Your subscription has expired. Please renew to continue using AI features.' },
         { status: 403 }
-      );
-    }
-    
-    // Check if user has minimum tokens to start generation (using valid non-expired tokens)
-    const validBalance = await getValidTokenBalance(user.id);
-    if (validBalance < MIN_TOKENS_TO_GENERATE) {
-      return NextResponse.json(
-        { 
-          error: `Insufficient tokens. You need at least ${MIN_TOKENS_TO_GENERATE} tokens to generate a quiz. Current balance: ${validBalance}`,
-          tokensRequired: MIN_TOKENS_TO_GENERATE,
-          currentBalance: validBalance
-        },
-        { status: 402 }
       );
     }
 
@@ -294,20 +281,6 @@ Make sure:
       throw new Error('Failed to create quiz questions');
     }
 
-    // Calculate token cost based on OUTPUT word count
-    const outputText = questions.map(q => 
-      `${q.question} ${q.options.A} ${q.options.B} ${q.options.C} ${q.options.D} ${q.explanation || ''}`
-    ).join(' ');
-    const outputWordCount = countWords(outputText);
-    const tokensRequired = calculateOutputTokenCost(outputWordCount);
-    console.log(`[Quiz] ${questions.length} questions, ${outputWordCount} words, deducting ${tokensRequired} tokens`);
-
-    // Deduct tokens AFTER successful generation (uses FIFO with expiry)
-    const deducted = await deductTokensWithExpiry(user.id, tokensRequired);
-    if (!deducted) {
-      console.error('[Quiz] Failed to deduct tokens');
-    }
-
     // Log activity
     await logActivity({
       user_id: user.id,
@@ -315,7 +288,7 @@ Make sure:
       action_type: ActionTypes.QUIZ_GENERATE,
       endpoint: '/api/quiz/generate',
       method: 'POST',
-      tokens_used: tokensRequired,
+      tokens_used: 0,
       model: modelUsed,
       metadata: { questionCount, projectId, noteId, quizId: quiz.id, provider: 'groq' },
       ip_address: ip,
@@ -327,8 +300,7 @@ Make sure:
     return NextResponse.json({ 
       quiz, 
       success: true,
-      tokensUsed: tokensRequired,
-      outputWords: outputWordCount,
+      tokensUsed: 0,
       model: modelUsed,
       provider: 'groq'
     }, { status: 201 });

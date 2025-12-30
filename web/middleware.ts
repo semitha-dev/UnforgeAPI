@@ -39,14 +39,15 @@ export async function middleware(request: NextRequest) {
 
   // Define protected routes (require authentication)
   const protectedRoutes = [
-    '/dashboard',
+    '/overview',
     '/project',
     '/support',
     '/debug',
     '/summarize',
+    '/insights',
   ]
 
-  // Define auth routes (should redirect to dashboard if authenticated)
+  // Define auth routes (should redirect to overview if authenticated)
   const authRoutes = ['/signin', '/signup']
 
   // Check if the current path is a protected route
@@ -67,10 +68,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from auth pages to dashboard
+  // Redirect authenticated users away from auth pages to overview
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = '/overview'
     return NextResponse.redirect(url)
   }
 

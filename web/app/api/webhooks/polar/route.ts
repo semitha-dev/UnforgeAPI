@@ -1,26 +1,14 @@
 import { createAdminClient } from '@/app/lib/supabaseAdmin';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
-
-// Token allocation per tier (for subscription system - kept for backward compatibility)
-const MONTHLY_TOKENS: Record<string, number> = {
-  free: 0,
-  pro: 5000,
-  premium: 10000,
-};
+import { PRO_PRODUCT_ID } from '@/lib/subscription';
 
 // Product IDs to tier mapping (subscriptions)
+// Pro subscription product ID from subscription.ts
 const PRODUCT_TO_TIER: Record<string, string> = {
+  [PRO_PRODUCT_ID]: 'pro',
+  // Also support environment variable override for testing
   [process.env.POLAR_PRO_PRODUCT_ID || '']: 'pro',
-  [process.env.POLAR_PREMIUM_PRODUCT_ID || '']: 'premium',
-};
-
-// Token pack product IDs to token amounts (one-time purchases)
-const TOKEN_PACK_PRODUCTS: Record<string, number> = {
-  '5ac0c69a-501f-4f9f-a17e-592e50bb45a8': 500,    // 500 tokens - $2
-  '743c222a-bee4-4272-8011-12f6089a9c01': 1000,   // 1000 tokens - $3
-  'ffc789b3-4e5a-4e3f-8afc-8e310973fd57': 2500,   // 2500 tokens - $5
-  '367064f3-6219-4e15-8142-705e7267d75e': 10000,  // 10000 tokens - $8
 };
 
 const POLAR_WEBHOOK_SECRET = process.env.POLAR_WEBHOOK_SECRET;
@@ -190,12 +178,6 @@ export async function POST(request: NextRequest) {
         
         console.log('Checkout updated:', data.id, 'Status:', checkoutStatus, 'Intent:', intentStatus);
         
-        // Skip token pack purchases - they are handled by order.paid event
-        if (productId && TOKEN_PACK_PRODUCTS[productId]) {
-          console.log('Skipping checkout.updated for token pack purchase - handled by order.paid');
-          break;
-        }
-        
         // If checkout is confirmed and payment succeeded, activate subscription
         // This is a backup in case order.paid webhook doesn't arrive
         if ((checkoutStatus === 'confirmed' || checkoutStatus === 'succeeded') && intentStatus === 'succeeded') {
@@ -207,14 +189,10 @@ export async function POST(request: NextRequest) {
             tier = PRODUCT_TO_TIER[productId];
           } else {
             const productName = data.product?.name?.toLowerCase() || '';
-            if (productName.includes('premium')) {
-              tier = 'premium';
-            } else if (productName.includes('pro')) {
+            if (productName.includes('pro')) {
               tier = 'pro';
             }
           }
-          
-          const tokens = MONTHLY_TOKENS[tier] || 0;
           
           // Find user by email or metadata user_id
           let profile: { id: string } | null = null;
@@ -243,10 +221,10 @@ export async function POST(request: NextRequest) {
             break;
           }
           
-          // Calculate period end (1 year for yearly subscriptions)
+          // Calculate period end (1 month for monthly subscriptions)
           const now = new Date();
           const periodEnd = new Date(now);
-          periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
           
           // Update user subscription
           const { error: updateError } = await supabase
@@ -255,7 +233,6 @@ export async function POST(request: NextRequest) {
               subscription_tier: tier,
               subscription_status: 'active',
               polar_customer_id: data.payment_processor_metadata?.customer_id || null,
-              tokens_balance: tokens,
               subscription_ends_at: periodEnd.toISOString(),
               next_billing_date: periodEnd.toISOString(),
               auto_renew: true,
@@ -271,7 +248,7 @@ export async function POST(request: NextRequest) {
           if (updateError) {
             console.error('Error updating profile from checkout:', updateError);
           } else {
-            console.log(`✅ Subscription activated from checkout for user ${profile.id}: tier=${tier}, tokens=${tokens}`);
+            console.log(`✅ Subscription activated from checkout for user ${profile.id}: tier=${tier}`);
           }
         }
         break;
@@ -308,23 +285,20 @@ export async function POST(request: NextRequest) {
           tier = PRODUCT_TO_TIER[productId];
         } else {
           const productName = data.product?.name?.toLowerCase() || '';
-          if (productName.includes('premium')) {
-            tier = 'premium';
-          } else if (productName.includes('pro')) {
+          if (productName.includes('pro')) {
             tier = 'pro';
           }
         }
 
-        const tokens = MONTHLY_TOKENS[tier] || 0;
-        console.log('Tier:', tier, 'Tokens:', tokens);
+        console.log('Tier:', tier);
 
         // Find user by email first, then fall back to metadata user_id
-        let profile: { id: string; tokens_balance: number; email: string; subscription_started_at: string | null; current_period_start: string | null; tokens_reset_date: string | null } | null = null;
+        let profile: { id: string; email: string; subscription_started_at: string | null; current_period_start: string | null } | null = null;
         
         if (customerEmail) {
           const { data: profileByEmail } = await supabase
             .from('profiles')
-            .select('id, tokens_balance, email, subscription_started_at, current_period_start, tokens_reset_date')
+            .select('id, email, subscription_started_at, current_period_start')
             .eq('email', customerEmail)
             .single();
           profile = profileByEmail;
@@ -335,7 +309,7 @@ export async function POST(request: NextRequest) {
           console.log('Email lookup failed, trying metadata user_id:', metadataUserId);
           const { data: profileById } = await supabase
             .from('profiles')
-            .select('id, tokens_balance, email, subscription_started_at, current_period_start, tokens_reset_date')
+            .select('id, email, subscription_started_at, current_period_start')
             .eq('id', metadataUserId)
             .single();
           profile = profileById;
@@ -354,15 +328,7 @@ export async function POST(request: NextRequest) {
         
         const nextBilling = data.cancel_at_period_end ? null : periodEnd.toISOString();
 
-        // Determine if this is a new billing period (for token reset)
-        // Compare stored current_period_start with incoming one
-        const storedPeriodStart = profile.current_period_start;
-        const newPeriodStart = new Date(currentPeriodStart);
-        const isNewBillingPeriod = !storedPeriodStart || 
-          new Date(storedPeriodStart).getTime() < newPeriodStart.getTime();
-
         // Update user's subscription with all dates
-        // This handles upgrades, downgrades, and new subscriptions after cancellation
         const updateData: Record<string, any> = {
           subscription_tier: tier,
           subscription_status: status === 'active' ? 'active' : status,
@@ -392,20 +358,6 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Reset tokens when:
-        // 1. New subscription (subscription.created or subscription.active)
-        // 2. New billing period detected (period_start changed)
-        const shouldResetTokens = 
-          type === 'subscription.created' || 
-          type === 'subscription.active' ||
-          isNewBillingPeriod;
-
-        if (shouldResetTokens) {
-          console.log(`Resetting tokens for ${customerEmail}: new billing period detected`);
-          updateData.tokens_balance = tokens;
-          updateData.tokens_reset_date = currentPeriodStart; // Align with billing cycle
-        }
-
         console.log('Updating profile with:', updateData);
 
         const { error: updateError } = await supabase
@@ -418,7 +370,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 });
         }
 
-        console.log(`✅ Updated subscription for ${customerEmail}: tier=${tier}, status=${status}, ends_at=${periodEnd.toISOString()}, tokens_reset=${shouldResetTokens}`);
+        console.log(`✅ Updated subscription for ${customerEmail}: tier=${tier}, status=${status}, ends_at=${periodEnd.toISOString()}`);
         break;
       }
 
@@ -498,7 +450,6 @@ export async function POST(request: NextRequest) {
 
           if (type === 'subscription.revoked') {
             // Immediate revocation - downgrade now
-            // NOTE: Do NOT reset tokens_balance - user may have purchased token packs
             await supabase
               .from('profiles')
               .update({
@@ -534,139 +485,12 @@ export async function POST(request: NextRequest) {
       case 'order.created':
       case 'order.updated':
       case 'order.paid': {
-        // Handle order events - subscriptions and token pack purchases
+        // Handle order events - subscription purchases
         const billingReason = data.billing_reason;
         const orderStatus = data.status;
         const productId = data.product_id;
-        const orderId = data.id;
         
-        // Check if this is a token pack purchase (one-time purchase)
-        // Process when status is 'paid', regardless of event type
-        // Use order-specific idempotency to prevent double-processing
-        if (orderStatus === 'paid' && TOKEN_PACK_PRODUCTS[productId]) {
-          // Check if we've already processed this specific order for tokens
-          const tokenPurchaseKey = `token_purchase:${orderId}`;
-          
-          const { data: existingPurchase } = await supabase
-            .from('webhook_events')
-            .select('id')
-            .eq('event_id', tokenPurchaseKey)
-            .single();
-          
-          if (existingPurchase) {
-            break;
-          }
-          
-          // Mark this order as processed for tokens
-          await supabase.from('webhook_events').insert({
-            event_id: tokenPurchaseKey,
-            event_type: 'token_purchase',
-            payload: { orderId, productId },
-            status: 'processed',
-            processed_at: new Date().toISOString()
-          });
-          
-          const tokensToAdd = TOKEN_PACK_PRODUCTS[productId];
-          const customerEmail = data.customer?.email || data.user?.email;
-          const metadataUserId = data.metadata?.user_id;
-          const pricePaid = data.total_amount || data.amount || 0;
-          
-          // Find user
-          let profile: { id: string; email: string; tokens_balance: number } | null = null;
-          
-          if (customerEmail) {
-            const { data: profileByEmail } = await supabase
-              .from('profiles')
-              .select('id, email, tokens_balance')
-              .eq('email', customerEmail)
-              .single();
-            profile = profileByEmail;
-          }
-          
-          if (!profile && metadataUserId) {
-            const { data: profileById } = await supabase
-              .from('profiles')
-              .select('id, email, tokens_balance')
-              .eq('id', metadataUserId)
-              .single();
-            profile = profileById;
-          }
-          
-          if (!profile) {
-            console.error('User not found for token pack purchase:', customerEmail, metadataUserId);
-            break;
-          }
-          
-          // Double-check: See if a token transaction already exists for this order
-          const { data: existingTransaction } = await supabase
-            .from('token_transactions')
-            .select('id')
-            .eq('polar_order_id', orderId)
-            .single();
-          
-          if (existingTransaction) {
-            break;
-          }
-          
-          // Insert into token_transactions (no expiration - tokens never expire)
-          const { data: newTransaction, error: transactionError } = await supabase
-            .from('token_transactions')
-            .insert({
-              user_id: profile.id,
-              amount: tokensToAdd,
-              remaining: tokensToAdd,
-              source: 'purchase',
-              expires_at: null, // Tokens never expire
-              polar_order_id: orderId,
-            })
-            .select('id')
-            .single();
-          
-          if (transactionError) {
-            // Check if it's a duplicate key error
-            if (transactionError.code === '23505') {
-              break;
-            }
-            console.error('Error creating token transaction:', transactionError);
-            break;
-          }
-          
-          // Also update tokens_balance for backward compatibility (cached value)
-          const newBalance = (profile.tokens_balance || 0) + tokensToAdd;
-          
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-              tokens_balance: newBalance,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', profile.id);
-          
-          if (updateError) {
-            console.error('Error updating cached token balance:', updateError);
-            // Non-critical - token_transactions is the source of truth now
-          }
-          
-          // Record the purchase (keep for analytics)
-          const { error: purchaseError } = await supabase
-            .from('token_purchases')
-            .insert({
-              user_id: profile.id,
-              polar_order_id: orderId,
-              polar_product_id: productId,
-              tokens_amount: tokensToAdd,
-              price_paid: pricePaid,
-              currency: data.currency || 'usd',
-            });
-          
-          if (purchaseError && purchaseError.code !== '23505') { // Ignore duplicate
-            console.error('Error recording token purchase:', purchaseError);
-          }
-          
-          break;
-        }
-        
-        // Handle subscription creation (existing logic)
+        // Handle subscription creation
         if (orderStatus === 'paid' && billingReason === 'subscription_create' && data.subscription) {
           const subscription = data.subscription;
           const customerEmail = data.customer?.email || data.user?.email;
@@ -679,14 +503,10 @@ export async function POST(request: NextRequest) {
             tier = PRODUCT_TO_TIER[productId];
           } else {
             const productName = data.product?.name?.toLowerCase() || '';
-            if (productName.includes('premium')) {
-              tier = 'premium';
-            } else if (productName.includes('pro')) {
+            if (productName.includes('pro')) {
               tier = 'pro';
             }
           }
-          
-          const tokens = MONTHLY_TOKENS[tier] || 0;
           
           // Find user by email first, then fall back to metadata user_id
           let profile: { id: string; email: string } | null = null;
@@ -729,7 +549,6 @@ export async function POST(request: NextRequest) {
               subscription_status: 'active',
               polar_subscription_id: subscription.id,
               polar_customer_id: data.customer_id,
-              tokens_balance: tokens,
               subscription_ends_at: periodEnd.toISOString(),
               next_billing_date: subscription.cancel_at_period_end ? null : periodEnd.toISOString(),
               auto_renew: !subscription.cancel_at_period_end,
@@ -745,7 +564,7 @@ export async function POST(request: NextRequest) {
           if (updateError) {
             console.error('Error updating profile from order:', updateError);
           } else {
-            console.log(`✅ Subscription activated from order for ${customerEmail}: tier=${tier}, tokens=${tokens}`);
+            console.log(`✅ Subscription activated from order for ${customerEmail}: tier=${tier}`);
           }
         }
         break;
@@ -854,6 +673,7 @@ export async function GET() {
       'subscription.revoked',
       'subscription.uncanceled',
       'order.created',
+      'order.paid',
       'charge.failed',
       'charge.succeeded',
       'subscription.payment_failed',
@@ -862,7 +682,7 @@ export async function GET() {
     features: {
       idempotent: true,
       signature_verified: true,
-      billing_cycle_token_reset: true
+      subscription_tiers: ['free', 'pro']
     }
   });
 }

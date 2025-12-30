@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
-import { BookOpen, Calendar, ArrowRight, Clock, User, Search, Leaf, Menu, X, Sparkles, TrendingUp, Brain, Lightbulb, Target, Award, Heart, Zap } from 'lucide-react'
+import { BookOpen, Calendar, ArrowRight, Clock, User, Search, Menu, X, Sparkles, TrendingUp, Brain, Lightbulb, Target, Award, Heart, Zap } from 'lucide-react'
 
 const blogPosts = [
   {
@@ -269,8 +270,8 @@ const BlogNavigation = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex items-center justify-between h-16 md:h-20">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-emerald-500">
-              <Leaf className="h-5 w-5 text-white" />
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-emerald-500 overflow-hidden">
+              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
             </div>
             <span className="font-bold text-lg text-gray-900">
               LeafLearning
@@ -594,8 +595,8 @@ export default function BlogPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-                <Leaf className="w-6 h-6 text-accent-foreground" />
+              <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
+                <Image src="/new_logo.png" alt="LeafLearning" width={28} height={28} className="object-contain" />
               </div>
               <span className="text-xl font-bold font-headline">LeafLearning</span>
             </Link>

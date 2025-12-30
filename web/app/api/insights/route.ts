@@ -70,18 +70,26 @@ export async function GET(request: NextRequest) {
 
     // Group by date
     const groupedInsights: Record<string, typeof insights> = {};
+    let lastGeneratedAt: string | null = null;
+    
     insights?.forEach(insight => {
       const date = insight.insight_date;
       if (!groupedInsights[date]) {
         groupedInsights[date] = [];
       }
       groupedInsights[date].push(insight);
+      
+      // Track the most recent created_at as lastGeneratedAt
+      if (!lastGeneratedAt || new Date(insight.created_at) > new Date(lastGeneratedAt)) {
+        lastGeneratedAt = insight.created_at;
+      }
     });
 
     return NextResponse.json({
       insights: groupedInsights,
       userName: profile?.name || 'there',
-      totalCount: insights?.length || 0
+      totalCount: insights?.length || 0,
+      lastGeneratedAt
     });
   } catch (error: unknown) {
     console.error('Error in GET /api/insights:', error);
@@ -123,12 +131,17 @@ export async function POST(request: NextRequest) {
         });
       }
     } else {
-      // Delete existing insights for today if regenerating
+      // When regenerating, only delete non-AI insights (keep factual_accuracy and content_gap)
+      // This prevents losing insights about different notes on each refresh
       await supabase
         .from('insights')
         .delete()
         .eq('user_id', user.id)
-        .eq('insight_date', today);
+        .eq('insight_date', today)
+        .not('insight_type', 'in', '("factual_accuracy","content_gap")');
+      
+      // For AI-generated insights, mark them with a generation_id to track versions
+      // This allows us to keep showing all discovered issues
     }
 
     // Gather data for insights
@@ -161,6 +174,21 @@ export async function POST(request: NextRequest) {
     const projectMap = new Map(projects.map(p => [p.id, p.name]));
     const insightsToCreate: Insight[] = [];
 
+    // Get existing AI-generated insights to avoid analyzing same notes twice
+    const { data: existingAiInsights } = await supabase
+      .from('insights')
+      .select('metadata')
+      .eq('user_id', user.id)
+      .eq('insight_date', today)
+      .in('insight_type', ['factual_accuracy', 'content_gap']);
+    
+    const existingNoteIds = new Set<string>();
+    const existingProjectIds = new Set<string>();
+    existingAiInsights?.forEach(insight => {
+      if (insight.metadata?.noteId) existingNoteIds.add(insight.metadata.noteId as string);
+      if (insight.metadata?.projectId) existingProjectIds.add(insight.metadata.projectId as string);
+    });
+
     // 1. KNOWLEDGE HEATMAP - Find blind spots
     await generateKnowledgeHeatmapInsights(
       notes, 
@@ -190,14 +218,16 @@ export async function POST(request: NextRequest) {
     await generateContentGapInsights(
       notes,
       projects,
-      insightsToCreate
+      insightsToCreate,
+      existingProjectIds
     );
 
     // 5. FACTUAL ACCURACY - AI fact-checking for potential errors
     await generateFactualAccuracyInsights(
       notes,
       projects,
-      insightsToCreate
+      insightsToCreate,
+      existingNoteIds
     );
 
     // Insert all insights
@@ -491,7 +521,8 @@ function generateForgettingCurveInsights(
 async function generateContentGapInsights(
   notes: Array<{ id: string; title: string; summary?: string | null; content?: string; project_id: string }>,
   projects: Array<{ id: string; name: string }>,
-  insights: Insight[]
+  insights: Insight[],
+  existingProjectIds: Set<string> = new Set() // Track projects already analyzed
 ) {
   // Only analyze projects with at least 2 notes
   const projectNotesMap = new Map<string, Array<{ title: string; summary: string }>>();
@@ -503,7 +534,13 @@ async function generateContentGapInsights(
     projectNotesMap.set(note.project_id, existing);
   });
 
-  for (const project of projects) {
+  // Sort projects by name for consistent ordering
+  const sortedProjects = [...projects].sort((a, b) => a.name.localeCompare(b.name));
+
+  for (const project of sortedProjects) {
+    // Skip if already analyzed today
+    if (existingProjectIds.has(project.id)) continue;
+    
     const projectNotes = projectNotesMap.get(project.id) || [];
     if (projectNotes.length < 2) continue;
 
@@ -587,7 +624,8 @@ If the notes seem comprehensive or you can't determine gaps with confidence, ret
 async function generateFactualAccuracyInsights(
   notes: Array<{ id: string; title: string; summary?: string | null; content?: string; project_id: string }>,
   projects: Array<{ id: string; name: string }>,
-  insights: Insight[]
+  insights: Insight[],
+  existingNoteIds: Set<string> = new Set() // Track notes already analyzed
 ) {
   // Group notes by project
   const projectNotesMap = new Map<string, Array<{ id: string; title: string; content: string }>>();
@@ -605,8 +643,19 @@ async function generateFactualAccuracyInsights(
     const projectNotes = projectNotesMap.get(project.id) || [];
     if (projectNotes.length === 0) continue;
 
-    // Check each note for factual accuracy
-    for (const note of projectNotes.slice(0, 3)) { // Limit to 3 notes per project to save API calls
+    // Sort notes by title for consistent ordering across refreshes
+    projectNotes.sort((a, b) => a.title.localeCompare(b.title));
+
+    // Check each note for factual accuracy (skip notes already analyzed today)
+    let analyzedCount = 0;
+    for (const note of projectNotes) {
+      // Skip if already analyzed
+      if (existingNoteIds.has(note.id)) continue;
+      
+      // Limit to 3 notes per project per refresh
+      if (analyzedCount >= 3) break;
+      analyzedCount++;
+      
       try {
         const prompt = `You are a fact-checker for educational content. A student is studying "${project.name}" and has written the following note:
 

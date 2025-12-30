@@ -27,7 +27,10 @@ import {
   Youtube,
   ExternalLink,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Bot,
+  Lightbulb,
+  GraduationCap
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -45,10 +48,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Loading } from '@/components/ui/loading'
-import { TokenPurchaseModal } from '@/components/ui/token-purchase-modal'
-import { useTokenSync } from '@/lib/useTokenRefresh'
+import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import { useProjectTimeTracking } from '@/lib/useProjectTimeTracking'
+import GlobalSidebar from '@/components/GlobalSidebar'
+import SpaceSidebar from '@/components/SpaceSidebar'
+import ChatsPanel from '@/components/ChatsPanel'
 
 // YouTube URL helpers
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -407,22 +411,12 @@ interface Project {
 interface Profile {
   name: string
   email?: string
-  tokens_balance?: number
+  subscription_tier?: string
 }
 
 interface ProjectLayoutProps {
   children: ReactNode
 }
-
-const sidebarItems = [
-  { name: 'Overview', href: '', icon: LayoutDashboard },
-  { name: 'Notes', href: '/notes', icon: FileText },
-  { name: 'Q&A', href: '/qa', icon: HelpCircle },
-  { name: 'Flashcards', href: '/flashcards', icon: Layers },
-  { name: 'Schedule', href: '/schedule', icon: Calendar },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Insights', href: '/insights', icon: Sparkles }
-]
 
 // Markdown to HTML converter for AI responses
 function convertMarkdownToHtml(markdown: string): string {
@@ -693,17 +687,13 @@ function LeafAIPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void
 
 export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const [project, setProject] = useState<Project | null>(null)
-  const [allProjects, setAllProjects] = useState<Project[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [projectDropdownOpen, setProjectDropdownOpen] = useState(false)
-  const [showLeafAI, setShowLeafAI] = useState(false)
-  const [showTokenModal, setShowTokenModal] = useState(false)
-  const [showMusicPlayer, setShowMusicPlayer] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showChatsPanel, setShowChatsPanel] = useState(false)
 
   const router = useRouter()
   const params = useParams()
@@ -711,9 +701,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const supabase = createClient()
 
   const projectId = params.id as string
-
-  // Check if returning from checkout and subscribe to realtime token updates
-  useTokenSync(userId)
 
   // Track time spent on this project
   useProjectTimeTracking()
@@ -723,40 +710,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       loadProject()
     }
   }, [projectId])
-
-  // Listen for token updates from AI operations
-  useEffect(() => {
-    const handleTokensUpdated = async () => {
-      try {
-        const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
-        if (subscriptionRes.ok) {
-          const subscriptionData = await subscriptionRes.json()
-          setProfile(prev => prev ? {
-            ...prev,
-            tokens_balance: subscriptionData.subscription?.tokens_balance || 0
-          } : null)
-        }
-      } catch (err) {
-        console.error('Error refreshing token balance:', err)
-      }
-    }
-
-    window.addEventListener('tokensUpdated', handleTokensUpdated)
-    return () => window.removeEventListener('tokensUpdated', handleTokensUpdated)
-  }, [])
-
-  // Listen for sidebar collapse/expand events from notes editor
-  useEffect(() => {
-    const handleSidebarCollapse = () => setSidebarCollapsed(true)
-    const handleSidebarExpand = () => setSidebarCollapsed(false)
-
-    window.addEventListener('collapseSidebar', handleSidebarCollapse)
-    window.addEventListener('expandSidebar', handleSidebarExpand)
-    return () => {
-      window.removeEventListener('collapseSidebar', handleSidebarCollapse)
-      window.removeEventListener('expandSidebar', handleSidebarExpand)
-    }
-  }, [])
 
   const loadProject = async () => {
     try {
@@ -783,24 +736,23 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
         .eq('id', user.id)
         .single()
 
-      // Fetch valid token balance from subscription API
-      let validTokenBalance = 0
+      // Fetch subscription tier from API
+      let subscriptionTier = 'free'
       try {
         const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
         if (subscriptionRes.ok) {
           const subscriptionData = await subscriptionRes.json()
-          validTokenBalance = subscriptionData.subscription?.tokens_balance || 0
+          subscriptionTier = subscriptionData.subscription?.subscription_tier || 'free'
         }
       } catch (err) {
-        console.error('Error fetching valid token balance:', err)
+        console.error('Error fetching subscription tier:', err)
       }
 
-      // Always set profile with token balance, even if profileData is null
-      // Use email from profile or user.email as fallback for display name
+      // Always set profile with subscription tier
       setProfile({
         name: profileData?.name || '',
         email: profileData?.email || user.email || '',
-        tokens_balance: validTokenBalance
+        subscription_tier: subscriptionTier
       })
 
       const { data: projectData, error: projectError } = await supabase
@@ -825,17 +777,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       }
 
       setProject(projectData)
-
-      // Fetch all user projects for dropdown
-      const { data: allProjectsData } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-
-      if (allProjectsData) {
-        setAllProjects(allProjectsData)
-      }
     } catch (error) {
       setError('An unexpected error occurred')
     } finally {
@@ -848,301 +789,139 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
     router.push('/signin')
   }
 
-  const isActiveRoute = (href: string) => {
-    const fullPath = `/project/${projectId}${href}`
-    return pathname === fullPath
-  }
-
-  const getPageTitle = () => {
-    const currentItem = sidebarItems.find(item => isActiveRoute(item.href))
-    return currentItem?.name || 'Project'
-  }
-
-  if (isLoading) {
-    return <Loading message="Loading project..." fullScreen />
-  }
-
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F6FA' }}>
+      <div className="min-h-screen flex items-center justify-center bg-neutral-900">
         <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-neutral-900 border border-neutral-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <X className="w-8 h-8 text-red-500" />
           </div>
-          <p className="text-red-600 mb-4">{error}</p>
+          <p className="text-red-400 mb-4">{error}</p>
           <div className="space-x-4">
-            <Button onClick={loadProject} className="bg-indigo-500 hover:bg-indigo-600">Try Again</Button>
-            <Button variant="outline" onClick={() => router.push('/dashboard')}>Back to Dashboard</Button>
+            <Button onClick={loadProject} className="bg-white text-black hover:bg-neutral-200">Try Again</Button>
+            <Button variant="outline" onClick={() => router.push('/dashboard')} className="border-neutral-700 text-white hover:bg-neutral-800">Back to Dashboard</Button>
           </div>
         </div>
       </div>
     )
   }
 
-  if (!project) return null
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-neutral-900">
+        {/* Global Sidebar - Always visible even during loading */}
+        <div className="hidden lg:block">
+          <GlobalSidebar 
+            currentSpaceId={projectId}
+            isPro={profile?.subscription_tier === 'pro'}
+            onUpgradeClick={() => setShowUpgradeModal(true)}
+            activeItem="spaces"
+          />
+        </div>
+        <main className="lg:ml-[72px] min-h-screen" />
+      </div>
+    )
+  }
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-neutral-900">
+        {/* Mobile Menu Backdrop */}
         {mobileMenuOpen && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
         )}
 
-        <aside className={`fixed inset-y-0 left-0 z-50 bg-[#0f172a] transition-all duration-300 shadow-lg ${sidebarCollapsed ? 'w-[70px]' : 'w-[240px]'} ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
-          <div className="flex flex-col h-full">
-            <div className="h-20 flex items-center justify-between px-5 relative">
-              {!sidebarCollapsed ? (
-                <button
-                  onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
-                  className="flex items-center gap-3 min-w-0 flex-1 hover:bg-white/10 rounded-xl p-2 -ml-2 transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: project.color }}>
-                    <span className="text-white font-bold text-sm">{project.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <span className="text-lg font-bold text-white truncate flex-1 text-left">{project.name}</span>
-                  <ChevronRight className={`h-4 w-4 text-slate-400 transition-transform ${projectDropdownOpen ? 'rotate-90' : ''}`} />
-                </button>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => setProjectDropdownOpen(!projectDropdownOpen)}
-                      className="w-full flex justify-center hover:bg-white/10 rounded-xl p-2 transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: project.color }}>
-                        <span className="text-white font-bold text-sm">{project.name.charAt(0).toUpperCase()}</span>
-                      </div>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">Switch Project</TooltipContent>
-                </Tooltip>
-              )}
-              <Button variant="ghost" size="icon" className="lg:hidden h-8 w-8 text-slate-400" onClick={() => setMobileMenuOpen(false)}>
-                <Menu className="h-5 w-5" />
-              </Button>
+        {/* Global Sidebar - Always visible (leftmost rail) */}
+        <div className="hidden lg:block">
+          <GlobalSidebar 
+            currentSpaceId={projectId}
+            isPro={profile?.subscription_tier === 'pro'}
+            onUpgradeClick={() => setShowUpgradeModal(true)}
+            onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
+            onChatsHover={() => setShowChatsPanel(true)}
+            onChatsClose={() => setShowChatsPanel(false)}
+            activeItem={showChatsPanel ? 'chats' : 'spaces'}
+          />
+        </div>
 
-              {/* Project Dropdown with Glassy UI */}
-              {projectDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setProjectDropdownOpen(false)} />
-                  <div className={`absolute top-full mt-2 z-50 ${sidebarCollapsed ? 'left-2 w-64' : 'left-3 right-3'}`}>
-                    <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl shadow-black/10 overflow-hidden">
-                      <div className="p-3 border-b border-gray-100/50">
-                        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Switch Project</p>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto p-2">
-                        {allProjects.map((p) => (
-                          <button
-                            key={p.id}
-                            onClick={() => {
-                              setProjectDropdownOpen(false)
-                              if (p.id !== projectId) {
-                                router.push(`/project/${p.id}`)
-                              }
-                            }}
-                            className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200 ${
-                              p.id === projectId
-                                ? 'bg-gray-100/80'
-                                : 'hover:bg-gray-50/80'
-                            }`}
-                          >
-                            <div
-                              className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                              style={{ backgroundColor: p.color }}
-                            >
-                              <span className="text-white font-semibold text-xs">{p.name.charAt(0).toUpperCase()}</span>
-                            </div>
-                            <span className={`text-sm truncate flex-1 text-left ${p.id === projectId ? 'font-semibold text-gray-900' : 'text-gray-600'}`}>
-                              {p.name}
-                            </span>
-                            {p.id === projectId && (
-                              <div className="w-2 h-2 rounded-full bg-green-500" />
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="p-2 border-t border-gray-100/50">
-                        <Link
-                          href="/dashboard"
-                          onClick={() => setProjectDropdownOpen(false)}
-                          className="flex items-center gap-3 p-3 rounded-xl text-gray-500 hover:bg-gray-50/80 transition-colors"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                            <Plus className="h-4 w-4 text-gray-500" />
-                          </div>
-                          <span className="text-sm">View All Projects</span>
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
+        {/* Chats Panel */}
+        <ChatsPanel
+          isOpen={showChatsPanel}
+          onClose={() => setShowChatsPanel(false)}
+          onSelectChat={() => { router.push('/overview'); setShowChatsPanel(false); }}
+          onNewChat={() => { router.push('/overview'); setShowChatsPanel(false); }}
+          currentChatId={null}
+        />
+
+        {/* Space Sidebar - Secondary sidebar for space navigation */}
+        <div className="hidden lg:flex fixed inset-y-0 left-[72px] z-40 h-screen">
+          <SpaceSidebar spaceId={projectId} spaceName={project.name} />
+        </div>
+
+        {/* Mobile Sidebar - Combined for mobile */}
+        <aside className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-neutral-950 border-r border-neutral-800 transition-transform duration-300 lg:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="flex h-full">
+            {/* Mobile: Mini global nav */}
+            <div className="w-[60px] bg-neutral-900 border-r border-neutral-800 flex flex-col items-center py-4">
+              <GlobalSidebar 
+                currentSpaceId={projectId}
+                isPro={profile?.subscription_tier === 'pro'}
+                onUpgradeClick={() => { setShowUpgradeModal(true); setMobileMenuOpen(false); }}
+                onChatsClick={() => { setShowChatsPanel(!showChatsPanel); setMobileMenuOpen(false); }}
+                onChatsHover={() => setShowChatsPanel(true)}
+                onChatsClose={() => setShowChatsPanel(false)}
+              />
             </div>
-
-            <nav className="flex-1 px-4 pt-2">
-              <div className="space-y-1">
-
-              {sidebarItems.map((item) => {
-                const href = `/project/${projectId}${item.href}`
-                const isActive = isActiveRoute(item.href)
-                const Icon = item.icon
-                
-                return sidebarCollapsed ? (
-                  <Tooltip key={item.name}>
-                    <TooltipTrigger asChild>
-                      <Link href={href} onClick={() => setMobileMenuOpen(false)} className="relative block">
-                        {isActive && (
-                          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-sky-400 rounded-r-full" style={{ marginLeft: '-16px' }} />
-                        )}
-                        <div className={`flex items-center justify-center w-full h-11 rounded-xl transition-all duration-200 ${isActive ? 'bg-sky-500 text-white' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}>
-                          <Icon className="h-5 w-5" />
-                        </div>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{item.name}</TooltipContent>
-                  </Tooltip>
-                ) : (
-                  <Link key={item.name} href={href} onClick={() => setMobileMenuOpen(false)} className="relative block">
-                    {isActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-sky-400 rounded-r-full" style={{ marginLeft: '-16px' }} />
-                    )}
-                    <div className={`flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive ? 'bg-sky-500 text-white' : 'text-slate-400 hover:bg-white/10 hover:text-white'}`}>
-                      <Icon className="h-5 w-5" />
-                      <span>{item.name}</span>
-                    </div>
-                  </Link>
-                )
-              })}
-              </div>
-            </nav>
-
-            {/* Token Balance Section */}
-            <div className="px-4 py-3 border-t border-slate-700/50">
-              {sidebarCollapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button onClick={() => setShowTokenModal(true)} className="flex items-center justify-center w-full h-11 rounded-xl bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-all duration-200">
-                      <Coins className="h-5 w-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    <p className="font-medium">{profile?.tokens_balance ?? 0} Tokens</p>
-                    <p className="text-xs text-gray-400">Click to buy more</p>
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <div className="bg-slate-800/50 rounded-xl p-3 border border-slate-700/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Coins className="h-4 w-4 text-blue-400" />
-                      <span className="text-sm font-medium text-slate-300">Tokens</span>
-                    </div>
-                    <span className="text-sm font-bold text-blue-400">{profile?.tokens_balance ?? 0}</span>
-                  </div>
-                  <button onClick={() => setShowTokenModal(true)} className="flex items-center justify-center w-full py-2 text-xs font-medium text-white bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg hover:from-blue-600 hover:to-indigo-700 transition-all duration-200">
-                    Buy Tokens
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-slate-700/50">
-              {sidebarCollapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link href="/dashboard" className="flex items-center justify-center w-full h-11 rounded-xl text-slate-400 hover:bg-white/10 hover:text-white transition-all duration-200">
-                      <ChevronLeft className="h-5 w-5" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">Back to Dashboard</TooltipContent>
-                </Tooltip>
-              ) : (
-                <Link href="/dashboard" className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-slate-400 rounded-xl hover:bg-white/10 hover:text-white transition-all duration-200">
-                  <ChevronLeft className="h-5 w-5" />
-                  <span>Back to Dashboard</span>
-                </Link>
-              )}
+            {/* Mobile: Space sidebar */}
+            <div className="flex-1">
+              <SpaceSidebar 
+                spaceId={projectId} 
+                spaceName={project.name}
+                onClose={() => setMobileMenuOpen(false)}
+                isMobile={true}
+              />
             </div>
           </div>
         </aside>
 
-        <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-[70px]' : 'lg:ml-[240px]'}`}>
-          <header className="sticky top-0 z-30 bg-white border-b border-gray-200 h-16">
+        {/* Main Content Area - Offset by both sidebars on desktop */}
+        <div className="transition-all duration-300 lg:ml-[292px]">
+          {/* Top Header */}
+          <header className="sticky top-0 z-30 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-800 h-16">
             <div className="flex items-center justify-between h-full px-4 lg:px-6">
+              {/* Left side - Mobile menu button */}
               <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileMenuOpen(true)}>
                   <Menu className="h-5 w-5" />
                 </Button>
-                {/* Sidebar Toggle Button - Desktop */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="hidden lg:flex"
-                      onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    >
-                      {sidebarCollapsed ? (
-                        <ChevronRight className="h-5 w-5 text-gray-600" />
-                      ) : (
-                        <ChevronLeft className="h-5 w-5 text-gray-600" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    {sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                  </TooltipContent>
-                </Tooltip>
+                <div className="hidden lg:flex items-center gap-2">
+                  <span className="text-neutral-500 text-sm">Space</span>
+                  <ChevronRight className="h-4 w-4 text-neutral-600" />
+                  <span className="text-white font-medium text-sm">{project.name}</span>
+                </div>
               </div>
 
+              {/* Right side - User menu */}
               <div className="flex items-center gap-3">
-                {/* Music Player Button */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={() => setShowMusicPlayer(!showMusicPlayer)}
-                      className={`h-9 w-9 rounded-xl transition-all ${
-                        showMusicPlayer 
-                          ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white shadow-lg shadow-pink-500/30' 
-                          : 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white hover:shadow-lg hover:shadow-pink-500/30'
-                      }`}
-                      size="icon"
-                    >
-                      <Music className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Focus Music</TooltipContent>
-                </Tooltip>
-
-                {/* Leaf AI Button - Hide on notes page since it has its own Leaf AI */}
-                {!pathname.includes('/notes') && (
-                  <Button 
-                    onClick={() => setShowLeafAI(true)}
-                    className="h-9 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white gap-2"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    <span className="hidden sm:inline">Leaf AI</span>
-                  </Button>
-                )}
                 <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5 text-gray-600" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full"></span>
+                  <Bell className="h-5 w-5 text-neutral-400" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full"></span>
                 </Button>
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-2 px-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-blue-100 text-blue-600">{(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                        <AvatarFallback className="bg-neutral-800 text-white">{(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                       </Avatar>
-                      <span className="hidden sm:block text-sm font-medium text-gray-700">{profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || 'User'}</span>
+                      <span className="hidden sm:block text-sm font-medium text-neutral-200">{profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || 'User'}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>
                       <div className="flex flex-col">
                         <span className="font-medium">{profile?.name || profile?.email?.split('@')[0] || 'User'}</span>
-                        <span className="text-xs text-gray-500">{profile?.email || 'Student'}</span>
+                        <span className="text-xs text-neutral-500">{profile?.email || 'Student'}</span>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -1153,7 +932,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                       <LayoutDashboard className="h-4 w-4 mr-2" />Dashboard
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+                    <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
                       <LogOut className="h-4 w-4 mr-2" />Sign Out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -1162,22 +941,16 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
             </div>
           </header>
 
-          <main className="flex-1 min-h-[calc(100vh-4rem)] p-6 bg-gradient-to-br from-slate-50 via-white to-slate-50">
+          {/* Page Content */}
+          <main className="flex-1 min-h-[calc(100vh-4rem)] p-6 bg-neutral-900">
             {children}
           </main>
         </div>
 
-        {/* Leaf AI Panel */}
-        <LeafAIPanel isOpen={showLeafAI} onClose={() => setShowLeafAI(false)} />
-
-        {/* Global Music Player */}
-        <GlobalMusicPlayer isOpen={showMusicPlayer} onClose={() => setShowMusicPlayer(false)} />
-
-        {/* Token Purchase Modal */}
-        <TokenPurchaseModal 
-          isOpen={showTokenModal} 
-          onClose={() => setShowTokenModal(false)}
-          currentBalance={profile?.tokens_balance ?? 0}
+        {/* Upgrade Modal */}
+        <UpgradeModal 
+          isOpen={showUpgradeModal} 
+          onClose={() => setShowUpgradeModal(false)}
         />
       </div>
     </TooltipProvider>

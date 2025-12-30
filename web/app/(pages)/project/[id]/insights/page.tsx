@@ -460,370 +460,392 @@ export default function ProjectInsightsPage() {
           </div>
         </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Main Grid - Professional Layout */}
+        <div className="space-y-6">
           
-          {/* Knowledge Heatmap - Spans 2 columns */}
-          <div className="bg-white/75 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-6 lg:col-span-2 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-400 to-blue-600"></div>
+          {/* Row 1: Knowledge Heatmap - Full width hero card */}
+          <div className="bg-white/80 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 via-indigo-500 to-purple-500"></div>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20">
                   <BarChart3 className="w-5 h-5" />
                 </div>
-                <h2 className="text-lg font-semibold text-slate-900">Knowledge Heatmap</h2>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">Study Activity</h2>
+                  <p className="text-xs text-slate-500">Your learning consistency over time</p>
+                </div>
               </div>
               <select 
                 value={heatmapDays}
                 onChange={handleHeatmapDaysChange}
-                className="bg-white border border-slate-200 rounded-lg text-xs text-slate-600 px-2 py-1 focus:ring-1 focus:ring-blue-500 outline-none shadow-sm cursor-pointer"
+                className="bg-white border border-slate-200 rounded-lg text-xs text-slate-600 px-3 py-1.5 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm cursor-pointer"
               >
                 <option value={30}>Last 30 Days</option>
                 <option value={7}>Last 7 Days</option>
               </select>
             </div>
             
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gradient-to-br from-slate-50 to-white p-4 rounded-xl border border-slate-100">
+                <p className="text-2xl font-bold text-slate-900">{studyStats.totalSessions}</p>
+                <p className="text-xs text-slate-500 mt-1">Total Sessions</p>
+              </div>
+              <div className="bg-gradient-to-br from-slate-50 to-white p-4 rounded-xl border border-slate-100">
+                <p className="text-2xl font-bold text-slate-900">{studyStats.avgAccuracy}%</p>
+                <p className="text-xs text-slate-500 mt-1">Avg Accuracy</p>
+              </div>
+              <div className="bg-gradient-to-br from-slate-50 to-white p-4 rounded-xl border border-slate-100">
+                <p className="text-2xl font-bold text-slate-900">{studyStats.activeDays}</p>
+                <p className="text-xs text-slate-500 mt-1">Active Days</p>
+              </div>
+              <div className="bg-gradient-to-br from-emerald-50 to-white p-4 rounded-xl border border-emerald-100">
+                <p className="text-2xl font-bold text-emerald-600">{studyStats.streak} 🔥</p>
+                <p className="text-xs text-slate-500 mt-1">Day Streak</p>
+              </div>
+            </div>
+            
             {/* Heatmap Legend */}
-            <div className="flex gap-1 mb-2 text-xs text-slate-500 justify-end">
+            <div className="flex gap-1 mb-3 text-xs text-slate-500 justify-end items-center">
               <span>Less</span>
-              <div className="flex gap-1 mx-1">
-                <div className="w-3 h-3 rounded-sm bg-slate-100 border border-slate-200"></div>
-                <div className="w-3 h-3 rounded-sm bg-blue-200"></div>
-                <div className="w-3 h-3 rounded-sm bg-blue-400"></div>
-                <div className="w-3 h-3 rounded-sm bg-blue-600"></div>
-                <div className="w-3 h-3 rounded-sm bg-blue-800"></div>
+              <div className="flex gap-1 mx-2">
+                <div className="w-3.5 h-3.5 rounded bg-slate-100 border border-slate-200"></div>
+                <div className="w-3.5 h-3.5 rounded bg-blue-200"></div>
+                <div className="w-3.5 h-3.5 rounded bg-blue-400"></div>
+                <div className="w-3.5 h-3.5 rounded bg-blue-600"></div>
+                <div className="w-3.5 h-3.5 rounded bg-blue-800"></div>
               </div>
               <span>More</span>
             </div>
             
             {/* Heatmap Grid */}
-            <div className="grid grid-cols-12 gap-1.5 h-40">
+            <div className="grid grid-cols-15 gap-1 min-h-[80px]">
               {heatmapData.length > 0 ? heatmapData.map((cell, i) => (
                 <div 
                   key={i}
-                  className={`h-full rounded-sm ${getHeatmapColor(cell.level)} transition-all hover:scale-110 hover:z-10 hover:shadow-md cursor-pointer group relative`}
+                  className={`aspect-square rounded ${getHeatmapColor(cell.level)} transition-all hover:scale-125 hover:z-10 hover:shadow-lg cursor-pointer group relative`}
                   title={cell.tooltip}
                 >
-                  {/* Tooltip on hover */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-20">
-                    {cell.date}: {cell.sessions} sessions {cell.sessions > 0 && `(${cell.accuracy}% accuracy)`}
+                    {cell.date}: {cell.sessions} sessions {cell.sessions > 0 && `(${cell.accuracy}%)`}
                   </div>
                 </div>
               )) : (
-                <div className="col-span-12 flex items-center justify-center text-slate-400 text-sm">
-                  No study sessions in the last 30 days. Start reviewing flashcards to build your heatmap!
+                <div className="col-span-full flex items-center justify-center text-slate-400 text-sm py-8">
+                  No study sessions yet. Start reviewing flashcards to build your heatmap!
                 </div>
               )}
             </div>
             
-            {/* Stats Row */}
-            <div className="mt-4 grid grid-cols-4 gap-3 text-center border-t border-slate-100 pt-4">
-              <div>
-                <p className="text-xl font-bold text-slate-900">{studyStats.totalSessions}</p>
-                <p className="text-xs text-slate-500">Total Sessions</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-slate-900">{studyStats.avgAccuracy}%</p>
-                <p className="text-xs text-slate-500">Avg Accuracy</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-slate-900">{studyStats.activeDays}</p>
-                <p className="text-xs text-slate-500">Active Days</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-emerald-600">{studyStats.streak} 🔥</p>
-                <p className="text-xs text-slate-500">Day Streak</p>
-              </div>
-            </div>
-            
-            <div className="mt-4 flex justify-between items-center">
+            <div className="mt-4 flex justify-between items-center pt-4 border-t border-slate-100">
               <p className="text-sm text-slate-500">
                 {studyStats.totalSessions > 0 
-                  ? <>Your study activity is tracked through <span className="text-slate-900 font-medium">Atlas Intelligence</span>.</>
-                  : <>Start studying flashcards to see your learning patterns here.</>
+                  ? <>Tracked by <span className="text-indigo-600 font-medium">Atlas Intelligence</span></>
+                  : <>Start studying to see your learning patterns</>
                 }
               </p>
               <button 
                 onClick={() => knowledgeHeatmapInsight && setSelectedInsight(knowledgeHeatmapInsight)}
-                className="text-blue-600 hover:text-blue-700 text-xs font-semibold flex items-center"
+                className="text-indigo-600 hover:text-indigo-700 text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all"
               >
-                View Detailed Report <ArrowRight className="w-4 h-4 ml-1" />
+                View Details <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Study Rhythm */}
-          <div className="bg-white/75 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-400 to-purple-600"></div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 rounded-lg bg-purple-50 text-purple-600">
-                <Clock className="w-5 h-5" />
-              </div>
-              <h2 className="text-lg font-semibold text-slate-900">Study Rhythm</h2>
-            </div>
+          {/* Row 2: Study Rhythm + Retention - Equal columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {studyRhythmInsight ? (
-            <div className="flex flex-col gap-4">
-              <div className="flex justify-between items-end">
+            {/* Study Rhythm */}
+            <div className="bg-white/80 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-pink-500"></div>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-lg shadow-purple-500/20">
+                  <Clock className="w-5 h-5" />
+                </div>
                 <div>
-                  <p className="text-3xl font-bold text-slate-900">
-                    {studyRhythmInsight.metadata?.dailyAverage || '--'}
-                  </p>
-                  <p className="text-xs text-slate-500">Daily Average</p>
+                  <h2 className="text-lg font-semibold text-slate-900">Study Rhythm</h2>
+                  <p className="text-xs text-slate-500">Your weekly study patterns</p>
                 </div>
-                {studyRhythmInsight.metadata?.weeklyChange !== undefined && (
-                <div className={`flex items-center text-xs px-2 py-1 rounded-full border ${
-                  studyRhythmInsight.metadata.weeklyChange >= 0 
-                    ? 'text-emerald-600 bg-emerald-50 border-emerald-100' 
-                    : 'text-red-600 bg-red-50 border-red-100'
-                }`}>
-                  {studyRhythmInsight.metadata.weeklyChange >= 0 
-                    ? <TrendingUp className="w-3 h-3 mr-1" />
-                    : <TrendingDown className="w-3 h-3 mr-1" />
-                  }
-                  {studyRhythmInsight.metadata.weeklyChange >= 0 ? '+' : ''}{studyRhythmInsight.metadata.weeklyChange}% vs last week
-                </div>
-                )}
               </div>
               
-              {/* Bar Chart */}
-              <div className="h-24 flex items-end justify-between gap-2 mt-2">
-                {weeklyData.length > 0 ? weeklyData.map((value, i) => {
-                  const height = (value / maxValue) * 100
-                  const isHighest = value === maxValue
-                  return (
-                    <div 
-                      key={i}
-                      className={`w-full rounded-t-sm relative group transition-all cursor-pointer ${
-                        isHighest 
-                          ? 'bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]' 
-                          : 'bg-slate-100 hover:bg-slate-200'
-                      }`}
-                      style={{ height: `${height}%` }}
-                    >
-                      <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">
-                        {days[i]}
+              {studyRhythmInsight ? (
+              <div className="space-y-5">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-3xl font-bold text-slate-900">
+                      {studyRhythmInsight.metadata?.dailyAverage || '--'}
+                    </p>
+                    <p className="text-xs text-slate-500">Daily Average</p>
+                  </div>
+                  {studyRhythmInsight.metadata?.weeklyChange !== undefined && (
+                  <div className={`flex items-center text-xs px-2.5 py-1 rounded-full ${
+                    studyRhythmInsight.metadata.weeklyChange >= 0 
+                      ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' 
+                      : 'text-red-700 bg-red-50 border border-red-200'
+                  }`}>
+                    {studyRhythmInsight.metadata.weeklyChange >= 0 
+                      ? <TrendingUp className="w-3 h-3 mr-1" />
+                      : <TrendingDown className="w-3 h-3 mr-1" />
+                    }
+                    {studyRhythmInsight.metadata.weeklyChange >= 0 ? '+' : ''}{studyRhythmInsight.metadata.weeklyChange}%
+                  </div>
+                  )}
+                </div>
+                
+                {/* Bar Chart */}
+                <div className="h-28 flex items-end justify-between gap-2">
+                  {weeklyData.length > 0 ? weeklyData.map((value, i) => {
+                    const height = maxValue > 0 ? (value / maxValue) * 100 : 0
+                    const isHighest = value === maxValue && value > 0
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <div 
+                          className={`w-full rounded-t transition-all cursor-pointer relative group ${
+                            isHighest 
+                              ? 'bg-gradient-to-t from-purple-500 to-pink-500 shadow-lg shadow-purple-500/30' 
+                              : 'bg-slate-200 hover:bg-slate-300'
+                          }`}
+                          style={{ height: `${Math.max(height, 4)}%` }}
+                        >
+                          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">
+                            {value} sessions
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium">{days[i]}</span>
                       </div>
+                    )
+                  }) : (
+                    <div className="w-full flex items-center justify-center text-slate-400 text-sm">
+                      No weekly data available
                     </div>
-                  )
-                }) : (
-                  <div className="w-full flex items-center justify-center text-slate-400 text-sm">
-                    No weekly data available
+                  )}
+                </div>
+                
+                {studyRhythmInsight.metadata?.peakFocusTime && (
+                  <div className="pt-4 border-t border-slate-100">
+                    <p className="text-xs text-slate-500">
+                      <span className="text-purple-600 font-medium">Peak focus:</span> {studyRhythmInsight.metadata.peakFocusTime}
+                    </p>
                   </div>
                 )}
               </div>
-              
-              <p className="text-xs text-slate-400 mt-2 text-center">
-                Peak focus time: {studyRhythmInsight.metadata?.peakFocusTime || 'Analyzing...'}
-              </p>
-            </div>
-            ) : (
-            <div className="flex flex-col items-center justify-center h-40 text-center">
-              <Clock className="w-10 h-10 text-slate-200 mb-3" />
-              <p className="text-slate-400 text-sm">No study rhythm data yet</p>
-              <p className="text-slate-300 text-xs mt-1">Complete more study sessions to unlock Atlas Intelligence insights</p>
-            </div>
-            )}
-          </div>
-
-          {/* Retention */}
-          <div className="bg-white/75 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-400 to-emerald-600"></div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
-                  <Brain className="w-5 h-5" />
-                </div>
-                <h2 className="text-lg font-semibold text-slate-900">Retention</h2>
-              </div>
-              {overallRetention !== null && (
-                <span className="text-2xl font-bold text-slate-900">{overallRetention}%</span>
-              )}
-            </div>
-            
-            {retentionInsight ? (
-            <>
-            {/* Progress Bar */}
-            <div className="relative pt-2">
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                <span>Short-term</span>
-                <span>Long-term</span>
-              </div>
-              <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-                <div 
-                  className="bg-gradient-to-r from-emerald-400 to-teal-500 h-2.5 rounded-full transition-all duration-500"
-                  style={{ width: `${overallRetention || 0}%` }}
-                />
-              </div>
-            </div>
-            
-            {/* Topic Cards */}
-            <div className="mt-6 space-y-3">
-              {topRetainedTopics.length > 0 ? (
-                topRetainedTopics.slice(0, 2).map((item, i) => (
-                  <div 
-                    key={i}
-                    className="flex items-center justify-between p-3 rounded-lg bg-white border border-slate-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => retentionInsight && setSelectedInsight(retentionInsight)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                        i === 0 ? 'bg-rose-50 text-rose-500' : 'bg-amber-50 text-amber-500'
-                      }`}>
-                        {i + 1}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">{item.topic}</p>
-                        <p className="text-[10px] text-slate-500">Last review: {item.lastReview}</p>
-                      </div>
-                    </div>
-                    <span className={`text-xs font-bold ${
-                      item.retention === 'High' ? 'text-emerald-600' : 'text-amber-500'
-                    }`}>
-                      {item.retention}
-                    </span>
-                  </div>
-                ))
               ) : (
-                <p className="text-sm text-slate-400 text-center py-4">
-                  No topics to review yet
-                </p>
+              <div className="flex flex-col items-center justify-center h-44 text-center">
+                <Clock className="w-12 h-12 text-slate-200 mb-3" />
+                <p className="text-slate-500 text-sm font-medium">No rhythm data yet</p>
+                <p className="text-slate-400 text-xs mt-1">Complete more study sessions to unlock insights</p>
+              </div>
               )}
             </div>
-            </>
-            ) : (
-            <div className="flex flex-col items-center justify-center h-40 text-center">
-              <Brain className="w-10 h-10 text-slate-200 mb-3" />
-              <p className="text-slate-400 text-sm">No retention data yet</p>
-              <p className="text-slate-300 text-xs mt-1">Atlas Intelligence needs more study data</p>
-            </div>
-            )}
-          </div>
 
-          {/* Learning Gaps - Full width */}
-          <div className="bg-white/75 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-0 lg:col-span-3 relative overflow-hidden flex flex-col">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-teal-400 to-teal-600 z-10"></div>
-            
-            {/* Top Section - Info */}
-            <div className="p-6 border-b border-slate-200 bg-teal-50/50 relative">
-              <div className="absolute top-0 right-0 p-3 opacity-5">
-                <BookOpen className="w-20 h-20 text-teal-500" />
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="p-2.5 rounded-xl bg-teal-100 text-teal-500 shadow-sm">
-                  <BookOpen className="w-6 h-6" />
+            {/* Retention */}
+            <div className="bg-white/80 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500"></div>
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20">
+                    <Brain className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900">Retention</h2>
+                    <p className="text-xs text-slate-500">Memory strength over time</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-2">Learning Gaps</h2>
-                  <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
-                    {contentGapInsight?.message || "Atlas Intelligence will analyze your notes and quizzes to find topics you might be missing. Keep studying to unlock this insight!"}
-                  </p>
+                {overallRetention !== null && (
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-slate-900">{overallRetention}%</span>
+                    <p className="text-xs text-slate-500">Overall</p>
+                  </div>
+                )}
+              </div>
+              
+              {retentionInsight ? (
+              <>
+              {/* Progress Bar */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+                  <span>Short-term</span>
+                  <span>Long-term</span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-emerald-400 to-teal-500 h-3 rounded-full transition-all duration-500"
+                    style={{ width: `${overallRetention || 0}%` }}
+                  />
                 </div>
               </div>
-            </div>
-            
-            {/* Bottom Section - Missing Topics */}
-            <div className="p-6">
-              <h3 className="text-xs font-bold text-teal-600 uppercase tracking-wider mb-4">
-                {contentGapInsight ? 'Detected Missing Topics' : 'Awaiting Analysis'}
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {missingTopics.length > 0 ? (
-                  missingTopics.map((item, i) => (
+              
+              {/* Topic Cards */}
+              <div className="space-y-3">
+                {topRetainedTopics.length > 0 ? (
+                  topRetainedTopics.slice(0, 2).map((item, i) => (
                     <div 
                       key={i}
-                      className="group flex items-start gap-3 p-3 rounded-xl bg-white border border-slate-200 transition-all cursor-pointer shadow-sm hover:border-teal-200 hover:bg-teal-50/30"
-                      onClick={() => contentGapInsight && setSelectedInsight(contentGapInsight)}
+                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-slate-200 hover:shadow-sm transition-all cursor-pointer"
+                      onClick={() => retentionInsight && setSelectedInsight(retentionInsight)}
                     >
-                      <div className="mt-1.5 h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)] flex-shrink-0"></div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-slate-800 transition-colors group-hover:text-teal-600 truncate">
-                          {item.topic}
-                        </h4>
-                        {item.reason && (
-                          <p className="text-xs text-slate-500 mt-1 line-clamp-2">{item.reason}</p>
-                        )}
+                      <div className="flex items-center gap-3">
+                        <div className={`h-9 w-9 rounded-lg flex items-center justify-center text-xs font-bold ${
+                          i === 0 ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'
+                        }`}>
+                          {i + 1}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">{item.topic}</p>
+                          <p className="text-[10px] text-slate-500">Last review: {item.lastReview}</p>
+                        </div>
                       </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-teal-500 flex-shrink-0" />
+                      <Badge className={`text-xs ${
+                        item.retention === 'High' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-amber-100 text-amber-700 border-amber-200'
+                      }`}>
+                        {item.retention}
+                      </Badge>
                     </div>
                   ))
                 ) : (
-                  <div className="col-span-full flex flex-col items-center justify-center py-8 text-center">
-                    <BookOpen className="w-10 h-10 text-slate-200 mb-3" />
-                    <p className="text-slate-400 text-sm">
-                      {contentGapInsight ? 'No learning gaps detected. Keep up the great work!' : 'Add more notes and take quizzes to unlock gap analysis'}
-                    </p>
-                    <p className="text-slate-300 text-xs mt-1">Powered by Atlas Intelligence</p>
-                  </div>
+                  <p className="text-sm text-slate-400 text-center py-4">
+                    No topics to review yet
+                  </p>
                 )}
               </div>
+              </>
+              ) : (
+              <div className="flex flex-col items-center justify-center h-44 text-center">
+                <Brain className="w-12 h-12 text-slate-200 mb-3" />
+                <p className="text-slate-500 text-sm font-medium">No retention data yet</p>
+                <p className="text-slate-400 text-xs mt-1">Atlas Intelligence needs more study data</p>
+              </div>
+              )}
             </div>
           </div>
 
-          {/* Fact Check - Full width */}
-          <div className="bg-white/75 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-0 lg:col-span-3 relative overflow-hidden flex flex-col">
-            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-rose-400 to-rose-600 z-10"></div>
+          {/* Row 3: Learning Gaps + Fact Check - Equal columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* Top Section - Info */}
-            <div className="p-6 border-b border-slate-200 bg-rose-50/50 relative">
-              <div className="absolute top-0 right-0 p-3 opacity-5">
-                <AlertCircle className="w-20 h-20 text-rose-500" />
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="p-2.5 rounded-xl bg-rose-100 text-rose-500 shadow-sm">
-                  <AlertCircle className="w-6 h-6" />
+            {/* Learning Gaps */}
+            <div className="bg-white/80 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-400 to-cyan-500"></div>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-lg shadow-teal-500/20">
+                  <BookOpen className="w-5 h-5" />
                 </div>
-                <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-2">Fact Check</h2>
-                  <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
-                    {factualAccuracyInsight?.message || "Atlas Intelligence scans your notes for potential factual errors or misconceptions to help ensure your learning materials are accurate."}
-                  </p>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">Learning Gaps</h2>
+                  <p className="text-xs text-slate-500">Topics that need attention</p>
                 </div>
               </div>
+              
+              {contentGapInsight ? (
+              <div className="space-y-3">
+                {missingTopics.length > 0 ? (
+                  <>
+                    {missingTopics.slice(0, 4).map((item, i) => (
+                      <div 
+                        key={i}
+                        className="group flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-teal-200 hover:shadow-sm transition-all cursor-pointer"
+                        onClick={() => contentGapInsight && setSelectedInsight(contentGapInsight)}
+                      >
+                        <div className="mt-1 h-2 w-2 rounded-full bg-amber-500 flex-shrink-0"></div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium text-slate-800 group-hover:text-teal-600 truncate">
+                            {item.topic}
+                          </h4>
+                          {item.reason && (
+                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{item.reason}</p>
+                          )}
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-teal-500 flex-shrink-0" />
+                      </div>
+                    ))}
+                    {missingTopics.length > 4 && (
+                      <button
+                        onClick={() => setSelectedInsight(contentGapInsight)}
+                        className="w-full py-2 text-xs font-medium text-teal-600 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition-colors flex items-center justify-center gap-1"
+                      >
+                        View all {missingTopics.length} gaps
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <CheckCircle className="w-10 h-10 text-emerald-200 mb-3" />
+                    <p className="text-slate-500 text-sm font-medium">No gaps detected!</p>
+                    <p className="text-slate-400 text-xs mt-1">Your coverage looks great</p>
+                  </div>
+                )}
+              </div>
+              ) : (
+              <div className="flex flex-col items-center justify-center h-44 text-center">
+                <BookOpen className="w-12 h-12 text-slate-200 mb-3" />
+                <p className="text-slate-500 text-sm font-medium">No gap analysis yet</p>
+                <p className="text-slate-400 text-xs mt-1">Add notes and take quizzes to unlock</p>
+              </div>
+              )}
             </div>
-            
-            {/* Bottom Section - Factual Errors */}
-            <div className="p-6">
-              <h3 className="text-xs font-bold text-rose-600 uppercase tracking-wider mb-4">
-                {factualAccuracyInsight ? 'Detected Issues' : 'Awaiting Analysis'}
-              </h3>
+
+            {/* Fact Check */}
+            <div className="bg-white/80 backdrop-blur-sm border border-slate-200/60 shadow-sm rounded-2xl p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-400 to-pink-500"></div>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-500/20">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">Fact Check</h2>
+                  <p className="text-xs text-slate-500">Accuracy review of your notes</p>
+                </div>
+              </div>
+              
+              {factualAccuracyInsight ? (
               <div className="space-y-3">
                 {factualErrors.length > 0 ? (
-                  factualErrors.map((error, i) => (
-                    <div 
-                      key={i}
-                      className="group p-4 rounded-xl bg-white border border-slate-200 transition-all cursor-pointer shadow-sm hover:border-rose-200 hover:bg-rose-50/30"
-                      onClick={() => factualAccuracyInsight && setSelectedInsight(factualAccuracyInsight)}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`mt-0.5 p-1 rounded-full flex-shrink-0 ${error.severity === 'high' ? 'bg-red-100 text-red-500' : 'bg-amber-100 text-amber-500'}`}>
-                          <AlertTriangle className="w-3.5 h-3.5" />
+                  <>
+                    {factualErrors.slice(0, 3).map((error, i) => (
+                      <div 
+                        key={i}
+                        className="group p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-rose-200 hover:shadow-sm transition-all cursor-pointer"
+                        onClick={() => factualAccuracyInsight && setSelectedInsight(factualAccuracyInsight)}
+                      >
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className={`w-4 h-4 mt-0.5 flex-shrink-0 ${error.severity === 'high' ? 'text-red-500' : 'text-amber-500'}`} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-rose-600 line-through line-clamp-1">{error.claim}</p>
+                            <p className="text-xs text-emerald-700 mt-1 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                              <span className="line-clamp-1">{error.correction}</span>
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-slate-700 mb-2">
-                            <span className="line-through text-rose-600/80">{error.claim}</span>
-                          </p>
-                          <p className="text-sm text-green-700 flex items-center gap-2">
-                            <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                            <span>{error.correction}</span>
-                          </p>
-                        </div>
-                        <Badge variant="outline" className={`text-xs flex-shrink-0 ${error.severity === 'high' ? 'border-red-200 text-red-600' : 'border-amber-200 text-amber-600'}`}>
-                          {error.severity === 'high' ? 'Important' : 'Minor'}
-                        </Badge>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                    {factualErrors.length > 3 && (
+                      <button
+                        onClick={() => setSelectedInsight(factualAccuracyInsight)}
+                        className="w-full py-2 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors flex items-center justify-center gap-1"
+                      >
+                        View all {factualErrors.length} issues
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
+                    )}
+                  </>
                 ) : (
-                  <div className="col-span-full flex flex-col items-center justify-center py-8 text-center">
-                    <CheckCircle className="w-10 h-10 text-green-200 mb-3" />
-                    <p className="text-slate-400 text-sm">
-                      {factualAccuracyInsight ? 'No factual errors detected. Your notes look accurate!' : 'Add notes with content to enable fact-checking'}
-                    </p>
-                    <p className="text-slate-300 text-xs mt-1">Powered by Atlas Intelligence</p>
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <CheckCircle className="w-10 h-10 text-emerald-200 mb-3" />
+                    <p className="text-slate-500 text-sm font-medium">All facts verified!</p>
+                    <p className="text-slate-400 text-xs mt-1">Your notes look accurate</p>
                   </div>
                 )}
               </div>
+              ) : (
+              <div className="flex flex-col items-center justify-center h-44 text-center">
+                <AlertCircle className="w-12 h-12 text-slate-200 mb-3" />
+                <p className="text-slate-500 text-sm font-medium">No fact check yet</p>
+                <p className="text-slate-400 text-xs mt-1">Add notes to enable fact-checking</p>
+              </div>
+              )}
             </div>
           </div>
         </div>

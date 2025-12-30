@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
 import { Loading } from '@/components/ui/loading'
 import { FileText, Upload, Search, MoreVertical, Pencil, Trash2, Share2, Copy, Check, Link2, Plus, BookOpen, Clock, Loader2, X, ChevronRight, AlertCircle } from 'lucide-react'
@@ -34,6 +34,7 @@ interface Note {
 export default function FlashcardsPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const projectId = params.id as string
   const supabase = createClient()
 
@@ -42,6 +43,7 @@ export default function FlashcardsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedSet, setSelectedSet] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [initialNoteId, setInitialNoteId] = useState<string | null>(null)
   
   // Menu and sharing states
   const [menuOpenFor, setMenuOpenFor] = useState<string | null>(null)
@@ -57,6 +59,19 @@ export default function FlashcardsPage() {
   // Edit state
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingSet, setEditingSet] = useState<FlashcardSet | null>(null)
+
+  // Check for noteId in URL params - auto open create modal with note selected
+  useEffect(() => {
+    const noteIdParam = searchParams.get('noteId')
+    const setIdParam = searchParams.get('setId')
+    
+    if (noteIdParam) {
+      setInitialNoteId(noteIdParam)
+      setShowCreateModal(true)
+    } else if (setIdParam) {
+      setSelectedSet(setIdParam)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     loadSets()
@@ -273,8 +288,9 @@ export default function FlashcardsPage() {
       {showCreateModal && (
         <CreateFlashcardModal
           projectId={projectId}
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => { setShowCreateModal(false); setInitialNoteId(null); }}
           onSuccess={handleSetCreated}
+          initialNoteId={initialNoteId}
         />
       )}
 
@@ -592,17 +608,19 @@ interface CreateFlashcardModalProps {
   projectId: string
   onClose: () => void
   onSuccess: (setId: string) => void
+  initialNoteId?: string | null
 }
 
-function CreateFlashcardModal({ projectId, onClose, onSuccess }: CreateFlashcardModalProps) {
-  const [mode, setMode] = useState<'choose' | 'manual' | 'ai'>('choose')
+function CreateFlashcardModal({ projectId, onClose, onSuccess, initialNoteId }: CreateFlashcardModalProps) {
+  // If initialNoteId is provided, go directly to AI mode
+  const [mode, setMode] = useState<'choose' | 'manual' | 'ai'>(initialNoteId ? 'ai' : 'choose')
 
   if (mode === 'manual') {
     return <ManualFlashcardCreator projectId={projectId} onClose={onClose} onSuccess={onSuccess} onBack={() => setMode('choose')} />
   }
 
   if (mode === 'ai') {
-    return <AIFlashcardCreator projectId={projectId} onClose={onClose} onSuccess={onSuccess} onBack={() => setMode('choose')} />
+    return <AIFlashcardCreator projectId={projectId} onClose={onClose} onSuccess={onSuccess} onBack={() => setMode('choose')} initialNoteId={initialNoteId} />
   }
 
   return (
@@ -862,17 +880,18 @@ interface AICreatorProps {
   onClose: () => void
   onSuccess: (setId: string) => void
   onBack: () => void
+  initialNoteId?: string | null
 }
 
-function AIFlashcardCreator({ projectId, onClose, onSuccess, onBack }: AICreatorProps) {
+function AIFlashcardCreator({ projectId, onClose, onSuccess, onBack, initialNoteId }: AICreatorProps) {
   const supabase = createClient()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [cardCount, setCardCount] = useState<number>(5)
   const [customCount, setCustomCount] = useState('')
-  const [sourceType, setSourceType] = useState<'text' | 'note' | 'pdf'>('text')
+  const [sourceType, setSourceType] = useState<'text' | 'note' | 'pdf'>(initialNoteId ? 'note' : 'text')
   const [sourceMaterial, setSourceMaterial] = useState('')
-  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(initialNoteId || null)
   const [notes, setNotes] = useState<Note[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState('')
@@ -886,6 +905,20 @@ function AIFlashcardCreator({ projectId, onClose, onSuccess, onBack }: AICreator
   useEffect(() => {
     loadNotes()
   }, [])
+  
+  // Auto-select note and load content when initialNoteId is provided
+  useEffect(() => {
+    if (initialNoteId && notes.length > 0) {
+      const note = notes.find(n => n.id === initialNoteId)
+      if (note) {
+        setSelectedNoteId(initialNoteId)
+        setSourceMaterial(note.content || '')
+        if (!title) {
+          setTitle(`${note.title} Flashcards`)
+        }
+      }
+    }
+  }, [initialNoteId, notes])
 
   // Close dropdown when clicking outside
   useEffect(() => {

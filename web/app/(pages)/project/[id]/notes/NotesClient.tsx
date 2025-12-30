@@ -4,7 +4,8 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Note, Project } from './page'
 import { 
   Maximize2, Minimize2, Music, X, Youtube, ExternalLink, ChevronUp, ChevronDown,
-  Search, Plus, FileText, MoreVertical, Trash2, FolderOpen, Sparkles, Clock, Loader2
+  Search, Plus, FileText, MoreVertical, Trash2, FolderOpen, Sparkles, Clock, Loader2,
+  MousePointerClick, MessageSquare, Wand2
 } from 'lucide-react'
 import RichTextEditor, { FullscreenEditor } from './RichTextEditor'
 import 'react-quill-new/dist/quill.snow.css'
@@ -818,12 +819,12 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
   return (
     <div 
       ref={panelRef}
-        className="fixed right-0 top-0 h-full bg-white border-l border-gray-200 shadow-2xl z-50 flex flex-col"
+        className="fixed right-0 top-0 h-full bg-neutral-900 border-l border-neutral-800 shadow-2xl z-50 flex flex-col"
         style={{ width: panelWidth }}
       >
         {/* Resize Handle - Always visible with drag indicator */}
         <div
-          className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize bg-gray-100 hover:bg-emerald-100 border-r border-gray-200 transition-colors group flex items-center justify-center"
+          className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize bg-neutral-800 hover:bg-emerald-900 border-r border-neutral-700 transition-colors group flex items-center justify-center"
           onMouseDown={(e) => {
             e.preventDefault()
             setIsResizing(true)
@@ -831,13 +832,13 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
         >
           {/* Two vertical lines indicator */}
           <div className="flex gap-0.5">
-            <div className="w-0.5 h-8 bg-gray-300 group-hover:bg-emerald-400 rounded-full transition-colors" />
-            <div className="w-0.5 h-8 bg-gray-300 group-hover:bg-emerald-400 rounded-full transition-colors" />
+            <div className="w-0.5 h-8 bg-neutral-600 group-hover:bg-emerald-400 rounded-full transition-colors" />
+            <div className="w-0.5 h-8 bg-neutral-600 group-hover:bg-emerald-400 rounded-full transition-colors" />
           </div>
         </div>
 
         {/* Header */}
-        <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-emerald-500 to-teal-500">
+        <div className="p-4 border-b border-neutral-800 bg-gradient-to-r from-emerald-600 to-teal-600">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
@@ -862,13 +863,13 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-neutral-800">
           <button
             onClick={() => setActiveTab('chat')}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
               activeTab === 'chat'
-                ? 'text-emerald-600 border-b-2 border-emerald-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-emerald-400 border-b-2 border-emerald-500'
+                : 'text-neutral-400 hover:text-white'
             }`}
           >
             💬 Chat
@@ -877,8 +878,8 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
             onClick={() => setActiveTab('generate')}
             className={`flex-1 py-3 text-sm font-medium transition-colors ${
               activeTab === 'generate'
-                ? 'text-emerald-600 border-b-2 border-emerald-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-emerald-400 border-b-2 border-emerald-500'
+                : 'text-neutral-400 hover:text-white'
             }`}
           >
             ✨ Generate
@@ -893,13 +894,13 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 && (
                   <div className="text-center py-8">
-                    <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                      <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-16 h-16 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                       </svg>
                     </div>
-                    <h4 className="font-medium text-gray-900 mb-1">Ask me anything!</h4>
-                    <p className="text-sm text-gray-500">I can help you understand and improve your notes.</p>
+                    <h4 className="font-medium text-white mb-1">Ask me anything!</h4>
+                    <p className="text-sm text-neutral-400">I can help you understand and improve your notes.</p>
                   </div>
                 )}
                 {messages.map((msg, index) => (
@@ -911,14 +912,14 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
                       className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
                         msg.role === 'user'
                           ? 'bg-emerald-500 text-white'
-                          : 'bg-gray-100 text-gray-800'
+                          : 'bg-neutral-800 text-neutral-100'
                       }`}
                     >
                       {msg.role === 'user' ? (
                         <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                       ) : (
                         <div 
-                          className="text-sm prose prose-sm max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm"
+                          className="text-sm prose prose-sm prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>h1]:text-base [&>h2]:text-sm [&>h3]:text-sm"
                           dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(msg.content) }}
                         />
                       )}
@@ -927,11 +928,11 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
                 ))}
                 {isLoading && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-100 rounded-2xl px-4 py-3">
+                    <div className="bg-neutral-800 rounded-2xl px-4 py-3">
                       <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                       </div>
                     </div>
                   </div>
@@ -940,12 +941,12 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
               </div>
 
               {/* Chat Input */}
-              <div className="p-4 border-t border-gray-200">
+              <div className="p-4 border-t border-neutral-800">
                 <div className="flex gap-2">
                   <select
                     value={mode}
                     onChange={(e) => setMode(e.target.value as 'light' | 'heavy')}
-                    className="px-2 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs bg-white cursor-pointer"
+                    className="px-2 py-2 border border-neutral-700 rounded-lg focus:outline-none focus:border-emerald-500 text-xs bg-neutral-800 text-white cursor-pointer"
                   >
                     <option value="light">Basic</option>
                     <option value="heavy">Pro</option>
@@ -956,7 +957,7 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                     placeholder="Ask about your note..."
-                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 text-sm"
+                    className="flex-1 px-4 py-2.5 border border-neutral-700 rounded-xl focus:outline-none focus:border-emerald-500 text-sm bg-neutral-800 text-white placeholder-neutral-500"
                     disabled={isLoading}
                   />
                   <button
@@ -977,13 +978,13 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
               <div className="flex-1 overflow-y-auto p-4">
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">
+                    <label className="text-sm font-medium text-neutral-300">
                       What would you like me to write?
                     </label>
                     <select
                       value={mode}
                       onChange={(e) => setMode(e.target.value as 'light' | 'heavy')}
-                      className="px-2 py-1 border border-gray-200 rounded-lg focus:outline-none focus:border-emerald-500 text-xs bg-white cursor-pointer"
+                      className="px-2 py-1 border border-neutral-700 rounded-lg focus:outline-none focus:border-emerald-500 text-xs bg-neutral-800 text-white cursor-pointer"
                     >
                       <option value="light">Basic</option>
                       <option value="heavy">Pro</option>
@@ -993,7 +994,7 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
                     value={generatePrompt}
                     onChange={(e) => setGeneratePrompt(e.target.value)}
                     placeholder="e.g., Tips and tricks for writing good character development..."
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:border-emerald-500 text-sm resize-none"
+                    className="w-full px-4 py-3 border border-neutral-700 rounded-xl focus:outline-none focus:border-emerald-500 text-sm resize-none bg-neutral-800 text-white placeholder-neutral-500"
                     rows={3}
                     disabled={isLoading}
                   />
@@ -1001,13 +1002,13 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
 
                 {/* Quick Suggestions */}
                 <div className="mb-4">
-                  <p className="text-xs text-gray-500 mb-2">Quick suggestions:</p>
+                  <p className="text-xs text-neutral-400 mb-2">Quick suggestions:</p>
                   <div className="flex flex-wrap gap-2">
                     {['Expand on this topic', 'Add examples', 'Create an outline', 'Summarize key points'].map((suggestion) => (
                       <button
                         key={suggestion}
                         onClick={() => setGeneratePrompt(suggestion)}
-                        className="px-3 py-1.5 text-xs bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                        className="px-3 py-1.5 text-xs bg-neutral-800 text-neutral-300 rounded-lg hover:bg-neutral-700 transition-colors"
                       >
                         {suggestion}
                       </button>
@@ -1040,13 +1041,13 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
 
               {/* Generated Content Preview */}
               {generatedContent && (
-                <div className="mt-4 border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="p-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">Generated Content</span>
+                <div className="mt-4 border border-neutral-700 rounded-xl overflow-hidden">
+                  <div className="p-3 bg-neutral-800 border-b border-neutral-700 flex items-center justify-between">
+                    <span className="text-sm font-medium text-neutral-200">Generated Content</span>
                     <div className="flex gap-2">
                       <button
                         onClick={() => setGeneratedContent('')}
-                        className="px-3 py-1 text-xs text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                        className="px-3 py-1 text-xs text-neutral-400 hover:bg-neutral-700 rounded-lg transition-colors"
                       >
                         Discard
                       </button>
@@ -1058,9 +1059,9 @@ function LeafAIPanel({ isOpen, onClose, noteTitle, noteContent, onInsertContent 
                       </button>
                     </div>
                   </div>
-                  <div className="p-4 max-h-64 overflow-y-auto">
+                  <div className="p-4 max-h-64 overflow-y-auto bg-neutral-850">
                     <div 
-                      className="text-sm text-gray-700 prose prose-sm max-w-none [&>p]:my-2 [&>ul]:my-2 [&>ol]:my-2 [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm"
+                      className="text-sm text-neutral-200 prose prose-sm prose-invert max-w-none [&>p]:my-2 [&>ul]:my-2 [&>ol]:my-2 [&>h1]:text-lg [&>h2]:text-base [&>h3]:text-sm"
                       dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(generatedContent) }}
                     />
                   </div>
@@ -1081,6 +1082,99 @@ interface NotesClientProps {
   createNoteAction: (formData: FormData) => Promise<{ id: string; title: string; content: string; created_at: string; updated_at: string }>
   deleteNoteAction: (formData: FormData) => Promise<void>
   updateNoteAction: (formData: FormData) => Promise<void>
+}
+
+// AI Tutorial Modal Component
+const NOTES_AI_TUTORIAL_KEY = 'leaflearning_notes_ai_tutorial_seen'
+
+function AITutorialModal({ onClose }: { onClose: () => void }) {
+  const handleClose = () => {
+    localStorage.setItem(NOTES_AI_TUTORIAL_KEY, 'true')
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-neutral-900 rounded-2xl max-w-md w-full shadow-2xl border border-neutral-800 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">AI Features in Notes</h2>
+              <p className="text-white/80 text-sm">Supercharge your note-taking</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-5">
+          <p className="text-neutral-400 text-sm">
+            Right-click anywhere in the note editor to access powerful AI features:
+          </p>
+
+          {/* Feature 1: Ask AI */}
+          <div className="flex gap-4 items-start">
+            <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+              <MessageSquare className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Ask AI</h3>
+              <p className="text-sm text-neutral-400">
+                Select text and ask questions about it, or ask about your entire note. Perfect for getting explanations or clarifications.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 2: Summarize */}
+          <div className="flex gap-4 items-start">
+            <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-purple-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Summarize</h3>
+              <p className="text-sm text-neutral-400">
+                Select text to get a quick AI-generated summary. You can insert it directly into your note.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 3: Generate */}
+          <div className="flex gap-4 items-start">
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+              <Wand2 className="w-5 h-5 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">Generate</h3>
+              <p className="text-sm text-neutral-400">
+                Create new content with AI. Great for expanding ideas, creating outlines, or adding details to your notes.
+              </p>
+            </div>
+          </div>
+
+          {/* How to use */}
+          <div className="bg-neutral-800 rounded-xl p-4 flex items-center gap-3">
+            <MousePointerClick className="w-6 h-6 text-indigo-400 flex-shrink-0" />
+            <p className="text-sm text-neutral-300">
+              <span className="font-medium">How to use:</span> Right-click in the editor to open the AI menu
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-neutral-800 bg-neutral-900">
+          <button
+            onClick={handleClose}
+            className="w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl hover:from-indigo-500 hover:to-purple-500 transition-all"
+          >
+            Got it, let's start!
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // Extended note type for summaries
@@ -1117,6 +1211,7 @@ export default function NotesClient({
   const [editFolderName, setEditFolderName] = useState('')
   const [showFolderDropdown, setShowFolderDropdown] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showAITutorial, setShowAITutorial] = useState(false)
   const folderDropdownRef = useRef<HTMLDivElement>(null)
 
   // Sync notes from server while preserving local changes
@@ -1211,12 +1306,20 @@ export default function NotesClient({
     } else {
       setSelectedNote(note)
       setIsCreating(false)
+      // Show AI tutorial for first-time users
+      if (!localStorage.getItem(NOTES_AI_TUTORIAL_KEY)) {
+        setShowAITutorial(true)
+      }
     }
   }
 
   const handleCreateNew = () => {
     setIsCreating(true)
     setSelectedNote(null)
+    // Show AI tutorial for first-time users
+    if (!localStorage.getItem(NOTES_AI_TUTORIAL_KEY)) {
+      setShowAITutorial(true)
+    }
   }
 
   const handleBackToList = () => {
@@ -1415,13 +1518,13 @@ export default function NotesClient({
   return (
     <div className="overflow-x-hidden -m-6">
       {/* Top Header - Sticky with backdrop blur matching quiz/flashcard */}
-      <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-zinc-100">
+      <div className="sticky top-0 z-20 bg-neutral-900/80 backdrop-blur-md border-b border-neutral-800">
         <div className="px-3 sm:px-8 py-3 sm:py-6 max-w-7xl mx-auto">
           <div className="flex flex-col gap-3 sm:gap-6">
             <div className="flex items-center justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <h1 className="text-lg sm:text-2xl font-bold text-zinc-900 tracking-tight truncate">Notes Library</h1>
-                <p className="text-zinc-500 mt-0.5 sm:mt-1 text-sm hidden sm:block">Create and organize your project notes</p>
+                <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight truncate">Notes Library</h1>
+                <p className="text-neutral-400 mt-0.5 sm:mt-1 text-sm hidden sm:block">Create and organize your project notes</p>
               </div>
               
               {/* Mobile: Show buttons in header row */}
@@ -1437,7 +1540,7 @@ export default function NotesClient({
                     </button>
                     <button 
                       onClick={handleCreateNew}
-                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-zinc-900 text-white rounded-lg text-xs font-medium"
+                      className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-white text-black rounded-lg text-xs font-medium"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>New</span>
@@ -1450,12 +1553,12 @@ export default function NotesClient({
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               {/* Search Bar */}
               <div className="relative group w-full sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 group-focus-within:text-neutral-300 transition-colors" />
                 <input 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search notes..."
-                  className="pl-10 pr-4 py-2 sm:py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-sm w-full focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-zinc-400"
+                  className="pl-10 pr-4 py-2 sm:py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl text-sm text-white w-full focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-neutral-500"
                 />
               </div>
               
@@ -1463,14 +1566,14 @@ export default function NotesClient({
               {!isManagingFolders ? (
                 <button
                   onClick={() => setIsManagingFolders(true)}
-                  className="hidden sm:flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg sm:rounded-xl font-medium transition-all text-sm"
+                  className="hidden sm:flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-lg sm:rounded-xl font-medium transition-all text-sm"
                 >
                   <FolderOpen className="w-4 h-4" />
                   <span className="hidden sm:inline">Organize</span>
                 </button>
               ) : (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-zinc-500">
+                  <span className="text-sm text-neutral-400">
                     {selectedNotesForFolder.size} selected
                   </span>
                   {selectedNotesForFolder.size > 0 && (
@@ -1484,13 +1587,13 @@ export default function NotesClient({
                         <ChevronDown className={`w-4 h-4 transition-transform ${showFolderDropdown ? 'rotate-180' : ''}`} />
                       </button>
                       {showFolderDropdown && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-zinc-100 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
+                        <div className="absolute right-0 mt-2 w-48 bg-neutral-800 rounded-xl shadow-xl border border-neutral-700 py-1 z-30 animate-in fade-in zoom-in-95 duration-100">
                           <button
                             onClick={() => {
                               handleMoveNotesToFolder(null)
                               setShowFolderDropdown(false)
                             }}
-                            className="w-full px-4 py-2.5 text-left text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                            className="w-full px-4 py-2.5 text-left text-sm text-neutral-300 hover:bg-neutral-700 hover:text-white"
                           >
                             Remove from folder
                           </button>
@@ -1501,18 +1604,18 @@ export default function NotesClient({
                                 handleMoveNotesToFolder(folder)
                                 setShowFolderDropdown(false)
                               }}
-                              className="w-full px-4 py-2.5 text-left text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                              className="w-full px-4 py-2.5 text-left text-sm text-neutral-300 hover:bg-neutral-700 hover:text-white"
                             >
                               {folder}
                             </button>
                           ))}
-                          <div className="border-t border-zinc-100 my-1" />
+                          <div className="border-t border-neutral-700 my-1" />
                           <button
                             onClick={() => {
                               setShowFolderModal(true)
                               setShowFolderDropdown(false)
                             }}
-                            className="w-full px-4 py-2.5 text-left text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2"
+                            className="w-full px-4 py-2.5 text-left text-sm text-indigo-400 hover:bg-indigo-500/10 flex items-center gap-2"
                           >
                             <Plus className="w-4 h-4" />
                             New Folder
@@ -1526,7 +1629,7 @@ export default function NotesClient({
                       setIsManagingFolders(false)
                       setSelectedNotesForFolder(new Set())
                     }}
-                    className="px-3 py-2 text-zinc-500 hover:text-zinc-700 text-sm font-medium transition-colors"
+                    className="px-3 py-2 text-neutral-400 hover:text-white text-sm font-medium transition-colors"
                   >
                     Cancel
                   </button>
@@ -1548,7 +1651,7 @@ export default function NotesClient({
               {!isManagingFolders && (
                 <button 
                   onClick={handleCreateNew}
-                  className="hidden sm:flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg sm:rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10 hover:shadow-zinc-900/20 hover:-translate-y-0.5 text-sm"
+                  className="hidden sm:flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-white hover:bg-neutral-100 text-black rounded-lg sm:rounded-xl font-medium transition-all shadow-lg shadow-neutral-900/10 hover:shadow-neutral-900/20 hover:-translate-y-0.5 text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   <span>New Note</span>
@@ -1569,18 +1672,18 @@ export default function NotesClient({
               if (searchQuery && folderNotes.length === 0) return null
               
               return (
-                <div key={folder} className="bg-zinc-50/50 border border-zinc-100 rounded-2xl overflow-hidden">
+                <div key={folder} className="bg-neutral-800/50 border border-neutral-700 rounded-2xl overflow-hidden">
                   {/* Folder Header */}
                   <div 
-                    className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-zinc-100/50 transition-colors"
+                    className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-neutral-700/50 transition-colors"
                     onClick={() => toggleFolderCollapse(folder)}
                   >
                     <div className="flex items-center gap-3">
                       <ChevronDown 
-                        className={`w-5 h-5 text-zinc-400 transition-transform ${collapsedFolders.has(folder) ? '-rotate-90' : ''}`} 
+                        className={`w-5 h-5 text-neutral-500 transition-transform ${collapsedFolders.has(folder) ? '-rotate-90' : ''}`} 
                       />
-                      <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                        <FolderOpen className="w-5 h-5 text-amber-600" />
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                        <FolderOpen className="w-5 h-5 text-amber-400" />
                       </div>
                       {editingFolder === folder ? (
                         <input
@@ -1593,13 +1696,13 @@ export default function NotesClient({
                             if (e.key === 'Escape') setEditingFolder(null)
                           }}
                           onClick={(e) => e.stopPropagation()}
-                          className="px-3 py-1.5 border border-indigo-300 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="px-3 py-1.5 border border-indigo-500 rounded-lg text-sm font-medium bg-neutral-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                           autoFocus
                         />
                       ) : (
-                        <span className="font-semibold text-zinc-900">{folder}</span>
+                        <span className="font-semibold text-white">{folder}</span>
                       )}
-                      <span className="text-sm text-zinc-400 font-medium">({folderNotes.length})</span>
+                      <span className="text-sm text-neutral-500 font-medium">({folderNotes.length})</span>
                     </div>
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <button
@@ -1607,10 +1710,10 @@ export default function NotesClient({
                           setEditingFolder(folder)
                           setEditFolderName(folder)
                         }}
-                        className="p-2 hover:bg-zinc-200 rounded-xl transition-colors"
+                        className="p-2 hover:bg-neutral-700 rounded-xl transition-colors"
                         title="Rename folder"
                       >
-                        <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                       </button>
@@ -1620,10 +1723,10 @@ export default function NotesClient({
                             handleDeleteFolder(folder)
                           }
                         }}
-                        className="p-2 hover:bg-red-100 rounded-xl transition-colors"
+                        className="p-2 hover:bg-red-500/10 rounded-xl transition-colors"
                         title="Delete folder"
                       >
-                        <Trash2 className="w-4 h-4 text-zinc-500 hover:text-red-500" />
+                        <Trash2 className="w-4 h-4 text-neutral-400 hover:text-red-400" />
                       </button>
                     </div>
                   </div>
@@ -1653,7 +1756,7 @@ export default function NotesClient({
         {(filteredNotesByFolder['Ungrouped']?.length > 0 || filteredNotes.length === 0) && (
           <div>
             {folders.length > 0 && filteredNotesByFolder['Ungrouped']?.length > 0 && (
-              <h3 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 Ungrouped Notes
               </h3>
@@ -1676,14 +1779,14 @@ export default function NotesClient({
 
         {/* Empty State */}
         {filteredNotes.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-zinc-400">
+          <div className="flex flex-col items-center justify-center py-16 text-neutral-400">
             {searchQuery ? (
               <>
-                <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6">
+                <div className="w-20 h-20 bg-neutral-800 rounded-3xl flex items-center justify-center mb-6">
                   <FileText className="w-10 h-10 opacity-20" />
                 </div>
-                <h3 className="text-lg font-medium text-zinc-900 mb-1">No notes found</h3>
-                <p className="text-zinc-500">Try adjusting your search or create a new note.</p>
+                <h3 className="text-lg font-medium text-white mb-1">No notes found</h3>
+                <p className="text-neutral-500">Try adjusting your search or create a new note.</p>
               </>
             ) : (
               <>
@@ -1699,11 +1802,11 @@ export default function NotesClient({
                     <source src="/vid.mp4" type="video/mp4" />
                   </video>
                 </div>
-                <h3 className="text-xl font-semibold text-zinc-900 mb-2">Create Your First Note</h3>
-                <p className="text-zinc-500 mb-6 text-center max-w-sm">Start capturing your ideas and study materials in one organized place.</p>
+                <h3 className="text-xl font-semibold text-white mb-2">Create Your First Note</h3>
+                <p className="text-neutral-500 mb-6 text-center max-w-sm">Start capturing your ideas and study materials in one organized place.</p>
                 <button 
                   onClick={handleCreateNew}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-medium transition-all shadow-lg shadow-zinc-900/10"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-neutral-100 text-black rounded-xl font-medium transition-all shadow-lg shadow-neutral-900/10"
                 >
                   <Plus className="w-4 h-4" />
                   <span>New Note</span>
@@ -1716,13 +1819,13 @@ export default function NotesClient({
 
       {/* New Folder Modal */}
       {showFolderModal && (
-        <div className="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-white/20 overflow-hidden">
-            <div className="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-zinc-900">Create New Folder</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-neutral-900 rounded-2xl w-full max-w-md shadow-2xl border border-neutral-800 overflow-hidden">
+            <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Create New Folder</h2>
               <button 
                 onClick={() => { setShowFolderModal(false); setNewFolderName(''); }}
-                className="p-2 hover:bg-zinc-100 rounded-full transition-colors text-zinc-400 hover:text-zinc-600"
+                className="p-2 hover:bg-neutral-800 rounded-full transition-colors text-neutral-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1733,7 +1836,7 @@ export default function NotesClient({
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 placeholder="e.g., Week 1, Chapter 1, Midterm"
-                className="w-full px-4 py-3 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all mb-4"
+                className="w-full px-4 py-3 border border-neutral-700 rounded-xl bg-neutral-800 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all mb-4 placeholder:text-neutral-500"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newFolderName.trim()) {
@@ -1746,7 +1849,7 @@ export default function NotesClient({
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => { setShowFolderModal(false); setNewFolderName(''); }}
-                  className="px-4 py-2.5 text-zinc-600 hover:bg-zinc-100 rounded-xl font-medium transition-colors"
+                  className="px-4 py-2.5 text-neutral-400 hover:bg-neutral-800 rounded-xl font-medium transition-colors"
                 >
                   Cancel
                 </button>
@@ -1778,6 +1881,11 @@ export default function NotesClient({
           onSummaryCreated={handleSummaryCreated}
           createNoteAction={createNoteAction}
         />
+      )}
+
+      {/* AI Tutorial Modal for first-time users */}
+      {showAITutorial && (
+        <AITutorialModal onClose={() => setShowAITutorial(false)} />
       )}
     </div>
   )
@@ -1821,16 +1929,16 @@ function NoteCard({ note, onClick, isSelected = false, isSelectable = false }: N
   const hasSavedSummary = !!note.summary
 
   // Generate a consistent color based on title for aesthetics
-  const colors = ['bg-blue-50 text-blue-600', 'bg-purple-50 text-purple-600', 'bg-emerald-50 text-emerald-600', 'bg-rose-50 text-rose-600', 'bg-amber-50 text-amber-600']
+  const colors = ['bg-blue-500/20 text-blue-400', 'bg-purple-500/20 text-purple-400', 'bg-emerald-500/20 text-emerald-400', 'bg-rose-500/20 text-rose-400', 'bg-amber-500/20 text-amber-400']
   const colorClass = colors[note.title.length % colors.length]
 
   return (
     <div 
       onClick={onClick}
-      className={`group relative bg-white border rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full ${
+      className={`group relative bg-neutral-900 border rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col h-full ${
         isSelected 
-          ? 'border-indigo-500 ring-2 ring-indigo-200' 
-          : 'border-zinc-200'
+          ? 'border-indigo-500 ring-2 ring-indigo-500/30' 
+          : 'border-neutral-800'
       }`}
     >
       {/* Selection Checkbox */}
@@ -1839,7 +1947,7 @@ function NoteCard({ note, onClick, isSelected = false, isSelectable = false }: N
           <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
             isSelected 
               ? 'bg-indigo-600 border-indigo-600' 
-              : 'bg-white border-zinc-300 group-hover:border-indigo-400'
+              : 'bg-neutral-800 border-neutral-600 group-hover:border-indigo-400'
           }`}>
             {isSelected && (
               <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1858,13 +1966,13 @@ function NoteCard({ note, onClick, isSelected = false, isSelectable = false }: N
         {!isSelectable && (
           <div className="flex gap-1.5">
             {isSummaryNote && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-lg">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-400 text-xs font-medium rounded-lg">
                 <Sparkles className="w-3 h-3" />
                 Summary
               </span>
             )}
             {hasSavedSummary && !isSummaryNote && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-lg">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-lg">
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -1877,22 +1985,22 @@ function NoteCard({ note, onClick, isSelected = false, isSelectable = false }: N
 
       {/* Text */}
       <div className="flex-1 mb-4">
-        <h3 className="font-bold text-zinc-900 mb-1 line-clamp-1 group-hover:text-indigo-600 transition-colors">
+        <h3 className="font-bold text-white mb-1 line-clamp-1 group-hover:text-indigo-400 transition-colors">
           {note.title}
         </h3>
-        <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed">
+        <p className="text-sm text-neutral-400 line-clamp-2 leading-relaxed">
           {getPlainText(note.content || 'No content yet')}
         </p>
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-zinc-50 flex items-center justify-between text-xs font-medium text-zinc-400">
+      <div className="pt-4 border-t border-neutral-800 flex items-center justify-between text-xs font-medium text-neutral-500">
         <div className="flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5" />
           <span>{formatDate(note.updated_at)}</span>
         </div>
         {note.folder && (
-          <div className="flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+          <div className="flex items-center gap-1 text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full">
             <FolderOpen className="w-3 h-3" />
             <span className="truncate max-w-[80px]">{note.folder}</span>
           </div>
@@ -1987,7 +2095,7 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   }
 
   return (
-    <div className={`bg-white min-h-screen flex flex-col transition-all overflow-x-hidden ${showLeafAI && !isFullscreen ? 'sm:mr-96' : ''}`}>
+    <div className={`bg-neutral-900 min-h-screen flex flex-col transition-all overflow-x-hidden ${showLeafAI && !isFullscreen ? 'sm:mr-96' : ''}`}>
       {/* Fullscreen Editor Overlay */}
       <FullscreenEditor
         isOpen={isFullscreen}
@@ -2006,46 +2114,30 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
 
       {/* Mobile-First Clean Header - Hidden when fullscreen */}
       {!isFullscreen && (
-      <header className="sticky top-0 z-20 bg-white border-b border-zinc-100 sm:border-none">
+      <header className="sticky top-0 z-20 bg-neutral-900 border-b border-neutral-800 sm:border-none">
         <div className="flex items-center justify-between px-3 sm:px-8 py-2.5 sm:py-4">
           {/* Back Button */}
           <button
             onClick={onBack}
-            className="flex items-center justify-center w-10 h-10 -ml-2 hover:bg-zinc-100 rounded-full transition-colors"
+            className="flex items-center justify-center w-10 h-10 -ml-2 hover:bg-neutral-800 rounded-full transition-colors"
           >
-            <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           
           {/* Desktop: Show "New Note" title */}
-          <span className="hidden sm:block text-sm font-medium text-zinc-500">New Note</span>
+          <span className="hidden sm:block text-sm font-medium text-neutral-400">New Note</span>
           
           {/* Action Buttons */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* Leaf AI Toggle */}
-            <button
-              onClick={() => setShowLeafAI(!showLeafAI)}
-              className={`flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 sm:py-2 rounded-full sm:rounded-lg transition-colors ${
-                showLeafAI
-                  ? 'bg-emerald-500 text-white'
-                  : 'text-emerald-600 hover:bg-emerald-50'
-              }`}
-              title="AI Assistant"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-              </svg>
-              <span className="hidden sm:inline ml-2 text-sm font-medium">Ask AI</span>
-            </button>
-            
             {/* Music Button - Mobile icon only */}
             <button
               onClick={() => setShowMusicPlayer(!showMusicPlayer)}
               className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
                 showMusicPlayer
                   ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 text-white'
-                  : 'text-zinc-500 hover:bg-zinc-100'
+                  : 'text-neutral-400 hover:bg-neutral-800'
               }`}
               title="Music"
             >
@@ -2067,19 +2159,19 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
 
       {/* Full Page Editor Area - Hidden when fullscreen */}
       {!isFullscreen && (
-      <div className="flex-1" style={{ background: 'white' }}>
-        <div className="px-4 sm:px-8 pt-8 sm:pt-6 pb-24 bg-white min-h-full">
+      <div className="flex-1" style={{ background: '#171717' }}>
+        <div className="px-4 sm:px-8 pt-8 sm:pt-6 pb-24 bg-neutral-900 min-h-full">
           {/* Title Input - Large and prominent */}
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Title"
-            className="w-full text-2xl sm:text-4xl font-bold text-zinc-900 placeholder:text-zinc-400 border-none focus:outline-none focus:ring-0 bg-transparent mb-2 sm:mb-4 tracking-tight"
+            className="w-full text-2xl sm:text-4xl font-bold text-white placeholder:text-neutral-500 border-none focus:outline-none focus:ring-0 bg-transparent mb-2 sm:mb-4 tracking-tight"
           />
           
           {/* Date Meta - Mobile friendly */}
-          <div className="text-xs text-zinc-400 font-medium mb-4 sm:mb-6">
+          <div className="text-xs text-neutral-500 font-medium mb-4 sm:mb-6">
             {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} at {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
           
@@ -2326,17 +2418,17 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
   }
 
   return (
-    <div className="flex min-h-screen bg-white text-zinc-900 overflow-x-hidden">
-      <main className={`flex-1 flex flex-col relative bg-white overflow-hidden transition-all ${showLeafAI && !isFullscreen ? 'sm:mr-96' : ''}`}>
+    <div className="flex min-h-screen bg-neutral-900 text-white overflow-x-hidden">
+      <main className={`flex-1 flex flex-col relative bg-neutral-900 overflow-hidden transition-all ${showLeafAI && !isFullscreen ? 'sm:mr-96' : ''}`}>
         {/* Mobile-First Clean Header */}
-        <header className="sticky top-0 z-20 bg-white border-b border-zinc-100 sm:border-none">
+        <header className="sticky top-0 z-20 bg-neutral-900 border-b border-neutral-800 sm:border-none">
           <div className="flex items-center justify-between px-3 sm:px-8 py-2.5 sm:py-4">
             {/* Back Button */}
             <button 
               onClick={onBack} 
-              className="flex items-center justify-center w-10 h-10 -ml-2 hover:bg-zinc-100 rounded-full transition-colors"
+              className="flex items-center justify-center w-10 h-10 -ml-2 hover:bg-neutral-800 rounded-full transition-colors"
             >
-              <svg className="w-5 h-5 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
@@ -2344,9 +2436,9 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
             {/* Auto-save Status */}
             <div className="flex-1 flex justify-center sm:justify-start">
               <span className={`text-[10px] sm:text-xs font-medium px-2 sm:px-3 py-1 rounded-full ${
-                autoSaveStatus === 'saved' ? 'text-zinc-400' :
-                autoSaveStatus === 'saving' ? 'text-amber-500 bg-amber-50' :
-                'text-zinc-500 bg-zinc-100'
+                autoSaveStatus === 'saved' ? 'text-neutral-500' :
+                autoSaveStatus === 'saving' ? 'text-amber-400 bg-amber-500/10' :
+                'text-neutral-400 bg-neutral-800'
               }`}>
                 {autoSaveStatus === 'saved' ? `Saved ${new Date(note.updated_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` :
                  autoSaveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
@@ -2355,41 +2447,10 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
 
             {/* Action Buttons */}
             <div className="flex items-center gap-1">
-              {/* Summarize Button */}
-              <button 
-                onClick={handleInlineSummarize}
-                disabled={isSummarizing}
-                className="flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 sm:py-2 rounded-full sm:rounded-lg transition-colors text-purple-600 hover:bg-purple-50 disabled:opacity-50"
-                title="Summarize"
-              >
-                {isSummarizing ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                )}
-                <span className="hidden sm:inline ml-2 text-sm font-medium">Summarize</span>
-              </button>
-              
-              {/* Leaf AI Toggle - Mobile icon only */}
-              <button 
-                onClick={() => setShowLeafAI(!showLeafAI)}
-                className={`flex items-center justify-center w-10 h-10 sm:w-auto sm:px-4 sm:py-2 rounded-full sm:rounded-lg transition-colors ${
-                  showLeafAI ? 'bg-emerald-500 text-white' : 'text-emerald-600 hover:bg-emerald-50'
-                }`}
-                title="AI Assistant"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>
-                <span className="hidden sm:inline ml-2 text-sm font-medium">Ask AI</span>
-              </button>
-              
               {/* Fullscreen Button */}
               <button
                 onClick={() => setIsFullscreen(true)}
-                className="hidden sm:flex items-center justify-center w-10 h-10 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-colors"
+                className="hidden sm:flex items-center justify-center w-10 h-10 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-full transition-colors"
                 title="Fullscreen"
               >
                 <Maximize2 className="w-4 h-4" />
@@ -2399,7 +2460,7 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="flex items-center justify-center w-10 h-10 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
+                className="flex items-center justify-center w-10 h-10 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-full transition-colors disabled:opacity-50"
                 title="Delete"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2411,18 +2472,18 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
         </header>
 
         {/* Full Page Editor Area */}
-        <div className="flex-1" style={{ background: 'white' }}>
-          <div className="px-4 sm:px-8 pt-8 sm:pt-6 pb-24 bg-white min-h-full">
+        <div className="flex-1" style={{ background: '#171717' }}>
+          <div className="px-4 sm:px-8 pt-8 sm:pt-6 pb-24 bg-neutral-900 min-h-full">
             {/* Title Input - Large and prominent */}
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="Title"
-              className="w-full text-2xl sm:text-4xl font-bold text-zinc-900 placeholder:text-zinc-400 border-none focus:outline-none focus:ring-0 bg-transparent mb-2 sm:mb-4 tracking-tight"
+              className="w-full text-2xl sm:text-4xl font-bold text-white placeholder:text-neutral-500 border-none focus:outline-none focus:ring-0 bg-transparent mb-2 sm:mb-4 tracking-tight"
             />
             
             {/* Date Meta - Mobile friendly */}
-            <div className="text-xs text-zinc-400 font-medium mb-4 sm:mb-6">
+            <div className="text-xs text-neutral-500 font-medium mb-4 sm:mb-6">
               {formatDate(note.updated_at)}
             </div>
             
@@ -2437,27 +2498,27 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
             {inlineSummary && (
               <div 
                 ref={summaryRef}
-                className="mt-12 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-2xl border border-purple-200 overflow-hidden"
+                className="mt-12 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 rounded-2xl border border-purple-500/30 overflow-hidden"
               >
-                <div className="p-4 border-b border-purple-200 bg-purple-100/50">
+                <div className="p-4 border-b border-purple-500/30 bg-purple-500/10">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
-                      <span className="font-semibold text-purple-900">AI Summary</span>
-                      <span className="text-xs text-purple-600 bg-purple-200 px-2 py-0.5 rounded-full capitalize">{summaryType}</span>
+                      <span className="font-semibold text-purple-300">AI Summary</span>
+                      <span className="text-xs text-purple-300 bg-purple-500/30 px-2 py-0.5 rounded-full capitalize">{summaryType}</span>
                     </div>
                     <button
                       onClick={() => setInlineSummary('')}
-                      className="p-1 hover:bg-purple-200 rounded-lg transition-colors"
+                      className="p-1 hover:bg-purple-500/20 rounded-lg transition-colors"
                     >
-                      <X className="w-4 h-4 text-purple-600" />
+                      <X className="w-4 h-4 text-purple-400" />
                     </button>
                   </div>
                 </div>
                 <div 
-                  className="p-6 prose max-w-none text-gray-700"
+                  className="p-6 prose prose-invert max-w-none text-neutral-200"
                   dangerouslySetInnerHTML={{ __html: inlineSummary }}
                 />
               </div>
@@ -2465,11 +2526,11 @@ function NoteEditor({ note, projectId, onBack, updateNoteAction, deleteNoteActio
 
             {/* Error Display */}
             {summaryError && (
-              <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+              <div className="mt-6 p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm">
                 {summaryError}
                 <button 
                   onClick={() => setSummaryError('')}
-                  className="ml-2 text-red-800 hover:underline"
+                  className="ml-2 text-red-300 hover:underline"
                 >
                   Dismiss
                 </button>
@@ -2702,10 +2763,10 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white/90 backdrop-blur-xl rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-white/20">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-neutral-900 backdrop-blur-xl rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-neutral-700">
         {/* Header */}
-        <div className="p-6 border-b border-gray-100 flex-shrink-0">
+        <div className="p-6 border-b border-neutral-800 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 flex items-center justify-center">
@@ -2714,15 +2775,15 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">AI Summarize</h2>
-                <p className="text-sm text-gray-500">Create a summary from notes or PDF</p>
+                <h2 className="text-xl font-bold text-white">AI Summarize</h2>
+                <p className="text-sm text-neutral-400">Create a summary from notes or PDF</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              className="p-2 hover:bg-neutral-800 rounded-xl transition-colors"
             >
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -2735,23 +2796,23 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
           {!summary && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Summarize from</label>
+                <label className="block text-sm font-medium text-neutral-300 mb-3">Summarize from</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setSourceType('note')}
                     className={`p-4 rounded-xl border-2 transition-all text-left ${
                       sourceType === 'note'
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-purple-500 bg-purple-500/20'
+                        : 'border-neutral-700 hover:border-neutral-600'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                       <div>
-                        <div className="font-medium text-gray-900">Existing Note</div>
-                        <div className="text-xs text-gray-500">Summarize one of your notes</div>
+                        <div className="font-medium text-white">Existing Note</div>
+                        <div className="text-xs text-neutral-400">Summarize one of your notes</div>
                       </div>
                     </div>
                   </button>
@@ -2759,17 +2820,17 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
                     onClick={() => setSourceType('pdf')}
                     className={`p-4 rounded-xl border-2 transition-all text-left ${
                       sourceType === 'pdf'
-                        ? 'border-purple-500 bg-purple-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-purple-500 bg-purple-500/20'
+                        : 'border-neutral-700 hover:border-neutral-600'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
                       <div>
-                        <div className="font-medium text-gray-900">PDF Upload</div>
-                        <div className="text-xs text-gray-500">Extract & summarize PDF content</div>
+                        <div className="font-medium text-white">PDF Upload</div>
+                        <div className="text-xs text-neutral-400">Extract & summarize PDF content</div>
                       </div>
                     </div>
                   </button>
@@ -2779,24 +2840,24 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
               {/* Note Selection */}
               {sourceType === 'note' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Select a note</label>
+                  <label className="block text-sm font-medium text-neutral-300 mb-3">Select a note</label>
                   {notes.length === 0 ? (
-                    <div className="p-4 bg-gray-50 rounded-xl text-gray-500 text-sm text-center">
+                    <div className="p-4 bg-neutral-800 rounded-xl text-neutral-400 text-sm text-center">
                       No notes available. Create a note first.
                     </div>
                   ) : (
-                    <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl divide-y divide-gray-100">
+                    <div className="max-h-48 overflow-y-auto border border-neutral-700 rounded-xl divide-y divide-neutral-800">
                       {notes.map((note) => (
                         <button
                           key={note.id}
                           onClick={() => setSelectedNoteId(note.id)}
-                          className={`w-full p-3 text-left hover:bg-gray-50 transition-colors ${
-                            selectedNoteId === note.id ? 'bg-purple-50' : ''
+                          className={`w-full p-3 text-left hover:bg-neutral-800 transition-colors ${
+                            selectedNoteId === note.id ? 'bg-purple-500/20' : ''
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                              selectedNoteId === note.id ? 'border-purple-500 bg-purple-500' : 'border-gray-300'
+                              selectedNoteId === note.id ? 'border-purple-500 bg-purple-500' : 'border-neutral-600'
                             }`}>
                               {selectedNoteId === note.id && (
                                 <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -2805,8 +2866,8 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="font-medium text-gray-900 truncate">{note.title}</div>
-                              <div className="text-xs text-gray-500 truncate">
+                              <div className="font-medium text-white truncate">{note.title}</div>
+                              <div className="text-xs text-neutral-400 truncate">
                                 {(note.content || '').replace(/<[^>]*>/g, '').slice(0, 60)}...
                               </div>
                             </div>
@@ -2821,7 +2882,7 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
               {/* PDF Upload */}
               {sourceType === 'pdf' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Upload PDF</label>
+                  <label className="block text-sm font-medium text-neutral-300 mb-3">Upload PDF</label>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -2832,26 +2893,26 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
                   {!pdfFile ? (
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full p-8 border-2 border-dashed border-gray-300 rounded-xl hover:border-purple-400 hover:bg-purple-50 transition-all"
+                      className="w-full p-8 border-2 border-dashed border-neutral-600 rounded-xl hover:border-purple-400 hover:bg-purple-500/10 transition-all"
                     >
                       <div className="flex flex-col items-center gap-2">
-                        <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-10 h-10 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                         </svg>
-                        <span className="text-sm text-gray-600">Click to upload PDF</span>
-                        <span className="text-xs text-gray-400">Max file size: 10MB</span>
+                        <span className="text-sm text-neutral-300">Click to upload PDF</span>
+                        <span className="text-xs text-neutral-500">Max file size: 10MB</span>
                       </div>
                     </button>
                   ) : (
-                    <div className="p-4 bg-gray-50 rounded-xl">
+                    <div className="p-4 bg-neutral-800 rounded-xl">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                           </svg>
                           <div>
-                            <div className="font-medium text-gray-900">{pdfFile.name}</div>
-                            <div className="text-xs text-gray-500">
+                            <div className="font-medium text-white">{pdfFile.name}</div>
+                            <div className="text-xs text-neutral-400">
                               {isExtractingPdf ? 'Extracting text...' : `${Math.round(pdfText.length / 1000)}K characters extracted`}
                             </div>
                           </div>
@@ -2862,16 +2923,16 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
                             setPdfText('')
                             if (fileInputRef.current) fileInputRef.current.value = ''
                           }}
-                          className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                          className="p-2 hover:bg-neutral-700 rounded-lg transition-colors"
                         >
-                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
                       </div>
                       {isExtractingPdf && (
                         <div className="mt-3">
-                          <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                          <div className="h-1 bg-neutral-700 rounded-full overflow-hidden">
                             <div className="h-full bg-purple-500 rounded-full animate-pulse" style={{ width: '60%' }} />
                           </div>
                         </div>
@@ -2883,7 +2944,7 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
 
               {/* Summary Type Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Summary Type</label>
+                <label className="block text-sm font-medium text-neutral-300 mb-3">Summary Type</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
                     { value: 'concise', label: 'Concise', desc: '2-3 paragraphs' },
@@ -2897,12 +2958,12 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
                       onClick={() => setSummaryType(type.value as any)}
                       className={`p-4 rounded-xl border-2 transition-all text-left ${
                         summaryType === type.value
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-purple-500 bg-purple-500/20'
+                          : 'border-neutral-700 hover:border-neutral-600'
                       }`}
                     >
-                      <div className="font-medium text-gray-900">{type.label}</div>
-                      <div className="text-xs text-gray-500 mt-1">{type.desc}</div>
+                      <div className="font-medium text-white">{type.label}</div>
+                      <div className="text-xs text-neutral-400 mt-1">{type.desc}</div>
                     </button>
                   ))}
                 </div>
@@ -2910,7 +2971,7 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
 
               {/* Citation Style Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Citation Style (Optional)</label>
+                <label className="block text-sm font-medium text-neutral-300 mb-3">Citation Style (Optional)</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { value: 'none', label: 'None', desc: 'No citations' },
@@ -2923,17 +2984,17 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
                       onClick={() => setCitationStyle(style.value as any)}
                       className={`p-3 rounded-xl border-2 transition-all text-left ${
                         citationStyle === style.value
-                          ? 'border-indigo-500 bg-indigo-50'
-                          : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-indigo-500 bg-indigo-500/20'
+                          : 'border-neutral-700 hover:border-neutral-600'
                       }`}
                     >
-                      <div className="font-medium text-gray-900 text-sm">{style.label}</div>
-                      <div className="text-xs text-gray-500">{style.desc}</div>
+                      <div className="font-medium text-white text-sm">{style.label}</div>
+                      <div className="text-xs text-neutral-400">{style.desc}</div>
                     </button>
                   ))}
                 </div>
                 {citationStyle !== 'none' && (
-                  <p className="text-xs text-indigo-600 mt-2">
+                  <p className="text-xs text-indigo-400 mt-2">
                     📚 Bibliography will be included in {citationStyle.toUpperCase()} format
                   </p>
                 )}
@@ -2943,7 +3004,7 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
 
           {/* Error Display */}
           {summaryError && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+            <div className="p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm">
               {summaryError}
             </div>
           )}
@@ -2953,16 +3014,16 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-gray-700">Generated Summary</label>
-                  <span className="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full capitalize">{summaryType}</span>
+                  <label className="block text-sm font-medium text-neutral-300">Generated Summary</label>
+                  <span className="text-xs text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded-full capitalize">{summaryType}</span>
                 </div>
                 <div 
-                  className="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 prose max-w-none text-sm max-h-64 overflow-y-auto"
+                  className="p-4 bg-gradient-to-r from-purple-500/10 to-indigo-500/10 rounded-xl border border-purple-500/20 prose prose-invert max-w-none text-sm max-h-64 overflow-y-auto"
                   dangerouslySetInnerHTML={{ __html: summary }}
                 />
               </div>
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <p className="text-sm text-gray-600">
+              <div className="p-4 bg-neutral-800 rounded-xl">
+                <p className="text-sm text-neutral-300">
                   This summary will be saved as a new note titled "Summary: {sourceType === 'note' ? selectedNote?.title : pdfFile?.name}"
                 </p>
               </div>
@@ -2971,10 +3032,10 @@ function GlobalSummarizeModal({ projectId, notes, onClose, onSummaryCreated, cre
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 flex justify-end gap-3 flex-shrink-0">
+        <div className="p-6 border-t border-neutral-800 flex justify-end gap-3 flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-100 text-sm font-medium rounded-xl transition-colors"
+            className="px-4 py-2 text-neutral-300 hover:bg-neutral-800 text-sm font-medium rounded-xl transition-colors"
           >
             Cancel
           </button>
