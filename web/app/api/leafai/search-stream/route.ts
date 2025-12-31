@@ -270,10 +270,21 @@ async function classifyRequest(
       if (embeddingResult.path === 'COMMAND' && embeddingResult.commandType) {
         switch (embeddingResult.commandType) {
           case 'create_study_set':
+            // Use LLM to extract topic properly if not already extracted
+            let topic = embeddingResult.topic
+            let fromNotes = embeddingResult.fromNotes || false
+            
+            if (!topic || topic.length < 3) {
+              // Use LLM to extract the actual topic
+              const extracted = await extractStudySetTopic(query, conversationHistory)
+              topic = extracted.topic || undefined
+              fromNotes = extracted.fromNotes
+            }
+            
             action_payload = {
               type: 'create_study_set',
-              topic: embeddingResult.topic,
-              fromNotes: embeddingResult.fromNotes || false
+              topic,
+              fromNotes
             }
             break
           case 'quiz_me':
@@ -359,10 +370,12 @@ JSON only:
       if (path === 'COMMAND' && parsed.command_type) {
         switch (parsed.command_type) {
           case 'create_study_set':
+            // Use dedicated LLM topic extraction for study sets
+            const extracted = await extractStudySetTopic(query, conversationHistory)
             action_payload = {
               type: 'create_study_set',
-              topic: parsed.topic || undefined,
-              fromNotes: /notes?|my\s+content|my\s+material/i.test(query)
+              topic: extracted.topic || undefined,
+              fromNotes: extracted.fromNotes
             }
             break
           case 'quiz_me':
@@ -574,53 +587,66 @@ Respond in JSON format ONLY:
   return { hasGaps: false, suggestedQuery: null, confidence: 70 }
 }
 
-// Detect if query is asking to create a study set
-function isStudySetRequest(query: string): { isRequest: boolean; topic: string } {
-  // Normalize query - remove extra spaces and convert to lowercase for matching
-  const normalizedQuery = query.toLowerCase().trim()
+// LLM-based study set topic extraction
+// Uses LLM to understand what the user actually wants to create a study set about
+async function extractStudySetTopic(
+  query: string,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
+): Promise<{ isRequest: boolean; topic: string; fromNotes: boolean }> {
+  // First, check if this is even a study set request using simple patterns
+  const hasStudySetKeyword = /\b(create|make|generate|build|give\s+me)\b.*\b(study\s*set|flashcard|quiz|question)/i.test(query) ||
+    /\b(study\s*set|flashcard|quiz)\b.*\b(about|on|for)\b/i.test(query)
   
-  // Check for explicit study set creation keywords
-  const hasStudySetKeyword = /(?:create|make|generate|build|give\s+me)\s+(?:a\s+|me\s+)?(?:study\s*set|flashcards?|quiz(?:zes)?)/i.test(query)
-  
-  // Patterns with prepositions (highest priority - most specific)
-  const patternsWithPrep = [
-    /(?:create|make|generate|build|give\s+me)\s+(?:a\s+|me\s+)?(?:study\s*set|flashcards?|quiz(?:zes)?)\s+(?:about|on|for|covering|related\s+to)\s+(.+)/i,
-    /(?:study\s*set|flashcards?|quiz(?:zes)?)\s+(?:about|on|for|covering|related\s+to)\s+(.+)/i,
-  ]
-
-  for (const pattern of patternsWithPrep) {
-    const match = query.match(pattern)
-    if (match) {
-      return { isRequest: true, topic: match[1].trim().replace(/[?.!]+$/, '') }
-    }
+  if (!hasStudySetKeyword) {
+    return { isRequest: false, topic: '', fromNotes: false }
   }
 
-  // Patterns without prepositions (e.g., "create study set biology", "biology flashcards")
-  const patternsNoPrep = [
-    /(?:create|make|generate|build|give\s+me)\s+(?:a\s+|me\s+)?(?:study\s*set|flashcards?|quiz(?:zes)?)\s+(?!about|on|for|covering)(.+)/i,
-    /(.+?)\s+(?:study\s*set|flashcards?|quiz(?:zes)?)\s*$/i,
-  ]
+  // Check if user wants to use their notes
+  const fromNotes = /\b(my\s+)?notes?\b|\bmy\s+(content|material)\b|\bfrom\s+notes?\b/i.test(query)
 
-  for (const pattern of patternsNoPrep) {
-    const match = query.match(pattern)
-    if (match && hasStudySetKeyword) {
-      const topic = match[1].trim().replace(/[?.!]+$/, '')
-      // Filter out common filler words that might get captured
-      if (topic && !['a', 'an', 'the', 'some', 'my', 'me'].includes(topic.toLowerCase())) {
-        return { isRequest: true, topic }
-      }
+  // Build conversation context for better understanding
+  const recentHistory = conversationHistory.slice(-3).map(m => 
+    `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 150)}...`
+  ).join('\n')
+
+  try {
+    const { text } = await generateText({
+      model: groq('llama-3.1-8b-instant'),
+      prompt: `You are extracting the TOPIC for a study set creation request.
+
+The user wants to create a study set (flashcards/quiz). Your job is to identify WHAT TOPIC they want the study set about.
+
+${recentHistory ? `Recent conversation:\n${recentHistory}\n\n` : ''}
+
+User's request: "${query}"
+
+IMPORTANT:
+- Extract ONLY the topic/subject matter
+- Remove filler words like "can you", "please", "a", "the"
+- The topic should be what the study materials will be ABOUT
+- If they say "create a study set on animals" → topic is "animals"
+- If they say "can you create a study set on animals" → topic is "animals"
+- If they say "flashcards about photosynthesis" → topic is "photosynthesis"
+- If they mention "my notes" or "from notes", the topic might be general like "notes content"
+
+Respond with ONLY the topic (1-5 words), nothing else:`,
+      temperature: 0.1,
+      maxOutputTokens: 30
+    })
+
+    const topic = text.trim().replace(/^["']|["']$/g, '').replace(/[?.!]+$/, '')
+    console.log('[extractStudySetTopic] Query:', query, '→ Topic:', topic)
+    
+    return { 
+      isRequest: true, 
+      topic: topic.length > 2 ? topic : '', 
+      fromNotes 
     }
+  } catch (error) {
+    console.error('[extractStudySetTopic] Error:', error)
+    // Fallback to simple extraction if LLM fails
+    return { isRequest: true, topic: '', fromNotes }
   }
-
-  // Final fallback: if it has study set keyword and meaningful content after removing the keyword
-  if (hasStudySetKeyword) {
-    const topicMatch = query.replace(/(?:create|make|generate|build|give\s+me)\s+(?:a\s+|me\s+)?(?:study\s*set|flashcards?|quiz(?:zes)?)\s*/gi, '').trim()
-    if (topicMatch && topicMatch.length > 2) {
-      return { isRequest: true, topic: topicMatch.replace(/[?.!]+$/, '') }
-    }
-  }
-
-  return { isRequest: false, topic: '' }
 }
 
 // Generate study set items from a topic

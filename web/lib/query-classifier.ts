@@ -181,18 +181,32 @@ function looksLikeQuestion(query: string): boolean {
 
 /**
  * Extract topic from query based on command type
+ * Simple extraction - actual topic will be refined by LLM in the API
  */
 function extractTopic(query: string, commandType?: string): string | undefined {
-  let topic = query
-    .replace(/\b(create|make|generate|build|give\s+me|start)\b/gi, '')
-    .replace(/\b(flashcard|study\s*set|quiz|test|summary|questions?)\b/gi, '')
-    .replace(/\b(about|on|for|from|using|my|notes?)\b/gi, '')
-    .replace(/\b(a|an|the|some|me)\b/gi, '')
-    .trim();
-
-  topic = topic.replace(/\s+/g, ' ').trim();
+  // For study set creation, we want to extract what comes after prepositions
+  // "create a study set on animals" -> "animals"
+  // "can you create a study set on animals" -> "animals"
   
-  return topic.length > 2 ? topic : undefined;
+  // Match patterns with prepositions first (most reliable)
+  const prepPatterns = [
+    /(?:study\s*set|flashcard|quiz|question)s?\s+(?:about|on|for|covering)\s+(.+)/i,
+    /(?:about|on|for|covering)\s+(.+?)(?:\s+(?:study\s*set|flashcard|quiz|question)|$)/i,
+  ]
+  
+  for (const pattern of prepPatterns) {
+    const match = query.match(pattern)
+    if (match && match[1]) {
+      const topic = match[1].trim().replace(/[?.!]+$/, '')
+      if (topic.length > 2) {
+        return topic
+      }
+    }
+  }
+  
+  // If no preposition pattern matched, return undefined
+  // The API will use LLM to extract the topic properly
+  return undefined
 }
 
 /**
