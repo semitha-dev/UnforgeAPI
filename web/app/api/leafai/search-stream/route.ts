@@ -21,53 +21,114 @@ const ANONYMOUS_RATE_WINDOW = 60 * 1000 // 1 minute in milliseconds
 const anonymousRateLimits = new Map<string, { count: number; resetTime: number }>()
 
 // ============================================
-// FREE USER RESEARCH MODE DAILY LIMIT
+// FREE USER RESEARCH MODE DAILY LIMIT (Database-backed)
 // ============================================
 // Free users get 3 research mode searches per day
 const FREE_USER_RESEARCH_LIMIT = 3
-
-// In-memory daily research count (userId -> { count, date })
-// Note: This resets on serverless cold start, but we also check database
-const freeUserResearchCounts = new Map<string, { count: number; date: string }>()
 
 function getTodayDateString(): string {
   return new Date().toISOString().split('T')[0] // YYYY-MM-DD
 }
 
-function checkFreeUserResearchLimit(userId: string): { allowed: boolean; remaining: number; usedToday: number } {
+/**
+ * Check free user's daily research limit from database
+ * Returns current usage and whether more research queries are allowed
+ */
+async function checkFreeUserResearchLimitDB(
+  supabase: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  userId: string
+): Promise<{ allowed: boolean; remaining: number; usedToday: number }> {
   const today = getTodayDateString()
-  const entry = freeUserResearchCounts.get(userId)
   
-  // Clean up old entries periodically
-  if (freeUserResearchCounts.size > 10000) {
-    for (const [key, value] of freeUserResearchCounts.entries()) {
-      if (value.date !== today) {
-        freeUserResearchCounts.delete(key)
-      }
+  try {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('daily_research_count, daily_research_date')
+      .eq('id', userId)
+      .single()
+    
+    if (error || !profile) {
+      // If we can't read, allow but log
+      console.log('[Research Limit] Could not read profile, allowing request')
+      return { allowed: true, remaining: FREE_USER_RESEARCH_LIMIT, usedToday: 0 }
     }
-  }
-  
-  if (!entry || entry.date !== today) {
-    // First research request today
+    
+    // Check if date matches today - if not, count resets
+    const profileDate = (profile as any).daily_research_date ? 
+      new Date((profile as any).daily_research_date).toISOString().split('T')[0] : null
+    
+    if (profileDate !== today) {
+      // New day - reset count (will happen on first increment)
+      return { allowed: true, remaining: FREE_USER_RESEARCH_LIMIT, usedToday: 0 }
+    }
+    
+    const usedToday = (profile as any).daily_research_count || 0
+    
+    if (usedToday >= FREE_USER_RESEARCH_LIMIT) {
+      return { allowed: false, remaining: 0, usedToday }
+    }
+    
+    return { 
+      allowed: true, 
+      remaining: FREE_USER_RESEARCH_LIMIT - usedToday, 
+      usedToday 
+    }
+  } catch (e) {
+    console.error('[Research Limit] Error checking limit:', e)
     return { allowed: true, remaining: FREE_USER_RESEARCH_LIMIT, usedToday: 0 }
   }
-  
-  if (entry.count >= FREE_USER_RESEARCH_LIMIT) {
-    // Daily limit reached
-    return { allowed: false, remaining: 0, usedToday: entry.count }
-  }
-  
-  return { allowed: true, remaining: FREE_USER_RESEARCH_LIMIT - entry.count, usedToday: entry.count }
 }
 
-function incrementFreeUserResearchCount(userId: string): void {
+/**
+ * Increment free user's daily research count in database
+ * Only call this when a RESEARCH query is actually executed
+ */
+async function incrementFreeUserResearchCountDB(
+  supabase: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  userId: string
+): Promise<{ newCount: number }> {
   const today = getTodayDateString()
-  const entry = freeUserResearchCounts.get(userId)
   
-  if (!entry || entry.date !== today) {
-    freeUserResearchCounts.set(userId, { count: 1, date: today })
-  } else {
-    entry.count++
+  try {
+    // First get current state
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('daily_research_count, daily_research_date')
+      .eq('id', userId)
+      .single()
+    
+    const profileDate = (profile as any)?.daily_research_date ? 
+      new Date((profile as any).daily_research_date).toISOString().split('T')[0] : null
+    
+    let newCount: number
+    
+    if (profileDate !== today) {
+      // New day - reset to 1
+      newCount = 1
+    } else {
+      // Same day - increment
+      newCount = ((profile as any)?.daily_research_count || 0) + 1
+    }
+    
+    // Update database
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        daily_research_count: newCount,
+        daily_research_date: today
+      })
+      .eq('id', userId)
+    
+    if (error) {
+      console.error('[Research Limit] Error updating count:', error)
+    } else {
+      console.log(`[Research Limit] Updated count for ${userId}: ${newCount}/${FREE_USER_RESEARCH_LIMIT}`)
+    }
+    
+    return { newCount }
+  } catch (e) {
+    console.error('[Research Limit] Error incrementing:', e)
+    return { newCount: 0 }
   }
 }
 
@@ -102,79 +163,26 @@ function checkAnonymousRateLimit(ip: string): { allowed: boolean; remaining: num
 
 /**
  * Detect if a query is a simple greeting or conversational message
- * that doesn't need web search
+ * that doesn't need web search - just returns boolean, AI will generate response
  */
-function isGreetingOrCasual(query: string): { isGreeting: boolean; response: string } {
+function isGreetingOrCasual(query: string): boolean {
   const normalizedQuery = query.toLowerCase().trim()
   
   // Common greetings and casual messages
-  const greetings = [
+  const greetingPatterns = [
     /^(hi|hey|hello|howdy|hiya|yo|sup|heya)(\s+there)?[!?.,]*$/i,
     /^good\s+(morning|afternoon|evening|day)[!?.,]*$/i,
     /^what'?s?\s+up[!?.,]*$/i,
-    /^how\s+(are\s+you|r\s+u|do\s+you\s+do)[!?.,]*$/i,
-    /^(thanks|thank\s+you|thx|ty)[!?.,]*$/i,
+    /^how\s+(are\s+you|r\s+u|do\s+you\s+do|'s\s+it\s+going)[!?.,]*$/i,
+    /^(thanks|thank\s+you|thx|ty)[!?.,\s]*(so\s+much)?[!?.,]*$/i,
     /^(ok|okay|sure|alright|got\s+it)[!?.,]*$/i,
     /^(bye|goodbye|see\s+you|later|cya)[!?.,]*$/i,
-    /^(nice|cool|awesome|great)[!?.,]*$/i,
+    /^(nice|cool|awesome|great|amazing|perfect)[!?.,]*$/i,
+    /^(lol|haha|hehe|lmao)[!?.,]*$/i,
+    /^(yep|yup|yeah|nope|nah)[!?.,]*$/i,
   ]
   
-  for (const pattern of greetings) {
-    if (pattern.test(normalizedQuery)) {
-      // Generate appropriate response
-      if (/^(hi|hey|hello|howdy|hiya|yo|sup|heya)(\s+there)?[!?.,]*$/i.test(normalizedQuery)) {
-        return { 
-          isGreeting: true, 
-          response: "Hello! 👋 How can I help you today? Feel free to ask me anything about your studies, request research on a topic, or ask me to create flashcards and quizzes!" 
-        }
-      }
-      if (/^good\s+(morning|afternoon|evening|day)[!?.,]*$/i.test(normalizedQuery)) {
-        const timeOfDay = normalizedQuery.match(/morning|afternoon|evening|day/i)?.[0] || 'day'
-        return { 
-          isGreeting: true, 
-          response: `Good ${timeOfDay}! ☀️ How can I assist you with your learning today?` 
-        }
-      }
-      if (/^what'?s?\s+up[!?.,]*$/i.test(normalizedQuery)) {
-        return { 
-          isGreeting: true, 
-          response: "Not much! Just ready to help you learn. 📚 What would you like to explore today?" 
-        }
-      }
-      if (/^how\s+(are\s+you|r\s+u|do\s+you\s+do)[!?.,]*$/i.test(normalizedQuery)) {
-        return { 
-          isGreeting: true, 
-          response: "I'm doing great, thanks for asking! 😊 How can I help you with your studies?" 
-        }
-      }
-      if (/^(thanks|thank\s+you|thx|ty)[!?.,]*$/i.test(normalizedQuery)) {
-        return { 
-          isGreeting: true, 
-          response: "You're welcome! Let me know if there's anything else I can help you with. 🙌" 
-        }
-      }
-      if (/^(bye|goodbye|see\s+you|later|cya)[!?.,]*$/i.test(normalizedQuery)) {
-        return { 
-          isGreeting: true, 
-          response: "Goodbye! Good luck with your studies! 👋📖" 
-        }
-      }
-      if (/^(ok|okay|sure|alright|got\s+it)[!?.,]*$/i.test(normalizedQuery)) {
-        return { 
-          isGreeting: true, 
-          response: "Great! Let me know if you have any questions or need help with anything. 👍" 
-        }
-      }
-      if (/^(nice|cool|awesome|great)[!?.,]*$/i.test(normalizedQuery)) {
-        return { 
-          isGreeting: true, 
-          response: "Glad you think so! 😄 Anything else you'd like to learn about?" 
-        }
-      }
-    }
-  }
-  
-  return { isGreeting: false, response: '' }
+  return greetingPatterns.some(pattern => pattern.test(normalizedQuery))
 }
 
 // ============================================
@@ -334,17 +342,13 @@ JSON response:
         }
       }
       
-      // Generate chat response for CHAT path
-      let chatResponse: string | undefined = undefined
-      if (intent === 'CHAT') {
-        chatResponse = parsed.chat_response || generateSimpleChatResponse(query)
-      }
+      // For CHAT path, AI will generate response later (no pre-generated response)
       
       return {
         path: intent,
         reason: `LLM: ${parsed.reason || 'classified'}`,
         action_payload,
-        chat_response: chatResponse,
+        chat_response: undefined, // AI will generate this in the CHAT path handler
         research_query: parsed.search_query || query,
         needsWebSearch,
         topic
@@ -362,37 +366,6 @@ JSON response:
     research_query: query,
     needsWebSearch: true
   }
-}
-
-/**
- * Simple chat response generator for fallback cases
- */
-function generateSimpleChatResponse(query: string): string {
-  const q = query.toLowerCase().trim()
-  
-  if (/^(hi|hey|hello|howdy|hiya|yo|sup|heya)/i.test(q)) {
-    return "Hello! 👋 How can I help you today? Feel free to ask me anything about your studies!"
-  }
-  if (/^good\s+(morning)/i.test(q)) {
-    return "Good morning! ☀️ Ready to learn something new today?"
-  }
-  if (/^good\s+(afternoon)/i.test(q)) {
-    return "Good afternoon! 🌤️ How can I help with your studies?"
-  }
-  if (/^good\s+(evening|night)/i.test(q)) {
-    return "Good evening! 🌙 Still hitting the books? I'm here to help!"
-  }
-  if (/^(thanks|thank\s+you|thx|ty)/i.test(q)) {
-    return "You're welcome! Let me know if there's anything else I can help you with. 🙌"
-  }
-  if (/^(bye|goodbye|see\s+you|later|cya)/i.test(q)) {
-    return "Goodbye! Good luck with your studies! 📚 Come back anytime!"
-  }
-  if (/^(ok|okay|alright|got\s+it)/i.test(q)) {
-    return "Great! Let me know if you have any questions."
-  }
-  
-  return "I'm here to help! Feel free to ask me anything. 😊"
 }
 
 /**
@@ -414,29 +387,28 @@ async function generateChatResponse(
     
     const { text } = await generateText({
       model: groq('llama-3.1-8b-instant'), // Fast model for free users
-      prompt: `You are LeafAI, a helpful and knowledgeable AI study companion. You are friendly, engaging, and always provide substantive answers.
+      prompt: `You are LeafAI, a friendly AI study companion. Respond naturally and warmly.
 
-IMPORTANT RULES:
-1. NEVER ask "what would you like to know?" or "what do you think?" - instead, ANSWER the question directly
-2. If user asks for a comparison (e.g., "ChatGPT vs Gemini"), provide a helpful comparison with key differences
-3. If user asks a question, ANSWER it with real information
-4. Be conversational but informative - give real value in every response
-5. If you need clarification, ask a SPECIFIC question, not a vague one
-6. Remember the conversation context and refer back to previous topics when relevant
-7. Keep responses concise but helpful (3-5 sentences for simple questions)
+RULES:
+1. For greetings (hi, hey, sup, etc.) - respond casually and briefly (1-2 sentences max). Match their energy!
+2. For questions - answer directly with real information
+3. Be conversational, not robotic. Don't say "How can I assist you today?"
+4. Keep responses concise - don't over-explain
+5. Use emojis sparingly (1-2 max per message)
+6. Remember conversation context
 
-The user is working in: "${projectName}"
+The user is in: "${projectName}"
 ${historyContext}
-User's current message: ${query}
+User says: "${query}"
 
-Provide a helpful, substantive response:`,
-      temperature: 0.7,
-      maxOutputTokens: 400
+Your natural response:`,
+      temperature: 0.8,
+      maxOutputTokens: 300
     })
     return text.trim()
   } catch (error) {
     console.error('[generateChatResponse] Error:', error)
-    return "I'm here to help! Feel free to ask me anything about your studies. 📚"
+    return "Hey! What's up? 👋"
   }
 }
 
@@ -698,12 +670,25 @@ export async function POST(request: NextRequest) {
         return
       }
 
-      // Check if this is a simple greeting - respond without searching
-      const greetingCheck = isGreetingOrCasual(query)
-      if (greetingCheck.isGreeting) {
-        console.log('[Stream API] Detected greeting, responding conversationally')
-        // Use same event format as other paths so frontend can handle it
-        await sendEvent('text', { content: greetingCheck.response })
+      // Check if this is a simple greeting - let AI generate a natural response
+      if (isGreetingOrCasual(query)) {
+        console.log('[Stream API] Detected greeting, letting AI respond naturally')
+        try {
+          const { text } = await generateText({
+            model: groq('llama-3.1-8b-instant'),
+            prompt: `You are LeafAI, a friendly AI study companion. The user just sent a casual greeting or message. Respond naturally and warmly in 1-2 short sentences. Match their energy and tone. Don't be overly formal or robotic. Don't mention what you can do unless asked.
+
+User: "${query}"
+
+Your brief, natural response:`,
+            temperature: 0.8,
+            maxOutputTokens: 100
+          })
+          await sendEvent('text', { content: text.trim() })
+        } catch (e) {
+          // Fallback if AI fails
+          await sendEvent('text', { content: "Hey! 👋 What's on your mind?" })
+        }
         await sendEvent('done', { success: true, citations: [] })
         await closeStream()
         return
@@ -786,11 +771,12 @@ export async function POST(request: NextRequest) {
       // Check subscription for research mode access
       let effectiveSearchMode = searchMode
       let isFreeUserResearch = false // Track if free user is using their daily research allowance
+      let freeUserResearchUsed = 0 // Track how many they've used today
       
       if (searchMode === 'research' && userId) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('subscription_tier, subscription_status, subscription_ends_at, trial_ends_at, grace_period_ends_at')
+          .select('subscription_tier, subscription_status, subscription_ends_at, trial_ends_at, grace_period_ends_at, daily_research_count, daily_research_date')
           .eq('id', userId)
           .single()
         
@@ -812,18 +798,15 @@ export async function POST(request: NextRequest) {
           }
           
           if (!isPro(subscriptionProfile)) {
-            // Free user - check daily research limit (3 per day)
-            const researchLimit = checkFreeUserResearchLimit(userId)
+            // Free user - check daily research limit from database
+            const researchLimit = await checkFreeUserResearchLimitDB(supabase, userId)
+            freeUserResearchUsed = researchLimit.usedToday
             
             if (researchLimit.allowed) {
-              // Free user can use research mode (within daily limit)
-              console.log(`[Stream API] Free user using research mode (${researchLimit.usedToday + 1}/${FREE_USER_RESEARCH_LIMIT} today)`)
+              // Free user CAN use research mode (within daily limit)
+              // But we don't increment yet - wait until we confirm it's a RESEARCH query
+              console.log(`[Stream API] Free user research check: ${researchLimit.usedToday}/${FREE_USER_RESEARCH_LIMIT} used today`)
               isFreeUserResearch = true
-              await sendEvent('researchLimit', {
-                remaining: researchLimit.remaining - 1,
-                limit: FREE_USER_RESEARCH_LIMIT,
-                usedToday: researchLimit.usedToday + 1
-              })
             } else {
               // Daily limit reached - downgrade to fast
               console.log('[Stream API] Free user daily research limit reached, downgrading to fast')
@@ -852,10 +835,8 @@ export async function POST(request: NextRequest) {
         })
       }
       
-      // Increment free user research count after successful research mode selection
-      if (isFreeUserResearch && effectiveSearchMode === 'research' && userId) {
-        incrementFreeUserResearchCount(userId)
-      }
+      // NOTE: We do NOT increment research count here anymore!
+      // It will be incremented ONLY when we confirm it's a RESEARCH query (after classification)
 
       // Now select model based on effective search mode (after subscription check)
       modelId = MODELS[effectiveSearchMode] || MODELS.fast
@@ -1072,6 +1053,19 @@ export async function POST(request: NextRequest) {
       // PATH 3: RESEARCH (The "Search" Path)
       // AI decides if web search is needed
       // ============================================
+      
+      // NOW we increment the research count - only for actual RESEARCH queries!
+      if (isFreeUserResearch && effectiveSearchMode === 'research' && userId) {
+        const { newCount } = await incrementFreeUserResearchCountDB(supabase, userId)
+        console.log(`[Stream API] Free user RESEARCH query counted: ${newCount}/${FREE_USER_RESEARCH_LIMIT} today`)
+        
+        // Send updated limit info to frontend
+        await sendEvent('researchLimit', {
+          remaining: FREE_USER_RESEARCH_LIMIT - newCount,
+          limit: FREE_USER_RESEARCH_LIMIT,
+          usedToday: newCount
+        })
+      }
       
       // Check if this is a study set request that needs web research
       const isStudySetFromWeb = classification.action_payload?.type === 'create_study_set' && classification.action_payload.topic

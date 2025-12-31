@@ -131,6 +131,7 @@ export default function GlobalOverviewPage() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const lastMessageCountRef = useRef(0) // Track message count to only scroll on new messages
   const router = useRouter()
   const supabase = createClient()
 
@@ -138,9 +139,15 @@ export default function GlobalOverviewPage() {
     loadUserData()
   }, [])
 
+  // Only scroll when a NEW message is added, not during streaming content updates
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    const currentCount = messages.length
+    if (currentCount > lastMessageCountRef.current) {
+      // New message added - scroll to bottom
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+      lastMessageCountRef.current = currentCount
+    }
+  }, [messages.length]) // Only depend on length, not content
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -202,6 +209,22 @@ export default function GlobalOverviewPage() {
     }
   }
 
+  // Quick client-side greeting check to avoid showing "Starting search..." for greetings
+  const isQuickGreeting = (text: string): boolean => {
+    const normalized = text.toLowerCase().trim()
+    const greetingPatterns = [
+      /^(hi|hey|hello|howdy|hiya|yo|sup|heya)(\s+there)?[!?.,]*$/i,
+      /^good\s+(morning|afternoon|evening|day)[!?.,]*$/i,
+      /^what'?s?\s+up[!?.,]*$/i,
+      /^how\s+(are\s+you|r\s+u|do\s+you\s+do|'s\s+it\s+going)[!?.,]*$/i,
+      /^(thanks|thank\s+you|thx|ty)[!?.,]*$/i,
+      /^(bye|goodbye|see\s+you|later|cya)[!?.,]*$/i,
+      /^(ok|okay|alright|got\s+it)[!?.,]*$/i,
+      /^(nice|cool|awesome|great)[!?.,]*$/i,
+    ]
+    return greetingPatterns.some(pattern => pattern.test(normalized))
+  }
+
   const handleSearch = async () => {
     if (!query.trim() || isSearching) return
 
@@ -217,7 +240,11 @@ export default function GlobalOverviewPage() {
     setMessages(messagesWithUser)
     setQuery('')
     setIsSearching(true)
-    setSearchStatus('Starting search...')
+    
+    // Only show "Starting search..." if it's NOT a quick greeting
+    if (!isQuickGreeting(userMessage.content)) {
+      setSearchStatus('Starting search...')
+    }
 
     // Auto-resize textarea back
     if (textareaRef.current) {
