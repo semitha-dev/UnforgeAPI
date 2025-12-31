@@ -704,6 +704,10 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const [error, setError] = useState<string | null>(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showChatsPanel, setShowChatsPanel] = useState(false)
+  
+  // Space stats for sidebar
+  const [notesCount, setNotesCount] = useState<number>(0)
+  const [studySetsCount, setStudySetsCount] = useState<number>(0)
 
   const router = useRouter()
   const params = useParams()
@@ -787,6 +791,16 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       }
 
       setProject(projectData)
+      
+      // Fetch space stats
+      const [notesResult, flashcardsResult, quizzesResult] = await Promise.all([
+        supabase.from('notes').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
+        supabase.from('flashcard_sets').select('id', { count: 'exact', head: true }).eq('project_id', projectId),
+        supabase.from('quizzes').select('id', { count: 'exact', head: true }).eq('project_id', projectId)
+      ])
+      
+      setNotesCount(notesResult.count || 0)
+      setStudySetsCount((flashcardsResult.count || 0) + (quizzesResult.count || 0))
     } catch (error) {
       setError('An unexpected error occurred')
     } finally {
@@ -865,7 +879,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
 
         {/* Space Sidebar - Secondary sidebar for space navigation */}
         <div className="hidden lg:flex fixed inset-y-0 left-[72px] z-40 h-screen">
-          <SpaceSidebar spaceId={projectId} spaceName={project.name} />
+          <SpaceSidebar spaceId={projectId} spaceName={project.name} notesCount={notesCount} studySetsCount={studySetsCount} />
         </div>
 
         {/* Mobile Sidebar - Combined for mobile */}
@@ -889,6 +903,8 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                 spaceName={project.name}
                 onClose={() => setMobileMenuOpen(false)}
                 isMobile={true}
+                notesCount={notesCount}
+                studySetsCount={studySetsCount}
               />
             </div>
           </div>

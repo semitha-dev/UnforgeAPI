@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     const checkoutPayload = {
       products: [finalProductId],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/settings?subscription=success`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings?subscription=success`,
       customer_email: customerEmail,
       metadata: {
         user_id: user.id,

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     // Create checkout with Polar
     const checkoutPayload = {
       products: [productId],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings?tokens=success`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?tokens=success`,
       customer_email: user.email,
       metadata: {
         user_id: user.id,

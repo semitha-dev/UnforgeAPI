@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { 
   X, 
-  Brain, 
   Sparkles, 
   Search, 
   BookOpen, 
@@ -14,11 +13,8 @@ import {
   FileText,
   BarChart3,
   Clock,
-  Globe,
   MessageSquare,
-  Lightbulb,
-  Target,
-  Layers
+  Target
 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -75,7 +71,7 @@ export function WelcomeGuide({ isOpen, onClose, userName }: WelcomeGuideProps) {
     },
     {
       id: 'atlas',
-      title: 'Meet Atlas Intelligence 🧠',
+      title: 'Meet Atlas Intelligence™',
       subtitle: 'The Brain Behind Leaf',
       content: (
         <div className="space-y-6">
@@ -83,18 +79,8 @@ export function WelcomeGuide({ isOpen, onClose, userName }: WelcomeGuideProps) {
             {/* Atlas visualization */}
             <div className="flex justify-center mb-6">
               <div className="relative">
-                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#13eca4] to-[#7c3aed] flex items-center justify-center animate-pulse">
-                  <Brain className="w-16 h-16 text-white" />
-                </div>
-                {/* Orbiting elements */}
-                <div className="absolute -top-2 -right-2 w-10 h-10 rounded-full bg-[#1c2723] border border-[#13eca4] flex items-center justify-center">
-                  <Search className="w-5 h-5 text-[#13eca4]" />
-                </div>
-                <div className="absolute -bottom-2 -left-2 w-10 h-10 rounded-full bg-[#1c2723] border border-[#7c3aed] flex items-center justify-center">
-                  <Lightbulb className="w-5 h-5 text-[#7c3aed]" />
-                </div>
-                <div className="absolute top-1/2 -right-6 w-10 h-10 rounded-full bg-[#1c2723] border border-[#13eca4] flex items-center justify-center">
-                  <Target className="w-5 h-5 text-[#13eca4]" />
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#13eca4] to-[#7c3aed] flex items-center justify-center">
+                  <span className="text-4xl font-bold text-white">Atlas</span>
                 </div>
               </div>
             </div>
@@ -102,40 +88,40 @@ export function WelcomeGuide({ isOpen, onClose, userName }: WelcomeGuideProps) {
             <div className="text-center mb-6">
               <h4 className="text-[#13eca4] font-bold text-lg mb-2">Atlas Intelligence System</h4>
               <p className="text-[#9db9b0] text-sm leading-relaxed max-w-md mx-auto">
-                Atlas is our proprietary AI engine that powers everything in Leaf. 
-                It understands your learning patterns, analyzes your progress, and 
-                provides personalized recommendations to accelerate your learning.
+                Atlas analyzes your learning patterns using cognitive science principles 
+                to identify knowledge gaps and optimize your retention through the 
+                Ebbinghaus Forgetting Curve formula.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-xl bg-[#1c2723]/80 border border-[#283933]">
                 <div className="flex items-center gap-2 mb-2">
-                  <Globe className="w-4 h-4 text-[#13eca4]" />
-                  <span className="text-white text-sm font-medium">Web Research</span>
+                  <Target className="w-4 h-4 text-[#13eca4]" />
+                  <span className="text-white text-sm font-medium">Context Gaps</span>
                 </div>
-                <p className="text-[#9db9b0] text-xs">Searches the internet for accurate, up-to-date information</p>
+                <p className="text-[#9db9b0] text-xs">Identifies missing connections between concepts in your notes</p>
               </div>
               <div className="p-3 rounded-xl bg-[#1c2723]/80 border border-[#283933]">
                 <div className="flex items-center gap-2 mb-2">
-                  <Layers className="w-4 h-4 text-[#7c3aed]" />
-                  <span className="text-white text-sm font-medium">Context Aware</span>
+                  <Clock className="w-4 h-4 text-[#7c3aed]" />
+                  <span className="text-white text-sm font-medium">Study Rhythm</span>
                 </div>
-                <p className="text-[#9db9b0] text-xs">Remembers your notes and previous conversations</p>
+                <p className="text-[#9db9b0] text-xs">Tracks your learning patterns and optimal study times</p>
               </div>
               <div className="p-3 rounded-xl bg-[#1c2723]/80 border border-[#283933]">
                 <div className="flex items-center gap-2 mb-2">
-                  <Zap className="w-4 h-4 text-[#f59e0b]" />
-                  <span className="text-white text-sm font-medium">Fast & Research Modes</span>
+                  <BarChart3 className="w-4 h-4 text-[#f59e0b]" />
+                  <span className="text-white text-sm font-medium">Untested Learning</span>
                 </div>
-                <p className="text-[#9db9b0] text-xs">Quick answers or deep research - you choose</p>
+                <p className="text-[#9db9b0] text-xs">Finds knowledge you haven't been quizzed on yet</p>
               </div>
               <div className="p-3 rounded-xl bg-[#1c2723]/80 border border-[#283933]">
                 <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="w-4 h-4 text-[#13eca4]" />
-                  <span className="text-white text-sm font-medium">Smart Insights</span>
+                  <Sparkles className="w-4 h-4 text-[#13eca4]" />
+                  <span className="text-white text-sm font-medium">Forgetting Curve</span>
                 </div>
-                <p className="text-[#9db9b0] text-xs">Analyzes your study patterns and progress</p>
+                <p className="text-[#9db9b0] text-xs">R = e^(-t/S) formula predicts when you'll forget material</p>
               </div>
             </div>
           </div>
@@ -144,7 +130,7 @@ export function WelcomeGuide({ isOpen, onClose, userName }: WelcomeGuideProps) {
     },
     {
       id: 'features',
-      title: 'What You Can Do 🚀',
+      title: 'What You Can Do',
       subtitle: 'Powerful Features at Your Fingertips',
       content: (
         <div className="space-y-4">

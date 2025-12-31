@@ -7,6 +7,7 @@ import { PRO_PRODUCT_ID } from '@/lib/subscription-constants'
 interface UpgradeModalProps {
   isOpen: boolean
   onClose: () => void
+  isPro?: boolean
 }
 
 const FREE_FEATURES = [
@@ -26,7 +27,7 @@ const PRO_FEATURES = [
   'Early access to beta features',
 ]
 
-export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
+export function UpgradeModal({ isOpen, onClose, isPro = false }: UpgradeModalProps) {
   const [isLoading, setIsLoading] = useState(false)
 
   const handleUpgrade = async () => {
@@ -125,14 +126,23 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
               </div>
 
               <button 
-                onClick={handleUpgrade}
+                onClick={isPro ? onClose : handleUpgrade}
                 disabled={isLoading}
-                className="w-full py-3 px-4 bg-white hover:bg-gray-200 text-black font-medium rounded-lg text-center transition-all duration-200 mb-8 shadow-lg shadow-white/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className={`w-full py-3 px-4 font-medium rounded-lg text-center transition-all duration-200 mb-8 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                  isPro 
+                    ? 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-orange-500/20 cursor-default'
+                    : 'bg-white hover:bg-gray-200 text-black shadow-white/10'
+                }`}
               >
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Processing...
+                  </>
+                ) : isPro ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Current Plan
                   </>
                 ) : (
                   'Get Pro'

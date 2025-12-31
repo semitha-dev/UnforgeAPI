@@ -20,6 +20,7 @@ interface Profile {
   id: string
   name: string
   email: string
+  subscription_tier?: string
 }
 
 interface TopNavProps {
@@ -384,7 +385,7 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, name, email')
+        .select('id, name, email, subscription_tier')
         .eq('id', user.id)
         .single()
 
@@ -457,8 +458,13 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="hidden sm:flex flex-col items-start">
-                  <span className="text-sm font-medium text-gray-900">{profile.name}</span>
-                  <span className="text-xs text-gray-500">Student</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-gray-900">{profile.name}</span>
+                    {profile.subscription_tier === 'pro' && (
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded">PRO</span>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-500">{profile.subscription_tier === 'pro' ? 'Pro Member' : 'Student'}</span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-gray-400" />
               </Button>

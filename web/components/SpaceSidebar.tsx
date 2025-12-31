@@ -19,6 +19,8 @@ interface SpaceSidebarProps {
   spaceName: string
   onClose?: () => void
   isMobile?: boolean
+  notesCount?: number
+  studySetsCount?: number
 }
 
 const sidebarItems = [
@@ -27,7 +29,7 @@ const sidebarItems = [
   { name: 'Study', href: '/study', icon: GraduationCap, description: 'Flashcards & Quizzes' },
 ]
 
-export default function SpaceSidebar({ spaceId, spaceName, onClose, isMobile = false }: SpaceSidebarProps) {
+export default function SpaceSidebar({ spaceId, spaceName, onClose, isMobile = false, notesCount, studySetsCount }: SpaceSidebarProps) {
   const pathname = usePathname()
 
   const isActiveRoute = (href: string) => {
@@ -95,11 +97,11 @@ export default function SpaceSidebar({ spaceId, spaceName, onClose, isMobile = f
           <p className="text-neutral-500 text-xs font-medium mb-2">QUICK STATS</p>
           <div className="grid grid-cols-2 gap-2">
             <div className="bg-neutral-800 rounded-lg p-2 text-center">
-              <p className="text-white font-bold text-lg">—</p>
+              <p className="text-white font-bold text-lg">{notesCount ?? '—'}</p>
               <p className="text-neutral-500 text-[10px]">Notes</p>
             </div>
             <div className="bg-neutral-800 rounded-lg p-2 text-center">
-              <p className="text-white font-bold text-lg">—</p>
+              <p className="text-white font-bold text-lg">{studySetsCount ?? '—'}</p>
               <p className="text-neutral-500 text-[10px]">Study Sets</p>
             </div>
           </div>

@@ -344,6 +344,69 @@ export default function ProjectOverview() {
               </div>
             </form>
 
+            {/* Chat History - directly under search */}
+            {allChats.length > 0 && (
+              <div className="w-full mt-4 animate-in fade-in duration-500 delay-100">
+                <div className="flex items-center justify-between mb-3 px-1">
+                  <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Recent Searches</h3>
+                  {allChats.length > 5 && (
+                    <span className="text-neutral-600 text-xs">
+                      {filteredChats.length} {filteredChats.length === 1 ? 'chat' : 'chats'}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Search Bar - only show if there are many chats */}
+                {allChats.length > 5 && (
+                  <div className="relative mb-3">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                    <input
+                      type="text"
+                      value={chatSearchQuery}
+                      onChange={(e) => setChatSearchQuery(e.target.value)}
+                      placeholder="Search your chats..."
+                      className="w-full pl-9 pr-9 py-2 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-500 text-xs focus:outline-none focus:border-neutral-600 transition-colors"
+                    />
+                    {chatSearchQuery && (
+                      <button
+                        onClick={() => setChatSearchQuery('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Compact Chat List */}
+                <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+                  {(chatSearchQuery ? filteredChats : filteredChats.slice(0, 5)).map((chat) => (
+                    <button
+                      key={chat.id}
+                      onClick={() => handleQuickAction(chat.query)}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-neutral-900/50 border border-neutral-800/50 hover:bg-neutral-900 hover:border-neutral-800 transition-all group text-left"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-neutral-600 flex-shrink-0" />
+                      <span className="text-neutral-400 text-xs truncate flex-1 group-hover:text-white transition-colors">
+                        {chat.query}
+                      </span>
+                      <span className="text-neutral-600 text-[10px] flex-shrink-0">{getRelativeTime(chat.timestamp)}</span>
+                      {chat.hasStudySet && (
+                        <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 text-[10px] flex-shrink-0">
+                          Study Set
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                  {chatSearchQuery && filteredChats.length === 0 && (
+                    <div className="text-center py-4 text-neutral-600 text-xs">
+                      No chats found for "{chatSearchQuery}"
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Quick Actions */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-6 animate-in fade-in duration-500 delay-150">
               <button
@@ -368,69 +431,6 @@ export default function ProjectOverview() {
                 Latest research
               </button>
             </div>
-
-            {/* All Chats with Search */}
-            {allChats.length > 0 && (
-              <div className="w-full max-w-3xl mx-auto mt-12 animate-in fade-in duration-500 delay-300">
-                <div className="flex items-center justify-between mb-4 px-1">
-                  <h3 className="text-sm font-medium text-neutral-400">All Chats</h3>
-                  <span className="text-neutral-600 text-xs">
-                    {filteredChats.length} {filteredChats.length === 1 ? 'chat' : 'chats'}
-                  </span>
-                </div>
-                
-                {/* Search Bar */}
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
-                  <input
-                    type="text"
-                    value={chatSearchQuery}
-                    onChange={(e) => setChatSearchQuery(e.target.value)}
-                    placeholder="Search your chats..."
-                    className="w-full pl-10 pr-10 py-2.5 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-500 text-sm focus:outline-none focus:border-neutral-600 transition-colors"
-                  />
-                  {chatSearchQuery && (
-                    <button
-                      onClick={() => setChatSearchQuery('')}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Chat List */}
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
-                  {filteredChats.length > 0 ? (
-                    filteredChats.map((chat) => (
-                      <button
-                        key={chat.id}
-                        onClick={() => handleQuickAction(chat.query)}
-                        className="w-full flex items-center gap-4 p-4 rounded-xl bg-neutral-900/50 border border-neutral-800/50 hover:bg-neutral-900 hover:border-neutral-800 transition-all group text-left"
-                      >
-                        <MessageSquare className="w-4 h-4 text-neutral-600 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-neutral-300 text-sm truncate block group-hover:text-white transition-colors">
-                            {chat.query}
-                          </span>
-                          <span className="text-neutral-600 text-xs">{getRelativeTime(chat.timestamp)}</span>
-                        </div>
-                        {chat.hasStudySet && (
-                          <span className="px-2 py-1 rounded-lg bg-cyan-500/10 text-cyan-400 text-xs flex-shrink-0">
-                            Study Set
-                          </span>
-                        )}
-                        <ArrowRight className="w-4 h-4 text-neutral-600 group-hover:text-neutral-400 transition-colors flex-shrink-0" />
-                      </button>
-                    ))
-                  ) : (
-                    <div className="text-center py-6 text-neutral-500 text-sm">
-                      No chats found for "{chatSearchQuery}"
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
