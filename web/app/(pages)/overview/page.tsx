@@ -776,8 +776,8 @@ export default function GlobalOverviewPage() {
                 </div>
               </header>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6">
+              {/* Messages - Extra bottom padding on mobile for fixed input */}
+              <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 pb-40 lg:pb-6">
                 <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
                   {messages.map((message) => (
                     <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -855,16 +855,11 @@ export default function GlobalOverviewPage() {
 
                   {/* Streaming status indicator */}
                   {isSearching && searchStatus && (
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-                        <Sparkles className="w-4 h-4 text-black animate-pulse" />
-                      </div>
-                      <div className="flex items-center gap-2 text-neutral-400">
-                        <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                        <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                        <span className="ml-2 text-sm">{searchStatus}</span>
-                      </div>
+                    <div className="flex items-center gap-2 text-neutral-400 py-2">
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-2 h-2 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                      <span className="ml-1 text-sm text-neutral-400">{searchStatus}</span>
                     </div>
                   )}
 
@@ -872,8 +867,8 @@ export default function GlobalOverviewPage() {
                 </div>
               </div>
 
-              {/* Bottom Input */}
-              <div className="sticky bottom-0 bg-gradient-to-t from-black via-black to-transparent pt-4 sm:pt-6 pb-24 lg:pb-6 px-3 sm:px-4">
+              {/* Bottom Input - Fixed on mobile, sticky on desktop */}
+              <div className="fixed lg:sticky bottom-0 left-0 right-0 lg:left-auto lg:right-auto bg-gradient-to-t from-black via-black to-transparent pt-4 sm:pt-6 pb-20 lg:pb-6 px-3 sm:px-4 z-30">
                 <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
                   {/* Mode Selector */}
                   <div className="flex items-center gap-1.5 sm:gap-2">
