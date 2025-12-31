@@ -32,7 +32,11 @@ import {
   Image as ImageIcon,
   Lock,
   Crown,
-  Menu
+  Menu,
+  Settings,
+  LogOut,
+  User,
+  ChevronDown
 } from 'lucide-react'
 import {
   Tooltip,
@@ -40,6 +44,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import GlobalSidebar from '@/components/GlobalSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
@@ -211,6 +225,11 @@ export default function GlobalOverviewPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/signin')
   }
 
   // Quick client-side greeting check to avoid showing "Starting search..." for greetings
@@ -624,6 +643,55 @@ export default function GlobalOverviewPage() {
 
         {/* Main Content - Add bottom padding on mobile for nav */}
         <main className="lg:ml-[72px] min-h-screen flex flex-col pb-20 lg:pb-0">
+          {/* Top Navigation Header */}
+          {profile?.subscription_tier !== 'anonymous' && (
+            <header className="sticky top-0 z-30 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-800 h-14">
+              <div className="flex items-center justify-end h-full px-4 lg:px-6">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-neutral-800">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-neutral-800 text-white">
+                          {(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="hidden sm:flex items-center gap-1.5">
+                        <span className="text-sm font-medium text-neutral-200">
+                          {profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || 'User'}
+                        </span>
+                        {profile?.subscription_tier === 'pro' && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded">PRO</span>
+                        )}
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-neutral-400" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel>
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium">{profile?.name || profile?.email?.split('@')[0] || 'User'}</span>
+                          {profile?.subscription_tier === 'pro' && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded">PRO</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-neutral-500">{profile?.email || ''}</span>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => router.push('/settings')}>
+                      <Settings className="h-4 w-4 mr-2" />Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
+                      <LogOut className="h-4 w-4 mr-2" />Sign Out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </header>
+          )}
+
           {/* Anonymous User Banner */}
           {profile?.subscription_tier === 'anonymous' && (
             <div className="bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-emerald-500/30 px-4 py-3">
