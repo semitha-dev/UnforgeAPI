@@ -40,6 +40,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [isManaging, setIsManaging] = useState(false)
   
   // Form state
   const [fullName, setFullName] = useState('')
@@ -496,8 +497,27 @@ export default function SettingsPage() {
                           ? `Access until ${profile?.subscription_ends_at ? formatDate(profile.subscription_ends_at) : 'end of period'}`
                           : 'Status: ' + profile?.subscription_status}
                     </p>
-                    <button className="text-sm font-medium text-neutral-400 hover:text-white transition-colors">
-                      Manage subscription
+                    <button 
+                      onClick={async () => {
+                        setIsManaging(true)
+                        try {
+                          const res = await fetch('/api/subscription/manage')
+                          if (res.ok) {
+                            const data = await res.json()
+                            if (data.portalUrl) {
+                              window.open(data.portalUrl, '_blank')
+                            }
+                          }
+                        } catch (e) {
+                          console.error('Error opening portal:', e)
+                        } finally {
+                          setIsManaging(false)
+                        }
+                      }}
+                      disabled={isManaging}
+                      className="text-sm font-medium text-neutral-400 hover:text-white transition-colors disabled:opacity-50"
+                    >
+                      {isManaging ? 'Opening...' : 'Manage subscription'}
                     </button>
                   </div>
                 ) : (
