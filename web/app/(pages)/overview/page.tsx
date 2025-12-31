@@ -59,6 +59,7 @@ import GlobalSidebar from '@/components/GlobalSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
 import MobileNav from '@/components/MobileNav'
 import { WelcomeGuide, useWelcomeGuide } from '@/components/WelcomeGuide'
+import { prefetchSubscription } from '@/lib/useSubscription'
 
 interface Citation {
   number: number
@@ -176,6 +177,9 @@ export default function GlobalOverviewPage() {
 
   const loadUserData = async () => {
     try {
+      // Start subscription prefetch early
+      prefetchSubscription()
+      
       const { data: { user } } = await supabase.auth.getUser()
       
       // Allow anonymous users - don't redirect
@@ -193,21 +197,18 @@ export default function GlobalOverviewPage() {
       
       setUserId(user.id)
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('name, email')
-        .eq('id', user.id)
-        .single()
+      // Fetch profile and subscription in parallel
+      const [profileResult, subscriptionResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', user.id)
+          .single(),
+        fetch('/api/subscription').then(res => res.ok ? res.json() : null).catch(() => null)
+      ])
 
-      // Fetch subscription tier
-      let subscriptionTier = 'free'
-      try {
-        const res = await fetch('/api/subscription')
-        if (res.ok) {
-          const data = await res.json()
-          subscriptionTier = data.subscription?.tier || 'free'
-        }
-      } catch (e) {}
+      const profileData = profileResult.data
+      const subscriptionTier = subscriptionResult?.subscription?.tier || 'free'
 
       setProfile({
         name: profileData?.name || '',

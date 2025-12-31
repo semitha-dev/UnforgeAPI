@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
+import { getCachedSubscription, prefetchSubscription } from '@/lib/useSubscription'
 
 interface FileAttachment {
   id: string
@@ -238,6 +239,15 @@ export default function LeafAIChatPage() {
   // Check subscription status
   useEffect(() => {
     const checkSubscription = async () => {
+      // Try cache first for instant load
+      const cached = getCachedSubscription()
+      if (cached) {
+        setIsPro(cached.tier === 'pro')
+        return
+      }
+      
+      // Prefetch and fetch if not cached
+      prefetchSubscription()
       try {
         const res = await fetch('/api/subscription')
         if (res.ok) {

@@ -28,6 +28,7 @@ import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import GlobalSidebar from '@/components/GlobalSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
 import MobileNav from '@/components/MobileNav'
+import { prefetchSubscription } from '@/lib/useSubscription'
 
 interface InsightMetadata {
   periodsAnalyzed?: Array<{ name: string; accuracy: number; total: number; correct: number }>
@@ -111,27 +112,27 @@ export default function InsightsPage() {
   }, [])
 
   const checkAuthAndLoad = async () => {
+    // Start subscription prefetch early
+    prefetchSubscription()
+    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/signin')
       return
     }
     
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', user.id)
-      .single()
+    // Fetch profile and subscription in parallel
+    const [profileResult, subscriptionResult] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single(),
+      fetch('/api/subscription').then(res => res.ok ? res.json() : null).catch(() => null)
+    ])
     
-    // Fetch subscription tier
-    let subscriptionTier = 'free'
-    try {
-      const res = await fetch('/api/subscription')
-      if (res.ok) {
-        const data = await res.json()
-        subscriptionTier = data.subscription?.tier || 'free'
-      }
-    } catch (e) {}
+    const profileData = profileResult.data
+    const subscriptionTier = subscriptionResult?.subscription?.tier || 'free'
 
     setProfile({ 
       name: profileData?.name || null, 

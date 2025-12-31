@@ -54,6 +54,7 @@ import GlobalSidebar from '@/components/GlobalSidebar'
 import SpaceSidebar from '@/components/SpaceSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
 import MobileNav from '@/components/MobileNav'
+import { prefetchSubscription } from '@/lib/useSubscription'
 
 // YouTube URL helpers
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -729,6 +730,9 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
     try {
       setError(null)
       
+      // Start subscription prefetch early
+      prefetchSubscription()
+      
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       
       if (userError) {
@@ -744,23 +748,24 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       // Set userId for realtime subscription
       setUserId(user.id)
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('name, email')
-        .eq('id', user.id)
-        .single()
+      // Fetch profile, subscription, and project in parallel
+      const [profileResult, subscriptionResult, projectResult] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', user.id)
+          .single(),
+        fetch('/api/subscription').then(res => res.ok ? res.json() : null).catch(() => null),
+        supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .eq('user_id', user.id)
+          .single()
+      ])
 
-      // Fetch subscription tier from API
-      let subscriptionTier = 'free'
-      try {
-        const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
-        if (subscriptionRes.ok) {
-          const subscriptionData = await subscriptionRes.json()
-          subscriptionTier = subscriptionData.subscription?.tier || 'free'
-        }
-      } catch (err) {
-        console.error('Error fetching subscription tier:', err)
-      }
+      const profileData = profileResult.data
+      const subscriptionTier = subscriptionResult?.subscription?.tier || 'free'
 
       // Always set profile with subscription tier
       setProfile({
@@ -769,12 +774,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
         subscription_tier: subscriptionTier
       })
 
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .eq('user_id', user.id)
-        .single()
+      const { data: projectData, error: projectError } = projectResult
 
       if (projectError) {
         if (projectError.code === 'PGRST116') {
