@@ -789,6 +789,11 @@ function StudySession({
   const [isFinished, setIsFinished] = useState(false)
   const [score, setScore] = useState({ correct: 0, total: 0 })
   const [itemStartTime, setItemStartTime] = useState(Date.now())
+  
+  // Touch/swipe state for mobile navigation
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const minSwipeDistance = 50 // minimum swipe distance in pixels
 
   useEffect(() => {
     loadStudySet()
@@ -846,6 +851,55 @@ function StudySession({
     } else {
       setIsFinished(true)
     }
+  }
+
+  const goToPrev = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(prev => prev - 1)
+      setIsFlipped(false)
+      setSelectedAnswer(null)
+      setShowResult(false)
+    }
+  }
+
+  // Touch handlers for swipe navigation
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+    
+    // For flashcards: swipe left = next, swipe right = prev
+    if (currentItem?.item_type === 'flashcard') {
+      if (isLeftSwipe) {
+        // Swiped left - go to next (mark as didn't know if flipped)
+        if (isFlipped) {
+          handleFlashcardNext(false) // Swipe left = didn't know
+        } else {
+          // If not flipped, just move to next
+          goToNext()
+        }
+      } else if (isRightSwipe) {
+        if (isFlipped) {
+          handleFlashcardNext(true) // Swipe right = got it
+        } else {
+          // If not flipped, go to previous
+          goToPrev()
+        }
+      }
+    }
+    // Reset touch state
+    setTouchStart(null)
+    setTouchEnd(null)
   }
 
   const handleRestart = () => {
@@ -956,10 +1010,15 @@ function StudySession({
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {currentItem?.item_type === 'flashcard' ? (
           // Flashcard View
-          <div className="space-y-8">
+          <div 
+            className="space-y-8"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
             <div 
               onClick={() => setIsFlipped(!isFlipped)}
-              className="relative w-full aspect-[4/3] cursor-pointer"
+              className="relative w-full aspect-[4/3] cursor-pointer select-none"
               style={{ perspective: '1000px' }}
             >
               <div 
@@ -981,7 +1040,7 @@ function StudySession({
                     </p>
                   </div>
                   <div className="text-xs text-neutral-500 text-center flex items-center justify-center gap-2">
-                    <RefreshCw className="w-3 h-3" /> Tap to reveal
+                    <RefreshCw className="w-3 h-3" /> Tap to flip • Swipe to navigate
                   </div>
                 </div>
                 
@@ -996,6 +1055,9 @@ function StudySession({
                       {currentItem.back}
                     </p>
                   </div>
+                  <div className="text-xs text-violet-200/60 text-center flex items-center justify-center gap-2 sm:hidden">
+                    ← Swipe right = Got it • Swipe left = Didn't know →
+                  </div>
                 </div>
               </div>
             </div>
@@ -1007,13 +1069,13 @@ function StudySession({
                   onClick={() => handleFlashcardNext(false)}
                   className="flex items-center gap-2 px-8 py-4 bg-neutral-900 border-2 border-rose-500/50 text-rose-400 font-bold rounded-2xl hover:bg-rose-500/10 hover:border-rose-400 transition-all"
                 >
-                  <XCircle className="w-5 h-5" /> Didn't Know
+                  <XCircle className="w-5 h-5" /> <span className="hidden sm:inline">Didn't Know</span><span className="sm:hidden">✗</span>
                 </button>
                 <button
                   onClick={() => handleFlashcardNext(true)}
                   className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-bold rounded-2xl hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg shadow-emerald-500/20"
                 >
-                  <CheckCircle className="w-5 h-5" /> Got It!
+                  <CheckCircle className="w-5 h-5" /> <span className="hidden sm:inline">Got It!</span><span className="sm:hidden">✓</span>
                 </button>
               </div>
             )}
