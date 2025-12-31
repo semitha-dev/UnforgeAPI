@@ -756,7 +756,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
         const subscriptionRes = await fetch('/api/subscription', { cache: 'no-store' })
         if (subscriptionRes.ok) {
           const subscriptionData = await subscriptionRes.json()
-          subscriptionTier = subscriptionData.subscription?.subscription_tier || 'free'
+          subscriptionTier = subscriptionData.subscription?.tier || 'free'
         }
       } catch (err) {
         console.error('Error fetching subscription tier:', err)

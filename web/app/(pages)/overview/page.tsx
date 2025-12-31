@@ -205,7 +205,7 @@ export default function GlobalOverviewPage() {
         const res = await fetch('/api/subscription')
         if (res.ok) {
           const data = await res.json()
-          subscriptionTier = data.subscription?.subscription_tier || 'free'
+          subscriptionTier = data.subscription?.tier || 'free'
         }
       } catch (e) {}
 

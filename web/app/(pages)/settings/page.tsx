@@ -467,7 +467,7 @@ export default function SettingsPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="text-base font-semibold text-white">
-                        {profile?.subscription_tier === 'pro' ? 'Atlas Pro' : 'Atlas Starter'}
+                        {profile?.subscription_tier === 'pro' ? 'Leaf Pro' : 'Leaf Starter'}
                       </h4>
                       {profile?.subscription_tier === 'pro' && (
                         <Crown className="w-4 h-4 text-purple-400" />

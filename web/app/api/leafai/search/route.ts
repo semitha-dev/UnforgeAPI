@@ -643,7 +643,7 @@ export async function POST(request: NextRequest) {
       if (mode === 'research' && !userIsPro) {
         return NextResponse.json(
           { 
-            error: 'Research mode requires Atlas Pro. Upgrade to access deep research features.',
+            error: 'Research mode requires Leaf Pro. Upgrade to access deep research features.',
             upgradeRequired: true 
           },
           { status: 403 }
@@ -657,7 +657,7 @@ export async function POST(request: NextRequest) {
         if (!rateLimit.allowed) {
           return NextResponse.json(
             { 
-              error: `Rate limit exceeded. Free tier is limited to ${FREE_TIER_RATE_LIMIT} searches per minute. Upgrade to Atlas Pro for unlimited searches.`,
+              error: `Rate limit exceeded. Free tier is limited to ${FREE_TIER_RATE_LIMIT} searches per minute. Upgrade to Leaf Pro for unlimited searches.`,
               upgradeRequired: true,
               resetIn: Math.ceil(rateLimit.resetIn / 1000)
             },

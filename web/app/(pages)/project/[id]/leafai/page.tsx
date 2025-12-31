@@ -242,7 +242,7 @@ export default function LeafAIChatPage() {
         const res = await fetch('/api/subscription')
         if (res.ok) {
           const data = await res.json()
-          setIsPro(data.subscription?.subscription_tier === 'pro')
+          setIsPro(data.subscription?.tier === 'pro')
         }
       } catch (err) {
         console.error('Error checking subscription:', err)
