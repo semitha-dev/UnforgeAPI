@@ -4,11 +4,110 @@ import { createGroq } from '@ai-sdk/groq'
 import { streamText, generateText } from 'ai'
 import { tavily } from '@tavily/core'
 import { LIMITS, isPro, type SubscriptionProfile } from '@/lib/subscription-constants'
+import { 
+  classifyQuery, 
+  initializeClassifier, 
+  getChatResponse,
+  type ClassificationResult 
+} from '@/lib/query-classifier'
 
 // Initialize Groq via Vercel AI SDK
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY!
 })
+
+// Initialize embedding classifier on first request
+let classifierInitialized = false
+
+// ============================================
+// ANONYMOUS USER RATE LIMITING (IP-based)
+// ============================================
+// Rate limit: 3 searches per minute for anonymous users
+const ANONYMOUS_RATE_LIMIT = 3
+const ANONYMOUS_RATE_WINDOW = 60 * 1000 // 1 minute in milliseconds
+
+// In-memory rate limit store (resets on serverless cold start - acceptable for basic protection)
+const anonymousRateLimits = new Map<string, { count: number; resetTime: number }>()
+
+// ============================================
+// FREE USER RESEARCH MODE DAILY LIMIT
+// ============================================
+// Free users get 3 research mode searches per day
+const FREE_USER_RESEARCH_LIMIT = 3
+
+// In-memory daily research count (userId -> { count, date })
+// Note: This resets on serverless cold start, but we also check database
+const freeUserResearchCounts = new Map<string, { count: number; date: string }>()
+
+function getTodayDateString(): string {
+  return new Date().toISOString().split('T')[0] // YYYY-MM-DD
+}
+
+function checkFreeUserResearchLimit(userId: string): { allowed: boolean; remaining: number; usedToday: number } {
+  const today = getTodayDateString()
+  const entry = freeUserResearchCounts.get(userId)
+  
+  // Clean up old entries periodically
+  if (freeUserResearchCounts.size > 10000) {
+    for (const [key, value] of freeUserResearchCounts.entries()) {
+      if (value.date !== today) {
+        freeUserResearchCounts.delete(key)
+      }
+    }
+  }
+  
+  if (!entry || entry.date !== today) {
+    // First research request today
+    return { allowed: true, remaining: FREE_USER_RESEARCH_LIMIT, usedToday: 0 }
+  }
+  
+  if (entry.count >= FREE_USER_RESEARCH_LIMIT) {
+    // Daily limit reached
+    return { allowed: false, remaining: 0, usedToday: entry.count }
+  }
+  
+  return { allowed: true, remaining: FREE_USER_RESEARCH_LIMIT - entry.count, usedToday: entry.count }
+}
+
+function incrementFreeUserResearchCount(userId: string): void {
+  const today = getTodayDateString()
+  const entry = freeUserResearchCounts.get(userId)
+  
+  if (!entry || entry.date !== today) {
+    freeUserResearchCounts.set(userId, { count: 1, date: today })
+  } else {
+    entry.count++
+  }
+}
+
+function checkAnonymousRateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number } {
+  const now = Date.now()
+  const entry = anonymousRateLimits.get(ip)
+  
+  // Clean up old entries periodically
+  if (anonymousRateLimits.size > 10000) {
+    for (const [key, value] of anonymousRateLimits.entries()) {
+      if (value.resetTime < now) {
+        anonymousRateLimits.delete(key)
+      }
+    }
+  }
+  
+  if (!entry || entry.resetTime < now) {
+    // First request or window expired
+    anonymousRateLimits.set(ip, { count: 1, resetTime: now + ANONYMOUS_RATE_WINDOW })
+    return { allowed: true, remaining: ANONYMOUS_RATE_LIMIT - 1, resetIn: ANONYMOUS_RATE_WINDOW }
+  }
+  
+  if (entry.count >= ANONYMOUS_RATE_LIMIT) {
+    // Rate limited
+    return { allowed: false, remaining: 0, resetIn: entry.resetTime - now }
+  }
+  
+  // Increment counter
+  entry.count++
+  return { allowed: true, remaining: ANONYMOUS_RATE_LIMIT - entry.count, resetIn: entry.resetTime - now }
+}
 
 /**
  * Detect if a query is a simple greeting or conversational message
@@ -88,7 +187,8 @@ function isGreetingOrCasual(query: string): { isGreeting: boolean; response: str
 }
 
 // ============================================
-// MULTI-PURPOSE ROUTER - Three Path System
+// MULTI-PURPOSE ROUTER - Hybrid Embedding System
+// Uses nomic-embed-text for semantic classification
 // ============================================
 
 // Path types for the Router Brain
@@ -108,11 +208,17 @@ interface RouterClassification {
   action_payload: CommandAction | null
   chat_response?: string  // Pre-generated response for CHAT path
   research_query?: string // Optimized query for RESEARCH path
+  confidence?: number     // Confidence score from embedding classifier
 }
 
 /**
- * ROUTER BRAIN - Classifies user requests into 3 distinct paths
- * This replaces the old intent detection system
+ * ROUTER BRAIN - Hybrid Embedding + Keyword Classification
+ * 
+ * Classification priority:
+ * 1. Regex patterns for obvious greetings (instant, 0ms)
+ * 2. Keyword patterns for COMMAND detection (instant, 0ms)  
+ * 3. Embedding similarity for CHAT vs RESEARCH (~20ms)
+ * 4. LLM fallback for ambiguous cases with conversation context (~300ms)
  */
 async function classifyRequest(
   query: string, 
@@ -120,18 +226,107 @@ async function classifyRequest(
   hasNotes: boolean,
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
 ): Promise<RouterClassification> {
-  // Quick check for obvious greetings (saves API call)
+  // Initialize embedding classifier if not done yet
+  if (!classifierInitialized) {
+    await initializeClassifier()
+    classifierInitialized = true
+  }
+
+  // ============================================
+  // STEP 1: Quick greeting check (Regex - instant)
+  // ============================================
   const greetingCheck = isGreetingOrCasual(query)
   if (greetingCheck.isGreeting) {
     return {
       path: 'CHAT',
-      reason: 'Detected greeting pattern',
+      reason: 'Detected greeting pattern (regex)',
       action_payload: null,
-      chat_response: greetingCheck.response
+      chat_response: greetingCheck.response,
+      confidence: 1.0
     }
   }
 
-  // Build conversation context for the router
+  // ============================================
+  // STEP 2: Hybrid classification (regex + keywords + embeddings)
+  // ============================================
+  try {
+    const embeddingResult = await classifyQuery(query, { hasNotes })
+    
+    // Only log if not high confidence (reduces noise)
+    if (embeddingResult.confidence < 0.80) {
+      console.log('[Router Brain] Classification:', {
+        path: embeddingResult.path,
+        confidence: embeddingResult.confidence.toFixed(2),
+        reason: embeddingResult.reason,
+      })
+    }
+
+    // Use result directly if confidence is adequate (0.75+)
+    // With improved patterns, most queries now get 0.80-0.95
+    if (embeddingResult.confidence >= 0.75) {
+      // Build action payload for COMMAND path
+      let action_payload: CommandAction | null = null
+      
+      if (embeddingResult.path === 'COMMAND' && embeddingResult.commandType) {
+        switch (embeddingResult.commandType) {
+          case 'create_study_set':
+            action_payload = {
+              type: 'create_study_set',
+              topic: embeddingResult.topic,
+              fromNotes: embeddingResult.fromNotes || false
+            }
+            break
+          case 'quiz_me':
+            action_payload = { type: 'quiz_me', topic: embeddingResult.topic }
+            break
+          case 'summarize_notes':
+            action_payload = { type: 'summarize_notes' }
+            break
+          case 'explain_more':
+            action_payload = { type: 'explain_more', context: embeddingResult.topic }
+            break
+        }
+      }
+
+      // Get pre-generated chat response if CHAT path
+      const chatResponse = embeddingResult.path === 'CHAT' 
+        ? getChatResponse(query) 
+        : undefined
+
+      return {
+        path: embeddingResult.path,
+        reason: `${embeddingResult.reason} [confidence: ${embeddingResult.confidence.toFixed(2)}]`,
+        action_payload,
+        chat_response: chatResponse,
+        research_query: embeddingResult.path === 'RESEARCH' ? query : undefined,
+        confidence: embeddingResult.confidence
+      }
+    }
+
+    // ============================================
+    // STEP 3: Low confidence - use LLM fallback with context
+    // ============================================
+    console.log('[Router Brain] Low confidence, using LLM fallback')
+    return await classifyWithLLM(query, projectName, hasNotes, conversationHistory)
+
+  } catch (error) {
+    console.error('[Router Brain] Embedding classification error:', error)
+    // Fall through to LLM fallback
+    return await classifyWithLLM(query, projectName, hasNotes, conversationHistory)
+  }
+}
+
+/**
+ * LLM-based classification fallback for ambiguous queries
+ * Only called when embedding confidence is low or embeddings unavailable
+ */
+async function classifyWithLLM(
+  query: string,
+  projectName: string,
+  hasNotes: boolean,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
+): Promise<RouterClassification> {
+  // Build conversation context
   const recentHistory = conversationHistory.slice(-4).map(m => 
     `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 100)}...`
   ).join('\n')
@@ -139,52 +334,27 @@ async function classifyRequest(
   try {
     const { text } = await generateText({
       model: groq('llama-3.1-8b-instant'),
-      prompt: `You are the "Router Brain" for an educational AI. Your job is to classify the user's request into one of 3 distinct paths.
+      prompt: `You are classifying a user request. Choose ONE path:
 
-PATHS:
-1. "CHAT": ONLY for greetings, thanks, acknowledgments, or emotional support. Examples: "How are you?", "Thanks!", "I'm stressed". NOT for questions that need factual answers!
+CHAT: ONLY for greetings, thanks, emotional support. NOT for questions!
+COMMAND: App actions - create flashcards, quiz, summarize notes
+RESEARCH: ANY question needing facts, comparisons, explanations
 
-2. "COMMAND": User wants to perform a specific app action. Examples: "Create flashcards from my notes", "Quiz me on this", "Make a study set about biology", "Summarize my notes". DO NOT SEARCH THE WEB unless they explicitly ask for web info.
+${recentHistory ? `Context:\n${recentHistory}\n\n` : ''}
+User: "${query}"
+Project: "${projectName}", Has notes: ${hasNotes}
 
-3. "RESEARCH": User is asking ANY QUESTION that needs a factual answer. Examples:
-   - "Compare ChatGPT vs Gemini" → RESEARCH (needs factual comparison)
-   - "What's better: X or Y?" → RESEARCH (needs analysis)
-   - "How does photosynthesis work?" → RESEARCH
-   - "Tell me about the French Revolution" → RESEARCH
-   - "Call of Duty vs Battlefield" → RESEARCH (needs factual comparison)
-   - "yes" or "everything please" after a question → RESEARCH (continuation)
-
-CRITICAL RULES:
-- If user asks "which is better", "compare", "vs", or any comparison → ALWAYS RESEARCH
-- If user says "yes", "sure", "everything", "go ahead" after a previous question → RESEARCH (continue the topic)
-- If user asks for opinions, facts, or information → RESEARCH
-- Only use CHAT for pure social interaction (greetings, thanks, emotional support)
-- When in doubt, choose RESEARCH - it's better to give information than deflect
-
-${recentHistory ? `CONVERSATION CONTEXT:\n${recentHistory}\n\n` : ''}
-
-USER MESSAGE: "${query}"
-CONTEXT: Project "${projectName}". User has notes: ${hasNotes}
-
-Respond with JSON only:
-{
-  "path": "CHAT" | "COMMAND" | "RESEARCH",
-  "reason": "Brief explanation of why you chose this path",
-  "command_type": "create_study_set" | "quiz_me" | "summarize_notes" | "explain_more" | null,
-  "topic": "extracted topic if any, or topic from conversation context",
-  "from_notes": true/false
-}`,
+JSON only:
+{"path":"CHAT|COMMAND|RESEARCH","reason":"brief","command_type":"create_study_set|quiz_me|summarize_notes|explain_more|null","topic":"if any"}`,
       temperature: 0.1,
-      maxOutputTokens: 200
+      maxOutputTokens: 150
     })
 
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0])
-      
       const path = (parsed.path as RouterPath) || 'RESEARCH'
       
-      // Build action payload for COMMAND path
       let action_payload: CommandAction | null = null
       if (path === 'COMMAND' && parsed.command_type) {
         switch (parsed.command_type) {
@@ -192,7 +362,7 @@ Respond with JSON only:
             action_payload = {
               type: 'create_study_set',
               topic: parsed.topic || undefined,
-              fromNotes: parsed.from_notes === true || /notes?|my\s+content|my\s+material/i.test(query)
+              fromNotes: /notes?|my\s+content|my\s+material/i.test(query)
             }
             break
           case 'quiz_me':
@@ -209,22 +379,24 @@ Respond with JSON only:
       
       return {
         path,
-        reason: parsed.reason || 'AI classification',
+        reason: `LLM fallback: ${parsed.reason || 'classified'}`,
         action_payload,
-        chat_response: path === 'CHAT' ? (parsed.chat_response || undefined) : undefined,
-        research_query: path === 'RESEARCH' ? (parsed.topic || query) : undefined
+        chat_response: path === 'CHAT' ? getChatResponse(query) : undefined,
+        research_query: path === 'RESEARCH' ? (parsed.topic || query) : undefined,
+        confidence: 0.7 // LLM fallback has moderate confidence
       }
     }
   } catch (error) {
-    console.error('[Router Brain] Classification error:', error)
+    console.error('[Router Brain] LLM fallback error:', error)
   }
 
-  // Fallback to RESEARCH (safest default for unknown queries)
+  // Ultimate fallback - default to RESEARCH
   return {
     path: 'RESEARCH',
-    reason: 'Fallback - could not classify',
+    reason: 'Ultimate fallback - defaulting to research',
     action_payload: null,
-    research_query: query
+    research_query: query,
+    confidence: 0.5
   }
 }
 
@@ -301,16 +473,23 @@ async function searchWeb(query: string): Promise<TavilyResult[]> {
     const client = tavily({ apiKey })
     
     const response = await client.search(query, {
-      searchDepth: 'advanced',
-      maxResults: 8,
+      searchDepth: 'basic', // Changed from 'advanced' - faster and more reliable
+      maxResults: 10,
       includeAnswer: false,
       includeRawContent: false
     })
 
     console.log('[Tavily] Got', response.results?.length || 0, 'results')
+    
+    // Log first result for debugging
+    if (response.results && response.results.length > 0) {
+      console.log('[Tavily] First result:', response.results[0].title)
+    }
+    
     return response.results || []
-  } catch (error) {
-    console.error('[Tavily] Search error:', error)
+  } catch (error: any) {
+    console.error('[Tavily] Search error:', error?.message || error)
+    // Return empty array, caller will handle fallback
     return []
   }
 }
@@ -320,19 +499,25 @@ async function rephraseQuery(query: string, projectName: string): Promise<string
   try {
     const { text } = await generateText({
       model: groq('llama-3.3-70b-versatile'),
-      prompt: `Transform this user question into an optimal web search query. Output ONLY the search query, nothing else.
+      prompt: `Convert this question into a simple web search query. Keep it short and direct. Remove filler words but keep the core question.
 
-Project context: ${projectName}
+Examples:
+- "what is best chatgpt or gemini" → "ChatGPT vs Gemini comparison 2024"
+- "how does photosynthesis work" → "photosynthesis process explained"
+- "tell me about the french revolution" → "French Revolution history overview"
+
 User query: ${query}
 
-Optimized search query:`,
-      temperature: 0.3,
-      maxOutputTokens: 100
+Search query (output ONLY the query, nothing else):`,
+      temperature: 0.2,
+      maxOutputTokens: 50
     })
 
-    return text.trim() || query
+    const optimized = text.trim()
+    console.log('[Rephrase] Original:', query, '→ Optimized:', optimized)
+    return optimized || query
   } catch (error) {
-    console.error('Query rephrase error:', error)
+    console.error('[Rephrase] Error:', error)
     return query
   }
 }
@@ -621,8 +806,41 @@ export async function POST(request: NextRequest) {
       
       console.log('[Stream API] User ID:', userId || 'anonymous')
 
+      // ============================================
+      // RATE LIMITING FOR ANONYMOUS USERS
+      // ============================================
+      if (!userId) {
+        // Get IP address from headers (Vercel forwards real IP)
+        const forwardedFor = request.headers.get('x-forwarded-for')
+        const realIp = request.headers.get('x-real-ip')
+        const ip = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown'
+        
+        const rateLimit = checkAnonymousRateLimit(ip)
+        console.log(`[Stream API] Anonymous rate limit check for ${ip}: allowed=${rateLimit.allowed}, remaining=${rateLimit.remaining}`)
+        
+        if (!rateLimit.allowed) {
+          const resetInSeconds = Math.ceil(rateLimit.resetIn / 1000)
+          await sendEvent('error', { 
+            message: `Rate limit exceeded. Please wait ${resetInSeconds} seconds or sign in for unlimited searches.`,
+            type: 'rate_limit',
+            resetIn: resetInSeconds
+          })
+          await closeStream()
+          return
+        }
+        
+        // Send rate limit info to frontend
+        await sendEvent('rateLimit', {
+          remaining: rateLimit.remaining,
+          limit: ANONYMOUS_RATE_LIMIT,
+          isAnonymous: true
+        })
+      }
+
       // Check subscription for research mode access
       let effectiveSearchMode = searchMode
+      let isFreeUserResearch = false // Track if free user is using their daily research allowance
+      
       if (searchMode === 'research' && userId) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -648,13 +866,29 @@ export async function POST(request: NextRequest) {
           }
           
           if (!isPro(subscriptionProfile)) {
-            console.log('[Stream API] Free user tried research mode, downgrading to fast')
-            effectiveSearchMode = 'fast'
-            await sendEvent('modeDowngraded', { 
-              message: 'Research mode requires Pro. Using Fast mode.',
-              originalMode: 'research',
-              newMode: 'fast'
-            })
+            // Free user - check daily research limit (3 per day)
+            const researchLimit = checkFreeUserResearchLimit(userId)
+            
+            if (researchLimit.allowed) {
+              // Free user can use research mode (within daily limit)
+              console.log(`[Stream API] Free user using research mode (${researchLimit.usedToday + 1}/${FREE_USER_RESEARCH_LIMIT} today)`)
+              isFreeUserResearch = true
+              await sendEvent('researchLimit', {
+                remaining: researchLimit.remaining - 1,
+                limit: FREE_USER_RESEARCH_LIMIT,
+                usedToday: researchLimit.usedToday + 1
+              })
+            } else {
+              // Daily limit reached - downgrade to fast
+              console.log('[Stream API] Free user daily research limit reached, downgrading to fast')
+              effectiveSearchMode = 'fast'
+              await sendEvent('modeDowngraded', { 
+                message: `Daily research limit reached (${FREE_USER_RESEARCH_LIMIT}/day). Using Fast mode. Upgrade to Pro for unlimited.`,
+                originalMode: 'research',
+                newMode: 'fast',
+                dailyLimitReached: true
+              })
+            }
           }
         } else {
           // No profile found, default to fast mode
@@ -670,6 +904,11 @@ export async function POST(request: NextRequest) {
           originalMode: 'research',
           newMode: 'fast'
         })
+      }
+      
+      // Increment free user research count after successful research mode selection
+      if (isFreeUserResearch && effectiveSearchMode === 'research' && userId) {
+        incrementFreeUserResearchCount(userId)
       }
 
       // Now select model based on effective search mode (after subscription check)
@@ -951,8 +1190,27 @@ export async function POST(request: NextRequest) {
       await sendEvent('status', { step: 'generating', message: 'Generating answer...' })
 
       if (searchResults.length === 0) {
-        await sendEvent('text', { content: "I couldn't find any relevant web results for your query. Please try rephrasing your question or being more specific." })
-        await sendEvent('done', { success: true })
+        console.log('[Stream API] No web results - falling back to LLM knowledge')
+        
+        // Instead of failing, use LLM's knowledge to answer
+        await sendEvent('status', { step: 'generating', message: 'Generating answer from knowledge...' })
+        
+        const { textStream } = streamText({
+          model: groq(modelId),
+          prompt: `You are a knowledgeable assistant. The web search didn't return results, but you can answer from your training knowledge.
+
+Question: ${query}
+
+Provide a helpful, accurate answer. If you're not confident about something, say so. Be concise but thorough.`,
+          temperature: 0.7,
+        })
+
+        for await (const chunk of textStream) {
+          await sendEvent('text', { content: chunk })
+        }
+        
+        await sendEvent('text', { content: '\n\n*Note: This answer is from AI knowledge, not live web search.*' })
+        await sendEvent('done', { success: true, citations: [] })
         await closeStream()
         return
       }

@@ -3,11 +3,20 @@ import { createClient } from '@supabase/supabase-js'
 import Groq from 'groq-sdk'
 import { tavily } from '@tavily/core'
 import { getUserSubscription, isPro, LIMITS, FREE_TIER_RATE_LIMIT } from '@/lib/subscription'
+import { 
+  classifyQuery, 
+  initializeClassifier, 
+  getChatResponse as getPreGeneratedChatResponse,
+  type ClassificationResult 
+} from '@/lib/query-classifier'
 
 // Initialize Groq client
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 })
+
+// Initialize embedding classifier on first request
+let classifierInitialized = false
 
 // In-memory rate limit store (for serverless, use Redis in production)
 const rateLimitStore = new Map<string, { count: number; windowStart: number }>()
@@ -140,72 +149,114 @@ interface RouterClassification {
 }
 
 /**
- * ROUTER BRAIN - Classifies user requests into 3 distinct paths
+ * ROUTER BRAIN - Hybrid Embedding + Keyword Classification
+ * Uses nomic-embed-text for semantic classification
  */
 async function classifyRequest(
   query: string, 
   projectName: string,
   hasNotes: boolean
 ): Promise<RouterClassification> {
+  // Initialize embedding classifier if not done yet
+  if (!classifierInitialized) {
+    await initializeClassifier()
+    classifierInitialized = true
+  }
+
   // Quick check for obvious greetings (saves API call)
   const greetingCheck = isGreetingOrCasual(query)
   if (greetingCheck.isGreeting) {
     return {
       path: 'CHAT',
-      reason: 'Detected greeting pattern',
+      reason: 'Detected greeting pattern (regex)',
       action_payload: null,
       chat_response: greetingCheck.response
     }
   }
 
+  // Use embedding-based classification
+  try {
+    const embeddingResult = await classifyQuery(query, { hasNotes })
+    
+    console.log('[Router Brain] Embedding classification:', {
+      path: embeddingResult.path,
+      confidence: embeddingResult.confidence.toFixed(2),
+      reason: embeddingResult.reason
+    })
+
+    // High confidence result - use it directly
+    if (embeddingResult.confidence >= 0.75) {
+      let action_payload: CommandAction | null = null
+      
+      if (embeddingResult.path === 'COMMAND' && embeddingResult.commandType) {
+        switch (embeddingResult.commandType) {
+          case 'create_study_set':
+            action_payload = {
+              type: 'create_study_set',
+              topic: embeddingResult.topic,
+              fromNotes: embeddingResult.fromNotes || false
+            }
+            break
+          case 'quiz_me':
+            action_payload = { type: 'quiz_me', topic: embeddingResult.topic }
+            break
+          case 'summarize_notes':
+            action_payload = { type: 'summarize_notes' }
+            break
+          case 'explain_more':
+            action_payload = { type: 'explain_more', context: embeddingResult.topic }
+            break
+        }
+      }
+
+      const chatResponse = embeddingResult.path === 'CHAT' 
+        ? getPreGeneratedChatResponse(query) 
+        : undefined
+
+      return {
+        path: embeddingResult.path,
+        reason: `${embeddingResult.reason} [confidence: ${embeddingResult.confidence.toFixed(2)}]`,
+        action_payload,
+        chat_response: chatResponse,
+        research_query: embeddingResult.path === 'RESEARCH' ? query : undefined
+      }
+    }
+
+    // Low confidence - use LLM fallback
+    console.log('[Router Brain] Low confidence, using LLM fallback')
+  } catch (error) {
+    console.error('[Router Brain] Embedding classification error:', error)
+  }
+
+  // LLM Fallback for ambiguous queries
   try {
     const completion = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages: [
         {
           role: 'system',
-          content: `You are the "Router Brain" for an educational AI. Your job is to classify the user's request into one of 3 distinct paths.
+          content: `Classify this request into ONE path:
+CHAT: greetings, thanks, emotional support only
+COMMAND: create flashcards, quiz, summarize notes
+RESEARCH: questions needing facts/explanations
 
-PATHS:
-1. "CHAT": Casual conversation, greetings, jokes, emotional support, or simple acknowledgments. Examples: "How are you?", "That's cool", "Thanks!", "Tell me a joke", "I'm stressed about exams". DO NOT SEARCH THE WEB.
-
-2. "COMMAND": User wants to perform a specific app action. Examples: "Create flashcards from my notes", "Quiz me on this", "Make a study set about biology", "Summarize my notes", "Generate practice questions". DO NOT SEARCH THE WEB unless they explicitly ask for web info.
-
-3. "RESEARCH": User is asking for NEW information, facts, or topics they don't know. Examples: "How does photosynthesis work?", "What caused World War 2?", "Explain quantum computing", "Tell me about the French Revolution". This is the ONLY path that searches the web.
-
-CRITICAL RULES:
-- If user says "create", "make", "generate" + "flashcards"/"quiz"/"study set" → COMMAND, not RESEARCH
-- If user is asking about their OWN notes/content → COMMAND, not RESEARCH  
-- If user is making small talk or reacting → CHAT, not RESEARCH
-- Only use RESEARCH when user genuinely needs external information
-
-Respond with JSON only:
-{
-  "path": "CHAT" | "COMMAND" | "RESEARCH",
-  "reason": "Brief explanation",
-  "command_type": "create_study_set" | "quiz_me" | "summarize_notes" | "explain_more" | null,
-  "topic": "extracted topic if any",
-  "from_notes": true/false,
-  "chat_response": "response text if CHAT path"
-}`
+JSON only: {"path":"CHAT|COMMAND|RESEARCH","reason":"brief","command_type":"create_study_set|quiz_me|summarize_notes|explain_more|null","topic":"if any"}`
         },
         {
           role: 'user',
-          content: `User message: "${query}"\nProject: "${projectName}"\nHas notes: ${hasNotes}`
+          content: `"${query}" | Project: "${projectName}" | Has notes: ${hasNotes}`
         }
       ],
       temperature: 0.1,
-      max_tokens: 200
+      max_tokens: 150
     })
 
     const text = completion.choices[0]?.message?.content || '{}'
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0])
-      
       const path = (parsed.path as RouterPath) || 'RESEARCH'
       
-      // Build action payload for COMMAND path
       let action_payload: CommandAction | null = null
       if (path === 'COMMAND' && parsed.command_type) {
         switch (parsed.command_type) {
@@ -213,7 +264,7 @@ Respond with JSON only:
             action_payload = {
               type: 'create_study_set',
               topic: parsed.topic || undefined,
-              fromNotes: parsed.from_notes === true || /notes?|my\s+content|my\s+material/i.test(query)
+              fromNotes: /notes?|my\s+content|my\s+material/i.test(query)
             }
             break
           case 'quiz_me':
@@ -230,17 +281,17 @@ Respond with JSON only:
       
       return {
         path,
-        reason: parsed.reason || 'AI classification',
+        reason: `LLM fallback: ${parsed.reason || 'classified'}`,
         action_payload,
-        chat_response: path === 'CHAT' ? (parsed.chat_response || undefined) : undefined,
+        chat_response: path === 'CHAT' ? getPreGeneratedChatResponse(query) : undefined,
         research_query: path === 'RESEARCH' ? (parsed.topic || query) : undefined
       }
     }
   } catch (error) {
-    console.error('[Router Brain] Classification error:', error)
+    console.error('[Router Brain] LLM fallback error:', error)
   }
 
-  // Fallback to RESEARCH
+  // Ultimate fallback to RESEARCH
   return {
     path: 'RESEARCH',
     reason: 'Fallback - could not classify',

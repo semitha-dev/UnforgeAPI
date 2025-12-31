@@ -38,8 +38,8 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Define protected routes (require authentication)
+  // Note: /overview is NOT protected - anonymous users can use LeafAI with rate limiting
   const protectedRoutes = [
-    '/overview',
     '/project',
     '/support',
     '/debug',

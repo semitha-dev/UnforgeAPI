@@ -370,6 +370,31 @@ export default function ProjectInsightsPage() {
     }
   }
 
+  /**
+   * Delete insight when user takes action (review note, create flashcard, etc)
+   */
+  const handleDeleteOnAction = async (insightId: string) => {
+    try {
+      await fetch('/api/insights', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ insightId })
+      })
+      
+      setInsights(prev => {
+        const updated = { ...prev }
+        Object.keys(updated).forEach(date => {
+          updated[date] = updated[date].filter(insight => insight.id !== insightId)
+          if (updated[date].length === 0) delete updated[date]
+        })
+        return updated
+      })
+      setSelectedInsight(null)
+    } catch (error) {
+      console.error('Failed to delete insight:', error)
+    }
+  }
+
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr)
     return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })

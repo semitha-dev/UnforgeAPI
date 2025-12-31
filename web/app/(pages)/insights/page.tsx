@@ -96,13 +96,15 @@ export default function InsightsPage() {
   const [activeFilter, setActiveFilter] = useState<string>('all')
   const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null)
   const [totalInsightsCount, setTotalInsightsCount] = useState(0)
+  const [limitApplied, setLimitApplied] = useState(false)
+  const [limitBannerDismissed, setLimitBannerDismissed] = useState(false)
   
   const router = useRouter()
   const supabase = createClient()
   
-  // Free users get limited insights
+  // Free users get limited insights (50%)
   const isPro = profile?.subscription_tier === 'pro'
-  const FREE_INSIGHT_LIMIT = 6
+  const FREE_INSIGHT_LIMIT = 6 // Max insights shown to free users
 
   useEffect(() => {
     checkAuthAndLoad()
@@ -154,6 +156,7 @@ export default function InsightsPage() {
       if (data.userName) setUserName(data.userName)
       if (data.lastGeneratedAt) setLastGeneratedAt(data.lastGeneratedAt)
       if (data.totalCount) setTotalInsightsCount(data.totalCount)
+      if (data.limitApplied !== undefined) setLimitApplied(data.limitApplied)
     } catch (err) {
       console.error('Error loading insights:', err)
       setError('Failed to load insights')
@@ -217,9 +220,35 @@ export default function InsightsPage() {
     }
   }
 
-  const handleAction = (insight: Insight) => {
+  /**
+   * Delete insight and navigate to action
+   * This removes the insight from the database when user takes action
+   */
+  const handleAction = async (insight: Insight) => {
     const actionData = insight.action_data as Record<string, string> | undefined
     
+    // Delete the insight from database
+    try {
+      await fetch('/api/insights', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ insightId: insight.id })
+      })
+      
+      // Remove from local state
+      setInsights(prev => {
+        const updated = { ...prev }
+        for (const date in updated) {
+          updated[date] = updated[date].filter(i => i.id !== insight.id)
+          if (updated[date].length === 0) delete updated[date]
+        }
+        return updated
+      })
+    } catch (err) {
+      console.error('Error deleting insight:', err)
+    }
+    
+    // Navigate to appropriate page
     switch (insight.action_type) {
       case 'create_flashcard':
         if (actionData?.projectId) {
@@ -553,6 +582,34 @@ export default function InsightsPage() {
             {error && (
               <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400">
                 {error}
+              </div>
+            )}
+
+            {/* Free user limit banner */}
+            {!isPro && limitApplied && !limitBannerDismissed && (
+              <div className="mb-6 p-4 bg-[#13eca4]/10 border border-[#13eca4]/30 rounded-xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="h-5 w-5 text-[#13eca4] flex-shrink-0" />
+                  <p className="text-[#9db9b0] text-sm">
+                    <span className="text-white font-medium">Showing 50% of insights.</span>{' '}
+                    Upgrade to Pro to see all insights and historical data.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="px-4 py-2 bg-[#13eca4] text-[#111816] rounded-lg text-sm font-bold hover:bg-[#0ebf84] transition-colors whitespace-nowrap"
+                  >
+                    Upgrade
+                  </button>
+                  <button
+                    onClick={() => setLimitBannerDismissed(true)}
+                    className="p-2 text-[#9db9b0] hover:text-white hover:bg-[#283933] rounded-lg transition-colors"
+                    title="Dismiss"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             )}
 

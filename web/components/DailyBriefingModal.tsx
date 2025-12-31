@@ -55,6 +55,7 @@ interface DailyBriefingModalProps {
   onClose: () => void
   insights: Insight[]
   userName: string
+  onInsightAction?: (insightId: string) => Promise<void>
 }
 
 const insightTypeIcons: Record<string, React.ElementType> = {
@@ -87,7 +88,7 @@ const periodIcons: Record<string, React.ElementType> = {
   night: Moon,
 }
 
-export default function DailyBriefingModal({ isOpen, onClose, insights, userName }: DailyBriefingModalProps) {
+export default function DailyBriefingModal({ isOpen, onClose, insights, userName, onInsightAction }: DailyBriefingModalProps) {
   const router = useRouter()
   const [isVisible, setIsVisible] = useState(false)
 
@@ -128,8 +129,13 @@ export default function DailyBriefingModal({ isOpen, onClose, insights, userName
   const warningInsights = insights.filter(i => i.severity === 'warning')
   const infoInsights = insights.filter(i => i.severity === 'info')
 
-  const handleAction = (insight: Insight) => {
+  const handleAction = async (insight: Insight) => {
     const actionData = insight.action_data as Record<string, string> | undefined
+    
+    // Delete the insight when user takes action
+    if (onInsightAction) {
+      await onInsightAction(insight.id)
+    }
     
     switch (insight.action_type) {
       case 'create_flashcard':

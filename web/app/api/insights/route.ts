@@ -3,6 +3,7 @@ import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import { logActivity, getRequestInfo, ActionTypes } from '@/app/lib/activityLogger';
+import { getUserSubscription, LIMITS, SUBSCRIPTION_TIERS } from '@/lib/subscription';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
 const PRIMARY_MODEL = 'llama-3.1-8b-instant';
@@ -22,7 +23,9 @@ interface Insight {
   action_data?: Record<string, unknown>;
 }
 
-// GET - Fetch insights for today and yesterday
+// GET - Fetch insights with tier-based filtering
+// Free users: Only today's insights
+// Pro users: Full history (up to daysBack parameter)
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -33,10 +36,21 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const daysBack = parseInt(searchParams.get('days') || '2');
+    const requestedDays = parseInt(searchParams.get('days') || '7');
     const projectId = searchParams.get('projectId'); // Filter by project
     
+    // Check subscription tier
+    const subscription = await getUserSubscription(user.id);
+    const isPro = subscription.subscription_tier === SUBSCRIPTION_TIERS.PRO && 
+      (subscription.subscription_status === 'active' || 
+       subscription.subscription_status === 'trialing');
+    
     const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // Free users: only today's insights
+    // Pro users: full history based on daysBack param
+    const daysBack = isPro ? requestedDays : 1;
     const startDate = new Date(today);
     startDate.setDate(startDate.getDate() - (daysBack - 1));
 
@@ -45,7 +59,8 @@ export async function GET(request: NextRequest) {
       .from('insights')
       .select('*')
       .eq('user_id', user.id)
-      .gte('insight_date', startDate.toISOString().split('T')[0]);
+      .gte('insight_date', startDate.toISOString().split('T')[0])
+      .eq('is_dismissed', false); // Only non-dismissed insights
     
     // Filter by project if specified
     if (projectId) {
@@ -68,11 +83,19 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    // Apply 50% limit for free users
+    let filteredInsights = insights || [];
+    if (!isPro && filteredInsights.length > 0) {
+      // Keep only 50% of insights (prioritize by severity - critical/warning first)
+      const halfCount = Math.ceil(filteredInsights.length / 2);
+      filteredInsights = filteredInsights.slice(0, halfCount);
+    }
+
     // Group by date
     const groupedInsights: Record<string, typeof insights> = {};
     let lastGeneratedAt: string | null = null;
     
-    insights?.forEach(insight => {
+    filteredInsights.forEach(insight => {
       const date = insight.insight_date;
       if (!groupedInsights[date]) {
         groupedInsights[date] = [];
@@ -88,8 +111,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       insights: groupedInsights,
       userName: profile?.name || 'there',
-      totalCount: insights?.length || 0,
-      lastGeneratedAt
+      totalCount: filteredInsights.length,
+      lastGeneratedAt,
+      isPro, // Include tier info for frontend
+      limitApplied: !isPro && (insights?.length || 0) > filteredInsights.length
     });
   } catch (error: unknown) {
     console.error('Error in GET /api/insights:', error);
@@ -110,10 +135,45 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    // Get user's subscription tier for access control
+    const subscription = await getUserSubscription(user.id);
+    const isProSubscription: boolean = 
+      subscription.subscription_tier === SUBSCRIPTION_TIERS.PRO && 
+      (subscription.subscription_status === 'active' || 
+       subscription.subscription_status === 'trialing' ||
+       (subscription.subscription_status === 'canceled' && 
+        subscription.subscription_ends_at !== null && 
+        new Date(subscription.subscription_ends_at) > new Date()));
+    const limits = LIMITS[isProSubscription ? 'pro' : 'free'];
+
     const body = await request.json();
     const { forceRegenerate = false } = body;
 
     const today = new Date().toISOString().split('T')[0];
+
+    // Rate limit: Free users can only regenerate once per 24 hours
+    if (forceRegenerate && !isProSubscription) {
+      const { data: lastInsight } = await supabase
+        .from('insights')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (lastInsight && lastInsight.length > 0) {
+        const lastGenTime = new Date(lastInsight[0].created_at);
+        const hoursSinceLastGen = (Date.now() - lastGenTime.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursSinceLastGen < 24) {
+          const hoursRemaining = Math.ceil(24 - hoursSinceLastGen);
+          return NextResponse.json({ 
+            error: 'Free tier limit: You can refresh insights once every 24 hours',
+            hoursRemaining,
+            upgradeRequired: true
+          }, { status: 429 });
+        }
+      }
+    }
 
     // Check if insights were already generated today (unless force regenerate)
     if (!forceRegenerate) {
@@ -214,20 +274,22 @@ export async function POST(request: NextRequest) {
       insightsToCreate
     );
 
-    // 4. CONTENT GAP - Use AI to find missing topics
+    // 4. CONTENT GAP - Use AI to find missing topics (limited for free users)
     await generateContentGapInsights(
       notes,
       projects,
       insightsToCreate,
-      existingProjectIds
+      existingProjectIds,
+      isProSubscription
     );
 
-    // 5. FACTUAL ACCURACY - AI fact-checking for potential errors
+    // 5. FACTUAL ACCURACY - AI fact-checking for potential errors (limited for free users)
     await generateFactualAccuracyInsights(
       notes,
       projects,
       insightsToCreate,
-      existingNoteIds
+      existingNoteIds,
+      isProSubscription
     );
 
     // Insert all insights
@@ -300,6 +362,41 @@ export async function PATCH(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Error updating insight:', error);
     return NextResponse.json({ error: 'Failed to update insight' }, { status: 500 });
+  }
+}
+
+// DELETE - Remove an insight completely (when user takes action)
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { insightId } = body;
+
+    if (!insightId) {
+      return NextResponse.json({ error: 'Missing insightId' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('insights')
+      .delete()
+      .eq('id', insightId)
+      .eq('user_id', user.id);
+
+    if (error) {
+      console.error('Error deleting insight:', error);
+      return NextResponse.json({ error: 'Failed to delete insight' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, deleted: insightId });
+  } catch (error: unknown) {
+    console.error('Error in DELETE /api/insights:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -522,8 +619,14 @@ async function generateContentGapInsights(
   notes: Array<{ id: string; title: string; summary?: string | null; content?: string; project_id: string }>,
   projects: Array<{ id: string; name: string }>,
   insights: Insight[],
-  existingProjectIds: Set<string> = new Set() // Track projects already analyzed
+  existingProjectIds: Set<string> = new Set(), // Track projects already analyzed
+  isPro: boolean = false // Subscription tier flag
 ) {
+  // Free users: limited to 1 content gap insight (teaser mode)
+  // Pro users: full analysis (up to 2 insights)
+  const maxContentGapInsights = isPro ? 2 : 1;
+  const maxProjectsToAnalyze = isPro ? projects.length : 1; // Free users only analyze 1 project
+  
   // Only analyze projects with at least 2 notes
   const projectNotesMap = new Map<string, Array<{ title: string; summary: string }>>();
   notes.forEach(note => {
@@ -537,7 +640,11 @@ async function generateContentGapInsights(
   // Sort projects by name for consistent ordering
   const sortedProjects = [...projects].sort((a, b) => a.name.localeCompare(b.name));
 
+  let projectsAnalyzed = 0;
   for (const project of sortedProjects) {
+    // Limit number of projects analyzed for free tier
+    if (projectsAnalyzed >= maxProjectsToAnalyze) break;
+    
     // Skip if already analyzed today
     if (existingProjectIds.has(project.id)) continue;
     
@@ -607,12 +714,14 @@ If the notes seem comprehensive or you can't determine gaps with confidence, ret
     } catch (error) {
       console.error(`Error analyzing content gaps for project ${project.name}:`, error);
     }
+    
+    projectsAnalyzed++;
   }
 
-  // Limit content gaps to 2
+  // Limit content gaps based on subscription tier
   const contentGaps = insights.filter(i => i.insight_type === 'content_gap');
-  if (contentGaps.length > 2) {
-    const toRemove = contentGaps.slice(2);
+  if (contentGaps.length > maxContentGapInsights) {
+    const toRemove = contentGaps.slice(maxContentGapInsights);
     toRemove.forEach(i => {
       const idx = insights.indexOf(i);
       if (idx > -1) insights.splice(idx, 1);
@@ -625,8 +734,15 @@ async function generateFactualAccuracyInsights(
   notes: Array<{ id: string; title: string; summary?: string | null; content?: string; project_id: string }>,
   projects: Array<{ id: string; name: string }>,
   insights: Insight[],
-  existingNoteIds: Set<string> = new Set() // Track notes already analyzed
+  existingNoteIds: Set<string> = new Set(), // Track notes already analyzed
+  isPro: boolean = false // Subscription tier flag
 ) {
+  // Free users: limited to 1 fact-check insight (teaser mode)
+  // Pro users: full analysis (up to 3 insights, 3 notes per project)
+  const maxFactualInsights = isPro ? 3 : 1;
+  const maxNotesPerProject = isPro ? 3 : 1;
+  const maxProjectsToAnalyze = isPro ? projects.length : 1;
+  
   // Group notes by project
   const projectNotesMap = new Map<string, Array<{ id: string; title: string; content: string }>>();
   notes.forEach(note => {
@@ -639,7 +755,11 @@ async function generateFactualAccuracyInsights(
     projectNotesMap.set(note.project_id, existing);
   });
 
+  let projectsAnalyzed = 0;
   for (const project of projects) {
+    // Limit number of projects analyzed for free tier
+    if (projectsAnalyzed >= maxProjectsToAnalyze) break;
+    
     const projectNotes = projectNotesMap.get(project.id) || [];
     if (projectNotes.length === 0) continue;
 
@@ -652,8 +772,8 @@ async function generateFactualAccuracyInsights(
       // Skip if already analyzed
       if (existingNoteIds.has(note.id)) continue;
       
-      // Limit to 3 notes per project per refresh
-      if (analyzedCount >= 3) break;
+      // Limit notes per project based on subscription
+      if (analyzedCount >= maxNotesPerProject) break;
       analyzedCount++;
       
       try {
@@ -736,12 +856,14 @@ If there are no clear factual errors, return {"hasErrors": false, "errors": []}`
         console.error(`Error fact-checking note "${note.title}":`, error);
       }
     }
+    
+    projectsAnalyzed++;
   }
 
-  // Limit factual accuracy insights to 3
+  // Limit factual accuracy insights based on subscription tier
   const factualInsights = insights.filter(i => i.insight_type === 'factual_accuracy');
-  if (factualInsights.length > 3) {
-    const toRemove = factualInsights.slice(3);
+  if (factualInsights.length > maxFactualInsights) {
+    const toRemove = factualInsights.slice(maxFactualInsights);
     toRemove.forEach(i => {
       const idx = insights.indexOf(i);
       if (idx > -1) insights.splice(idx, 1);

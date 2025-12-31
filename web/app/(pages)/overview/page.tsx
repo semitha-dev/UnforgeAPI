@@ -148,8 +148,17 @@ export default function GlobalOverviewPage() {
   const loadUserData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
+      
+      // Allow anonymous users - don't redirect
       if (!user) {
-        router.push('/signin')
+        // Set anonymous state
+        setUserId(null)
+        setProfile({
+          name: 'Guest',
+          email: '',
+          subscription_tier: 'anonymous'
+        })
+        setIsLoading(false)
         return
       }
       
@@ -178,6 +187,12 @@ export default function GlobalOverviewPage() {
       })
     } catch (error) {
       console.error('Error loading user data:', error)
+      // On error, still allow anonymous access
+      setProfile({
+        name: 'Guest',
+        email: '',
+        subscription_tier: 'anonymous'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -317,6 +332,9 @@ export default function GlobalOverviewPage() {
               } else if (data.success !== undefined) {
                 // Done event
                 setSearchStatus('')
+              } else if (data.type === 'rate_limit') {
+                // Rate limit error for anonymous users
+                throw new Error(`⏱️ ${data.message}`)
               } else if (data.message && !data.step) {
                 // Error
                 throw new Error(data.message)
@@ -367,6 +385,11 @@ export default function GlobalOverviewPage() {
   }
 
   const saveConversation = async (msgs: Message[]) => {
+    // Don't save for anonymous users
+    if (!userId || profile?.subscription_tier === 'anonymous') {
+      return
+    }
+    
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
@@ -525,6 +548,7 @@ export default function GlobalOverviewPage() {
         <div className="hidden lg:block">
           <GlobalSidebar
             isPro={profile?.subscription_tier === 'pro'}
+            isAnonymous={profile?.subscription_tier === 'anonymous'}
             onUpgradeClick={() => setShowUpgradeModal(true)}
             onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
             onChatsHover={() => setShowChatsPanel(true)}
@@ -538,17 +562,39 @@ export default function GlobalOverviewPage() {
           onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
         />
 
-        {/* Chats Panel */}
-        <ChatsPanel
-          isOpen={showChatsPanel}
-          onClose={() => setShowChatsPanel(false)}
-          onSelectChat={loadConversation}
-          onNewChat={startNewChat}
-          currentChatId={currentChatId}
-        />
+        {/* Chats Panel - only for logged in users */}
+        {profile?.subscription_tier !== 'anonymous' && (
+          <ChatsPanel
+            isOpen={showChatsPanel}
+            onClose={() => setShowChatsPanel(false)}
+            onSelectChat={loadConversation}
+            onNewChat={startNewChat}
+            currentChatId={currentChatId}
+          />
+        )}
 
         {/* Main Content - Add bottom padding on mobile for nav */}
         <main className="lg:ml-[72px] min-h-screen flex flex-col pb-20 lg:pb-0">
+          {/* Anonymous User Banner */}
+          {profile?.subscription_tier === 'anonymous' && (
+            <div className="bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-emerald-500/30 px-4 py-3">
+              <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                  <p className="text-sm text-emerald-100">
+                    <span className="font-medium">Try LeafAI!</span> Sign up for free to save chats, create spaces, and get unlimited searches.
+                  </p>
+                </div>
+                <a 
+                  href="/signup" 
+                  className="flex-shrink-0 px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black text-sm font-medium rounded-lg transition-colors"
+                >
+                  Sign up
+                </a>
+              </div>
+            </div>
+          )}
+          
           {messages.length === 0 ? (
             /* Perplexity-style empty state */
             <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 lg:py-12">
@@ -577,6 +623,7 @@ export default function GlobalOverviewPage() {
                         </button>
                       </div>
                     ))}
+
                   </div>
                 )}
 
@@ -610,10 +657,13 @@ export default function GlobalOverviewPage() {
                         <TooltipTrigger asChild>
                           <button
                             onClick={() => {
-                              if (profile?.subscription_tier === 'pro') {
-                                setSearchMode('research')
-                              } else {
+                              // Anonymous users can't use research mode
+                              if (profile?.subscription_tier === 'anonymous') {
                                 setShowUpgradeModal(true)
+                              } else {
+                                // Both free and pro users can select research mode
+                                // Free users will be limited to 3/day by the API
+                                setSearchMode('research')
                               }
                             }}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all relative ${
@@ -624,12 +674,18 @@ export default function GlobalOverviewPage() {
                           >
                             <Brain className="w-3.5 h-3.5" />
                             Research
-                            {profile?.subscription_tier !== 'pro' && (
-                              <Lock className="w-2.5 h-2.5 text-amber-400 ml-0.5" />
-                            )}
                           </button>
                         </TooltipTrigger>
-                        {profile?.subscription_tier !== 'pro' && (
+                        {profile?.subscription_tier !== 'pro' && profile?.subscription_tier !== 'anonymous' && (
+                          <TooltipContent 
+                            side="bottom" 
+                            className="bg-neutral-800 border border-neutral-700 px-3 py-2"
+                            sideOffset={8}
+                          >
+                            <p className="text-xs text-neutral-300">3 research searches/day • Pro: Unlimited</p>
+                          </TooltipContent>
+                        )}
+                        {profile?.subscription_tier === 'anonymous' && (
                           <TooltipContent 
                             side="bottom" 
                             className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 px-4 py-3"
@@ -638,9 +694,9 @@ export default function GlobalOverviewPage() {
                             <div className="flex flex-col items-center gap-1.5 text-white">
                               <div className="flex items-center gap-2">
                                 <Crown className="w-4 h-4 text-amber-300" />
-                                <span className="font-semibold">Pro Feature</span>
+                                <span className="font-semibold">Sign in Required</span>
                               </div>
-                              <p className="text-xs text-purple-100">Upgrade to unlock Research mode</p>
+                              <p className="text-xs text-purple-100">Sign in to use Research mode</p>
                             </div>
                           </TooltipContent>
                         )}
@@ -836,10 +892,12 @@ export default function GlobalOverviewPage() {
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => {
-                            if (profile?.subscription_tier === 'pro') {
-                              setSearchMode('research')
-                            } else {
+                            // Anonymous users can't use research mode
+                            if (profile?.subscription_tier === 'anonymous') {
                               setShowUpgradeModal(true)
+                            } else {
+                              // Both free and pro users can select research mode
+                              setSearchMode('research')
                             }
                           }}
                           className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all relative ${
@@ -851,12 +909,18 @@ export default function GlobalOverviewPage() {
                           <Brain className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                           <span className="hidden xs:inline">Research</span>
                           <span className="xs:hidden">Pro</span>
-                          {profile?.subscription_tier !== 'pro' && (
-                            <Lock className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-amber-400 ml-0.5" />
-                          )}
                         </button>
                       </TooltipTrigger>
-                      {profile?.subscription_tier !== 'pro' && (
+                      {profile?.subscription_tier !== 'pro' && profile?.subscription_tier !== 'anonymous' && (
+                        <TooltipContent 
+                          side="bottom" 
+                          className="bg-neutral-800 border border-neutral-700 px-3 py-2"
+                          sideOffset={8}
+                        >
+                          <p className="text-xs text-neutral-300">3 research searches/day • Pro: Unlimited</p>
+                        </TooltipContent>
+                      )}
+                      {profile?.subscription_tier === 'anonymous' && (
                         <TooltipContent 
                           side="bottom" 
                           className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 px-4 py-3"
@@ -865,9 +929,9 @@ export default function GlobalOverviewPage() {
                           <div className="flex flex-col items-center gap-1.5 text-white">
                             <div className="flex items-center gap-2">
                               <Crown className="w-4 h-4 text-amber-300" />
-                              <span className="font-semibold">Pro Feature</span>
+                              <span className="font-semibold">Sign in Required</span>
                             </div>
-                            <p className="text-xs text-purple-100">Upgrade to unlock Research mode</p>
+                            <p className="text-xs text-purple-100">Sign in to use Research mode</p>
                           </div>
                         </TooltipContent>
                       )}
