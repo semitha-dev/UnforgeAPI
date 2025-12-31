@@ -155,6 +155,18 @@ export default function SettingsPage() {
     })
   }
 
+  const formatEducationLevel = (level: string | null) => {
+    if (!level) return 'Student'
+    const labels: Record<string, string> = {
+      'high_school': 'High School',
+      'bachelor': 'Bachelor\'s Degree',
+      'master': 'Master\'s Degree',
+      'phd': 'PhD',
+      'other': 'Other'
+    }
+    return labels[level] || level
+  }
+
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
     { id: 'profile', label: 'Public Profile', icon: <User className="w-4 h-4" /> },
     { id: 'account', label: 'Account', icon: <Shield className="w-4 h-4" /> },
@@ -262,7 +274,7 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <p className="text-sm text-neutral-400">
-                      {profile?.education_level || 'Student'} • Joined {profile?.created_at ? formatDate(profile.created_at) : 'Recently'}
+                      {formatEducationLevel(profile?.education_level ?? null)} • Joined {profile?.created_at ? formatDate(profile.created_at) : 'Recently'}
                     </p>
                   </div>
                   
