@@ -174,10 +174,10 @@ export default function ChatsPanel({ isOpen, onClose, onSelectChat, onNewChat, c
 
       {/* Panel */}
       <div 
-        className={`fixed top-0 left-0 lg:left-[72px] h-full w-full sm:w-[320px] bg-neutral-950 border-r border-neutral-800 z-50 transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-0 left-0 lg:left-[72px] h-full w-full sm:w-[320px] bg-neutral-950 border-r border-neutral-800 z-50 transform transition-transform duration-300 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-neutral-800">
+        <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-neutral-800">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-white" />
             <h2 className="font-semibold text-white">Chats</h2>
@@ -191,7 +191,7 @@ export default function ChatsPanel({ isOpen, onClose, onSelectChat, onNewChat, c
         </div>
 
         {/* New Chat Button */}
-        <div className="p-3 border-b border-neutral-800">
+        <div className="flex-shrink-0 p-3 border-b border-neutral-800">
           <button
             onClick={() => { onNewChat(); onClose(); }}
             className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-black rounded-xl font-medium hover:bg-neutral-200 transition-colors"
@@ -202,7 +202,7 @@ export default function ChatsPanel({ isOpen, onClose, onSelectChat, onNewChat, c
         </div>
 
         {/* Search */}
-        <div className="p-3 border-b border-neutral-800">
+        <div className="flex-shrink-0 p-3 border-b border-neutral-800">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
             <input
@@ -216,7 +216,7 @@ export default function ChatsPanel({ isOpen, onClose, onSelectChat, onNewChat, c
         </div>
 
         {/* Chats List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />

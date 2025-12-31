@@ -21,6 +21,7 @@ const PRO_FEATURES = [
   'Unlimited searches',
   'Advanced AI model',
   'Deep Research mode',
+  'Unlimited insight history',
   'Priority support access',
   'Early access to beta features',
 ]
@@ -76,7 +77,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
             <div className="p-8 lg:p-12 flex flex-col h-full border-b md:border-b-0 border-[#333]">
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-2xl font-semibold text-white tracking-tight">Atlas Starter</h2>
+                  <h2 className="text-2xl font-semibold text-white tracking-tight">Leaf Starter</h2>
                 </div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-bold text-white">Free</span>
@@ -109,7 +110,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
             <div className="p-8 lg:p-12 flex flex-col h-full bg-[#1C1C1C]/50 relative">
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-2xl font-semibold text-white tracking-tight">Atlas Pro</h2>
+                  <h2 className="text-2xl font-semibold text-white tracking-tight">Leaf Pro</h2>
                   <span className="px-2.5 py-0.5 rounded text-xs font-semibold bg-white/10 text-white border border-white/20">
                     Popular
                   </span>

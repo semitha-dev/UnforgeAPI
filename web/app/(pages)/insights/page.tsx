@@ -737,16 +737,6 @@ export default function InsightsPage() {
                           </div>
                           
                           <p className="text-[#9db9b0] text-sm leading-relaxed">{insight.message}</p>
-                          
-                          <div className="mt-auto pt-2">
-                            <button
-                              onClick={() => handleAction(insight)}
-                              className="w-full flex items-center justify-center gap-2 rounded-xl h-10 px-4 bg-[#7c3aed]/10 border border-[#7c3aed]/20 hover:bg-[#7c3aed] hover:text-white transition-all text-[#7c3aed] text-sm font-bold leading-normal"
-                            >
-                              <Calendar className="w-4 h-4" />
-                              Schedule Session
-                            </button>
-                          </div>
                         </div>
                       </div>
                     )
