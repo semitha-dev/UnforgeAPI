@@ -30,9 +30,12 @@ interface TopNavProps {
 function convertMarkdownToHtml(markdown: string): string {
   let html = markdown
   
-  // Handle code blocks first
+  // Handle code blocks first (preserve them from other transformations)
+  const codeBlocks: string[] = []
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre class="bg-gray-800 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto my-2"><code>${code.trim()}</code></pre>`
+    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
+    codeBlocks.push(`<pre class="bg-gray-800 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto my-2"><code>${code.trim()}</code></pre>`)
+    return placeholder
   })
   
   // Handle headers
@@ -40,12 +43,18 @@ function convertMarkdownToHtml(markdown: string): string {
   html = html.replace(/^## (.+)$/gm, '<h2 class="font-semibold text-base mt-3 mb-1">$1</h2>')
   html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-lg mt-3 mb-2">$1</h1>')
   
-  // Handle bold and italic
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+  // Handle bold - match content without asterisks or newlines
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+  // Handle italic - single asterisks (not adjacent to other asterisks)
+  html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
   
   // Handle inline code
-  html = html.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-xs">$1</code>')
+  html = html.replace(/`([^`\n]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-xs">$1</code>')
+  
+  // Restore code blocks
+  codeBlocks.forEach((block, i) => {
+    html = html.replace(`__CODE_BLOCK_${i}__`, block)
+  })
   
   // Handle links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-emerald-600 hover:underline" target="_blank">$1</a>')

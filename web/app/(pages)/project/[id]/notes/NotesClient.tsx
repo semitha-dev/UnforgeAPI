@@ -532,9 +532,12 @@ function useDebounce<T>(value: T, delay: number): T {
 function convertMarkdownToHtml(markdown: string): string {
   let html = markdown
   
-  // First, handle code blocks (```) before other processing
+  // First, handle code blocks (```) before other processing - preserve them
+  const codeBlocks: string[] = []
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre><code>${code.trim()}</code></pre>`
+    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
+    codeBlocks.push(`<pre><code>${code.trim()}</code></pre>`)
+    return placeholder
   })
   
   // Handle headers (must be done before other inline processing)
@@ -542,16 +545,21 @@ function convertMarkdownToHtml(markdown: string): string {
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>')
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>')
   
-  // Handle bold text (**text** or __text__)
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>')
+  // Handle bold text (**text** or __text__) - match content without asterisks/underscores or newlines
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/__([^_\n]+)__/g, '<strong>$1</strong>')
   
   // Handle italic text (*text* or _text_) - must come after bold
-  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
-  html = html.replace(/(?<!_)_(?!_)(.+?)(?<!_)_(?!_)/g, '<em>$1</em>')
+  html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
+  html = html.replace(/(?<!_)_([^_\n]+)_(?!_)/g, '<em>$1</em>')
   
   // Handle inline code (`code`)
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+  html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>')
+  
+  // Restore code blocks
+  codeBlocks.forEach((block, i) => {
+    html = html.replace(`__CODE_BLOCK_${i}__`, block)
+  })
   
   // Handle links [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')

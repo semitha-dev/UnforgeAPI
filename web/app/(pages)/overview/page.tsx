@@ -44,6 +44,7 @@ import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import GlobalSidebar from '@/components/GlobalSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
 import MobileNav from '@/components/MobileNav'
+import { WelcomeGuide, useWelcomeGuide } from '@/components/WelcomeGuide'
 
 interface Citation {
   number: number
@@ -109,6 +110,9 @@ export default function GlobalOverviewPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showChatsPanel, setShowChatsPanel] = useState(false)
+  
+  // Welcome guide for first-time users
+  const { showWelcome, closeWelcome } = useWelcomeGuide()
   
   // Search mode: 'fast' (llama-3.1-8b) or 'research' (llama-3.3-70b)
   const [searchMode, setSearchMode] = useState<'fast' | 'research'>('fast')
@@ -582,6 +586,13 @@ export default function GlobalOverviewPage() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-neutral-900">
+        {/* Welcome Guide for first-time users */}
+        <WelcomeGuide 
+          isOpen={showWelcome} 
+          onClose={closeWelcome}
+          userName={profile?.name?.split(' ')[0]}
+        />
+        
         {/* Global Sidebar - Desktop Only */}
         <div className="hidden lg:block">
           <GlobalSidebar

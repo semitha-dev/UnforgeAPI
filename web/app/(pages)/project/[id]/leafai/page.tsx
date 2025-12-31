@@ -72,9 +72,12 @@ function isImageGenerationRequest(message: string): boolean {
 function convertMarkdownToHtml(markdown: string): string {
   let html = markdown
   
-  // Handle code blocks first
+  // Handle code blocks first (preserve them from other transformations)
+  const codeBlocks: string[] = []
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    return `<pre class="bg-gray-900 text-gray-100 p-4 rounded-xl text-sm overflow-x-auto my-3 font-mono"><code>${code.trim()}</code></pre>`
+    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
+    codeBlocks.push(`<pre class="bg-gray-900 text-gray-100 p-4 rounded-xl text-sm overflow-x-auto my-3 font-mono"><code>${code.trim()}</code></pre>`)
+    return placeholder
   })
   
   // Handle headers (order matters - process larger headers first)
@@ -85,12 +88,18 @@ function convertMarkdownToHtml(markdown: string): string {
   html = html.replace(/^## (.+)$/gm, '<h2 class="font-semibold text-lg mt-4 mb-2 text-gray-800">$1</h2>')
   html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-4 mb-3 text-gray-900">$1</h1>')
   
-  // Handle bold and italic
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-  html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+  // Handle bold - use [\s\S] to match across newlines, but prefer same-line matches first
+  html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong class="font-semibold">$1</strong>')
+  // Handle italic - single asterisks (not adjacent to other asterisks)
+  html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
   
   // Handle inline code
-  html = html.replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-emerald-700">$1</code>')
+  html = html.replace(/`([^`\n]+)`/g, '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-emerald-700">$1</code>')
+  
+  // Restore code blocks
+  codeBlocks.forEach((block, i) => {
+    html = html.replace(`__CODE_BLOCK_${i}__`, block)
+  })
   
   // Handle links
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-emerald-600 hover:text-emerald-700 underline" target="_blank">$1</a>')
