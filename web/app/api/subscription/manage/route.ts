@@ -230,45 +230,24 @@ export async function GET(request: NextRequest) {
     const polarBase = isSandbox ? 'https://sandbox.polar.sh' : 'https://polar.sh';
     const orgSlug = process.env.POLAR_ORG_SLUG || 'leaflearning2';
 
-    // If user has a Polar customer ID, create a customer session for the portal
-    if (profile?.polar_customer_id && POLAR_ACCESS_TOKEN) {
-      try {
-        // Create a customer session via Polar API
-        const sessionResponse = await fetch(`${POLAR_API_URL}/customer-sessions`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${POLAR_ACCESS_TOKEN}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            customer_id: profile.polar_customer_id,
-          }),
-        });
+    // Use the email from user auth (more reliable) or profile
+    const userEmail = user.email || profile?.email;
 
-        if (sessionResponse.ok) {
-          const sessionData = await sessionResponse.json();
-          // The session token can be used to access the customer portal
-          if (sessionData.customer_session_token) {
-            return NextResponse.json({ 
-              portalUrl: `${polarBase}/${orgSlug}/portal?customer_session_token=${sessionData.customer_session_token}`,
-              subscription: {
-                tier: profile?.subscription_tier || 'free',
-                status: profile?.subscription_status || 'inactive',
-                ends_at: profile?.subscription_ends_at,
-                next_billing: profile?.next_billing_date,
-                canceled_at: profile?.canceled_at,
-                auto_renew: profile?.auto_renew ?? true,
-                tokens_balance: profile?.tokens_balance || 0,
-              }
-            });
-          }
-        } else {
-          const errorText = await sessionResponse.text();
-          console.error('Failed to create customer session:', sessionResponse.status, errorText);
+    // If user has a Polar customer ID, use the portal request URL with email verification
+    if (profile?.polar_customer_id && userEmail) {
+      const encodedEmail = encodeURIComponent(userEmail);
+      return NextResponse.json({ 
+        portalUrl: `${polarBase}/${orgSlug}/portal/request?id=${profile.polar_customer_id}&email=${encodedEmail}`,
+        subscription: {
+          tier: profile?.subscription_tier || 'free',
+          status: profile?.subscription_status || 'inactive',
+          ends_at: profile?.subscription_ends_at,
+          next_billing: profile?.next_billing_date,
+          canceled_at: profile?.canceled_at,
+          auto_renew: profile?.auto_renew ?? true,
+          tokens_balance: profile?.tokens_balance || 0,
         }
-      } catch (sessionError) {
-        console.error('Error creating customer session:', sessionError);
-      }
+      });
     }
 
     // Fallback: return the org's portal page (user may need to log in)
