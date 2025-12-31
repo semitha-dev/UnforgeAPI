@@ -4,20 +4,11 @@ import { createGroq } from '@ai-sdk/groq'
 import { streamText, generateText } from 'ai'
 import { tavily } from '@tavily/core'
 import { LIMITS, isPro, type SubscriptionProfile } from '@/lib/subscription-constants'
-import { 
-  classifyQuery, 
-  initializeClassifier, 
-  getChatResponse,
-  type ClassificationResult 
-} from '@/lib/query-classifier'
 
 // Initialize Groq via Vercel AI SDK
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY!
 })
-
-// Initialize embedding classifier on first request
-let classifierInitialized = false
 
 // ============================================
 // ANONYMOUS USER RATE LIMITING (IP-based)
@@ -187,8 +178,8 @@ function isGreetingOrCasual(query: string): { isGreeting: boolean; response: str
 }
 
 // ============================================
-// MULTI-PURPOSE ROUTER - Hybrid Embedding System
-// Uses nomic-embed-text for semantic classification
+// UNIFIED LLM CLASSIFIER - AI Decides Everything
+// Single LLM call to determine intent, web search, topic
 // ============================================
 
 // Path types for the Router Brain
@@ -208,17 +199,18 @@ interface RouterClassification {
   action_payload: CommandAction | null
   chat_response?: string  // Pre-generated response for CHAT path
   research_query?: string // Optimized query for RESEARCH path
-  confidence?: number     // Confidence score from embedding classifier
+  needsWebSearch: boolean // Whether this query needs web search
+  topic?: string          // Extracted topic if any
 }
 
 /**
- * ROUTER BRAIN - Hybrid Embedding + Keyword Classification
+ * UNIFIED LLM CLASSIFIER - Let AI Decide Everything
  * 
- * Classification priority:
- * 1. Regex patterns for obvious greetings (instant, 0ms)
- * 2. Keyword patterns for COMMAND detection (instant, 0ms)  
- * 3. Embedding similarity for CHAT vs RESEARCH (~20ms)
- * 4. LLM fallback for ambiguous cases with conversation context (~300ms)
+ * A single LLM call determines:
+ * 1. Intent: CHAT (greeting/thanks), COMMAND (create study set), RESEARCH (questions)
+ * 2. Whether web search is needed
+ * 3. Topic extraction for study sets
+ * 4. Optimized search query if needed
  */
 async function classifyRequest(
   query: string, 
@@ -226,191 +218,158 @@ async function classifyRequest(
   hasNotes: boolean,
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
 ): Promise<RouterClassification> {
-  // Initialize embedding classifier if not done yet
-  if (!classifierInitialized) {
-    await initializeClassifier()
-    classifierInitialized = true
-  }
-
-  // ============================================
-  // STEP 1: Quick greeting check (Regex - instant)
-  // ============================================
-  const greetingCheck = isGreetingOrCasual(query)
-  if (greetingCheck.isGreeting) {
-    return {
-      path: 'CHAT',
-      reason: 'Detected greeting pattern (regex)',
-      action_payload: null,
-      chat_response: greetingCheck.response,
-      confidence: 1.0
-    }
-  }
-
-  // ============================================
-  // STEP 2: Hybrid classification (regex + keywords + embeddings)
-  // ============================================
-  try {
-    const embeddingResult = await classifyQuery(query, { hasNotes })
-    
-    // Only log if not high confidence (reduces noise)
-    if (embeddingResult.confidence < 0.80) {
-      console.log('[Router Brain] Classification:', {
-        path: embeddingResult.path,
-        confidence: embeddingResult.confidence.toFixed(2),
-        reason: embeddingResult.reason,
-      })
-    }
-
-    // Use result directly if confidence is adequate (0.75+)
-    // With improved patterns, most queries now get 0.80-0.95
-    if (embeddingResult.confidence >= 0.75) {
-      // Build action payload for COMMAND path
-      let action_payload: CommandAction | null = null
-      
-      if (embeddingResult.path === 'COMMAND' && embeddingResult.commandType) {
-        switch (embeddingResult.commandType) {
-          case 'create_study_set':
-            // Use LLM to extract topic properly if not already extracted
-            let topic = embeddingResult.topic
-            let fromNotes = embeddingResult.fromNotes || false
-            
-            if (!topic || topic.length < 3) {
-              // Use LLM to extract the actual topic
-              const extracted = await extractStudySetTopic(query, conversationHistory)
-              topic = extracted.topic || undefined
-              fromNotes = extracted.fromNotes
-            }
-            
-            action_payload = {
-              type: 'create_study_set',
-              topic,
-              fromNotes
-            }
-            break
-          case 'quiz_me':
-            action_payload = { type: 'quiz_me', topic: embeddingResult.topic }
-            break
-          case 'summarize_notes':
-            action_payload = { type: 'summarize_notes' }
-            break
-          case 'explain_more':
-            action_payload = { type: 'explain_more', context: embeddingResult.topic }
-            break
-        }
-      }
-
-      // Get pre-generated chat response if CHAT path
-      const chatResponse = embeddingResult.path === 'CHAT' 
-        ? getChatResponse(query) 
-        : undefined
-
-      return {
-        path: embeddingResult.path,
-        reason: `${embeddingResult.reason} [confidence: ${embeddingResult.confidence.toFixed(2)}]`,
-        action_payload,
-        chat_response: chatResponse,
-        research_query: embeddingResult.path === 'RESEARCH' ? query : undefined,
-        confidence: embeddingResult.confidence
-      }
-    }
-
-    // ============================================
-    // STEP 3: Low confidence - use LLM fallback with context
-    // ============================================
-    console.log('[Router Brain] Low confidence, using LLM fallback')
-    return await classifyWithLLM(query, projectName, hasNotes, conversationHistory)
-
-  } catch (error) {
-    console.error('[Router Brain] Embedding classification error:', error)
-    // Fall through to LLM fallback
-    return await classifyWithLLM(query, projectName, hasNotes, conversationHistory)
-  }
-}
-
-/**
- * LLM-based classification fallback for ambiguous queries
- * Only called when embedding confidence is low or embeddings unavailable
- */
-async function classifyWithLLM(
-  query: string,
-  projectName: string,
-  hasNotes: boolean,
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
-): Promise<RouterClassification> {
-  // Build conversation context
+  
+  // Build conversation context for better understanding
   const recentHistory = conversationHistory.slice(-4).map(m => 
-    `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 100)}...`
+    `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 150)}`
   ).join('\n')
 
   try {
     const { text } = await generateText({
       model: groq('llama-3.1-8b-instant'),
-      prompt: `You are classifying a user request. Choose ONE path:
+      prompt: `You are an intelligent classifier for a study app called LeafAI. Analyze the user's message and decide:
 
-CHAT: ONLY for greetings, thanks, emotional support. NOT for questions!
-COMMAND: App actions - create flashcards, quiz, summarize notes
-RESEARCH: ANY question needing facts, comparisons, explanations
+1. INTENT - What does the user want?
+   - CHAT: Greetings, thanks, goodbyes, emotional support, casual conversation (NOT questions!)
+   - COMMAND: Create flashcards/study sets/quizzes, summarize notes, app actions
+   - RESEARCH: Questions needing factual answers, explanations, comparisons, definitions
 
-${recentHistory ? `Context:\n${recentHistory}\n\n` : ''}
-User: "${query}"
-Project: "${projectName}", Has notes: ${hasNotes}
+2. NEEDS_WEB_SEARCH - Does this need current/factual information from the web?
+   - true: Questions about facts, current events, comparisons, "how to", definitions, explanations
+   - false: Greetings, creating study sets (topic already known), casual chat, summarizing notes
 
-JSON only:
-{"path":"CHAT|COMMAND|RESEARCH","reason":"brief","command_type":"create_study_set|quiz_me|summarize_notes|explain_more|null","topic":"if any"}`,
+3. COMMAND_TYPE (only if COMMAND):
+   - create_study_set: User wants flashcards/study set created
+   - quiz_me: User wants to be quizzed
+   - summarize_notes: User wants notes summarized
+   - explain_more: User wants more explanation on previous topic
+
+4. TOPIC - Extract the actual subject matter (not filler words):
+   - "create a study set on animals" → topic: "animals"
+   - "can you make flashcards about photosynthesis" → topic: "photosynthesis"
+   - "what is machine learning" → topic: "machine learning"
+
+5. SEARCH_QUERY - If web search needed, optimize the query for search engines
+
+${recentHistory ? `CONVERSATION CONTEXT:\n${recentHistory}\n\n` : ''}
+PROJECT: "${projectName}"
+HAS_NOTES: ${hasNotes}
+
+USER MESSAGE: "${query}"
+
+Respond in JSON format ONLY:
+{
+  "intent": "CHAT|COMMAND|RESEARCH",
+  "reason": "brief explanation",
+  "needs_web_search": true|false,
+  "command_type": "create_study_set|quiz_me|summarize_notes|explain_more|null",
+  "topic": "extracted topic or null",
+  "from_notes": true|false,
+  "search_query": "optimized search query or null",
+  "chat_response": "friendly response if CHAT, or null"
+}`,
       temperature: 0.1,
-      maxOutputTokens: 150
+      maxOutputTokens: 300
     })
 
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0])
-      const path = (parsed.path as RouterPath) || 'RESEARCH'
+      const intent = (parsed.intent as RouterPath) || 'RESEARCH'
+      const needsWebSearch = parsed.needs_web_search === true
+      const topic = parsed.topic || null
+      const fromNotes = parsed.from_notes === true || /\b(my\s+)?notes?\b|\bmy\s+(content|material)\b|\bfrom\s+notes?\b/i.test(query)
       
+      console.log('[LLM Classifier]', {
+        intent,
+        needsWebSearch,
+        commandType: parsed.command_type,
+        topic,
+        reason: parsed.reason
+      })
+      
+      // Build action payload for COMMAND path
       let action_payload: CommandAction | null = null
-      if (path === 'COMMAND' && parsed.command_type) {
+      if (intent === 'COMMAND' && parsed.command_type) {
         switch (parsed.command_type) {
           case 'create_study_set':
-            // Use dedicated LLM topic extraction for study sets
-            const extracted = await extractStudySetTopic(query, conversationHistory)
             action_payload = {
               type: 'create_study_set',
-              topic: extracted.topic || undefined,
-              fromNotes: extracted.fromNotes
+              topic: topic || undefined,
+              fromNotes
             }
             break
           case 'quiz_me':
-            action_payload = { type: 'quiz_me', topic: parsed.topic }
+            action_payload = { type: 'quiz_me', topic }
             break
           case 'summarize_notes':
             action_payload = { type: 'summarize_notes' }
             break
           case 'explain_more':
-            action_payload = { type: 'explain_more', context: parsed.topic }
+            action_payload = { type: 'explain_more', context: topic }
             break
         }
       }
       
+      // Generate chat response for CHAT path
+      let chatResponse: string | undefined = undefined
+      if (intent === 'CHAT') {
+        chatResponse = parsed.chat_response || generateSimpleChatResponse(query)
+      }
+      
       return {
-        path,
-        reason: `LLM fallback: ${parsed.reason || 'classified'}`,
+        path: intent,
+        reason: `LLM: ${parsed.reason || 'classified'}`,
         action_payload,
-        chat_response: path === 'CHAT' ? getChatResponse(query) : undefined,
-        research_query: path === 'RESEARCH' ? (parsed.topic || query) : undefined,
-        confidence: 0.7 // LLM fallback has moderate confidence
+        chat_response: chatResponse,
+        research_query: parsed.search_query || query,
+        needsWebSearch,
+        topic
       }
     }
   } catch (error) {
-    console.error('[Router Brain] LLM fallback error:', error)
+    console.error('[LLM Classifier] Error:', error)
   }
 
-  // Ultimate fallback - default to RESEARCH
+  // Fallback - default to RESEARCH with web search
   return {
     path: 'RESEARCH',
-    reason: 'Ultimate fallback - defaulting to research',
+    reason: 'Fallback - defaulting to research with web search',
     action_payload: null,
     research_query: query,
-    confidence: 0.5
+    needsWebSearch: true
   }
+}
+
+/**
+ * Simple chat response generator for fallback cases
+ */
+function generateSimpleChatResponse(query: string): string {
+  const q = query.toLowerCase().trim()
+  
+  if (/^(hi|hey|hello|howdy|hiya|yo|sup|heya)/i.test(q)) {
+    return "Hello! 👋 How can I help you today? Feel free to ask me anything about your studies!"
+  }
+  if (/^good\s+(morning)/i.test(q)) {
+    return "Good morning! ☀️ Ready to learn something new today?"
+  }
+  if (/^good\s+(afternoon)/i.test(q)) {
+    return "Good afternoon! 🌤️ How can I help with your studies?"
+  }
+  if (/^good\s+(evening|night)/i.test(q)) {
+    return "Good evening! 🌙 Still hitting the books? I'm here to help!"
+  }
+  if (/^(thanks|thank\s+you|thx|ty)/i.test(q)) {
+    return "You're welcome! Let me know if there's anything else I can help you with. 🙌"
+  }
+  if (/^(bye|goodbye|see\s+you|later|cya)/i.test(q)) {
+    return "Goodbye! Good luck with your studies! 📚 Come back anytime!"
+  }
+  if (/^(ok|okay|alright|got\s+it)/i.test(q)) {
+    return "Great! Let me know if you have any questions."
+  }
+  
+  return "I'm here to help! Feel free to ask me anything. 😊"
 }
 
 /**
@@ -585,68 +544,6 @@ Respond in JSON format ONLY:
   }
 
   return { hasGaps: false, suggestedQuery: null, confidence: 70 }
-}
-
-// LLM-based study set topic extraction
-// Uses LLM to understand what the user actually wants to create a study set about
-async function extractStudySetTopic(
-  query: string,
-  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
-): Promise<{ isRequest: boolean; topic: string; fromNotes: boolean }> {
-  // First, check if this is even a study set request using simple patterns
-  const hasStudySetKeyword = /\b(create|make|generate|build|give\s+me)\b.*\b(study\s*set|flashcard|quiz|question)/i.test(query) ||
-    /\b(study\s*set|flashcard|quiz)\b.*\b(about|on|for)\b/i.test(query)
-  
-  if (!hasStudySetKeyword) {
-    return { isRequest: false, topic: '', fromNotes: false }
-  }
-
-  // Check if user wants to use their notes
-  const fromNotes = /\b(my\s+)?notes?\b|\bmy\s+(content|material)\b|\bfrom\s+notes?\b/i.test(query)
-
-  // Build conversation context for better understanding
-  const recentHistory = conversationHistory.slice(-3).map(m => 
-    `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content.slice(0, 150)}...`
-  ).join('\n')
-
-  try {
-    const { text } = await generateText({
-      model: groq('llama-3.1-8b-instant'),
-      prompt: `You are extracting the TOPIC for a study set creation request.
-
-The user wants to create a study set (flashcards/quiz). Your job is to identify WHAT TOPIC they want the study set about.
-
-${recentHistory ? `Recent conversation:\n${recentHistory}\n\n` : ''}
-
-User's request: "${query}"
-
-IMPORTANT:
-- Extract ONLY the topic/subject matter
-- Remove filler words like "can you", "please", "a", "the"
-- The topic should be what the study materials will be ABOUT
-- If they say "create a study set on animals" → topic is "animals"
-- If they say "can you create a study set on animals" → topic is "animals"
-- If they say "flashcards about photosynthesis" → topic is "photosynthesis"
-- If they mention "my notes" or "from notes", the topic might be general like "notes content"
-
-Respond with ONLY the topic (1-5 words), nothing else:`,
-      temperature: 0.1,
-      maxOutputTokens: 30
-    })
-
-    const topic = text.trim().replace(/^["']|["']$/g, '').replace(/[?.!]+$/, '')
-    console.log('[extractStudySetTopic] Query:', query, '→ Topic:', topic)
-    
-    return { 
-      isRequest: true, 
-      topic: topic.length > 2 ? topic : '', 
-      fromNotes 
-    }
-  } catch (error) {
-    console.error('[extractStudySetTopic] Error:', error)
-    // Fallback to simple extraction if LLM fails
-    return { isRequest: true, topic: '', fromNotes }
-  }
 }
 
 // Generate study set items from a topic
@@ -1150,16 +1047,49 @@ export async function POST(request: NextRequest) {
 
       // ============================================
       // PATH 3: RESEARCH (The "Search" Path)
-      // Only runs if user genuinely needs external info
+      // AI decides if web search is needed
       // ============================================
-      console.log('[Stream API] Taking RESEARCH path - searching the web')
       
       // Check if this is a study set request that needs web research
       const isStudySetFromWeb = classification.action_payload?.type === 'create_study_set' && classification.action_payload.topic
       const searchTopic = classification.research_query || query
       
-      console.log('[Stream API] RESEARCH path - isStudySetFromWeb:', isStudySetFromWeb)
-      console.log('[Stream API] RESEARCH path - action_payload:', JSON.stringify(classification.action_payload))
+      // AI decides if we need web search
+      const shouldSearchWeb = classification.needsWebSearch !== false // Default to true if not specified
+      
+      console.log('[Stream API] Taking RESEARCH path', { 
+        needsWebSearch: shouldSearchWeb, 
+        isStudySetFromWeb,
+        topic: classification.topic 
+      })
+
+      // If AI says no web search needed, answer directly from LLM knowledge
+      if (!shouldSearchWeb && !isStudySetFromWeb) {
+        console.log('[Stream API] AI decided: No web search needed - using LLM knowledge')
+        await sendEvent('status', { step: 'generating', message: 'Generating answer...' })
+        
+        const { textStream } = streamText({
+          model: groq(modelId),
+          prompt: `You are LeafAI, a knowledgeable study assistant. Answer the user's question directly and helpfully.
+
+Question: ${query}
+
+Provide a clear, accurate, and educational response. Be concise but thorough.`,
+          temperature: 0.7,
+        })
+
+        for await (const chunk of textStream) {
+          await sendEvent('text', { content: chunk })
+        }
+        
+        await sendEvent('done', { 
+          success: true, 
+          citations: [],
+          _debug: { path: 'RESEARCH', webSearchSkipped: true, reason: classification.reason }
+        })
+        await closeStream()
+        return
+      }
 
       // === STEP 1: Send status update ===
       await sendEvent('status', { step: 'optimizing', message: isStudySetFromWeb ? 'Preparing to create your study set...' : 'Optimizing your search...' })
