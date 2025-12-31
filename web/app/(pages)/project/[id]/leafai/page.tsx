@@ -795,6 +795,7 @@ export default function LeafAIChatPage() {
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
+        isPro={isPro}
       />
     </div>
   )

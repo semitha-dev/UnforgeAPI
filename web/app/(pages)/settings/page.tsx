@@ -176,6 +176,7 @@ export default function SettingsPage() {
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
+        isPro={profile?.subscription_tier === 'pro'}
       />
 
       {/* Main Content */}

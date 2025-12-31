@@ -1028,6 +1028,7 @@ export default function InsightsPage() {
         <UpgradeModal
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
+          isPro={isPro}
         />
       </div>
     </TooltipProvider>

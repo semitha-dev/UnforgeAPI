@@ -1437,6 +1437,7 @@ export default function GlobalOverviewPage() {
         <UpgradeModal
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
+          isPro={profile?.subscription_tier === 'pro'}
         />
       </div>
     </TooltipProvider>
