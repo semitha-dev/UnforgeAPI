@@ -229,27 +229,28 @@ async function classifyRequest(
       model: groq('llama-3.1-8b-instant'),
       prompt: `You are an intelligent classifier for a study app called LeafAI. Analyze the user's message and decide:
 
-1. INTENT - What does the user want?
-   - CHAT: Greetings, thanks, goodbyes, emotional support, casual conversation (NOT questions!)
-   - COMMAND: Create flashcards/study sets/quizzes, summarize notes, app actions
-   - RESEARCH: Questions needing factual answers, explanations, comparisons, definitions
+1. INTENT - Choose exactly ONE:
+   - "CHAT" = Greetings, thanks, goodbyes, emotional support, casual conversation (NOT questions!)
+   - "COMMAND" = Create flashcards/study sets/quizzes, summarize notes, app actions
+   - "RESEARCH" = Questions needing factual answers, explanations, comparisons, definitions
 
-2. NEEDS_WEB_SEARCH - Does this need current/factual information from the web?
-   - true: Questions about facts, current events, comparisons, "how to", definitions, explanations
-   - false: Greetings, creating study sets (topic already known), casual chat, summarizing notes
+2. NEEDS_WEB_SEARCH - Does this need web search?
+   - true = Questions about facts, current events, comparisons, "how to", definitions
+   - false = Greetings, summarizing notes, casual chat
+   - For "create study set" requests: true (need web info to create content)
 
-3. COMMAND_TYPE (only if COMMAND):
-   - create_study_set: User wants flashcards/study set created
-   - quiz_me: User wants to be quizzed
-   - summarize_notes: User wants notes summarized
-   - explain_more: User wants more explanation on previous topic
+3. COMMAND_TYPE (only if intent is "COMMAND"):
+   - "create_study_set" = User wants flashcards/study set created
+   - "quiz_me" = User wants to be quizzed
+   - "summarize_notes" = User wants notes summarized
+   - "explain_more" = User wants more explanation
 
-4. TOPIC - Extract the actual subject matter (not filler words):
-   - "create a study set on animals" → topic: "animals"
-   - "can you make flashcards about photosynthesis" → topic: "photosynthesis"
-   - "what is machine learning" → topic: "machine learning"
+4. TOPIC - Extract the subject matter (not filler words):
+   - "create a study set on animals" → "animals"
+   - "can you make flashcards about photosynthesis" → "photosynthesis"
+   - "create study set on laptops" → "laptops"
 
-5. SEARCH_QUERY - If web search needed, optimize the query for search engines
+5. SEARCH_QUERY - Optimized query for web search (if needed)
 
 ${recentHistory ? `CONVERSATION CONTEXT:\n${recentHistory}\n\n` : ''}
 PROJECT: "${projectName}"
@@ -257,16 +258,17 @@ HAS_NOTES: ${hasNotes}
 
 USER MESSAGE: "${query}"
 
-Respond in JSON format ONLY:
+IMPORTANT: intent must be exactly one of: "CHAT", "COMMAND", or "RESEARCH" (not multiple!)
+
+JSON response:
 {
-  "intent": "CHAT|COMMAND|RESEARCH",
+  "intent": "COMMAND",
   "reason": "brief explanation",
-  "needs_web_search": true|false,
-  "command_type": "create_study_set|quiz_me|summarize_notes|explain_more|null",
-  "topic": "extracted topic or null",
-  "from_notes": true|false,
-  "search_query": "optimized search query or null",
-  "chat_response": "friendly response if CHAT, or null"
+  "needs_web_search": true,
+  "command_type": "create_study_set",
+  "topic": "extracted topic",
+  "from_notes": false,
+  "search_query": "optimized search query"
 }`,
       temperature: 0.1,
       maxOutputTokens: 300
@@ -275,7 +277,28 @@ Respond in JSON format ONLY:
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0])
-      const intent = (parsed.intent as RouterPath) || 'RESEARCH'
+      
+      // Validate and normalize intent - must be exactly one of CHAT, COMMAND, RESEARCH
+      let intent: RouterPath = 'RESEARCH' // default
+      const rawIntent = String(parsed.intent || '').toUpperCase().trim()
+      
+      if (rawIntent === 'CHAT') {
+        intent = 'CHAT'
+      } else if (rawIntent === 'COMMAND' || parsed.command_type) {
+        // If command_type is set, treat as COMMAND regardless of intent
+        intent = 'COMMAND'
+      } else if (rawIntent === 'RESEARCH') {
+        intent = 'RESEARCH'
+      } else {
+        // Invalid intent (e.g., "CHAT|COMMAND") - infer from command_type or default to RESEARCH
+        if (parsed.command_type && parsed.command_type !== 'null') {
+          intent = 'COMMAND'
+        } else {
+          intent = 'RESEARCH'
+        }
+        console.log('[LLM Classifier] Invalid intent:', rawIntent, '→ normalized to:', intent)
+      }
+      
       const needsWebSearch = parsed.needs_web_search === true
       const topic = parsed.topic || null
       const fromNotes = parsed.from_notes === true || /\b(my\s+)?notes?\b|\bmy\s+(content|material)\b|\bfrom\s+notes?\b/i.test(query)
