@@ -125,6 +125,10 @@ export default function GlobalOverviewPage() {
   const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<string | null>(null)
   const [isLoadingStudySet, setIsLoadingStudySet] = useState(false)
   
+  // Research limit tracking for free users
+  const [researchUsed, setResearchUsed] = useState(0)
+  const [researchLimit, setResearchLimit] = useState(3)
+  
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const router = useRouter()
@@ -335,6 +339,13 @@ export default function GlobalOverviewPage() {
               } else if (data.type === 'rate_limit') {
                 // Rate limit error for anonymous users
                 throw new Error(`⏱️ ${data.message}`)
+              } else if (data.remaining !== undefined && data.limit !== undefined && data.usedToday !== undefined) {
+                // Research limit update for free users
+                setResearchUsed(data.usedToday)
+                setResearchLimit(data.limit)
+              } else if (data.dailyLimitReached) {
+                // Free user hit daily research limit - mode was downgraded
+                setResearchUsed(3)
               } else if (data.message && !data.step) {
                 // Error
                 throw new Error(data.message)
@@ -605,6 +616,24 @@ export default function GlobalOverviewPage() {
 
               {/* Search Input */}
               <div className="w-full max-w-3xl mb-6 lg:mb-8 px-2 sm:px-0">
+                {/* Research Mode Usage Banner - Only for free users */}
+                {profile?.subscription_tier === 'free' && researchUsed > 0 && (
+                  <div className="flex items-center justify-center gap-2 mb-3 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+                    <Brain className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm text-purple-300">
+                      Research mode: <span className="font-semibold text-purple-200">{researchUsed}/{researchLimit}</span> used today
+                      {researchUsed >= researchLimit && (
+                        <span className="text-purple-400 ml-2">• Limit reached</span>
+                      )}
+                    </span>
+                    {researchUsed < researchLimit && (
+                      <span className="text-xs text-purple-400 ml-1">
+                        ({researchLimit - researchUsed} remaining)
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Attached Files Preview */}
                 {attachedFiles.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3 px-2">
@@ -870,6 +899,21 @@ export default function GlobalOverviewPage() {
               {/* Bottom Input - Fixed on mobile, sticky on desktop */}
               <div className="fixed lg:sticky bottom-0 left-0 right-0 lg:left-auto lg:right-auto bg-gradient-to-t from-black via-black to-transparent pt-4 sm:pt-6 pb-20 lg:pb-6 px-3 sm:px-4 z-30">
                 <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
+                  {/* Research Mode Usage Banner - Only for free users in conversation view */}
+                  {profile?.subscription_tier === 'free' && researchUsed > 0 && (
+                    <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+                      <Brain className="w-3.5 h-3.5 text-purple-400" />
+                      <span className="text-xs text-purple-300">
+                        Research: <span className="font-semibold text-purple-200">{researchUsed}/{researchLimit}</span>
+                        {researchUsed >= researchLimit ? (
+                          <span className="text-purple-400 ml-1">• Limit reached</span>
+                        ) : (
+                          <span className="text-purple-400 ml-1">• {researchLimit - researchUsed} left</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Mode Selector */}
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <button
