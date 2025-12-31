@@ -139,7 +139,7 @@ export default function TopNav() {
                 {/* Menu Items */}
                 <div className="py-1">
                   <Link
-                    href="/dashboard/settings"
+                    href="/settings"
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                   >
@@ -160,7 +160,7 @@ export default function TopNav() {
                   </Link>
 
                   <Link
-                    href="/dashboard/settings"
+                    href="/settings"
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                   >

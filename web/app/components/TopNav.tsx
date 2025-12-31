@@ -478,19 +478,19 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings" className="cursor-pointer">
+                <Link href="/settings" className="cursor-pointer">
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings?section=tokens" className="cursor-pointer">
+                <Link href="/settings?section=tokens" className="cursor-pointer">
                   <CreditCard className="mr-2 h-4 w-4" />
                   Billing
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard/settings" className="cursor-pointer">
+                <Link href="/settings" className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Link>

@@ -266,7 +266,7 @@ export default function InsightsPage() {
         }
         break
       case 'reschedule':
-        router.push('/dashboard/settings')
+        router.push('/settings')
         break
       case 'generate_content':
         if (actionData?.projectId) {

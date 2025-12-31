@@ -54,12 +54,12 @@ const mainNavItems = [
 const bottomNavItems = [
   {
     title: 'Profile',
-    href: '/dashboard/settings',
+    href: '/settings',
     icon: User,
   },
   {
     title: 'Billing',
-    href: '/dashboard/settings?section=tokens',
+    href: '/settings?section=tokens',
     icon: CreditCard,
   },
   {

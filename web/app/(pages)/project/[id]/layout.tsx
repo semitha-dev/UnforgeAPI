@@ -940,22 +940,29 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                       <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-neutral-800 text-white">{(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                       </Avatar>
-                      <span className="hidden sm:block text-sm font-medium text-neutral-200">{profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || 'User'}</span>
+                      <div className="hidden sm:flex items-center gap-1.5">
+                        <span className="text-sm font-medium text-neutral-200">{profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || 'User'}</span>
+                        {profile?.subscription_tier === 'pro' && (
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded">PRO</span>
+                        )}
+                      </div>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>
                       <div className="flex flex-col">
-                        <span className="font-medium">{profile?.name || profile?.email?.split('@')[0] || 'User'}</span>
-                        <span className="text-xs text-neutral-500">{profile?.email || 'Student'}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium">{profile?.name || profile?.email?.split('@')[0] || 'User'}</span>
+                          {profile?.subscription_tier === 'pro' && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded">PRO</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-neutral-500">{profile?.email || ''}</span>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+                    <DropdownMenuItem onClick={() => router.push('/settings')}>
                       <User className="h-4 w-4 mr-2" />Settings
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-                      <LayoutDashboard className="h-4 w-4 mr-2" />Dashboard
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
