@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import Link from 'next/link'
 import { createClient } from '@/app/lib/supabaseClient'
+import { User, GraduationCap, Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface FormData {
   name: string
@@ -68,8 +69,8 @@ export default function ProfileSetupPage() {
         }
 
         if (profile) {
-          // User already has a profile, redirect to dashboard
-          router.push('/dashboard')
+          // User already has a profile, redirect to overview
+          router.push('/overview')
           return
         }
       } catch (error) {
@@ -131,7 +132,7 @@ export default function ProfileSetupPage() {
         return
       }
 
-      // Call server-side API to create profile and token transaction
+      // Call server-side API to create profile
       const response = await fetch('/api/profile/setup', {
         method: 'POST',
         headers: {
@@ -151,15 +152,15 @@ export default function ProfileSetupPage() {
         if (response.status === 409) {
           // Profile already exists
           setErrors({ general: 'Profile already exists. Redirecting...' })
-          setTimeout(() => router.push('/dashboard'), 1500)
+          setTimeout(() => router.push('/overview'), 1500)
         } else {
           setErrors({ general: data.error || 'Failed to create profile. Please try again.' })
         }
         return
       }
 
-      // Success! Redirect to dashboard
-      router.push('/dashboard')
+      // Success! Redirect to overview
+      router.push('/overview')
     } catch (error: any) {
       console.error('Unexpected error:', error)
       setErrors({ general: 'An unexpected error occurred. Please try again.' })
@@ -171,32 +172,48 @@ export default function ProfileSetupPage() {
   // Show loading state while initializing
   if (isInitializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4A7C59] mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <Loader2 className="h-10 w-10 animate-spin text-emerald-500 mx-auto" />
+          <p className="mt-4 text-neutral-400">Loading...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-white px-8 py-12 lg:px-16">
-        <div className="w-full max-w-md">
+    <div className="min-h-screen bg-neutral-950 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex items-center justify-center mb-8">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-white">leaflearning</span>
+          </Link>
+        </div>
+
+        {/* Main Card */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8">
           {/* Header */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Complete Your Profile
-          </h1>
-          <p className="text-gray-600 mb-8">
-            Just a few more details to personalize your experience
-          </p>
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 mb-6 mx-auto">
+              <User className="h-8 w-8 text-emerald-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">
+              Complete Your Profile
+            </h1>
+            <p className="text-neutral-400">
+              Just a few more details to personalize your experience
+            </p>
+          </div>
 
           {/* General Error */}
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 text-sm">{errors.general}</p>
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+              <p className="text-red-300 text-sm">{errors.general}</p>
             </div>
           )}
 
@@ -204,58 +221,73 @@ export default function ProfileSetupPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email Display */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Email address
               </label>
-              <div className="w-full px-4 py-2.5 text-gray-500 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="w-full px-4 py-3 text-neutral-500 bg-neutral-800/50 border border-neutral-700 rounded-xl">
                 {userEmail}
               </div>
-              <p className="mt-1 text-xs text-gray-400">This cannot be changed</p>
+              <p className="mt-1.5 text-xs text-neutral-500">This cannot be changed</p>
             </div>
 
             {/* Name Field */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="name" className="block text-sm font-medium text-neutral-300 mb-2">
                 Full name
               </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                value={formData.name}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-2.5 text-gray-900 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#4A7C59] focus:border-[#4A7C59] ${
-                  errors.name ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Enter your full name"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <User className="h-4 w-4 text-neutral-500" />
+                </div>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className={`w-full pl-11 pr-4 py-3 bg-neutral-800 text-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent placeholder:text-neutral-500 ${
+                    errors.name ? 'border-red-500' : 'border-neutral-700'
+                  }`}
+                  placeholder="Enter your full name"
+                />
+              </div>
               {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                <p className="mt-1.5 text-sm text-red-400">{errors.name}</p>
               )}
             </div>
 
             {/* Education Level Field */}
             <div>
-              <label htmlFor="educationLevel" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label htmlFor="educationLevel" className="block text-sm font-medium text-neutral-300 mb-2">
                 Education level
               </label>
-              <select
-                id="educationLevel"
-                name="educationLevel"
-                value={formData.educationLevel}
-                onChange={handleInputChange}
-                className={`w-full px-4 py-2.5 text-gray-900 border rounded-lg focus:outline-none focus:ring-1 focus:ring-[#4A7C59] focus:border-[#4A7C59] bg-white ${
-                  errors.educationLevel ? 'border-red-300' : 'border-gray-300'
-                }`}
-              >
-                {educationLevels.map((level) => (
-                  <option key={level.value} value={level.value}>
-                    {level.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <GraduationCap className="h-4 w-4 text-neutral-500" />
+                </div>
+                <select
+                  id="educationLevel"
+                  name="educationLevel"
+                  value={formData.educationLevel}
+                  onChange={handleInputChange}
+                  className={`w-full pl-11 pr-4 py-3 bg-neutral-800 text-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none cursor-pointer ${
+                    errors.educationLevel ? 'border-red-500' : 'border-neutral-700'
+                  } ${!formData.educationLevel ? 'text-neutral-500' : ''}`}
+                >
+                  {educationLevels.map((level) => (
+                    <option key={level.value} value={level.value} className="bg-neutral-800 text-white">
+                      {level.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                  <svg className="h-4 w-4 text-neutral-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
               {errors.educationLevel && (
-                <p className="mt-1 text-sm text-red-600">{errors.educationLevel}</p>
+                <p className="mt-1.5 text-sm text-red-400">{errors.educationLevel}</p>
               )}
             </div>
 
@@ -263,46 +295,43 @@ export default function ProfileSetupPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 rounded-full text-white bg-[#4A7C59] hover:bg-[#3d6649] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4A7C59] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium"
+              className="w-full py-3 px-4 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:ring-offset-neutral-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium flex items-center justify-center gap-2"
             >
-              {isLoading ? 'Setting up...' : 'Complete Setup'}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Setting up...
+                </>
+              ) : (
+                'Complete Setup'
+              )}
             </button>
           </form>
 
-          {/* Welcome bonus note */}
-          <div className="mt-6 p-4 bg-emerald-50 border border-emerald-100 rounded-lg">
+          {/* Welcome note */}
+          <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div>
+              <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-emerald-800">Welcome bonus!</p>
-                <p className="text-xs text-emerald-600 mt-0.5">You'll receive 500 free tokens to get started with LeafLearning.</p>
+                <p className="text-sm font-medium text-emerald-300">Almost there!</p>
+                <p className="text-xs text-emerald-400/70 mt-0.5">Complete your profile to unlock all LeafLearning features.</p>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Right Side - Image */}
-      <div className="hidden lg:block lg:w-1/2 relative">
-        {/* Glassy blur with gradient edges */}
-        <div className="absolute inset-y-0 left-0 w-16 z-10" style={{
-          background: 'linear-gradient(to right, white 0%, rgba(255,255,255,0.5) 30%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 80%, transparent 100%)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          maskImage: 'linear-gradient(to right, black 0%, black 40%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, black 0%, black 40%, transparent 100%)'
-        }}></div>
-        <Image
-          src="/leaf3.jpg"
-          alt="Leaf"
-          fill
-          className="object-cover object-right"
-          priority
-        />
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-neutral-500">
+            Need help?{' '}
+            <Link
+              href="/support"
+              className="text-emerald-400 font-medium hover:text-emerald-300 transition-colors"
+            >
+              Contact Support
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )

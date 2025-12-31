@@ -253,10 +253,96 @@ export default function ProjectOverview() {
   }
 
   const formatAnswer = (answer: string) => {
-    // Convert markdown-style citations [1] to styled spans
-    return answer.replace(/\[(\d+)\]/g, (_, num) => {
+    let html = answer
+    
+    // Handle code blocks first (preserve them from other transformations)
+    const codeBlocks: string[] = []
+    html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+      const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
+      codeBlocks.push(`<pre class="bg-neutral-800 text-neutral-100 p-4 rounded-xl text-sm overflow-x-auto my-3 font-mono"><code>${code.trim()}</code></pre>`)
+      return placeholder
+    })
+    
+    // Handle headers (order matters - process larger headers first)
+    html = html.replace(/^###### (.+)$/gm, '<h6 class="font-medium text-sm mt-3 mb-1.5 text-neutral-300">$1</h6>')
+    html = html.replace(/^##### (.+)$/gm, '<h5 class="font-medium text-sm mt-3 mb-1.5 text-neutral-300">$1</h5>')
+    html = html.replace(/^#### (.+)$/gm, '<h4 class="font-semibold text-base mt-4 mb-2 text-neutral-200">$1</h4>')
+    html = html.replace(/^### (.+)$/gm, '<h3 class="font-semibold text-lg mt-4 mb-2 text-neutral-200">$1</h3>')
+    html = html.replace(/^## (.+)$/gm, '<h2 class="font-semibold text-xl mt-5 mb-3 text-white">$1</h2>')
+    html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-2xl mt-5 mb-3 text-white">$1</h1>')
+    
+    // Handle bold
+    html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong class="font-semibold text-white">$1</strong>')
+    // Handle italic
+    html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
+    
+    // Handle inline code
+    html = html.replace(/`([^`\n]+)`/g, '<code class="bg-neutral-800 px-1.5 py-0.5 rounded text-sm font-mono text-cyan-400">$1</code>')
+    
+    // Restore code blocks
+    codeBlocks.forEach((block, i) => {
+      html = html.replace(`__CODE_BLOCK_${i}__`, block)
+    })
+    
+    // Handle links
+    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-cyan-400 hover:text-cyan-300 underline" target="_blank">$1</a>')
+    
+    // Convert citations [1] to styled spans
+    html = html.replace(/\[(\d+)\]/g, (_, num) => {
       return `<sup class="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold bg-neutral-700 text-white rounded ml-0.5 cursor-pointer hover:bg-neutral-600">${num}</sup>`
     })
+    
+    // Process lists and paragraphs
+    const lines = html.split('\n')
+    const processed: string[] = []
+    let inList = false
+    let listType = ''
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      const trimmed = line.trim()
+      
+      if (!trimmed) {
+        if (inList) { processed.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false }
+        continue
+      }
+      
+      // Bullet points
+      const bulletMatch = trimmed.match(/^[-*]\s+(.+)$/)
+      if (bulletMatch) {
+        if (!inList || listType !== 'ul') {
+          if (inList) processed.push(listType === 'ul' ? '</ul>' : '</ol>')
+          processed.push('<ul class="list-disc list-inside my-3 space-y-1.5 text-neutral-300">')
+          inList = true; listType = 'ul'
+        }
+        processed.push(`<li>${bulletMatch[1]}</li>`)
+        continue
+      }
+      
+      // Numbered lists
+      const numMatch = trimmed.match(/^\d+\.\s+(.+)$/)
+      if (numMatch) {
+        if (!inList || listType !== 'ol') {
+          if (inList) processed.push(listType === 'ul' ? '</ul>' : '</ol>')
+          processed.push('<ol class="list-decimal list-inside my-3 space-y-1.5 text-neutral-300">')
+          inList = true; listType = 'ol'
+        }
+        processed.push(`<li>${numMatch[1]}</li>`)
+        continue
+      }
+      
+      if (inList) { processed.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; listType = '' }
+      
+      // Skip if already HTML
+      if (trimmed.startsWith('<')) { processed.push(trimmed); continue }
+      
+      // Paragraph
+      processed.push(`<p class="my-2 text-neutral-300 leading-relaxed">${trimmed}</p>`)
+    }
+    
+    if (inList) processed.push(listType === 'ul' ? '</ul>' : '</ol>')
+    
+    return processed.join('')
   }
 
   const getRelativeTime = (timestamp: string) => {
@@ -324,10 +410,6 @@ export default function ProjectOverview() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-neutral-600 text-xs hidden sm:block">
-                      <Zap className="w-3 h-3 inline mr-1" />
-                      Groq + Tavily
-                    </span>
                     <button
                       type="submit"
                       disabled={!query.trim() || isSearching}
@@ -581,10 +663,6 @@ export default function ProjectOverview() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-neutral-600 text-xs hidden sm:block">
-                        <Zap className="w-3 h-3 inline mr-1" />
-                        Groq + Tavily
-                      </span>
                       <button
                         type="submit"
                         disabled={!query.trim() || isSearching}

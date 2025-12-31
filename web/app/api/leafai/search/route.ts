@@ -259,16 +259,28 @@ async function generateChatResponse(
       messages: [
         {
           role: 'system',
-          content: `You are a friendly, helpful study companion AI called LeafAI. The user is working on their "${projectName}" project. Respond naturally and helpfully. Be warm, encouraging, and supportive. Keep responses concise (2-3 sentences).`
+          content: `You are Leaf AI (or just "Leaf"), the intelligent AI assistant built into LeafLearning - a modern study platform.
+
+About you:
+- Your name is Leaf AI, created by the LeafLearning team
+- You help students learn more effectively with notes, flashcards, and AI-powered study tools
+- You're currently helping the user with their "${projectName}" project
+
+Personality:
+- Friendly, warm, and encouraging - like a helpful study buddy
+- Keep responses concise (2-4 sentences max)
+- Be supportive and make learning feel approachable
+
+When asked "who are you", introduce yourself as Leaf AI from LeafLearning.`
         },
         { role: 'user', content: query }
       ],
       temperature: 0.7,
-      max_tokens: 150
+      max_tokens: 200
     })
-    return completion.choices[0]?.message?.content?.trim() || "I'm here to help! Feel free to ask me anything about your studies. 📚"
+    return completion.choices[0]?.message?.content?.trim() || "Hey! I'm Leaf AI, your study companion on LeafLearning. Feel free to ask me anything! 📚"
   } catch (error) {
-    return "I'm here to help! Feel free to ask me anything about your studies. 📚"
+    return "Hey! I'm Leaf AI, your study companion. Feel free to ask me anything about your studies! 📚"
   }
 }
 
@@ -390,9 +402,11 @@ async function synthesizeAnswer(
   const hasNotes = notesContext && notesContext.length > 0
 
   try {
-    const systemPrompt = `You are a research assistant that answers based on the provided search results${hasNotes ? ' AND the user\'s own notes from their project' : ''}.
+    const systemPrompt = `You are Leaf AI, an intelligent research assistant built into LeafLearning - a study platform that helps students learn more effectively.
 
-CRITICAL RULES:
+When the user asks about your identity ("who are you?", "what are you?", etc.), explain that you are Leaf AI, the AI assistant in LeafLearning that helps students with research, studying, and creating study materials.
+
+CRITICAL RULES FOR RESEARCH QUERIES:
 - Use information from the web search results provided below
 ${hasNotes ? '- IMPORTANT: Also reference and incorporate relevant information from the user\'s own notes when applicable\n- When using info from user notes, mention "Based on your notes..." or "Your notes mention..."\n' : ''}- Do NOT use your training data or prior knowledge beyond what's provided
 - If the search results don't contain enough information, say "Based on the search results, I found limited information about this topic"

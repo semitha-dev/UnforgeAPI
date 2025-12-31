@@ -640,11 +640,11 @@ export default function RichTextEditor({
       return `<pre style="background: #1f2937; color: #f3f4f6; padding: 12px; border-radius: 8px; font-size: 13px; overflow-x: auto; margin: 8px 0; font-family: monospace;"><code>${code.trim()}</code></pre>`
     })
     
-    // Handle headers
-    html = html.replace(/^#{4,}\s+(.+)$/gm, '<p style="font-weight: 600; font-size: 14px; margin: 12px 0 6px 0; color: #1f2937;">$1</p>')
-    html = html.replace(/^###\s+(.+)$/gm, '<p style="font-weight: 600; font-size: 15px; margin: 14px 0 6px 0; color: #1f2937;">$1</p>')
-    html = html.replace(/^##\s+(.+)$/gm, '<p style="font-weight: 700; font-size: 16px; margin: 16px 0 8px 0; color: #111827;">$1</p>')
-    html = html.replace(/^#\s+(.+)$/gm, '<p style="font-weight: 700; font-size: 18px; margin: 16px 0 8px 0; color: #111827;">$1</p>')
+    // Handle headers - use light colors for dark theme
+    html = html.replace(/^#{4,}\s+(.+)$/gm, '<p style="font-weight: 600; font-size: 14px; margin: 12px 0 6px 0; color: #e5e5e5;">$1</p>')
+    html = html.replace(/^###\s+(.+)$/gm, '<p style="font-weight: 600; font-size: 15px; margin: 14px 0 6px 0; color: #e5e5e5;">$1</p>')
+    html = html.replace(/^##\s+(.+)$/gm, '<p style="font-weight: 700; font-size: 16px; margin: 16px 0 8px 0; color: #f5f5f5;">$1</p>')
+    html = html.replace(/^#\s+(.+)$/gm, '<p style="font-weight: 700; font-size: 18px; margin: 16px 0 8px 0; color: #f5f5f5;">$1</p>')
     
     // Remove markdown header underlines (=== or ---)
     html = html.replace(/^[=]{2,}$/gm, '')
@@ -655,7 +655,7 @@ export default function RichTextEditor({
     html = html.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
     
     // Handle inline code
-    html = html.replace(/`([^`]+)`/g, '<code style="background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace;">$1</code>')
+    html = html.replace(/`([^`]+)`/g, '<code style="background: #374151; color: #e5e5e5; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace;">$1</code>')
     
     // Handle links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #2563eb; text-decoration: underline;">$1</a>')
@@ -681,7 +681,7 @@ export default function RichTextEditor({
           result.push('<ul style="margin: 8px 0; padding-left: 24px; list-style-type: disc;">')
           inList = true; listType = 'ul'
         }
-        result.push(`<li style="margin: 4px 0; color: #374151;">${bulletMatch[1]}</li>`)
+        result.push(`<li style="margin: 4px 0; color: #d4d4d4;">${bulletMatch[1]}</li>`)
         continue
       }
       
@@ -693,7 +693,7 @@ export default function RichTextEditor({
           result.push('<ol style="margin: 8px 0; padding-left: 24px; list-style-type: decimal;">')
           inList = true; listType = 'ol'
         }
-        result.push(`<li style="margin: 4px 0; color: #374151;">${numMatch[1]}</li>`)
+        result.push(`<li style="margin: 4px 0; color: #d4d4d4;">${numMatch[1]}</li>`)
         continue
       }
       
@@ -704,7 +704,7 @@ export default function RichTextEditor({
       if (trimmed.startsWith('<')) { result.push(trimmed); continue }
       
       // Regular paragraph
-      result.push(`<p style="margin: 6px 0; color: #374151; line-height: 1.6;">${trimmed}</p>`)
+      result.push(`<p style="margin: 6px 0; color: #d4d4d4; line-height: 1.6;">${trimmed}</p>`)
     }
     
     if (inList) result.push(listType === 'ul' ? '</ul>' : '</ol>')

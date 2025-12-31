@@ -36,17 +36,17 @@ interface SidebarProps {
 const mainNavItems = [
   {
     title: 'Dashboard',
-    href: '/dashboard',
+    href: '/overview',
     icon: LayoutDashboard,
   },
   {
     title: 'Projects',
-    href: '/dashboard',
+    href: '/overview',
     icon: FolderKanban,
   },
   {
     title: 'Study Schedule',
-    href: '/dashboard',
+    href: '/overview',
     icon: Calendar,
   },
 ]
@@ -86,7 +86,7 @@ export default function Sidebar({ onCreateProject }: SidebarProps) {
           "flex items-center h-16 px-4 border-b border-orange-100",
           collapsed ? "justify-center" : "justify-between"
         )}>
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/overview" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-500 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">L</span>
             </div>

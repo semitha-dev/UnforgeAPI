@@ -773,7 +773,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
 
       if (projectError) {
         if (projectError.code === 'PGRST116') {
-          router.push('/dashboard')
+          router.push('/overview')
           return
         }
         setError('Failed to load project')
@@ -781,7 +781,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       }
 
       if (!projectData) {
-        router.push('/dashboard')
+        router.push('/overview')
         return
       }
 
@@ -818,7 +818,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
           <p className="text-red-400 mb-4">{error}</p>
           <div className="space-x-4">
             <Button onClick={loadProject} className="bg-white text-black hover:bg-neutral-200">Try Again</Button>
-            <Button variant="outline" onClick={() => router.push('/dashboard')} className="border-neutral-700 text-white hover:bg-neutral-800">Back to Dashboard</Button>
+            <Button variant="outline" onClick={() => router.push('/overview')} className="border-neutral-700 text-white hover:bg-neutral-800">Back to Overview</Button>
           </div>
         </div>
       </div>

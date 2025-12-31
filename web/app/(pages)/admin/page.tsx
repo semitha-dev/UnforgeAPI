@@ -72,7 +72,7 @@ export default function AdminDashboard() {
         .single()
 
       if (!profile?.is_admin) {
-        router.push('/dashboard')
+        router.push('/overview')
         return
       }
 
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/overview')}
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>

@@ -32,7 +32,7 @@ export function WelcomeGuide({ isOpen, onClose, userName }: WelcomeGuideProps) {
   const steps = [
     {
       id: 'welcome',
-      title: `Welcome to Leaf${userName ? `, ${userName}` : ''}! 🌿`,
+      title: `Welcome to Leaf${userName ? `, ${userName}` : ''}!`,
       subtitle: 'Your AI-Powered Learning Companion',
       content: (
         <div className="space-y-6">

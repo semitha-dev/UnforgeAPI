@@ -75,7 +75,7 @@ export default function AdminFeedbackPage() {
         .single()
 
       if (!profile?.is_admin) {
-        router.push('/dashboard')
+        router.push('/overview')
         return
       }
 

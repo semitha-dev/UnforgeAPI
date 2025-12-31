@@ -98,6 +98,8 @@ export default function InsightsPage() {
   const [totalInsightsCount, setTotalInsightsCount] = useState(0)
   const [limitApplied, setLimitApplied] = useState(false)
   const [limitBannerDismissed, setLimitBannerDismissed] = useState(false)
+  const [notesCount, setNotesCount] = useState<number>(0)
+  const [freeUserLimitMessage, setFreeUserLimitMessage] = useState<string | null>(null)
   const { isPro } = useSubscriptionContext()
   
   const router = useRouter()
@@ -120,18 +122,18 @@ export default function InsightsPage() {
       return
     }
     
-    // Fetch profile only - subscription comes from context
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', user.id)
-      .single()
+    // Fetch profile and notes count
+    const [profileResult, notesResult] = await Promise.all([
+      supabase.from('profiles').select('name').eq('id', user.id).single(),
+      supabase.from('notes').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
+    ])
 
     setProfile({ 
-      name: profileData?.name || null, 
+      name: profileResult.data?.name || null, 
       email: user.email || ''
     })
-    setUserName(profileData?.name || user.email?.split('@')[0] || 'there')
+    setUserName(profileResult.data?.name || user.email?.split('@')[0] || 'there')
+    setNotesCount(notesResult.count || 0)
     
     await loadInsights()
   }
@@ -159,6 +161,9 @@ export default function InsightsPage() {
   }
 
   const generateInsights = async (forceRegenerate = false) => {
+    // Clear any previous limit message
+    setFreeUserLimitMessage(null)
+    
     // Free users can only regenerate once per day
     if (!isPro && forceRegenerate && lastGeneratedAt) {
       const lastGen = new Date(lastGeneratedAt)
@@ -166,7 +171,18 @@ export default function InsightsPage() {
       const hoursSinceLastGen = (now.getTime() - lastGen.getTime()) / (1000 * 60 * 60)
       
       if (hoursSinceLastGen < 24) {
-        setShowUpgradeModal(true)
+        const hoursRemaining = Math.ceil(24 - hoursSinceLastGen)
+        setFreeUserLimitMessage(`You've already generated your report today. Try again in ${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''} or upgrade to Pro for unlimited refreshes.`)
+        return
+      }
+    }
+    
+    // For non-regenerate, check if they already have insights today
+    if (!isPro && !forceRegenerate && lastGeneratedAt) {
+      const lastGen = new Date(lastGeneratedAt)
+      const today = new Date()
+      if (lastGen.toDateString() === today.toDateString()) {
+        setFreeUserLimitMessage('You\'ve already generated your report for today. Come back tomorrow for fresh insights, or upgrade to Pro for unlimited access.')
         return
       }
     }
@@ -181,7 +197,20 @@ export default function InsightsPage() {
         body: JSON.stringify({ forceRegenerate })
       })
       
-      if (!response.ok) throw new Error('Failed to generate insights')
+      const data = await response.json()
+      
+      if (!response.ok) {
+        if (response.status === 429 && data.upgradeRequired) {
+          setFreeUserLimitMessage(`You've already generated your report today. Try again in ${data.hoursRemaining} hour${data.hoursRemaining > 1 ? 's' : ''} or upgrade to Pro.`)
+          return
+        }
+        throw new Error(data.error || 'Failed to generate insights')
+      }
+      
+      if (data.alreadyGenerated) {
+        setFreeUserLimitMessage('You\'ve already generated your report for today. Come back tomorrow!')
+        return
+      }
       
       await loadInsights()
     } catch (err) {
@@ -640,27 +669,59 @@ export default function InsightsPage() {
             ) : filteredInsights.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#13eca4]/20 to-[#7c3aed]/20 flex items-center justify-center mb-4 sm:mb-6">
-                  <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-[#13eca4]" />
+                  {notesCount < 3 ? (
+                    <Brain className="h-8 w-8 sm:h-10 sm:w-10 text-[#7c3aed]" />
+                  ) : (
+                    <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-[#13eca4]" />
+                  )}
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2">
-                  {isPro ? 'No Insights Yet' : '🌅 Morning Report'}
+                  {notesCount < 3 
+                    ? 'Atlas Intelligence Needs More Data' 
+                    : freeUserLimitMessage 
+                      ? 'Daily Report Generated'
+                      : isPro 
+                        ? 'No Insights Yet' 
+                        : '🌅 Morning Report'}
                 </h3>
                 <p className="text-[#9db9b0] text-sm sm:text-base max-w-md mb-4 sm:mb-6">
-                  {isPro 
-                    ? 'Generate insights to analyze your study patterns, identify knowledge gaps, and optimize your learning.'
-                    : 'Start your day with AI-powered insights about your study patterns and memory retention.'}
+                  {notesCount < 3 
+                    ? `Create at least 3 notes to unlock personalized insights. You currently have ${notesCount} note${notesCount !== 1 ? 's' : ''}.`
+                    : freeUserLimitMessage
+                      ? freeUserLimitMessage
+                      : isPro 
+                        ? 'Generate insights to analyze your study patterns, identify knowledge gaps, and optimize your learning.'
+                        : 'Start your day with AI-powered insights about your study patterns and memory retention.'}
                 </p>
-                <button
-                  onClick={() => generateInsights(false)}
-                  disabled={isGenerating}
-                  className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-[#13eca4] text-[#111816] rounded-lg sm:rounded-xl text-sm font-bold hover:bg-[#0ebf84] transition-colors disabled:opacity-50"
-                >
-                  <Zap className={`h-4 w-4 sm:h-5 sm:w-5 ${isGenerating ? 'animate-pulse' : ''}`} />
-                  {isGenerating ? 'Analyzing...' : isPro ? 'Generate Insights' : 'Generate Report'}
-                </button>
-                {!isPro && (
+                {notesCount < 3 ? (
+                  <button
+                    onClick={() => router.push('/overview')}
+                    className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-[#7c3aed] text-white rounded-lg sm:rounded-xl text-sm font-bold hover:bg-[#6d28d9] transition-colors"
+                  >
+                    <Brain className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Create Notes
+                  </button>
+                ) : freeUserLimitMessage ? (
+                  <button
+                    onClick={() => setShowUpgradeModal(true)}
+                    className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-[#13eca4] text-[#111816] rounded-lg sm:rounded-xl text-sm font-bold hover:bg-[#0ebf84] transition-colors"
+                  >
+                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Upgrade to Pro
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => generateInsights(false)}
+                    disabled={isGenerating}
+                    className="flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 bg-[#13eca4] text-[#111816] rounded-lg sm:rounded-xl text-sm font-bold hover:bg-[#0ebf84] transition-colors disabled:opacity-50"
+                  >
+                    <Zap className={`h-4 w-4 sm:h-5 sm:w-5 ${isGenerating ? 'animate-pulse' : ''}`} />
+                    {isGenerating ? 'Analyzing...' : isPro ? 'Generate Insights' : 'Generate Report'}
+                  </button>
+                )}
+                {!isPro && !freeUserLimitMessage && notesCount >= 3 && (
                   <p className="mt-3 sm:mt-4 text-[#9db9b0]/60 text-[10px] sm:text-xs">
-                    Free: 1 report/day • Pro: Unlimited
+                    Free: 1 report/day (50% insights) • Pro: Unlimited
                   </p>
                 )}
               </div>

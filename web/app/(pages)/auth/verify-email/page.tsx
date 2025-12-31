@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
-import { Mail, ArrowLeft, RefreshCw, AlertTriangle, CheckCircle, HelpCircle } from 'lucide-react'
+import { Mail, ArrowLeft, RefreshCw, AlertTriangle, CheckCircle, HelpCircle, Sparkles } from 'lucide-react'
 
 export default function VerifyEmailPage() {
   const [isResending, setIsResending] = useState(false)
@@ -31,7 +30,7 @@ export default function VerifyEmailPage() {
     const checkVerification = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user?.email_confirmed_at) {
-        router.push('/dashboard')
+        router.push('/overview')
       }
     }
     checkVerification()
@@ -39,7 +38,7 @@ export default function VerifyEmailPage() {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
-        router.push('/dashboard')
+        router.push('/overview')
       }
     })
 
@@ -92,80 +91,92 @@ export default function VerifyEmailPage() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Side - Content */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center bg-white px-8 py-12 lg:px-16">
-        <div className="w-full max-w-md">
+    <div className="min-h-screen bg-neutral-950 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="flex items-center justify-center mb-8">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-white">leaflearning</span>
+          </Link>
+        </div>
+
+        {/* Main Card */}
+        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8">
           {/* Email Icon */}
-          <div className="flex items-center justify-center h-16 w-16 rounded-full bg-[#4A7C59]/10 mb-6">
-            <Mail className="h-8 w-8 text-[#4A7C59]" />
+          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 mb-6 mx-auto">
+            <Mail className="h-8 w-8 text-emerald-400" />
           </div>
 
           {/* Header */}
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Check Your Email
-          </h1>
-          <p className="text-gray-600 mb-1">
-            We've sent a verification link to
-          </p>
-          <p className="text-[#4A7C59] font-semibold mb-8">
-            {maskEmail(userEmail)}
-          </p>
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-white mb-2">
+              Check Your Email
+            </h1>
+            <p className="text-neutral-400 mb-1">
+              We've sent a verification link to
+            </p>
+            <p className="text-emerald-400 font-semibold">
+              {maskEmail(userEmail)}
+            </p>
+          </div>
 
           {/* Success/Error Message */}
           {resendMessage && (
-            <div className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${
+            <div className={`mb-6 p-4 rounded-xl flex items-start gap-3 ${
               resendSuccess
-                ? 'bg-green-50 border border-green-200'
-                : 'bg-red-50 border border-red-200'
+                ? 'bg-emerald-500/10 border border-emerald-500/20'
+                : 'bg-red-500/10 border border-red-500/20'
             }`}>
               {resendSuccess ? (
-                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <CheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
               ) : (
-                <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
               )}
-              <p className={`text-sm ${resendSuccess ? 'text-green-700' : 'text-red-600'}`}>
+              <p className={`text-sm ${resendSuccess ? 'text-emerald-300' : 'text-red-300'}`}>
                 {resendMessage}
               </p>
             </div>
           )}
 
-          {/* Instructions Card */}
-          <div className="bg-gray-50 rounded-xl p-6 mb-6">
-            <h3 className="font-semibold text-gray-900 mb-4">
+          {/* Instructions */}
+          <div className="bg-neutral-800/50 rounded-xl p-5 mb-6">
+            <h3 className="font-semibold text-white mb-4">
               What's next?
             </h3>
-            <ol className="text-sm text-gray-600 space-y-3">
+            <ol className="text-sm text-neutral-400 space-y-3">
               <li className="flex items-start">
-                <span className="flex-shrink-0 w-6 h-6 bg-[#4A7C59] text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5 font-medium">
+                <span className="flex-shrink-0 w-6 h-6 bg-emerald-500 text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5 font-medium">
                   1
                 </span>
                 <span>Check your email inbox (and spam folder)</span>
               </li>
               <li className="flex items-start">
-                <span className="flex-shrink-0 w-6 h-6 bg-[#4A7C59] text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5 font-medium">
+                <span className="flex-shrink-0 w-6 h-6 bg-emerald-500 text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5 font-medium">
                   2
                 </span>
                 <span>Click the verification link in the email</span>
               </li>
               <li className="flex items-start">
-                <span className="flex-shrink-0 w-6 h-6 bg-[#4A7C59] text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5 font-medium">
+                <span className="flex-shrink-0 w-6 h-6 bg-emerald-500 text-white rounded-full text-xs flex items-center justify-center mr-3 mt-0.5 font-medium">
                   3
                 </span>
-                <span>You'll be automatically redirected to your dashboard</span>
+                <span>You'll be automatically redirected</span>
               </li>
             </ol>
           </div>
 
           {/* Resend Email Button */}
           <div className="mb-6">
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-neutral-500 mb-3">
               Didn't receive the email?
             </p>
             <button
               onClick={handleResendEmail}
               disabled={isResending || countdown > 0}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 border border-[#4A7C59] text-sm font-medium rounded-full text-[#4A7C59] bg-white hover:bg-[#4A7C59]/5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4A7C59] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 border border-neutral-700 text-sm font-medium rounded-xl text-white bg-neutral-800 hover:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:ring-offset-neutral-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               {isResending ? (
                 <>
@@ -183,15 +194,15 @@ export default function VerifyEmailPage() {
             </button>
           </div>
 
-          {/* Tips Card */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8">
+          {/* Tips */}
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-medium text-amber-800 text-sm mb-1">
+                <h4 className="font-medium text-amber-300 text-sm mb-1">
                   Email not arriving?
                 </h4>
-                <ul className="text-xs text-amber-700 space-y-1">
+                <ul className="text-xs text-amber-200/70 space-y-1">
                   <li>• Check your spam/junk folder</li>
                   <li>• Add our email to your contacts</li>
                   <li>• Wait a few minutes for delivery</li>
@@ -203,45 +214,26 @@ export default function VerifyEmailPage() {
           {/* Back to Sign In */}
           <Link
             href="/signin"
-            className="inline-flex items-center text-sm text-gray-600 hover:text-[#4A7C59] transition-colors duration-200"
+            className="inline-flex items-center text-sm text-neutral-400 hover:text-white transition-colors duration-200"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Sign In
           </Link>
-
-          {/* Support Link */}
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <p className="text-sm text-gray-500">
-              Need help?{' '}
-              <Link
-                href="/support"
-                className="text-[#4A7C59] font-medium hover:underline inline-flex items-center gap-1"
-              >
-                <HelpCircle className="h-4 w-4" />
-                Contact Support
-              </Link>
-            </p>
-          </div>
         </div>
-      </div>
 
-      {/* Right Side - Image */}
-      <div className="hidden lg:block lg:w-1/2 relative">
-        {/* Glassy blur with gradient edges */}
-        <div className="absolute inset-y-0 left-0 w-16 z-10" style={{
-          background: 'linear-gradient(to right, white 0%, rgba(255,255,255,0.5) 30%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0.1) 80%, transparent 100%)',
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          maskImage: 'linear-gradient(to right, black 0%, black 40%, transparent 100%)',
-          WebkitMaskImage: 'linear-gradient(to right, black 0%, black 40%, transparent 100%)'
-        }}></div>
-        <Image
-          src="/leaf3.jpg"
-          alt="Leaf"
-          fill
-          className="object-cover object-right"
-          priority
-        />
+        {/* Support Link */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-neutral-500">
+            Need help?{' '}
+            <Link
+              href="/support"
+              className="text-emerald-400 font-medium hover:text-emerald-300 inline-flex items-center gap-1"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Contact Support
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   )
