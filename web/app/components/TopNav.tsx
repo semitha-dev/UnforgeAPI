@@ -451,17 +451,19 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-10 px-3 rounded-xl hover:bg-gray-100 gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="" />
-                  <AvatarFallback className="bg-gradient-to-br from-orange-400 to-orange-500 text-white text-xs">
-                    {profile.name ? getInitials(profile.name) : 'U'}
-                  </AvatarFallback>
-                </Avatar>
+                <div className={`relative ${profile.subscription_tier === 'pro' ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="" />
+                    <AvatarFallback className={`${profile.subscription_tier === 'pro' ? 'bg-gray-900 text-white' : 'bg-gradient-to-br from-orange-400 to-orange-500 text-white'} text-xs`}>
+                      {profile.name ? getInitials(profile.name) : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
                 <div className="hidden sm:flex flex-col items-start">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-medium text-gray-900">{profile.name}</span>
                     {profile.subscription_tier === 'pro' && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded">PRO</span>
+                      <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded shadow-sm shadow-purple-500/50">PRO</span>
                     )}
                   </div>
                   <span className="text-xs text-gray-500">{profile.subscription_tier === 'pro' ? 'Pro Member' : 'Student'}</span>

@@ -650,17 +650,19 @@ export default function GlobalOverviewPage() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-neutral-800">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-neutral-800 text-white">
-                          {(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className={`relative ${profile?.subscription_tier === 'pro' ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className={`${profile?.subscription_tier === 'pro' ? 'bg-neutral-900' : 'bg-neutral-800'} text-white`}>
+                            {(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
                       <div className="hidden sm:flex items-center gap-1.5">
                         <span className="text-sm font-medium text-neutral-200">
                           {profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || 'User'}
                         </span>
                         {profile?.subscription_tier === 'pro' && (
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded">PRO</span>
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded shadow-sm shadow-purple-500/50">PRO</span>
                         )}
                       </div>
                       <ChevronDown className="h-4 w-4 text-neutral-400" />
@@ -672,7 +674,7 @@ export default function GlobalOverviewPage() {
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium">{profile?.name || profile?.email?.split('@')[0] || 'User'}</span>
                           {profile?.subscription_tier === 'pro' && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded">PRO</span>
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded">PRO</span>
                           )}
                         </div>
                         <span className="text-xs text-neutral-500">{profile?.email || ''}</span>

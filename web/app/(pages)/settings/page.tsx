@@ -192,8 +192,8 @@ export default function SettingsPage() {
 
         <div className="flex flex-col space-y-8">
           {/* Tabs */}
-          <div className="border-b border-neutral-800 overflow-x-auto">
-            <nav className="-mb-px flex space-x-8 min-w-max">
+          <div className="border-b border-neutral-800">
+            <nav className="-mb-px flex space-x-8">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
@@ -251,7 +251,7 @@ export default function SettingsPage() {
                   <div className="flex-1 pb-1">
                     <div className="flex items-center gap-2">
                       <h2 className="text-xl font-bold text-white">
-                        {profile?.full_name || 'User'}
+                        {profile?.full_name || profile?.email?.split('@')[0] || 'User'}
                       </h2>
                       {profile?.subscription_tier === 'pro' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-400 text-xs font-medium">

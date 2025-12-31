@@ -218,7 +218,7 @@ export default function GlobalSidebar({ currentSpaceId, isPro = false, isAnonymo
               <span className="text-[10px] font-bold">Login</span>
             </Link>
           ) : isPro ? (
-            <div className="w-full flex flex-col items-center justify-center py-2 px-1 rounded-xl text-amber-400">
+            <div className="w-full flex flex-col items-center justify-center py-2 px-1 rounded-xl text-purple-400">
               <Crown className="h-5 w-5 mb-1" />
               <span className="text-[10px] font-bold">Pro</span>
             </div>
