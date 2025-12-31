@@ -971,47 +971,11 @@ export default function InsightsPage() {
               </div>
             )}
 
-            {/* Upgrade Banner for Fact Check / Knowledge Gap */}
-            {!isPro && (activeFilter === 'factual_accuracy' || activeFilter === 'content_gap') && (
-              <div className="mt-8 p-6 bg-gradient-to-r from-[#f97316]/10 to-[#13eca4]/10 border border-[#f97316]/30 rounded-2xl">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-[#f97316]/20 rounded-xl">
-                      {activeFilter === 'factual_accuracy' ? (
-                        <Target className="w-6 h-6 text-[#f97316]" />
-                      ) : (
-                        <Layers className="w-6 h-6 text-[#3b82f6]" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-white font-bold">
-                        {activeFilter === 'factual_accuracy' ? 'Unlock All Fact Checks' : 'Unlock All Knowledge Gaps'}
-                      </p>
-                      <p className="text-[#9db9b0] text-sm">
-                        {activeFilter === 'factual_accuracy' 
-                          ? 'Pro users get unlimited AI-powered fact verification for all their notes.'
-                          : 'Pro users get complete knowledge gap analysis across all subjects.'}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setShowUpgradeModal(true)}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-[#13eca4] hover:bg-[#0ebf84] rounded-xl text-[#111816] font-bold text-sm transition-colors whitespace-nowrap"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Upgrade to Unlock
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* Bottom Message */}
             {filteredInsights.length > 0 && (
               <div className="mt-10 sm:mt-16 text-center pb-6 sm:pb-10">
                 <p className="text-[#9db9b0] text-xs sm:text-sm">
-                  {!isPro ? (
-                    <>Viewing {filteredInsights.length} of {allInsights.length} insights. <span className="text-[#13eca4] cursor-pointer hover:underline" onClick={() => setShowUpgradeModal(true)}>Upgrade</span>.</>
-                  ) : activeFilter === 'all' 
+                  {activeFilter === 'all' 
                     ? "You've viewed all critical insights for today."
                     : `Showing all ${getCategoryLabel(activeFilter)} insights.`
                   }

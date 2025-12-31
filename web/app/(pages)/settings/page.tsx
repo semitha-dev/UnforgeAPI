@@ -17,6 +17,7 @@ import {
   Loader2
 } from 'lucide-react'
 import GlobalSidebar from '@/components/GlobalSidebar'
+import MobileNav from '@/components/MobileNav'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 
 interface Profile {
@@ -178,7 +179,7 @@ export default function SettingsPage() {
       />
 
       {/* Main Content */}
-      <main className="lg:ml-[72px] min-h-screen">
+      <main className="lg:ml-[72px] min-h-screen pb-20 lg:pb-0">
         <div className="max-w-4xl mx-auto p-6 md:p-10 lg:p-12">
         {/* Header */}
         <header className="mb-10">
@@ -509,7 +510,7 @@ export default function SettingsPage() {
               {/* Plan Comparison */}
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="border border-neutral-800 rounded-xl p-5">
-                  <h5 className="font-medium text-white mb-3">Atlas Starter (Free)</h5>
+                  <h5 className="font-medium text-white mb-3">Leaf Starter (Free)</h5>
                   <ul className="space-y-2 text-sm text-neutral-400">
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-green-500" /> 3 spaces
@@ -524,7 +525,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="border border-purple-500/30 bg-purple-500/5 rounded-xl p-5">
                   <h5 className="font-medium text-white mb-3 flex items-center gap-2">
-                    Atlas Pro <Crown className="w-4 h-4 text-purple-400" />
+                    Leaf Pro <Crown className="w-4 h-4 text-purple-400" />
                   </h5>
                   <ul className="space-y-2 text-sm text-neutral-400">
                     <li className="flex items-center gap-2">
@@ -539,6 +540,9 @@ export default function SettingsPage() {
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-purple-400" /> Research mode
                     </li>
+                    <li className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-purple-400" /> Unlimited insight history
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -546,6 +550,9 @@ export default function SettingsPage() {
           )}
         </div>
         </div>
+
+        {/* Mobile Navigation */}
+        <MobileNav />
       </main>
     </div>
   )

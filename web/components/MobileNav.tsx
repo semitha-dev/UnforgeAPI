@@ -11,7 +11,7 @@ import {
   Plus,
   X
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/app/lib/supabaseClient'
 
 interface Space {
@@ -25,18 +25,56 @@ interface MobileNavProps {
   spaces?: Space[]
 }
 
-export default function MobileNav({ onChatsClick, spaces = [] }: MobileNavProps) {
+export default function MobileNav({ onChatsClick, spaces: propSpaces }: MobileNavProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [showSpacesSheet, setShowSpacesSheet] = useState(false)
   const [newSpaceName, setNewSpaceName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [spaces, setSpaces] = useState<Space[]>(propSpaces || [])
+  const [isLoadingSpaces, setIsLoadingSpaces] = useState(false)
   const supabase = createClient()
 
   const isOverview = pathname === '/overview'
   const isInsights = pathname === '/insights'
   const isSettings = pathname === '/settings'
   const isSpace = pathname?.startsWith('/project/')
+
+  // Fetch spaces when sheet opens if not provided via props
+  useEffect(() => {
+    if (showSpacesSheet && spaces.length === 0 && !propSpaces) {
+      loadSpaces()
+    }
+  }, [showSpacesSheet])
+
+  // Update spaces when props change
+  useEffect(() => {
+    if (propSpaces && propSpaces.length > 0) {
+      setSpaces(propSpaces)
+    }
+  }, [propSpaces])
+
+  const loadSpaces = async () => {
+    setIsLoadingSpaces(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: projectsData } = await supabase
+        .from('projects')
+        .select('id, name, color')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+
+      if (projectsData) {
+        setSpaces(projectsData)
+      }
+    } catch (error) {
+      console.error('Error loading spaces:', error)
+    } finally {
+      setIsLoadingSpaces(false)
+    }
+  }
 
   const createSpace = async () => {
     if (!newSpaceName.trim()) return
@@ -56,6 +94,8 @@ export default function MobileNav({ onChatsClick, spaces = [] }: MobileNavProps)
       const data = await response.json()
       if (data && data.id) {
         setNewSpaceName('')
+        // Refresh spaces list before navigating
+        await loadSpaces()
         router.push(`/project/${data.id}`)
         setShowSpacesSheet(false)
       }
@@ -176,7 +216,11 @@ export default function MobileNav({ onChatsClick, spaces = [] }: MobileNavProps)
 
             {/* Spaces List */}
             <div className="overflow-y-auto max-h-[50vh] p-4 pb-safe">
-              {spaces.length === 0 ? (
+              {isLoadingSpaces ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : spaces.length === 0 ? (
                 <div className="text-center py-8">
                   <Layers className="w-12 h-12 text-neutral-700 mx-auto mb-3" />
                   <p className="text-neutral-500">No spaces yet</p>
