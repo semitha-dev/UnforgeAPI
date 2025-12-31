@@ -614,7 +614,37 @@ export default function InsightsPage() {
             )}
 
             {/* Insights Grid */}
-            {filteredInsights.length === 0 ? (
+            {isLoading || isGenerating ? (
+              <div className="flex flex-col items-center justify-center py-16 sm:py-24 text-center px-4">
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 mb-6">
+                  {/* Outer spinning ring */}
+                  <div className="absolute inset-0 rounded-full border-4 border-[#283933]"></div>
+                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#13eca4] animate-spin"></div>
+                  {/* Inner pulsing icon */}
+                  <div className="absolute inset-3 rounded-full bg-gradient-to-br from-[#13eca4]/20 to-[#7c3aed]/20 flex items-center justify-center">
+                    <Brain className="h-8 w-8 sm:h-10 sm:w-10 text-[#13eca4] animate-pulse" />
+                  </div>
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-white mb-2">
+                  {isGenerating ? 'Analyzing Your Learning...' : 'Loading Insights...'}
+                </h3>
+                <p className="text-[#9db9b0] text-sm sm:text-base max-w-md">
+                  {isGenerating 
+                    ? 'AI is reviewing your study patterns, quiz performance, and flashcard progress to generate personalized insights.'
+                    : 'Fetching your personalized insights...'}
+                </p>
+                {isGenerating && (
+                  <div className="mt-6 flex items-center gap-3 text-[#9db9b0]/60 text-xs">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 rounded-full bg-[#13eca4] animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="w-2 h-2 rounded-full bg-[#13eca4] animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-2 h-2 rounded-full bg-[#13eca4] animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
+                    <span>This may take a few seconds</span>
+                  </div>
+                )}
+              </div>
+            ) : filteredInsights.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center px-4">
                 <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-[#13eca4]/20 to-[#7c3aed]/20 flex items-center justify-center mb-4 sm:mb-6">
                   <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-[#13eca4]" />
