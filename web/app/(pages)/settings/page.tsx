@@ -20,6 +20,7 @@ import GlobalSidebar from '@/components/GlobalSidebar'
 import MobileNav from '@/components/MobileNav'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import { useSubscriptionContext } from '@/lib/SubscriptionContext'
+import { useUser, clearUserCache } from '@/lib/UserContext'
 
 interface Profile {
   id: string
@@ -42,7 +43,8 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isManaging, setIsManaging] = useState(false)
-  const { isPro } = useSubscriptionContext()
+  const { isPro, refetch: refetchSubscription } = useSubscriptionContext()
+  const { user: cachedUser, refetch: refetchUser } = useUser()
   
   // Form state
   const [fullName, setFullName] = useState('')
@@ -52,6 +54,14 @@ export default function SettingsPage() {
   const fetchedRef = useRef(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // Initialize form with cached user data immediately
+  useEffect(() => {
+    if (cachedUser && !fullName) {
+      setFullName(cachedUser.name || '')
+      setEducationLevel(cachedUser.educationLevel || '')
+    }
+  }, [cachedUser])
 
   useEffect(() => {
     if (!fetchedRef.current) {
@@ -108,8 +118,9 @@ export default function SettingsPage() {
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
       
-      // Reload profile
+      // Reload profile and refresh global user cache
       loadProfile()
+      refetchUser() // Update global cache
     } catch (error) {
       console.error('Error saving profile:', error)
     } finally {

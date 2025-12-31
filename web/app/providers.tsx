@@ -2,11 +2,13 @@
 
 import { ReactNode } from 'react'
 import { SubscriptionProvider } from '@/lib/SubscriptionContext'
+import { UserProvider } from '@/lib/UserContext'
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    <SubscriptionProvider>
-      {children}
-    </SubscriptionProvider>
-  )
+    <UserProvider>
+      <SubscriptionProvider>
+        {children}
+      </SubscriptionProvider>
+    </UserProvider>  )
 }

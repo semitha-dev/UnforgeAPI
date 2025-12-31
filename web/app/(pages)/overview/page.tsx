@@ -60,6 +60,7 @@ import ChatsPanel from '@/components/ChatsPanel'
 import MobileNav from '@/components/MobileNav'
 import { WelcomeGuide, useWelcomeGuide } from '@/components/WelcomeGuide'
 import { useSubscriptionContext } from '@/lib/SubscriptionContext'
+import { useUser } from '@/lib/UserContext'
 
 interface Citation {
   number: number
@@ -88,11 +89,6 @@ interface ChatConversation {
   updated_at: string
 }
 
-interface Profile {
-  name: string
-  email: string
-}
-
 interface StudyItem {
   id: string
   item_type: 'flashcard' | 'quiz'
@@ -119,12 +115,10 @@ export default function GlobalOverviewPage() {
   const [searchStatus, setSearchStatus] = useState<string>('')
   const [messages, setMessages] = useState<Message[]>([])
   const [currentChatId, setCurrentChatId] = useState<string | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showChatsPanel, setShowChatsPanel] = useState(false)
   const { isPro, isAnonymous: contextIsAnonymous } = useSubscriptionContext()
+  const { user, isLoading: userLoading } = useUser()
   
   // Welcome guide for first-time users
   const { showWelcome, closeWelcome } = useWelcomeGuide()
@@ -153,14 +147,6 @@ export default function GlobalOverviewPage() {
   const lastMessageCountRef = useRef(0) // Track message count to only scroll on new messages
   const router = useRouter()
   const supabase = createClient()
-  const fetchedRef = useRef(false)
-
-  useEffect(() => {
-    if (!fetchedRef.current) {
-      fetchedRef.current = true
-      loadUserData()
-    }
-  }, [])
 
   // Only scroll when a NEW message is added, not during streaming content updates
   useEffect(() => {
@@ -178,47 +164,6 @@ export default function GlobalOverviewPage() {
       textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 150) + 'px'
     }
   }, [query])
-
-  const loadUserData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      // Allow anonymous users - don't redirect
-      if (!user) {
-        // Set anonymous state
-        setUserId(null)
-        setProfile({
-          name: 'Guest',
-          email: ''
-        })
-        setIsLoading(false)
-        return
-      }
-      
-      setUserId(user.id)
-
-      // Fetch profile only - subscription comes from context
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('name, email')
-        .eq('id', user.id)
-        .single()
-
-      setProfile({
-        name: profileData?.name || '',
-        email: profileData?.email || user.email || ''
-      })
-    } catch (error) {
-      console.error('Error loading user data:', error)
-      // On error, still allow anonymous access
-      setProfile({
-        name: 'Guest',
-        email: ''
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -293,7 +238,7 @@ export default function GlobalOverviewPage() {
           projectName: 'Global',
           searchMode,
           files: fileContents,
-          userId, // Pass user ID for study set creation
+          userId: user?.id, // Pass user ID for study set creation
           // Pass conversation history for context
           conversationHistory: messages.slice(-6).map(m => ({
             role: m.role,
@@ -440,13 +385,13 @@ export default function GlobalOverviewPage() {
 
   const saveConversation = async (msgs: Message[]) => {
     // Don't save for anonymous users
-    if (!userId) {
+    if (!user?.id) {
       return
     }
     
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      if (!authUser) return
 
       const title = msgs.find(m => m.role === 'user')?.content.slice(0, 50) || 'New Chat'
       
@@ -465,7 +410,7 @@ export default function GlobalOverviewPage() {
         const { data } = await supabase
           .from('chat_conversations')
           .insert({
-            user_id: user.id,
+            user_id: authUser.id,
             title,
             messages: msgs,
             created_at: new Date().toISOString(),
@@ -602,14 +547,14 @@ export default function GlobalOverviewPage() {
         <WelcomeGuide 
           isOpen={showWelcome} 
           onClose={closeWelcome}
-          userName={profile?.name?.split(' ')[0]}
+          userName={user?.name?.split(' ')[0]}
         />
         
         {/* Global Sidebar - Desktop Only */}
         <div className="hidden lg:block">
           <GlobalSidebar
             isPro={isPro}
-            isAnonymous={!userId}
+            isAnonymous={!user?.id}
             onUpgradeClick={() => setShowUpgradeModal(true)}
             onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
             onChatsHover={() => setShowChatsPanel(true)}
@@ -624,7 +569,7 @@ export default function GlobalOverviewPage() {
         />
 
         {/* Chats Panel - only for logged in users */}
-        {userId && (
+        {user?.id && (
           <ChatsPanel
             isOpen={showChatsPanel}
             onClose={() => setShowChatsPanel(false)}
@@ -637,7 +582,7 @@ export default function GlobalOverviewPage() {
         {/* Main Content - Add bottom padding on mobile for nav */}
         <main className="lg:ml-[72px] min-h-screen flex flex-col pb-20 lg:pb-0">
           {/* Top Navigation Header */}
-          {userId && (
+          {user?.id && (
             <header className="sticky top-0 z-30 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-800 h-14">
               <div className="flex items-center justify-end h-full px-4 lg:px-6">
                 <DropdownMenu>
@@ -646,13 +591,13 @@ export default function GlobalOverviewPage() {
                       <div className={`relative ${isPro ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className={`${isPro ? 'bg-neutral-900' : 'bg-neutral-800'} text-white`}>
-                            {(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}
+                            {(user?.name || user?.email)?.charAt(0).toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
                       </div>
                       <div className="hidden sm:flex items-center gap-1.5">
                         <span className="text-sm font-medium text-neutral-200">
-                          {profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || 'User'}
+                          {user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User'}
                         </span>
                         {isPro && (
                           <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded shadow-sm shadow-purple-500/50">PRO</span>
@@ -665,12 +610,12 @@ export default function GlobalOverviewPage() {
                     <DropdownMenuLabel>
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-medium">{profile?.name || profile?.email?.split('@')[0] || 'User'}</span>
+                          <span className="font-medium">{user?.name || user?.email?.split('@')[0] || 'User'}</span>
                           {isPro && (
                             <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded">PRO</span>
                           )}
                         </div>
-                        <span className="text-xs text-neutral-500">{profile?.email || ''}</span>
+                        <span className="text-xs text-neutral-500">{user?.email || ''}</span>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -688,7 +633,7 @@ export default function GlobalOverviewPage() {
           )}
 
           {/* Anonymous User Banner */}
-          {!userId && (
+          {!user?.id && (
             <div className="bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-emerald-500/30 px-4 py-3">
               <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -718,7 +663,7 @@ export default function GlobalOverviewPage() {
               {/* Search Input */}
               <div className="w-full max-w-3xl mb-6 lg:mb-8 px-2 sm:px-0">
                 {/* Research Mode Usage Banner - Only for free users */}
-                {!isPro && userId && researchUsed > 0 && (
+                {!isPro && user?.id && researchUsed > 0 && (
                   <div className="flex items-center justify-center gap-2 mb-3 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-xl">
                     <Brain className="w-4 h-4 text-purple-400" />
                     <span className="text-sm text-purple-300">
@@ -788,7 +733,7 @@ export default function GlobalOverviewPage() {
                           <button
                             onClick={() => {
                               // Anonymous users can't use research mode
-                              if (!userId) {
+                              if (!user?.id) {
                                 setShowUpgradeModal(true)
                               } else {
                                 // Both free and pro users can select research mode
@@ -806,7 +751,7 @@ export default function GlobalOverviewPage() {
                             Research
                           </button>
                         </TooltipTrigger>
-                        {!isPro && userId && (
+                        {!isPro && user?.id && (
                           <TooltipContent 
                             side="bottom" 
                             className="bg-neutral-800 border border-neutral-700 px-3 py-2"
@@ -815,7 +760,7 @@ export default function GlobalOverviewPage() {
                             <p className="text-xs text-neutral-300">3 research searches/day • Pro: Unlimited</p>
                           </TooltipContent>
                         )}
-                        {!userId && (
+                        {!user?.id && (
                           <TooltipContent 
                             side="bottom" 
                             className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 px-4 py-3"
@@ -1001,7 +946,7 @@ export default function GlobalOverviewPage() {
               <div className="fixed lg:sticky bottom-0 left-0 right-0 lg:left-auto lg:right-auto bg-gradient-to-t from-black via-black to-transparent pt-4 sm:pt-6 pb-20 lg:pb-6 px-3 sm:px-4 z-30">
                 <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
                   {/* Research Mode Usage Banner - Only for free users in conversation view */}
-                  {!isPro && userId && researchUsed > 0 && (
+                  {!isPro && user?.id && researchUsed > 0 && (
                     <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-xl">
                       <Brain className="w-3.5 h-3.5 text-purple-400" />
                       <span className="text-xs text-purple-300">
@@ -1033,7 +978,7 @@ export default function GlobalOverviewPage() {
                         <button
                           onClick={() => {
                             // Anonymous users can't use research mode
-                            if (!userId) {
+                            if (!user?.id) {
                               setShowUpgradeModal(true)
                             } else {
                               // Both free and pro users can select research mode
@@ -1051,7 +996,7 @@ export default function GlobalOverviewPage() {
                           <span className="xs:hidden">Pro</span>
                         </button>
                       </TooltipTrigger>
-                      {!isPro && userId && (
+                      {!isPro && user?.id && (
                         <TooltipContent 
                           side="bottom" 
                           className="bg-neutral-800 border border-neutral-700 px-3 py-2"
@@ -1060,7 +1005,7 @@ export default function GlobalOverviewPage() {
                           <p className="text-xs text-neutral-300">3 research searches/day • Pro: Unlimited</p>
                         </TooltipContent>
                       )}
-                      {!userId && (
+                      {!user?.id && (
                         <TooltipContent 
                           side="bottom" 
                           className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 px-4 py-3"
