@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
 import {
@@ -28,7 +28,7 @@ import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import GlobalSidebar from '@/components/GlobalSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
 import MobileNav from '@/components/MobileNav'
-import { prefetchSubscription } from '@/lib/useSubscription'
+import { useSubscriptionContext } from '@/lib/SubscriptionContext'
 
 interface InsightMetadata {
   periodsAnalyzed?: Array<{ name: string; accuracy: number; total: number; correct: number }>
@@ -74,7 +74,6 @@ interface GroupedInsights {
 interface Profile {
   name: string | null
   email: string
-  subscription_tier?: string
 }
 
 interface ChatConversation {
@@ -99,45 +98,38 @@ export default function InsightsPage() {
   const [totalInsightsCount, setTotalInsightsCount] = useState(0)
   const [limitApplied, setLimitApplied] = useState(false)
   const [limitBannerDismissed, setLimitBannerDismissed] = useState(false)
+  const { isPro } = useSubscriptionContext()
   
   const router = useRouter()
   const supabase = createClient()
+  const fetchedRef = useRef(false)
   
-  // Free users get limited insights (50%)
-  const isPro = profile?.subscription_tier === 'pro'
   const FREE_INSIGHT_LIMIT = 6 // Max insights shown to free users
 
   useEffect(() => {
-    checkAuthAndLoad()
+    if (!fetchedRef.current) {
+      fetchedRef.current = true
+      checkAuthAndLoad()
+    }
   }, [])
 
   const checkAuthAndLoad = async () => {
-    // Start subscription prefetch early
-    prefetchSubscription()
-    
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/signin')
       return
     }
     
-    // Fetch profile and subscription in parallel
-    const [profileResult, subscriptionResult] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', user.id)
-        .single(),
-      fetch('/api/subscription').then(res => res.ok ? res.json() : null).catch(() => null)
-    ])
-    
-    const profileData = profileResult.data
-    const subscriptionTier = subscriptionResult?.subscription?.tier || 'free'
+    // Fetch profile only - subscription comes from context
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single()
 
     setProfile({ 
       name: profileData?.name || null, 
-      email: user.email || '',
-      subscription_tier: subscriptionTier
+      email: user.email || ''
     })
     setUserName(profileData?.name || user.email?.split('@')[0] || 'there')
     
@@ -440,7 +432,7 @@ export default function InsightsPage() {
         {/* Global Sidebar */}
         <div className="hidden lg:block">
           <GlobalSidebar
-            isPro={profile?.subscription_tier === 'pro'}
+            isPro={isPro}
             onUpgradeClick={() => setShowUpgradeModal(true)}
             onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
             onChatsHover={() => setShowChatsPanel(true)}

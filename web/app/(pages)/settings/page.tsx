@@ -19,6 +19,7 @@ import {
 import GlobalSidebar from '@/components/GlobalSidebar'
 import MobileNav from '@/components/MobileNav'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
+import { useSubscriptionContext } from '@/lib/SubscriptionContext'
 
 interface Profile {
   id: string
@@ -41,17 +42,22 @@ export default function SettingsPage() {
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isManaging, setIsManaging] = useState(false)
+  const { isPro } = useSubscriptionContext()
   
   // Form state
   const [fullName, setFullName] = useState('')
   const [educationLevel, setEducationLevel] = useState('')
   
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const fetchedRef = useRef(false)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    loadProfile()
+    if (!fetchedRef.current) {
+      fetchedRef.current = true
+      loadProfile()
+    }
   }, [])
 
   const loadProfile = async () => {
@@ -179,7 +185,7 @@ export default function SettingsPage() {
       {/* Global Sidebar */}
       <div className="hidden lg:block">
         <GlobalSidebar
-          isPro={profile?.subscription_tier === 'pro'}
+          isPro={isPro}
           onUpgradeClick={() => setShowUpgradeModal(true)}
           activeItem="settings"
         />
@@ -189,7 +195,7 @@ export default function SettingsPage() {
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        isPro={profile?.subscription_tier === 'pro'}
+        isPro={isPro}
       />
 
       {/* Main Content */}

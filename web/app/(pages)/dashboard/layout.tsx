@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -16,11 +16,11 @@ import {
 } from '@/components/ui/tooltip'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import GlobalSidebar from '@/components/GlobalSidebar'
+import { useSubscriptionContext } from '@/lib/SubscriptionContext'
 
 interface Profile {
   name: string
   education_level: string
-  subscription_tier?: string
 }
 
 export default function DashboardLayout({
@@ -31,15 +31,20 @@ export default function DashboardLayout({
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
+  const { isPro } = useSubscriptionContext()
   
   const [profile, setProfile] = useState<Profile | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    loadUserData()
+    if (!fetchedRef.current) {
+      fetchedRef.current = true
+      loadUserData()
+    }
   }, [])
 
   const loadUserData = async () => {
@@ -54,7 +59,7 @@ export default function DashboardLayout({
       
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('name, education_level, subscription_tier')
+        .select('name, education_level')
         .eq('id', user.id)
         .single()
       
@@ -83,7 +88,7 @@ export default function DashboardLayout({
         {/* Global Sidebar - Always visible */}
         <div className="hidden lg:block">
           <GlobalSidebar 
-            isPro={profile?.subscription_tier === 'pro'}
+            isPro={isPro}
             onUpgradeClick={() => setShowUpgradeModal(true)}
           />
         </div>
@@ -91,7 +96,7 @@ export default function DashboardLayout({
         {/* Mobile Sidebar */}
 <aside className={`fixed inset-y-0 left-0 z-50 w-[72px] bg-neutral-950 border-r border-neutral-800 transition-transform duration-300 lg:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <GlobalSidebar 
-            isPro={profile?.subscription_tier === 'pro'}
+            isPro={isPro}
             onUpgradeClick={() => { setShowUpgradeModal(true); setMobileMenuOpen(false); }}
           />
         </aside>

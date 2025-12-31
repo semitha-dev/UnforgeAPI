@@ -54,7 +54,7 @@ import GlobalSidebar from '@/components/GlobalSidebar'
 import SpaceSidebar from '@/components/SpaceSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
 import MobileNav from '@/components/MobileNav'
-import { prefetchSubscription } from '@/lib/useSubscription'
+import { useSubscriptionContext } from '@/lib/SubscriptionContext'
 
 // YouTube URL helpers
 function getYoutubeEmbedUrl(url: string): string | null {
@@ -413,7 +413,6 @@ interface Project {
 interface Profile {
   name: string
   email?: string
-  subscription_tier?: string
 }
 
 interface ProjectLayoutProps {
@@ -705,6 +704,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const [error, setError] = useState<string | null>(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showChatsPanel, setShowChatsPanel] = useState(false)
+  const { isPro } = useSubscriptionContext()
   
   // Space stats for sidebar
   const [notesCount, setNotesCount] = useState<number>(0)
@@ -714,6 +714,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const params = useParams()
   const pathname = usePathname()
   const supabase = createClient()
+  const fetchedRef = useRef(false)
 
   const projectId = params.id as string
 
@@ -721,7 +722,8 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   useProjectTimeTracking()
 
   useEffect(() => {
-    if (projectId) {
+    if (projectId && !fetchedRef.current) {
+      fetchedRef.current = true
       loadProject()
     }
   }, [projectId])
@@ -729,9 +731,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const loadProject = async () => {
     try {
       setError(null)
-      
-      // Start subscription prefetch early
-      prefetchSubscription()
       
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       
@@ -748,14 +747,13 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       // Set userId for realtime subscription
       setUserId(user.id)
 
-      // Fetch profile, subscription, and project in parallel
-      const [profileResult, subscriptionResult, projectResult] = await Promise.all([
+      // Fetch profile and project in parallel - subscription comes from context
+      const [profileResult, projectResult] = await Promise.all([
         supabase
           .from('profiles')
           .select('name, email')
           .eq('id', user.id)
           .single(),
-        fetch('/api/subscription').then(res => res.ok ? res.json() : null).catch(() => null),
         supabase
           .from('projects')
           .select('*')
@@ -765,13 +763,10 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       ])
 
       const profileData = profileResult.data
-      const subscriptionTier = subscriptionResult?.subscription?.tier || 'free'
 
-      // Always set profile with subscription tier
       setProfile({
         name: profileData?.name || '',
-        email: profileData?.email || user.email || '',
-        subscription_tier: subscriptionTier
+        email: profileData?.email || user.email || ''
       })
 
       const { data: projectData, error: projectError } = projectResult
@@ -837,7 +832,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
         <div className="hidden lg:block">
           <GlobalSidebar 
             currentSpaceId={projectId}
-            isPro={profile?.subscription_tier === 'pro'}
+            isPro={isPro}
             onUpgradeClick={() => setShowUpgradeModal(true)}
             activeItem="spaces"
           />
@@ -859,7 +854,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
         <div className="hidden lg:block">
           <GlobalSidebar 
             currentSpaceId={projectId}
-            isPro={profile?.subscription_tier === 'pro'}
+            isPro={isPro}
             onUpgradeClick={() => setShowUpgradeModal(true)}
             onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
             onChatsHover={() => setShowChatsPanel(true)}
@@ -889,7 +884,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
             <div className="w-[60px] bg-neutral-900 border-r border-neutral-800 flex flex-col items-center py-4">
               <GlobalSidebar 
                 currentSpaceId={projectId}
-                isPro={profile?.subscription_tier === 'pro'}
+                isPro={isPro}
                 onUpgradeClick={() => { setShowUpgradeModal(true); setMobileMenuOpen(false); }}
                 onChatsClick={() => { setShowChatsPanel(!showChatsPanel); setMobileMenuOpen(false); }}
                 onChatsHover={() => setShowChatsPanel(true)}
@@ -937,14 +932,14 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-2 px-2">
-                      <div className={`relative ${profile?.subscription_tier === 'pro' ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
+                      <div className={`relative ${isPro ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
                         <Avatar className="h-8 w-8">
-                          <AvatarFallback className={`${profile?.subscription_tier === 'pro' ? 'bg-neutral-900' : 'bg-neutral-800'} text-white`}>{(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                          <AvatarFallback className={`${isPro ? 'bg-neutral-900' : 'bg-neutral-800'} text-white`}>{(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                         </Avatar>
                       </div>
                       <div className="hidden sm:flex items-center gap-1.5">
                         <span className="text-sm font-medium text-neutral-200">{profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || 'User'}</span>
-                        {profile?.subscription_tier === 'pro' && (
+                        {isPro && (
                           <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded shadow-sm shadow-purple-500/50">PRO</span>
                         )}
                       </div>
@@ -955,7 +950,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium">{profile?.name || profile?.email?.split('@')[0] || 'User'}</span>
-                          {profile?.subscription_tier === 'pro' && (
+                          {isPro && (
                             <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded">PRO</span>
                           )}
                         </div>
@@ -989,7 +984,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
         <UpgradeModal 
           isOpen={showUpgradeModal} 
           onClose={() => setShowUpgradeModal(false)}
-          isPro={profile?.subscription_tier === 'pro'}
+          isPro={isPro}
         />
       </div>
     </TooltipProvider>

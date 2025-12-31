@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
+import { createClient } from '@/app/lib/supabaseClient'
 import { 
   Sparkles, 
   Send, 
@@ -22,7 +24,11 @@ import {
   FileSpreadsheet,
   Presentation,
   Crown,
-  Lock
+  Lock,
+  Search,
+  MessageSquare,
+  Plus,
+  ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -77,17 +83,17 @@ function convertMarkdownToHtml(markdown: string): string {
   const codeBlocks: string[] = []
   html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
     const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
-    codeBlocks.push(`<pre class="bg-gray-900 text-gray-100 p-4 rounded-xl text-sm overflow-x-auto my-3 font-mono"><code>${code.trim()}</code></pre>`)
+    codeBlocks.push(`<pre class="bg-gray-900 text-gray-100 p-4 rounded-xl text-base overflow-x-auto my-3 font-mono"><code>${code.trim()}</code></pre>`)
     return placeholder
   })
   
   // Handle headers (order matters - process larger headers first)
-  html = html.replace(/^###### (.+)$/gm, '<h6 class="font-medium text-sm mt-3 mb-1.5 text-gray-700">$1</h6>')
-  html = html.replace(/^##### (.+)$/gm, '<h5 class="font-medium text-sm mt-3 mb-1.5 text-gray-800">$1</h5>')
-  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-semibold text-sm mt-4 mb-2 text-gray-800">$1</h4>')
-  html = html.replace(/^### (.+)$/gm, '<h3 class="font-semibold text-base mt-4 mb-2 text-gray-800">$1</h3>')
-  html = html.replace(/^## (.+)$/gm, '<h2 class="font-semibold text-lg mt-4 mb-2 text-gray-800">$1</h2>')
-  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-xl mt-4 mb-3 text-gray-900">$1</h1>')
+  html = html.replace(/^###### (.+)$/gm, '<h6 class="font-medium text-base mt-3 mb-1.5 text-gray-700">$1</h6>')
+  html = html.replace(/^##### (.+)$/gm, '<h5 class="font-medium text-base mt-3 mb-1.5 text-gray-800">$1</h5>')
+  html = html.replace(/^#### (.+)$/gm, '<h4 class="font-semibold text-base mt-4 mb-2 text-gray-800">$1</h4>')
+  html = html.replace(/^### (.+)$/gm, '<h3 class="font-semibold text-lg mt-4 mb-2 text-gray-800">$1</h3>')
+  html = html.replace(/^## (.+)$/gm, '<h2 class="font-semibold text-xl mt-4 mb-2 text-gray-800">$1</h2>')
+  html = html.replace(/^# (.+)$/gm, '<h1 class="font-bold text-2xl mt-4 mb-3 text-gray-900">$1</h1>')
   
   // Handle bold - use [\s\S] to match across newlines, but prefer same-line matches first
   html = html.replace(/\*\*([^*\n]+)\*\*/g, '<strong class="font-semibold">$1</strong>')
@@ -95,7 +101,7 @@ function convertMarkdownToHtml(markdown: string): string {
   html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>')
   
   // Handle inline code
-  html = html.replace(/`([^`\n]+)`/g, '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-emerald-700">$1</code>')
+  html = html.replace(/`([^`\n]+)`/g, '<code class="bg-gray-100 px-1.5 py-0.5 rounded text-base font-mono text-emerald-700">$1</code>')
   
   // Restore code blocks
   codeBlocks.forEach((block, i) => {
@@ -150,7 +156,7 @@ function convertMarkdownToHtml(markdown: string): string {
         processed.push('<thead class="bg-gray-100">')
         processed.push('<tr>')
         cells.forEach(cell => {
-          processed.push(`<th class="border border-gray-200 px-4 py-2 text-left text-sm font-semibold text-gray-700">${cell}</th>`)
+          processed.push(`<th class="border border-gray-200 px-4 py-2 text-left text-base font-semibold text-gray-700">${cell}</th>`)
         })
         processed.push('</tr>')
         processed.push('</thead>')
@@ -159,7 +165,7 @@ function convertMarkdownToHtml(markdown: string): string {
         // This is a data row
         processed.push('<tr class="hover:bg-gray-50">')
         cells.forEach(cell => {
-          processed.push(`<td class="border border-gray-200 px-4 py-2 text-sm text-gray-600">${cell}</td>`)
+          processed.push(`<td class="border border-gray-200 px-4 py-2 text-base text-gray-600">${cell}</td>`)
         })
         processed.push('</tr>')
       }
@@ -221,7 +227,19 @@ function getFileIcon(type: string) {
   return File
 }
 
+interface SavedConversation {
+  id: string
+  title: string
+  messages: ChatMessage[]
+  created_at: string
+  updated_at: string
+}
+
 export default function LeafAIChatPage() {
+  const params = useParams()
+  const projectId = params.id as string
+  const supabase = createClient()
+  
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -232,9 +250,120 @@ export default function LeafAIChatPage() {
   const [isPro, setIsPro] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   
+  // Chat history state
+  const [chatHistory, setChatHistory] = useState<SavedConversation[]>([])
+  const [currentChatId, setCurrentChatId] = useState<string | null>(null)
+  const [historySearch, setHistorySearch] = useState('')
+  const [userId, setUserId] = useState<string | null>(null)
+  
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Load user and chat history
+  useEffect(() => {
+    const loadUserAndHistory = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+        loadChatHistory(user.id)
+      }
+    }
+    loadUserAndHistory()
+  }, [projectId])
+
+  // Load chat history for this space
+  const loadChatHistory = async (uid: string) => {
+    const { data, error } = await supabase
+      .from('chat_conversations')
+      .select('*')
+      .eq('user_id', uid)
+      .eq('project_id', projectId)
+      .order('updated_at', { ascending: false })
+      .limit(50)
+    
+    if (!error && data) {
+      setChatHistory(data)
+    }
+  }
+
+  // Save current chat
+  const saveChat = async (chatMessages: ChatMessage[], title?: string) => {
+    if (!userId || chatMessages.length === 0) return
+    
+    const chatTitle = title || generateChatTitle(chatMessages)
+    
+    if (currentChatId) {
+      // Update existing chat
+      await supabase
+        .from('chat_conversations')
+        .update({ 
+          messages: chatMessages,
+          title: chatTitle 
+        })
+        .eq('id', currentChatId)
+    } else {
+      // Create new chat
+      const { data } = await supabase
+        .from('chat_conversations')
+        .insert({
+          user_id: userId,
+          project_id: projectId,
+          title: chatTitle,
+          messages: chatMessages
+        })
+        .select()
+        .single()
+      
+      if (data) {
+        setCurrentChatId(data.id)
+      }
+    }
+    
+    // Refresh history
+    loadChatHistory(userId)
+  }
+
+  // Generate title from first user message
+  const generateChatTitle = (msgs: ChatMessage[]) => {
+    const firstUserMsg = msgs.find(m => m.role === 'user')
+    if (firstUserMsg) {
+      return firstUserMsg.content.slice(0, 50) + (firstUserMsg.content.length > 50 ? '...' : '')
+    }
+    return 'New Chat'
+  }
+
+  // Load a saved conversation
+  const loadConversation = (conv: SavedConversation) => {
+    setMessages(conv.messages)
+    setCurrentChatId(conv.id)
+  }
+
+  // Start new chat
+  const startNewChat = () => {
+    setMessages([])
+    setCurrentChatId(null)
+  }
+
+  // Delete a chat
+  const deleteChat = async (chatId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await supabase
+      .from('chat_conversations')
+      .delete()
+      .eq('id', chatId)
+    
+    if (currentChatId === chatId) {
+      startNewChat()
+    }
+    if (userId) loadChatHistory(userId)
+  }
+
+  // Filter history by search
+  const filteredHistory = chatHistory.filter(conv => 
+    conv.title.toLowerCase().includes(historySearch.toLowerCase()) ||
+    conv.messages.some(m => m.content.toLowerCase().includes(historySearch.toLowerCase()))
+  )
 
   // Check subscription status
   useEffect(() => {
@@ -380,8 +509,10 @@ export default function LeafAIChatPage() {
           tokensUsed: imageData.tokensUsed
         }
 
+        const updatedMessages = [...messages, userMessage, assistantMessage]
         setMessages(prev => [...prev, assistantMessage])
         setRemainingTokens(imageData.newBalance)
+        saveChat(updatedMessages)
         window.dispatchEvent(new CustomEvent('tokensUpdated'))
         return
       }
@@ -424,8 +555,12 @@ export default function LeafAIChatPage() {
         tokensUsed: data.tokensUsed
       }
 
+      const updatedMessages = [...messages, userMessage, assistantMessage]
       setMessages(prev => [...prev, assistantMessage])
       setRemainingTokens(data.remainingTokens)
+      
+      // Save chat to history
+      saveChat(updatedMessages)
       
       // Dispatch event for token updates
       window.dispatchEvent(new CustomEvent('tokensUpdated'))
@@ -454,6 +589,7 @@ export default function LeafAIChatPage() {
   const clearChat = useCallback(() => {
     setMessages([])
     setAttachments([])
+    setCurrentChatId(null)
   }, [])
 
   return (
@@ -543,12 +679,12 @@ export default function LeafAIChatPage() {
                                     return <Icon className="w-4 h-4 text-gray-500" />
                                   })()
                                 )}
-                                <span className="text-xs truncate max-w-[100px] text-gray-600">{file.name}</span>
+                                <span className="text-sm truncate max-w-[100px] text-gray-600">{file.name}</span>
                               </div>
                             ))}
                           </div>
                         )}
-                        <p className="whitespace-pre-wrap text-sm">{message.content}</p>
+                        <p className="whitespace-pre-wrap text-base">{message.content}</p>
                       </div>
                     )}
                     
@@ -556,7 +692,7 @@ export default function LeafAIChatPage() {
                     {message.role === 'assistant' && (
                       <div className="text-gray-800">
                         <div 
-                          className="prose prose-sm max-w-none prose-p:my-2 prose-headings:mt-4 prose-headings:mb-2"
+                          className="prose prose-base max-w-none prose-p:my-2 prose-headings:mt-4 prose-headings:mb-2"
                           dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(message.content) }}
                         />
                         
@@ -797,6 +933,90 @@ export default function LeafAIChatPage() {
                 </button>
               </>
             )}
+          </div>
+
+          {/* Your Chats Section */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            {/* Header & Search - Always Visible */}
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                <MessageSquare className="w-4 h-4" />
+                Your Chats
+              </h3>
+              <button
+                onClick={startNewChat}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                New Chat
+              </button>
+            </div>
+            
+            {/* Search Bar - Always Visible */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                placeholder="Search your chats..."
+                className="w-full pl-9 pr-4 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+              />
+            </div>
+
+            {/* Chat List */}
+            <div className="max-h-[250px] overflow-y-auto space-y-2">
+              {filteredHistory.length === 0 ? (
+                <div className="text-center py-6 text-gray-400">
+                  {historySearch ? (
+                    <p className="text-sm">No chats match your search</p>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <MessageSquare className="w-6 h-6 text-gray-300" />
+                      <p className="text-sm">No chats yet</p>
+                      <p className="text-xs text-gray-400">Your conversations will appear here</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                filteredHistory.map((conv) => (
+                  <div
+                    key={conv.id}
+                    onClick={() => loadConversation(conv)}
+                    className={`group flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                      currentChatId === conv.id
+                        ? 'bg-emerald-50 border border-emerald-200'
+                        : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
+                    }`}
+                  >
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                      currentChatId === conv.id ? 'bg-emerald-100' : 'bg-gray-200'
+                    }`}>
+                      <MessageSquare className={`w-4 h-4 ${
+                        currentChatId === conv.id ? 'text-emerald-600' : 'text-gray-500'
+                      }`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-gray-800 truncate">{conv.title}</h4>
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">
+                        {conv.messages.length} messages • {new Date(conv.updated_at).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => deleteChat(conv.id, e)}
+                      className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

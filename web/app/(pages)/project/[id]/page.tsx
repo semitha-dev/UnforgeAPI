@@ -344,43 +344,50 @@ export default function ProjectOverview() {
               </div>
             </form>
 
-            {/* Chat History - directly under search */}
-            {allChats.length > 0 && (
-              <div className="w-full mt-4 animate-in fade-in duration-500 delay-100">
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Recent Searches</h3>
-                  {allChats.length > 5 && (
-                    <span className="text-neutral-600 text-xs">
-                      {filteredChats.length} {filteredChats.length === 1 ? 'chat' : 'chats'}
-                    </span>
-                  )}
-                </div>
-                
-                {/* Search Bar - only show if there are many chats */}
-                {allChats.length > 5 && (
-                  <div className="relative mb-3">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
-                    <input
-                      type="text"
-                      value={chatSearchQuery}
-                      onChange={(e) => setChatSearchQuery(e.target.value)}
-                      placeholder="Search your chats..."
-                      className="w-full pl-9 pr-9 py-2 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-500 text-xs focus:outline-none focus:border-neutral-600 transition-colors"
-                    />
-                    {chatSearchQuery && (
-                      <button
-                        onClick={() => setChatSearchQuery('')}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
+            {/* Your Chats - Always visible */}
+            <div className="w-full mt-4 animate-in fade-in duration-500 delay-100">
+              <div className="flex items-center justify-between mb-3 px-1">
+                <h3 className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Your Chats</h3>
+                {allChats.length > 0 && (
+                  <span className="text-neutral-600 text-xs">
+                    {filteredChats.length} {filteredChats.length === 1 ? 'chat' : 'chats'}
+                  </span>
                 )}
+              </div>
+              
+              {/* Search Bar - Always visible */}
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-500" />
+                <input
+                  type="text"
+                  value={chatSearchQuery}
+                  onChange={(e) => setChatSearchQuery(e.target.value)}
+                  placeholder="Search your chats..."
+                  className="w-full pl-9 pr-9 py-2 bg-neutral-900 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-500 text-xs focus:outline-none focus:border-neutral-600 transition-colors"
+                />
+                {chatSearchQuery && (
+                  <button
+                    onClick={() => setChatSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
-                {/* Compact Chat List */}
-                <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
-                  {(chatSearchQuery ? filteredChats : filteredChats.slice(0, 5)).map((chat) => (
+              {/* Chat List */}
+              <div className="space-y-1.5 max-h-[200px] overflow-y-auto pr-1">
+                {allChats.length === 0 ? (
+                  <div className="text-center py-4 text-neutral-600 text-xs">
+                    <MessageSquare className="w-5 h-5 mx-auto mb-2 text-neutral-700" />
+                    No chats yet. Start a conversation!
+                  </div>
+                ) : (chatSearchQuery ? filteredChats : filteredChats.slice(0, 5)).length === 0 ? (
+                  <div className="text-center py-4 text-neutral-600 text-xs">
+                    No chats found for "{chatSearchQuery}"
+                  </div>
+                ) : (
+                  (chatSearchQuery ? filteredChats : filteredChats.slice(0, 5)).map((chat) => (
                     <button
                       key={chat.id}
                       onClick={() => handleQuickAction(chat.query)}
@@ -397,15 +404,10 @@ export default function ProjectOverview() {
                         </span>
                       )}
                     </button>
-                  ))}
-                  {chatSearchQuery && filteredChats.length === 0 && (
-                    <div className="text-center py-4 text-neutral-600 text-xs">
-                      No chats found for "{chatSearchQuery}"
-                    </div>
-                  )}
-                </div>
+                  ))
+                )}
               </div>
-            )}
+            </div>
 
             {/* Quick Actions */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-6 animate-in fade-in duration-500 delay-150">

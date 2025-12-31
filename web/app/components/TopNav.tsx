@@ -15,12 +15,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useSubscriptionContext } from '@/lib/SubscriptionContext'
 
 interface Profile {
   id: string
   name: string
   email: string
-  subscription_tier?: string
 }
 
 interface TopNavProps {
@@ -368,9 +368,14 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
   const [showLeafAI, setShowLeafAI] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const { isPro } = useSubscriptionContext()
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    loadProfile()
+    if (!fetchedRef.current) {
+      fetchedRef.current = true
+      loadProfile()
+    }
   }, [])
 
   const loadProfile = async () => {
@@ -385,7 +390,7 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, name, email, subscription_tier')
+        .select('id, name, email')
         .eq('id', user.id)
         .single()
 
@@ -451,10 +456,10 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-10 px-3 rounded-xl hover:bg-gray-100 gap-3">
-                <div className={`relative ${profile.subscription_tier === 'pro' ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
+                <div className={`relative ${isPro ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="" />
-                    <AvatarFallback className={`${profile.subscription_tier === 'pro' ? 'bg-gray-900 text-white' : 'bg-gradient-to-br from-orange-400 to-orange-500 text-white'} text-xs`}>
+                    <AvatarFallback className={`${isPro ? 'bg-gray-900 text-white' : 'bg-gradient-to-br from-orange-400 to-orange-500 text-white'} text-xs`}>
                       {profile.name ? getInitials(profile.name) : 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -462,11 +467,11 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
                 <div className="hidden sm:flex flex-col items-start">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-medium text-gray-900">{profile.name}</span>
-                    {profile.subscription_tier === 'pro' && (
+                    {isPro && (
                       <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded shadow-sm shadow-purple-500/50">PRO</span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">{profile.subscription_tier === 'pro' ? 'Pro Member' : 'Student'}</span>
+                  <span className="text-xs text-gray-500">{isPro ? 'Pro Member' : 'Student'}</span>
                 </div>
                 <ChevronDown className="h-4 w-4 text-gray-400" />
               </Button>

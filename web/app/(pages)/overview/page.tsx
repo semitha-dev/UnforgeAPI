@@ -59,7 +59,7 @@ import GlobalSidebar from '@/components/GlobalSidebar'
 import ChatsPanel from '@/components/ChatsPanel'
 import MobileNav from '@/components/MobileNav'
 import { WelcomeGuide, useWelcomeGuide } from '@/components/WelcomeGuide'
-import { prefetchSubscription } from '@/lib/useSubscription'
+import { useSubscriptionContext } from '@/lib/SubscriptionContext'
 
 interface Citation {
   number: number
@@ -91,7 +91,6 @@ interface ChatConversation {
 interface Profile {
   name: string
   email: string
-  subscription_tier?: string
 }
 
 interface StudyItem {
@@ -125,6 +124,7 @@ export default function GlobalOverviewPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [showChatsPanel, setShowChatsPanel] = useState(false)
+  const { isPro, isAnonymous: contextIsAnonymous } = useSubscriptionContext()
   
   // Welcome guide for first-time users
   const { showWelcome, closeWelcome } = useWelcomeGuide()
@@ -153,9 +153,13 @@ export default function GlobalOverviewPage() {
   const lastMessageCountRef = useRef(0) // Track message count to only scroll on new messages
   const router = useRouter()
   const supabase = createClient()
+  const fetchedRef = useRef(false)
 
   useEffect(() => {
-    loadUserData()
+    if (!fetchedRef.current) {
+      fetchedRef.current = true
+      loadUserData()
+    }
   }, [])
 
   // Only scroll when a NEW message is added, not during streaming content updates
@@ -177,9 +181,6 @@ export default function GlobalOverviewPage() {
 
   const loadUserData = async () => {
     try {
-      // Start subscription prefetch early
-      prefetchSubscription()
-      
       const { data: { user } } = await supabase.auth.getUser()
       
       // Allow anonymous users - don't redirect
@@ -188,8 +189,7 @@ export default function GlobalOverviewPage() {
         setUserId(null)
         setProfile({
           name: 'Guest',
-          email: '',
-          subscription_tier: 'anonymous'
+          email: ''
         })
         setIsLoading(false)
         return
@@ -197,31 +197,23 @@ export default function GlobalOverviewPage() {
       
       setUserId(user.id)
 
-      // Fetch profile and subscription in parallel
-      const [profileResult, subscriptionResult] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('name, email')
-          .eq('id', user.id)
-          .single(),
-        fetch('/api/subscription').then(res => res.ok ? res.json() : null).catch(() => null)
-      ])
-
-      const profileData = profileResult.data
-      const subscriptionTier = subscriptionResult?.subscription?.tier || 'free'
+      // Fetch profile only - subscription comes from context
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('id', user.id)
+        .single()
 
       setProfile({
         name: profileData?.name || '',
-        email: profileData?.email || user.email || '',
-        subscription_tier: subscriptionTier
+        email: profileData?.email || user.email || ''
       })
     } catch (error) {
       console.error('Error loading user data:', error)
       // On error, still allow anonymous access
       setProfile({
         name: 'Guest',
-        email: '',
-        subscription_tier: 'anonymous'
+        email: ''
       })
     } finally {
       setIsLoading(false)
@@ -448,7 +440,7 @@ export default function GlobalOverviewPage() {
 
   const saveConversation = async (msgs: Message[]) => {
     // Don't save for anonymous users
-    if (!userId || profile?.subscription_tier === 'anonymous') {
+    if (!userId) {
       return
     }
     
@@ -616,8 +608,8 @@ export default function GlobalOverviewPage() {
         {/* Global Sidebar - Desktop Only */}
         <div className="hidden lg:block">
           <GlobalSidebar
-            isPro={profile?.subscription_tier === 'pro'}
-            isAnonymous={profile?.subscription_tier === 'anonymous'}
+            isPro={isPro}
+            isAnonymous={!userId}
             onUpgradeClick={() => setShowUpgradeModal(true)}
             onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
             onChatsHover={() => setShowChatsPanel(true)}
@@ -632,7 +624,7 @@ export default function GlobalOverviewPage() {
         />
 
         {/* Chats Panel - only for logged in users */}
-        {profile?.subscription_tier !== 'anonymous' && (
+        {userId && (
           <ChatsPanel
             isOpen={showChatsPanel}
             onClose={() => setShowChatsPanel(false)}
@@ -645,15 +637,15 @@ export default function GlobalOverviewPage() {
         {/* Main Content - Add bottom padding on mobile for nav */}
         <main className="lg:ml-[72px] min-h-screen flex flex-col pb-20 lg:pb-0">
           {/* Top Navigation Header */}
-          {profile?.subscription_tier !== 'anonymous' && (
+          {userId && (
             <header className="sticky top-0 z-30 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-800 h-14">
               <div className="flex items-center justify-end h-full px-4 lg:px-6">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="flex items-center gap-2 px-2 hover:bg-neutral-800">
-                      <div className={`relative ${profile?.subscription_tier === 'pro' ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
+                      <div className={`relative ${isPro ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
                         <Avatar className="h-8 w-8">
-                          <AvatarFallback className={`${profile?.subscription_tier === 'pro' ? 'bg-neutral-900' : 'bg-neutral-800'} text-white`}>
+                          <AvatarFallback className={`${isPro ? 'bg-neutral-900' : 'bg-neutral-800'} text-white`}>
                             {(profile?.name || profile?.email)?.charAt(0).toUpperCase() || 'U'}
                           </AvatarFallback>
                         </Avatar>
@@ -662,7 +654,7 @@ export default function GlobalOverviewPage() {
                         <span className="text-sm font-medium text-neutral-200">
                           {profile?.name?.split(' ')[0] || profile?.email?.split('@')[0] || 'User'}
                         </span>
-                        {profile?.subscription_tier === 'pro' && (
+                        {isPro && (
                           <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded shadow-sm shadow-purple-500/50">PRO</span>
                         )}
                       </div>
@@ -674,7 +666,7 @@ export default function GlobalOverviewPage() {
                       <div className="flex flex-col">
                         <div className="flex items-center gap-1.5">
                           <span className="font-medium">{profile?.name || profile?.email?.split('@')[0] || 'User'}</span>
-                          {profile?.subscription_tier === 'pro' && (
+                          {isPro && (
                             <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded">PRO</span>
                           )}
                         </div>
@@ -696,7 +688,7 @@ export default function GlobalOverviewPage() {
           )}
 
           {/* Anonymous User Banner */}
-          {profile?.subscription_tier === 'anonymous' && (
+          {!userId && (
             <div className="bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border-b border-emerald-500/30 px-4 py-3">
               <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -726,7 +718,7 @@ export default function GlobalOverviewPage() {
               {/* Search Input */}
               <div className="w-full max-w-3xl mb-6 lg:mb-8 px-2 sm:px-0">
                 {/* Research Mode Usage Banner - Only for free users */}
-                {profile?.subscription_tier === 'free' && researchUsed > 0 && (
+                {!isPro && userId && researchUsed > 0 && (
                   <div className="flex items-center justify-center gap-2 mb-3 px-3 py-2 bg-purple-500/10 border border-purple-500/20 rounded-xl">
                     <Brain className="w-4 h-4 text-purple-400" />
                     <span className="text-sm text-purple-300">
@@ -796,7 +788,7 @@ export default function GlobalOverviewPage() {
                           <button
                             onClick={() => {
                               // Anonymous users can't use research mode
-                              if (profile?.subscription_tier === 'anonymous') {
+                              if (!userId) {
                                 setShowUpgradeModal(true)
                               } else {
                                 // Both free and pro users can select research mode
@@ -814,7 +806,7 @@ export default function GlobalOverviewPage() {
                             Research
                           </button>
                         </TooltipTrigger>
-                        {profile?.subscription_tier !== 'pro' && profile?.subscription_tier !== 'anonymous' && (
+                        {!isPro && userId && (
                           <TooltipContent 
                             side="bottom" 
                             className="bg-neutral-800 border border-neutral-700 px-3 py-2"
@@ -823,7 +815,7 @@ export default function GlobalOverviewPage() {
                             <p className="text-xs text-neutral-300">3 research searches/day • Pro: Unlimited</p>
                           </TooltipContent>
                         )}
-                        {profile?.subscription_tier === 'anonymous' && (
+                        {!userId && (
                           <TooltipContent 
                             side="bottom" 
                             className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 px-4 py-3"
@@ -1009,7 +1001,7 @@ export default function GlobalOverviewPage() {
               <div className="fixed lg:sticky bottom-0 left-0 right-0 lg:left-auto lg:right-auto bg-gradient-to-t from-black via-black to-transparent pt-4 sm:pt-6 pb-20 lg:pb-6 px-3 sm:px-4 z-30">
                 <div className="max-w-4xl mx-auto space-y-2 sm:space-y-3">
                   {/* Research Mode Usage Banner - Only for free users in conversation view */}
-                  {profile?.subscription_tier === 'free' && researchUsed > 0 && (
+                  {!isPro && userId && researchUsed > 0 && (
                     <div className="flex items-center justify-center gap-2 px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-xl">
                       <Brain className="w-3.5 h-3.5 text-purple-400" />
                       <span className="text-xs text-purple-300">
@@ -1041,7 +1033,7 @@ export default function GlobalOverviewPage() {
                         <button
                           onClick={() => {
                             // Anonymous users can't use research mode
-                            if (profile?.subscription_tier === 'anonymous') {
+                            if (!userId) {
                               setShowUpgradeModal(true)
                             } else {
                               // Both free and pro users can select research mode
@@ -1059,7 +1051,7 @@ export default function GlobalOverviewPage() {
                           <span className="xs:hidden">Pro</span>
                         </button>
                       </TooltipTrigger>
-                      {profile?.subscription_tier !== 'pro' && profile?.subscription_tier !== 'anonymous' && (
+                      {!isPro && userId && (
                         <TooltipContent 
                           side="bottom" 
                           className="bg-neutral-800 border border-neutral-700 px-3 py-2"
@@ -1068,7 +1060,7 @@ export default function GlobalOverviewPage() {
                           <p className="text-xs text-neutral-300">3 research searches/day • Pro: Unlimited</p>
                         </TooltipContent>
                       )}
-                      {profile?.subscription_tier === 'anonymous' && (
+                      {!userId && (
                         <TooltipContent 
                           side="bottom" 
                           className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 px-4 py-3"
@@ -1440,7 +1432,7 @@ export default function GlobalOverviewPage() {
         <UpgradeModal
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
-          isPro={profile?.subscription_tier === 'pro'}
+          isPro={isPro}
         />
       </div>
     </TooltipProvider>

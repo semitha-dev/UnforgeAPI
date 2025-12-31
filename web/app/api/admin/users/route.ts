@@ -6,6 +6,16 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Sanitize search input to prevent SQL injection
+function sanitizeSearchInput(input: string): string {
+  // Remove or escape special characters used in PostgREST patterns
+  return input
+    .replace(/[%_\\]/g, '') // Remove wildcards and backslash
+    .replace(/[\x00-\x1f\x7f]/g, '') // Remove control characters
+    .slice(0, 100) // Limit length
+    .trim()
+}
+
 async function isAdmin(userId: string): Promise<boolean> {
   const { data } = await supabaseAdmin
     .from('profiles')
@@ -35,8 +45,9 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const search = searchParams.get('search') || ''
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100) // Cap limit at 100
+    const rawSearch = searchParams.get('search') || ''
+    const search = sanitizeSearchInput(rawSearch)
     const offset = (page - 1) * limit
 
     // Build query
