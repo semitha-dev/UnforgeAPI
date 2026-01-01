@@ -526,7 +526,7 @@ function AIBox({ type, selectedText, fullNoteContent, onInsert, onClose, onStrea
               </div>
             ) : (
               <div 
-                className="max-h-64 overflow-y-auto prose prose-sm prose-emerald"
+                className="max-h-64 overflow-y-auto prose prose-sm prose-invert prose-emerald"
                 dangerouslySetInnerHTML={{ __html: convertMarkdownToHtml(response) }}
               />
             )}

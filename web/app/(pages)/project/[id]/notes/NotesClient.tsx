@@ -2036,9 +2036,37 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showMusicPlayer, setShowMusicPlayer] = useState(false)
   
+  // Track if there are unsaved changes
+  const hasUnsavedChanges = title.trim() !== '' || content.trim() !== ''
+  
   // Debounced content for auto-save
   const debouncedContent = useDebounce(content, 2000)
   const debouncedTitle = useDebounce(title, 2000)
+
+  // Warn user about unsaved changes when trying to leave the page
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue = ''
+        return ''
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  // Handle back button with unsaved changes warning
+  const handleBack = () => {
+    if (hasUnsavedChanges) {
+      if (confirm('You have unsaved changes. Are you sure you want to leave? Your note will be lost.')) {
+        onBack()
+      }
+    } else {
+      onBack()
+    }
+  }
 
   // Collapse sidebar when editor opens, expand when closing
   useEffect(() => {
@@ -2126,7 +2154,7 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
         <div className="flex items-center justify-between px-3 sm:px-8 py-2.5 sm:py-4">
           {/* Back Button */}
           <button
-            onClick={onBack}
+            onClick={handleBack}
             className="flex items-center justify-center w-10 h-10 -ml-2 hover:bg-neutral-800 rounded-full transition-colors"
           >
             <svg className="w-5 h-5 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
