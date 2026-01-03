@@ -153,12 +153,26 @@ export default function BillingPage() {
                 </div>
 
                 <ul className="space-y-3 mb-6 text-sm">
-                  {PLAN_CONFIG.managed_pro.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2 text-neutral-300">
-                      <Check className="w-4 h-4 text-violet-400" />
-                      {feature}
-                    </li>
-                  ))}
+                  <li className="flex items-center gap-2 text-neutral-300">
+                    <Check className="w-4 h-4 text-violet-400" />
+                    Unlimited Chat & Context
+                  </li>
+                  <li className="flex items-center gap-2 text-neutral-300">
+                    <Check className="w-4 h-4 text-violet-400" />
+                    1,000 Web Search requests / month
+                  </li>
+                  <li className="flex items-center gap-2 text-neutral-300">
+                    <Check className="w-4 h-4 text-violet-400" />
+                    Full research capabilities
+                  </li>
+                  <li className="flex items-center gap-2 text-neutral-300">
+                    <Check className="w-4 h-4 text-violet-400" />
+                    System API keys
+                  </li>
+                  <li className="flex items-center gap-2 text-neutral-300">
+                    <Check className="w-4 h-4 text-violet-400" />
+                    50,000 req/mo fair usage policy
+                  </li>
                 </ul>
 
                 <a

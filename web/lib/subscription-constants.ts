@@ -39,6 +39,7 @@ export const PLAN_CONFIG: Record<ApiPlan, {
   description: string;
   limitType: 'daily' | 'monthly' | 'rate';
   limit: number;
+  totalLimit?: number; // Fair usage limit (optional)
   duration: number; // in milliseconds
   searchEnabled: boolean;
   requiresUserKeys: boolean;
@@ -70,17 +71,18 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     period: '/month',
     description: 'For production applications',
     limitType: 'monthly',
-    limit: 1000,
+    limit: 1000, // Search requests limit
+    totalLimit: 50000, // Fair usage: 50k total requests/month
     duration: 2592000000, // 30 days
     searchEnabled: true,
     requiresUserKeys: false,
     features: [
-      '1,000 Search requests / month',
       'Unlimited Chat & Context',
+      '1,000 Web Search requests / month',
       'Full research capabilities',
       'System API keys',
       'Priority support',
-      '99.9% uptime SLA',
+      '50,000 req/mo fair usage policy',
     ],
   },
   byok_starter: {
