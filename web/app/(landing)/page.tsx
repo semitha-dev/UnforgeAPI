@@ -183,7 +183,7 @@ const HeroSection = () => {
               <pre className="p-6 text-left overflow-x-auto">
                 <code className="text-sm">
                   <span className="text-gray-500">{'// One endpoint. Three intelligent paths.'}</span>{'\n'}
-                  <span className="text-fuchsia-400">const</span> <span className="text-white">response</span> <span className="text-gray-400">=</span> <span className="text-fuchsia-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">'https://api.unforge.com/v1/chat'</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
+                  <span className="text-fuchsia-400">const</span> <span className="text-white">response</span> <span className="text-gray-400">=</span> <span className="text-fuchsia-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">'https://homerun-snowy.vercel.app/api/v1/chat'</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
                   <span className="text-white">  method</span><span className="text-gray-400">:</span> <span className="text-green-400">'POST'</span><span className="text-gray-400">,</span>{'\n'}
                   <span className="text-white">  headers</span><span className="text-gray-400">:</span> <span className="text-gray-400">{'{'}</span> <span className="text-green-400">'Authorization'</span><span className="text-gray-400">:</span> <span className="text-green-400">`Bearer ${'${'}API_KEY{'}'}`</span> <span className="text-gray-400">{'}'},</span>{'\n'}
                   <span className="text-white">  body</span><span className="text-gray-400">:</span> <span className="text-violet-400">JSON</span><span className="text-gray-400">.</span><span className="text-violet-400">stringify</span><span className="text-gray-400">(</span><span className="text-gray-400">{'{'}</span>{'\n'}
@@ -696,3 +696,4 @@ export default function LandingPage() {
     </main>
   );
 }
+

@@ -188,6 +188,17 @@ export async function POST(request: NextRequest) {
       console.warn('[API/usage:POST] Failed to log usage:', error.message)
     }
 
+    // Also update the api_keys last_used_at timestamp
+    const { error: updateError } = await supabaseAdmin
+      .from('api_keys')
+      .update({ last_used_at: new Date().toISOString() })
+      .eq('unkey_id', keyId)
+
+    if (updateError) {
+      debug('POST:updateKey:error', { error: updateError.message })
+      console.warn('[API/usage:POST] Failed to update key last_used_at:', updateError.message)
+    }
+
     debug('POST:success', {})
 
     return NextResponse.json({ success: true })

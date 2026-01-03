@@ -63,7 +63,7 @@ export default function DashboardLayout({
     { href: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
     { href: '/dashboard/keys', icon: Key, label: 'API Keys' },
     { href: '/dashboard/usage', icon: BarChart3, label: 'Usage' },
-    { href: '/dashboard/docs', icon: FileText, label: 'Documentation' },
+    { href: '/docs', icon: FileText, label: 'Documentation' },
     { href: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
     { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
   ]

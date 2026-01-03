@@ -152,7 +152,7 @@ export default function DocsPage() {
               <div>
                 <h3 className="font-semibold mb-3">1. Get your API key</h3>
                 <p className="text-gray-400 mb-4">
-                  Sign up and create a workspace to get your API key.
+                  Sign up and create a Managed API key from your dashboard. No additional setup needed!
                 </p>
                 <Link
                   href="/signup"
@@ -164,14 +164,16 @@ export default function DocsPage() {
               
               <div>
                 <h3 className="font-semibold mb-3">2. Make your first request</h3>
+                <p className="text-gray-500 text-sm mb-2">
+                  With Managed tier, just use your API key - we handle the rest:
+                </p>
                 <CodeBlock
                   language="bash"
-                  code={`curl -X POST https://api.unforge.com/v1/chat \\
+                  code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
   -H "Authorization: Bearer uf_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "query": "What is the capital of France?",
-    "context": ""
+    "query": "What is the capital of France?"
   }'`}
                 />
               </div>
@@ -180,7 +182,7 @@ export default function DocsPage() {
                 <h3 className="font-semibold mb-3">3. With context (recommended)</h3>
                 <CodeBlock
                   language="bash"
-                  code={`curl -X POST https://api.unforge.com/v1/chat \\
+                  code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
   -H "Authorization: Bearer uf_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -215,16 +217,54 @@ export default function DocsPage() {
               </p>
             </div>
             
-            <h3 className="font-semibold mt-8 mb-4">BYOK (Bring Your Own Keys)</h3>
-            <p className="text-gray-400 mb-4">
-              BYOK tier users <strong>must</strong> pass their own Groq and Tavily API keys in request headers. 
-              Keys are never stored - fully stateless for maximum security.
-            </p>
+            {/* Managed Tier */}
+            <h3 className="font-semibold mt-8 mb-4 flex items-center gap-2">
+              <span className="text-2xl">🔥</span> Managed Tier (Recommended)
+            </h3>
+            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-4">
+              <p className="text-emerald-300 text-sm mb-2">
+                <strong>Plug & Play:</strong> Just use your UnforgeAPI key. We provide Groq + Tavily behind the scenes.
+              </p>
+              <ul className="text-gray-400 text-sm space-y-1">
+                <li>✅ No extra setup - get your key and start building</li>
+                <li>✅ We handle infrastructure, rate limiting, monitoring</li>
+                <li>✅ Predictable billing: $29/mo flat, 10,000 requests included</li>
+                <li>✅ All enterprise features included</li>
+              </ul>
+            </div>
             <CodeBlock
-              language="http"
-              code={`Authorization: Bearer uf_your_api_key
-x-groq-key: gsk_your_groq_key
-x-tavily-key: tvly-your_tavily_key`}
+              language="bash"
+              code={`# Managed tier - just your API key, that's it!
+curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "What is quantum computing?"}'`}
+            />
+
+            {/* BYOK Tier */}
+            <h3 className="font-semibold mt-8 mb-4 flex items-center gap-2">
+              <span className="text-2xl">💰</span> BYOK Tier (Bring Your Own Keys)
+            </h3>
+            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-4">
+              <p className="text-amber-300 text-sm mb-2">
+                <strong>Full Control:</strong> Use your own Groq and Tavily API keys for unlimited usage.
+              </p>
+              <ul className="text-gray-400 text-sm space-y-1">
+                <li>✅ Unlimited usage - no rate limits from us</li>
+                <li>✅ Cost control - pay Groq/Tavily directly at their rates</li>
+                <li>✅ Enterprise scale for high-volume applications</li>
+                <li>✅ Lower platform fee: $9/mo (you handle LLM costs)</li>
+              </ul>
+            </div>
+            <CodeBlock
+              language="bash"
+              code={`# BYOK tier - pass your own keys
+curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "x-groq-key: gsk_your_groq_key" \\
+  -H "x-tavily-key: tvly-your_tavily_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "What is quantum computing?"}'`}
             />
             <div className="mt-4 p-4 bg-violet-500/10 border border-violet-500/20 rounded-xl">
               <p className="text-violet-300 text-sm">
@@ -618,7 +658,7 @@ x-tavily-key: tvly-your_tavily_key`}
                 <h4 className="font-semibold mb-4">Full Example with All Parameters</h4>
                 <CodeBlock
                   language="bash"
-                  code={`curl -X POST https://api.unforge.com/v1/chat \\
+                  code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
   -H "Authorization: Bearer uf_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -704,7 +744,7 @@ x-tavily-key: tvly-your_tavily_key`}
             <h3 className="font-semibold mb-4">JavaScript / Node.js</h3>
             <CodeBlock
               language="javascript"
-              code={`const response = await fetch('https://api.unforge.com/v1/chat', {
+              code={`const response = await fetch('https://homerun-snowy.vercel.app/api/v1/chat', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer uf_your_api_key',
@@ -729,7 +769,7 @@ console.log(data.meta.routed_to);
               code={`import requests
 
 response = requests.post(
-    'https://api.unforge.com/v1/chat',
+    'https://homerun-snowy.vercel.app/api/v1/chat',
     headers={
         'Authorization': 'Bearer uf_your_api_key',
         'Content-Type': 'application/json'
@@ -810,3 +850,4 @@ print(f"Routed to: {data['meta']['routed_to']}")`}
     </div>
   )
 }
+

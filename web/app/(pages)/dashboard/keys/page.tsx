@@ -24,6 +24,7 @@ interface ApiKey {
   is_active: boolean
   created_at: string
   last_used_at: string | null
+  unkey_id: string
 }
 
 export default function ApiKeysPage() {
@@ -132,9 +133,9 @@ export default function ApiKeysPage() {
     }
   }
 
-  const deleteApiKey = async (keyId: string) => {
+  const deleteApiKey = async (unkeyId: string) => {
     try {
-      const response = await fetch(`/api/keys?id=${keyId}`, {
+      const response = await fetch(`/api/keys?id=${unkeyId}`, {
         method: 'DELETE'
       })
 
@@ -144,7 +145,7 @@ export default function ApiKeysPage() {
       }
 
       // Remove from local state
-      setApiKeys(keys => keys.filter(k => k.id !== keyId))
+      setApiKeys(keys => keys.filter(k => k.unkey_id !== unkeyId))
     } catch (err: any) {
       setError(err.message)
     }
@@ -300,7 +301,7 @@ export default function ApiKeysPage() {
                   </span>
                   <span className={`w-2 h-2 rounded-full ${key.is_active ? 'bg-green-400' : 'bg-red-400'}`} />
                   <button
-                    onClick={() => deleteApiKey(key.id)}
+                    onClick={() => deleteApiKey(key.unkey_id)}
                     className="p-2 text-neutral-400 hover:text-red-400 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />

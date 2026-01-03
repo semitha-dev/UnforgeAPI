@@ -33,6 +33,7 @@ interface ApiKey {
   is_active: boolean
   last_used_at: string | null
   created_at: string
+  unkey_id: string
 }
 
 interface UsageStats {
@@ -165,9 +166,9 @@ export default function WorkspaceDashboardPage({ params }: { params: Promise<{ s
           'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          workspace_id: workspace.id,
+          workspaceId: workspace.id,
           name: newKeyName,
-          tier: 'sandbox'
+          tier: 'managed'
         })
       })
 
@@ -198,7 +199,7 @@ export default function WorkspaceDashboardPage({ params }: { params: Promise<{ s
       if (!session) throw new Error('Not authenticated')
 
       // Call API to revoke key via Unkey
-      const response = await fetch(`/api/keys?keyId=${keyId}`, {
+      const response = await fetch(`/api/keys?id=${keyId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.access_token}`
@@ -407,7 +408,7 @@ export default function WorkspaceDashboardPage({ params }: { params: Promise<{ s
             <div className="text-neutral-500 mb-2"># Make your first request</div>
             <div>
               <span className="text-emerald-400">curl</span>
-              <span className="text-neutral-300"> -X POST https://api.unforge.com/v1/chat \</span>
+              <span className="text-neutral-300"> -X POST https://homerun-snowy.vercel.app/api/v1/chat \</span>
             </div>
             <div className="pl-4">
               <span className="text-neutral-300">-H </span>
@@ -484,7 +485,7 @@ export default function WorkspaceDashboardPage({ params }: { params: Promise<{ s
                   </span>
                   <span className={`w-2 h-2 rounded-full ${key.is_active ? 'bg-green-400' : 'bg-red-400'}`} />
                   <button
-                    onClick={() => deleteApiKey(key.id)}
+                    onClick={() => deleteApiKey(key.unkey_id)}
                     className="p-2 text-neutral-400 hover:text-red-400 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />

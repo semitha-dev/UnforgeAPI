@@ -20,41 +20,79 @@ export default function DocsPage() {
     setTimeout(() => setCopiedCode(null), 2000)
   }
 
-  const curlExample = `curl -X POST https://api.unforge.com/v1/chat \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+  // MANAGED tier examples (simple - no extra keys needed)
+  const curlManagedExample = `curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+  -H "Authorization: Bearer uf_your_api_key" \\
   -H "Content-Type: application/json" \\
-  -H "x-groq-key: YOUR_GROQ_KEY" \\
-  -H "x-tavily-key: YOUR_TAVILY_KEY" \\
-  -d '{"query": "What is the capital of France?"}'`
+  -d '{"query": "What is quantum computing?"}'`
 
-  const pythonExample = `import requests
+  const pythonManagedExample = `import requests
 
 response = requests.post(
-    "https://api.unforge.com/v1/chat",
+    "https://homerun-snowy.vercel.app/api/v1/chat",
     headers={
-        "Authorization": "Bearer YOUR_API_KEY",
+        "Authorization": "Bearer uf_your_api_key",
         "Content-Type": "application/json",
-        "x-groq-key": "YOUR_GROQ_KEY",      # Optional for BYOK
-        "x-tavily-key": "YOUR_TAVILY_KEY",  # Optional for research
     },
     json={
-        "query": "What is the capital of France?",
+        "query": "What is quantum computing?",
         "context": "Optional context for RAG queries"
     }
 )
 
 print(response.json())`
 
-  const jsExample = `const response = await fetch("https://api.unforge.com/v1/chat", {
+  const jsManagedExample = `const response = await fetch("https://homerun-snowy.vercel.app/api/v1/chat", {
   method: "POST",
   headers: {
-    "Authorization": "Bearer YOUR_API_KEY",
+    "Authorization": "Bearer uf_your_api_key",
     "Content-Type": "application/json",
-    "x-groq-key": "YOUR_GROQ_KEY",      // Optional for BYOK
-    "x-tavily-key": "YOUR_TAVILY_KEY",  // Optional for research
   },
   body: JSON.stringify({
-    query: "What is the capital of France?",
+    query: "What is quantum computing?",
+    context: "Optional context for RAG queries"
+  })
+});
+
+const data = await response.json();
+console.log(data);`
+
+  // BYOK tier examples (bring your own keys)
+  const curlByokExample = `curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -H "x-groq-key: gsk_your_groq_key" \\
+  -H "x-tavily-key: tvly_your_tavily_key" \\
+  -d '{"query": "What is quantum computing?"}'`
+
+  const pythonByokExample = `import requests
+
+response = requests.post(
+    "https://homerun-snowy.vercel.app/api/v1/chat",
+    headers={
+        "Authorization": "Bearer uf_your_api_key",
+        "Content-Type": "application/json",
+        "x-groq-key": "gsk_your_groq_key",
+        "x-tavily-key": "tvly_your_tavily_key",
+    },
+    json={
+        "query": "What is quantum computing?",
+        "context": "Optional context for RAG queries"
+    }
+)
+
+print(response.json())`
+
+  const jsByokExample = `const response = await fetch("https://homerun-snowy.vercel.app/api/v1/chat", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer uf_your_api_key",
+    "Content-Type": "application/json",
+    "x-groq-key": "gsk_your_groq_key",
+    "x-tavily-key": "tvly_your_tavily_key",
+  },
+  body: JSON.stringify({
+    query: "What is quantum computing?",
     context: "Optional context for RAG queries"
   })
 });
@@ -63,10 +101,17 @@ const data = await response.json();
 console.log(data);`
 
   const responseExample = `{
-  "answer": "The capital of France is Paris.",
-  "intent": "CHAT",
-  "tokens_used": 42
+  "answer": "Quantum computing is a type of computation that...",
+  "meta": {
+    "intent": "CHAT",
+    "model": "llama-3.3-70b-versatile",
+    "tokens_used": 156,
+    "confidence_score": 0.85,
+    "grounded": true
+  }
 }`
+
+  const [selectedTier, setSelectedTier] = useState<'managed' | 'byok'>('managed')
 
   return (
     <>
@@ -207,11 +252,62 @@ console.log(data);`
 
       {/* Code Examples */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-            <Book className="w-5 h-5 text-purple-400" />
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+              <Book className="w-5 h-5 text-purple-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-white">Code Examples</h2>
           </div>
-          <h2 className="text-xl font-semibold text-white">Code Examples</h2>
+          
+          {/* Tier Toggle */}
+          <div className="flex items-center gap-2 p-1 bg-neutral-800 rounded-lg">
+            <button
+              onClick={() => setSelectedTier('managed')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                selectedTier === 'managed'
+                  ? 'bg-emerald-500 text-white'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              🔥 Managed
+            </button>
+            <button
+              onClick={() => setSelectedTier('byok')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                selectedTier === 'byok'
+                  ? 'bg-amber-500 text-white'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              💰 BYOK
+            </button>
+          </div>
+        </div>
+
+        {/* Tier Info Banner */}
+        <div className={`p-4 rounded-xl mb-6 ${
+          selectedTier === 'managed' 
+            ? 'bg-emerald-500/10 border border-emerald-500/30' 
+            : 'bg-amber-500/10 border border-amber-500/30'
+        }`}>
+          {selectedTier === 'managed' ? (
+            <div>
+              <div className="font-medium text-emerald-400 mb-1">Managed Tier - Recommended</div>
+              <p className="text-sm text-neutral-300">
+                Just use your UnforgeAPI key. We provide Groq + Tavily behind the scenes. 
+                No extra setup required!
+              </p>
+            </div>
+          ) : (
+            <div>
+              <div className="font-medium text-amber-400 mb-1">BYOK Tier - Bring Your Own Keys</div>
+              <p className="text-sm text-neutral-300">
+                Use your own Groq and Tavily API keys for unlimited usage. 
+                You pay those providers directly at their rates.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* cURL */}
@@ -219,13 +315,13 @@ console.log(data);`
           <h3 className="text-lg font-medium text-white mb-2">cURL</h3>
           <div className="relative">
             <button
-              onClick={() => copyCode(curlExample, 'curl')}
+              onClick={() => copyCode(selectedTier === 'managed' ? curlManagedExample : curlByokExample, 'curl')}
               className="absolute top-3 right-3 p-2 text-neutral-400 hover:text-white"
             >
               {copiedCode === 'curl' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </button>
             <pre className="p-4 bg-neutral-950 rounded-xl overflow-x-auto text-sm">
-              <code className="text-neutral-300">{curlExample}</code>
+              <code className="text-neutral-300">{selectedTier === 'managed' ? curlManagedExample : curlByokExample}</code>
             </pre>
           </div>
         </div>
@@ -235,13 +331,13 @@ console.log(data);`
           <h3 className="text-lg font-medium text-white mb-2">Python</h3>
           <div className="relative">
             <button
-              onClick={() => copyCode(pythonExample, 'python')}
+              onClick={() => copyCode(selectedTier === 'managed' ? pythonManagedExample : pythonByokExample, 'python')}
               className="absolute top-3 right-3 p-2 text-neutral-400 hover:text-white"
             >
               {copiedCode === 'python' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </button>
             <pre className="p-4 bg-neutral-950 rounded-xl overflow-x-auto text-sm">
-              <code className="text-neutral-300">{pythonExample}</code>
+              <code className="text-neutral-300">{selectedTier === 'managed' ? pythonManagedExample : pythonByokExample}</code>
             </pre>
           </div>
         </div>
@@ -251,13 +347,13 @@ console.log(data);`
           <h3 className="text-lg font-medium text-white mb-2">JavaScript / TypeScript</h3>
           <div className="relative">
             <button
-              onClick={() => copyCode(jsExample, 'js')}
+              onClick={() => copyCode(selectedTier === 'managed' ? jsManagedExample : jsByokExample, 'js')}
               className="absolute top-3 right-3 p-2 text-neutral-400 hover:text-white"
             >
               {copiedCode === 'js' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </button>
             <pre className="p-4 bg-neutral-950 rounded-xl overflow-x-auto text-sm">
-              <code className="text-neutral-300">{jsExample}</code>
+              <code className="text-neutral-300">{selectedTier === 'managed' ? jsManagedExample : jsByokExample}</code>
             </pre>
           </div>
         </div>
@@ -265,3 +361,4 @@ console.log(data);`
     </>
   )
 }
+
