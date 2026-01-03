@@ -15,7 +15,8 @@ import {
   synthesizeAnswer,
   didBreakCharacter,
   type Intent,
-  type ChatMessage
+  type ChatMessage,
+  type GenerationOptions
 } from '@/lib/router'
 
 // ============================================
@@ -66,6 +67,11 @@ interface RequestBody {
   query: string
   context?: string
   history?: ChatMessage[]
+  // New parameters from customer feedback
+  system_prompt?: string      // Custom system prompt for persona/behavior
+  force_intent?: Intent       // Override intent classification
+  temperature?: number        // LLM temperature (0.0 - 1.0)
+  max_tokens?: number         // Max response tokens
 }
 
 interface ResponseMeta {
@@ -74,6 +80,9 @@ interface ResponseMeta {
   cost_saving: boolean
   latency_ms: number
   sources?: Array<{ title: string; url: string }>
+  intent_forced?: boolean    // True if force_intent was used
+  temperature_used?: number  // Actual temperature used
+  max_tokens_used?: number   // Actual max_tokens used
 }
 
 interface UnkeyVerifyResult {
@@ -252,7 +261,11 @@ export async function POST(req: NextRequest) {
         contextLength: body.context?.length,
         contextPreview: body.context?.substring(0, 100),
         hasHistory: !!body.history,
-        historyLength: body.history?.length
+        historyLength: body.history?.length,
+        hasSystemPrompt: !!body.system_prompt,
+        forceIntent: body.force_intent,
+        temperature: body.temperature,
+        maxTokens: body.max_tokens
       }, ctx)
     } catch (parseError: any) {
       debugError('request:parseError', parseError, ctx)
@@ -262,7 +275,7 @@ export async function POST(req: NextRequest) {
       )
     }
     
-    const { query, context, history } = body
+    const { query, context, history, system_prompt, force_intent, temperature, max_tokens } = body
 
     if (!query || typeof query !== 'string') {
       debug('request:invalid', { reason: 'missing query', queryType: typeof query }, ctx)
@@ -279,6 +292,32 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Validate new parameters
+    if (force_intent && !['CHAT', 'CONTEXT', 'RESEARCH'].includes(force_intent)) {
+      debug('request:invalid', { reason: 'invalid force_intent', value: force_intent }, ctx)
+      return Response.json(
+        { error: 'Invalid force_intent. Must be one of: CHAT, CONTEXT, RESEARCH', code: 'INVALID_FORCE_INTENT' },
+        { status: 400 }
+      )
+    }
+
+    // Validate and clamp temperature
+    const validTemperature = temperature !== undefined 
+      ? Math.max(0, Math.min(1, temperature)) 
+      : undefined
+    
+    // Validate and clamp max_tokens
+    const validMaxTokens = max_tokens !== undefined 
+      ? Math.max(50, Math.min(2000, max_tokens)) 
+      : undefined
+
+    debug('params:validated', { 
+      validTemperature, 
+      validMaxTokens,
+      hasSystemPrompt: !!system_prompt,
+      forceIntent: force_intent
+    }, ctx)
 
     // Check if user provided their own keys in headers (BYOK)
     const userGroqKey = req.headers.get('x-groq-key')
@@ -315,13 +354,24 @@ export async function POST(req: NextRequest) {
     // ============================================
     // 4. SMART ROUTING DECISION
     // ============================================
-    // KEY INSIGHT: If context is provided, ALWAYS use it
-    // Only use router to decide if we need RESEARCH (external search)
+    // Priority: force_intent > smart routing > classifier
     
     let intent: Intent
     let classification: { intent: Intent; confidence: number; reason: string }
     
-    if (context) {
+    // Check for force_intent override FIRST
+    if (force_intent) {
+      intent = force_intent
+      classification = { 
+        intent: force_intent, 
+        confidence: 1.0, 
+        reason: 'User forced intent via force_intent parameter' 
+      }
+      debug('router:forcedIntent', { 
+        forcedIntent: force_intent,
+        hasContext: !!context
+      }, ctx)
+    } else if (context) {
       // CONTEXT PROVIDED → Always use context-aware path
       // Only question: Does user need external search too?
       debug('router:contextProvided', { 
@@ -398,25 +448,39 @@ export async function POST(req: NextRequest) {
     else if (intent === 'CONTEXT') {
       // Path B: Local RAG (Zero Search Cost)
       // Absolutely NO calls to Tavily
-      debug('path:context:start', { contextLength: context?.length, historyLength: history?.length }, ctx)
+      debug('path:context:start', { 
+        contextLength: context?.length, 
+        historyLength: history?.length,
+        hasSystemPrompt: !!system_prompt,
+        temperature: validTemperature,
+        maxTokens: validMaxTokens
+      }, ctx)
       const pathStartTime = performance.now()
       
       if (!context) {
         debug('path:context:noContext', { fallbackToResearch: false }, ctx)
         answer = 'No context was provided to answer your question.'
       } else {
+        // Build generation options
+        const genOptions: GenerationOptions = {
+          history,
+          system_prompt,
+          temperature: validTemperature,
+          max_tokens: validMaxTokens
+        }
+        
         try {
-          answer = await generateFromContext(query, context, activeGroqKey, history)
+          answer = await generateFromContext(query, context, activeGroqKey, genOptions)
           
-          // GUARDRAIL: Check if AI broke character
-          if (didBreakCharacter(answer)) {
+          // GUARDRAIL: Check if AI broke character (only if no custom system_prompt)
+          if (!system_prompt && didBreakCharacter(answer)) {
             debug('path:context:guardrail:triggered', { 
               reason: 'AI broke character, retrying with stronger prompt'
             }, ctx)
             
             // Retry with explicit correction
             const retryPrompt = `IMPORTANT: The user is interacting with YOUR company's AI assistant. DO NOT say you are "just an AI" or a "language model". You represent the organization in the context. Now answer naturally as their representative: ${query}`
-            answer = await generateFromContext(retryPrompt, context, activeGroqKey, history)
+            answer = await generateFromContext(retryPrompt, context, activeGroqKey, genOptions)
             
             debug('path:context:guardrail:retry', { 
               retryAnswerLength: answer.length,
@@ -502,10 +566,13 @@ export async function POST(req: NextRequest) {
     // 6. RETURN RESPONSE
     // ============================================
     const meta: ResponseMeta = {
-      intent,
-      routed_to: intent,
+      intent: classification.intent,  // Original classified intent
+      routed_to: intent,              // Actual intent used (may differ due to force_intent)
       cost_saving: intent !== 'RESEARCH',
-      latency_ms: latencyMs
+      latency_ms: latencyMs,
+      intent_forced: !!force_intent,
+      temperature_used: validTemperature ?? 0.3,
+      max_tokens_used: validMaxTokens ?? 600
     }
 
     if (sources) {
@@ -513,11 +580,15 @@ export async function POST(req: NextRequest) {
     }
     
     debug('response:success', { 
-      intent, 
+      intent,
+      classifiedIntent: classification.intent,
+      forcedIntent: force_intent,
       latencyMs, 
       answerLength: answer.length,
       hasSources: !!sources,
-      sourceCount: sources?.length || 0
+      sourceCount: sources?.length || 0,
+      temperatureUsed: validTemperature ?? 0.3,
+      maxTokensUsed: validMaxTokens ?? 600
     }, ctx)
 
     // Log usage (fire-and-forget)

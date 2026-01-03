@@ -371,6 +371,13 @@ export interface ChatMessage {
   content: string
 }
 
+export interface GenerationOptions {
+  history?: ChatMessage[]
+  system_prompt?: string  // Custom system prompt override
+  temperature?: number    // 0.0 - 1.0
+  max_tokens?: number     // Max response tokens
+}
+
 /**
  * Generate response from provided context (RAG without search)
  * Now with conversation history support and anti-hallucination measures
@@ -379,11 +386,13 @@ export async function generateFromContext(
   query: string,
   context: string,
   groqKey: string,
-  history?: ChatMessage[]
+  options?: GenerationOptions
 ): Promise<string> {
   const requestId = generateRequestId()
   const startTime = performance.now()
   const ctx: DebugContext = { requestId, startTime }
+  
+  const { history, system_prompt, temperature, max_tokens } = options || {}
   
   debug('generateFromContext:start', { 
     queryLength: query.length,
@@ -392,7 +401,10 @@ export async function generateFromContext(
     contextPreview: context.substring(0, 200),
     hasGroqKey: !!groqKey,
     hasHistory: !!history,
-    historyLength: history?.length || 0
+    historyLength: history?.length || 0,
+    hasCustomSystemPrompt: !!system_prompt,
+    customTemperature: temperature,
+    customMaxTokens: max_tokens
   }, ctx)
   
   try {
@@ -401,10 +413,18 @@ export async function generateFromContext(
     // Check if context is too minimal (less than 50 chars)
     const isMinimalContext = context.length < 50
     
-    // Anti-hallucination system prompt
+    // Use custom system_prompt if provided, otherwise generate anti-hallucination prompt
     let systemPrompt: string
     
-    if (isMinimalContext) {
+    if (system_prompt) {
+      // User provided custom system prompt - use it directly with context appended
+      systemPrompt = `${system_prompt}
+
+CONTEXT INFORMATION:
+${context}
+
+IMPORTANT: Only use information from the context above. Do not make up information.`
+    } else if (isMinimalContext) {
       // Minimal context - be a helpful assistant, don't pretend to be a company
       systemPrompt = `You are a helpful AI assistant. The user has provided minimal context about your purpose:
 
@@ -461,15 +481,18 @@ CONVERSATION STYLE:
       model: 'llama-3.1-8b-instant',
       systemPromptLength: systemPrompt.length,
       totalMessages: messages.length,
-      isMinimalContext
+      isMinimalContext,
+      usingCustomPrompt: !!system_prompt,
+      temperature: temperature ?? 0.3,
+      maxTokens: max_tokens ?? 600
     }, ctx)
     const llmStartTime = performance.now()
     
     const completion = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages,
-      temperature: 0.3, // Lower temperature = less creative = less hallucination
-      max_tokens: 600
+      temperature: temperature ?? 0.3, // Lower temperature = less creative = less hallucination
+      max_tokens: max_tokens ?? 600
     })
 
     const llmLatency = Math.round(performance.now() - llmStartTime)
