@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { createClient } from '@/app/lib/supabaseClient'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Zap } from 'lucide-react'
 
 interface FormData {
   email: string
@@ -101,9 +100,22 @@ export default function SignInPage() {
           await new Promise(resolve => setTimeout(resolve, 100))
 
           if (!profile) {
-            router.push('/profile/setup')
+            router.push('/onboarding/workspace')
+          } else if (!profile.default_workspace_id) {
+            router.push('/onboarding/workspace')
           } else {
-            router.push('/overview')
+            // Get workspace slug
+            const { data: workspace } = await supabase
+              .from('workspaces')
+              .select('slug')
+              .eq('id', profile.default_workspace_id)
+              .single()
+            
+            if (workspace) {
+              router.push(`/dashboard/${workspace.slug}`)
+            } else {
+              router.push('/onboarding/workspace')
+            }
           }
         } catch (profileError) {
           console.error('Profile check error:', profileError)
@@ -123,7 +135,7 @@ export default function SignInPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
         }
       })
       if (error) {
@@ -138,17 +150,17 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-black px-4">
       {/* Background gradient effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-emerald-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-emerald-500/5 rounded-full blur-[120px]" />
+        <div className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-violet-500/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-fuchsia-500/5 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="p-2 bg-emerald-500/20 rounded-xl">
-            <Image src="/new_logo.png" alt="LeafLearning" width={32} height={32} className="object-contain" />
+          <div className="p-2 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 rounded-xl border border-violet-500/30">
+            <Zap className="w-6 h-6 text-violet-400" />
           </div>
-          <span className="text-2xl font-bold text-white">LeafLearning</span>
+          <span className="text-2xl font-bold text-white">UnforgeAPI</span>
         </div>
 
         {/* Card */}
@@ -157,7 +169,7 @@ export default function SignInPage() {
             Welcome Back
           </h1>
           <p className="text-neutral-400 text-center mb-8">
-            Sign in to continue your learning journey
+            Sign in to access your dashboard
           </p>
 
           {/* General Error */}
@@ -181,7 +193,7 @@ export default function SignInPage() {
                 autoComplete="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className={`w-full px-4 py-3 bg-neutral-800 text-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors ${
+                className={`w-full px-4 py-3 bg-neutral-800 text-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-colors ${
                   errors.email ? 'border-red-500' : 'border-neutral-700'
                 }`}
                 placeholder="Enter your email"
@@ -204,7 +216,7 @@ export default function SignInPage() {
                   autoComplete="current-password"
                   value={formData.password}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 pr-12 bg-neutral-800 text-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors ${
+                  className={`w-full px-4 py-3 pr-12 bg-neutral-800 text-white border rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-violet-500 transition-colors ${
                     errors.password ? 'border-red-500' : 'border-neutral-700'
                   }`}
                   placeholder="Enter your password"
@@ -226,7 +238,7 @@ export default function SignInPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className="w-full py-3 px-4 rounded-xl text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-violet-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium"
             >
               {isLoading ? 'Signing In...' : 'Sign In'}
             </button>
@@ -272,7 +284,7 @@ export default function SignInPage() {
           {/* Sign Up Link */}
           <p className="mt-8 text-center text-sm text-neutral-400">
             Don't have an account?{' '}
-            <Link href="/signup" className="text-emerald-400 font-medium hover:text-emerald-300 transition-colors">
+            <Link href="/signup" className="text-violet-400 font-medium hover:text-violet-300 transition-colors">
               Sign Up
             </Link>
           </p>

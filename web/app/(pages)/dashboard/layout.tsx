@@ -6,22 +6,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/app/lib/supabaseClient'
 import { 
-  LayoutDashboard, Settings, ChevronLeft, Menu, LogOut, Search, Sparkles
+  LayoutDashboard, Settings, Menu, LogOut, Key, FileText, CreditCard, BarChart3
 } from 'lucide-react'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import { UpgradeModal } from '@/components/ui/upgrade-modal'
-import GlobalSidebar from '@/components/GlobalSidebar'
-import { useSubscriptionContext } from '@/lib/SubscriptionContext'
-
-interface Profile {
-  name: string
-  education_level: string
-}
 
 export default function DashboardLayout({
   children,
@@ -31,13 +17,10 @@ export default function DashboardLayout({
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
-  const { isPro } = useSubscriptionContext()
   
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [userId, setUserId] = useState<string | null>(null)
+  const [profile, setProfile] = useState<{ name: string } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const fetchedRef = useRef(false)
 
   useEffect(() => {
@@ -55,19 +38,14 @@ export default function DashboardLayout({
         return
       }
       
-      setUserId(user.id)
-      
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('name, education_level')
+        .select('name')
         .eq('id', user.id)
         .single()
       
       if (profileData) {
         setProfile(profileData)
-      } else {
-        router.push('/profile/setup')
-        return
       }
     } catch (error) {
       console.error('Error loading user data:', error)
@@ -76,73 +54,96 @@ export default function DashboardLayout({
     }
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/signin')
+  }
+
+  const navItems = [
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
+    { href: '/dashboard/keys', icon: Key, label: 'API Keys' },
+    { href: '/dashboard/usage', icon: BarChart3, label: 'Usage' },
+    { href: '/dashboard/docs', icon: FileText, label: 'Documentation' },
+    { href: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
+    { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
+  ]
+
   return (
-    <TooltipProvider>
-      <div className="min-h-screen bg-neutral-900">
-        
-        {/* Mobile menu overlay */}
-        {mobileMenuOpen && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
-        )}
+    <div className="min-h-screen bg-neutral-950">
+      {/* Mobile menu overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
+      )}
 
-        {/* Global Sidebar - Always visible */}
-        <div className="hidden lg:block">
-          <GlobalSidebar 
-            isPro={isPro}
-            onUpgradeClick={() => setShowUpgradeModal(true)}
-          />
-        </div>
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-neutral-900 border-r border-neutral-800 transform transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex flex-col h-full">
+          {/* Logo */}
+          <div className="p-6 border-b border-neutral-800">
+            <Link href="/dashboard" className="flex items-center gap-3">
+              <Image src="/new_logo.png" alt="UnforgeAPI" width={32} height={32} className="object-contain" />
+              <span className="text-xl font-bold text-white">UnforgeAPI</span>
+            </Link>
+          </div>
 
-        {/* Mobile Sidebar */}
-<aside className={`fixed inset-y-0 left-0 z-50 w-[72px] bg-neutral-950 border-r border-neutral-800 transition-transform duration-300 lg:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <GlobalSidebar 
-            isPro={isPro}
-            onUpgradeClick={() => { setShowUpgradeModal(true); setMobileMenuOpen(false); }}
-          />
-        </aside>
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-1">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isActive 
+                      ? 'bg-emerald-500/10 text-emerald-400' 
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
 
-        {/* Main Content Area - Offset by global sidebar width on desktop */}
-        <main className="transition-all duration-300 lg:ml-[72px]">
-          
-          {/* Top Header */}
-          <header className="sticky top-0 z-30 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800 px-4 sm:px-8 py-3 sm:py-5 flex items-center justify-between">
-            <div className="flex items-center gap-3 sm:gap-4 lg:hidden">
-              <button onClick={() => setMobileMenuOpen(true)} className="p-2 -ml-2 text-neutral-400">
-                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
-              </button>
-              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
-            </div>
-
-            {/* Page title on desktop */}
-            <div className="hidden lg:block">
-              <h1 className="text-lg font-semibold text-white">
-                {pathname === '/dashboard' ? 'Your Spaces' : pathname?.includes('/settings') ? 'Settings' : 'Dashboard'}
-              </h1>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-4">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-semibold text-white truncate max-w-[120px] sm:max-w-none">{profile?.name || 'Student'}</p>
-                <p className="text-xs text-neutral-500 truncate max-w-[120px] sm:max-w-none">{profile?.education_level || 'Lifelong Learner'}</p>
-              </div>
-              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-neutral-800 flex items-center justify-center text-white font-bold border-2 border-neutral-700 text-sm sm:text-base">
+          {/* User section */}
+          <div className="p-4 border-t border-neutral-800">
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="h-9 w-9 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold">
                 {profile?.name?.[0] || 'U'}
               </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">{profile?.name || 'Developer'}</p>
+              </div>
+              <button onClick={handleSignOut} className="p-2 text-neutral-400 hover:text-white transition-colors">
+                <LogOut className="h-4 w-4" />
+              </button>
             </div>
-          </header>
-
-          {/* Page Content */}
-          <div className="p-4 sm:p-6 lg:p-8">
-            {children}
           </div>
-        </main>
+        </div>
+      </aside>
 
-        {/* Upgrade Modal */}
-        <UpgradeModal
-          isOpen={showUpgradeModal}
-          onClose={() => setShowUpgradeModal(false)}
-        />
-      </div>
-    </TooltipProvider>
+      {/* Main Content */}
+      <main className="lg:ml-64 min-h-screen">
+        {/* Top Header */}
+        <header className="sticky top-0 z-30 bg-neutral-950/80 backdrop-blur-md border-b border-neutral-800 px-4 sm:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setMobileMenuOpen(true)} className="p-2 -ml-2 text-neutral-400 lg:hidden">
+              <Menu className="h-6 w-6" />
+            </button>
+            <h1 className="text-lg font-semibold text-white">
+              {navItems.find(item => pathname === item.href)?.label || 'Dashboard'}
+            </h1>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <div className="p-4 sm:p-6 lg:p-8 mx-auto max-w-7xl w-full">
+          {children}
+        </div>
+      </main>
+    </div>
   )
 }

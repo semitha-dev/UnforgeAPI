@@ -1517,6 +1517,7 @@ export default function NotesClient({
       <CreateNote
         projectId={projectId}
         createNoteAction={createNoteAction}
+        updateNoteAction={updateNoteAction}
         onBack={handleBackToList}
         onNoteCreated={handleNoteCreated}
       />
@@ -2022,11 +2023,12 @@ function NoteCard({ note, onClick, isSelected = false, isSelectable = false }: N
 interface CreateNoteProps {
   projectId: string
   createNoteAction: (formData: FormData) => Promise<{ id: string; title: string; content: string; created_at: string; updated_at: string }>
+  updateNoteAction: (formData: FormData) => Promise<void>
   onBack: () => void
   onNoteCreated?: (note: Note) => void
 }
 
-function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: CreateNoteProps) {
+function CreateNote({ projectId, createNoteAction, updateNoteAction, onBack, onNoteCreated }: CreateNoteProps) {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [isSaving, setIsSaving] = useState(false)
@@ -2035,32 +2037,20 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
   const [noteId, setNoteId] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showMusicPlayer, setShowMusicPlayer] = useState(false)
-  
-  // Track if there are unsaved changes
-  const hasUnsavedChanges = title.trim() !== '' || content.trim() !== ''
+  const [savedTitle, setSavedTitle] = useState('')
+  const [savedContent, setSavedContent] = useState('')
   
   // Debounced content for auto-save
-  const debouncedContent = useDebounce(content, 2000)
-  const debouncedTitle = useDebounce(title, 2000)
+  const debouncedContent = useDebounce(content, 1500)
+  const debouncedTitle = useDebounce(title, 1500)
 
-  // Warn user about unsaved changes when trying to leave the page
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault()
-        e.returnValue = ''
-        return ''
-      }
-    }
+  // Track if there are unsaved changes (content without a title)
+  const hasContentWithoutTitle = content.trim() !== '' && title.trim() === ''
 
-    window.addEventListener('beforeunload', handleBeforeUnload)
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
-  }, [hasUnsavedChanges])
-
-  // Handle back button with unsaved changes warning
+  // Handle back button - warn only if there's content but no title (note not saved)
   const handleBack = () => {
-    if (hasUnsavedChanges) {
-      if (confirm('You have unsaved changes. Are you sure you want to leave? Your note will be lost.')) {
+    if (hasContentWithoutTitle) {
+      if (confirm('You have content but no title. Your note won\'t be saved without a title. Are you sure you want to leave?')) {
         onBack()
       }
     } else {
@@ -2076,20 +2066,62 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
     }
   }, [])
 
-  // Auto-save effect
+  // Auto-create note when title is first entered
   useEffect(() => {
-    const autoSave = async () => {
-      if (!title.trim() || !noteId) return
+    const createNoteOnTitle = async () => {
+      if (!debouncedTitle.trim() || noteId) return
       
+      setAutoSaveStatus('saving')
+      const formData = new FormData()
+      formData.append('projectId', projectId)
+      formData.append('title', debouncedTitle)
+      formData.append('content', content)
+
+      try {
+        const newNote = await createNoteAction(formData)
+        setNoteId(newNote.id)
+        setSavedTitle(debouncedTitle)
+        setSavedContent(content)
+        setAutoSaveStatus('saved')
+        if (onNoteCreated) {
+          onNoteCreated({
+            id: newNote.id,
+            title: newNote.title,
+            content: newNote.content,
+            created_at: newNote.created_at,
+            updated_at: newNote.updated_at,
+            folder: null,
+            summary: null,
+            summary_type: null
+          })
+        }
+      } catch (error) {
+        console.error('Auto-create error:', error)
+        setAutoSaveStatus('unsaved')
+      }
+    }
+
+    createNoteOnTitle()
+  }, [debouncedTitle, noteId, projectId, content, createNoteAction, onNoteCreated])
+
+  // Auto-save updates after note is created
+  useEffect(() => {
+    const performAutoSave = async () => {
+      if (!noteId) return
+      if (debouncedTitle === savedTitle && debouncedContent === savedContent) return
+      if (!debouncedTitle.trim()) return
+
       setAutoSaveStatus('saving')
       const formData = new FormData()
       formData.append('noteId', noteId)
       formData.append('projectId', projectId)
-      formData.append('title', title)
-      formData.append('content', content)
+      formData.append('title', debouncedTitle)
+      formData.append('content', debouncedContent)
 
       try {
-        // We'll need to create the note first, then update
+        await updateNoteAction(formData)
+        setSavedTitle(debouncedTitle)
+        setSavedContent(debouncedContent)
         setAutoSaveStatus('saved')
       } catch (error) {
         console.error('Auto-save error:', error)
@@ -2097,14 +2129,25 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
       }
     }
 
-    if (debouncedContent !== '' || debouncedTitle !== '') {
+    performAutoSave()
+  }, [debouncedContent, debouncedTitle, noteId, projectId, savedTitle, savedContent, updateNoteAction])
+
+  // Track unsaved changes
+  useEffect(() => {
+    if (noteId && (title !== savedTitle || content !== savedContent)) {
       setAutoSaveStatus('unsaved')
     }
-  }, [debouncedContent, debouncedTitle, noteId, projectId, title, content])
+  }, [title, content, noteId, savedTitle, savedContent])
 
   const handleSave = async () => {
     if (!title.trim()) {
-      alert('Please enter a title')
+      alert('Please enter a title to save your note')
+      return
+    }
+
+    // If note already exists, just go back (it's auto-saved)
+    if (noteId) {
+      onBack()
       return
     }
 
@@ -2115,7 +2158,19 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
     formData.append('content', content)
 
     try {
-      await createNoteAction(formData)
+      const newNote = await createNoteAction(formData)
+      if (onNoteCreated) {
+        onNoteCreated({
+          id: newNote.id,
+          title: newNote.title,
+          content: newNote.content,
+          created_at: newNote.created_at,
+          updated_at: newNote.updated_at,
+          folder: null,
+          summary: null,
+          summary_type: null
+        })
+      }
       onBack()
     } catch (error) {
       console.error('Error creating note:', error)
@@ -2162,8 +2217,22 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
             </svg>
           </button>
           
-          {/* Desktop: Show "New Note" title */}
-          <span className="hidden sm:block text-sm font-medium text-neutral-400">New Note</span>
+          {/* Desktop: Show status */}
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-sm font-medium text-neutral-400">
+              {noteId ? 'Editing Note' : 'New Note'}
+            </span>
+            {noteId && (
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                autoSaveStatus === 'saved' ? 'bg-green-500/20 text-green-400' :
+                autoSaveStatus === 'saving' ? 'bg-yellow-500/20 text-yellow-400' :
+                'bg-red-500/20 text-red-400'
+              }`}>
+                {autoSaveStatus === 'saved' ? '✓ Saved' :
+                 autoSaveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
+              </span>
+            )}
+          </div>
           
           {/* Action Buttons */}
           <div className="flex items-center gap-1 sm:gap-2">
@@ -2180,13 +2249,12 @@ function CreateNote({ projectId, createNoteAction, onBack, onNoteCreated }: Crea
               <Music className="w-5 h-5" />
             </button>
             
-            {/* Save Button */}
+            {/* Done Button - goes back (note is auto-saved) */}
             <button
-              onClick={handleSave}
-              disabled={isSaving || !title.trim()}
-              className="px-3 sm:px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg font-bold text-sm sm:text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleBack}
+              className="px-3 sm:px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg font-bold text-sm sm:text-base transition-colors"
             >
-              {isSaving ? 'Saving...' : 'Save'}
+              Done
             </button>
           </div>
         </div>

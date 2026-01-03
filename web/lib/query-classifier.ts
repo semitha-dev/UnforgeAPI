@@ -1,265 +1,392 @@
 /**
- * Query Classifier - Pattern-Based Classification
+ * Query Classifier - Hybrid Brain Approach
+ * 
+ * UnforgeAPI Router for B2B API Service
  * 
  * Classifies queries into:
  * - CHAT: Greetings, thanks, casual conversation
- * - COMMAND: App actions (create flashcards, quiz, summarize)
- * - RESEARCH: Questions needing factual answers
+ * - CONTEXT: Answer exists in provided context data (Local RAG)
+ * - RESEARCH: Questions needing external factual data
  * 
  * Approach:
- * 1. Regex for greetings (instant, high confidence)
- * 2. Keywords for COMMAND detection (instant, high confidence)
- * 3. Research patterns for questions (instant, high confidence)
- * 4. Fallback heuristics for edge cases
+ * 1. Speed Gate: Regex for obvious greetings (instant, no API call)
+ * 2. Router Brain: Groq LLM decides CONTEXT vs RESEARCH
  */
+
+import Groq from 'groq-sdk'
+
+// ============================================
+// ENHANCED DEBUG SYSTEM
+// ============================================
+
+const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
+const DEBUG_VERBOSE = process.env.DEBUG_VERBOSE === 'true'
+
+interface DebugContext {
+  requestId?: string
+  startTime?: number
+}
+
+let globalRequestId = 0
+
+function generateRequestId(): string {
+  globalRequestId++
+  return `classifier-${Date.now()}-${globalRequestId}`
+}
+
+function debug(tag: string, data: any, context?: DebugContext) {
+  if (!DEBUG) return
+  
+  const timestamp = new Date().toISOString()
+  const elapsed = context?.startTime ? `+${Math.round(performance.now() - context.startTime)}ms` : ''
+  const reqId = context?.requestId || ''
+  
+  const prefix = `[QueryClassifier:${tag}]${reqId ? ` [${reqId}]` : ''}${elapsed ? ` ${elapsed}` : ''}`
+  
+  if (DEBUG_VERBOSE) {
+    console.log(`${timestamp} ${prefix}`, JSON.stringify(data, null, 2))
+  } else {
+    console.log(`${timestamp} ${prefix}`, typeof data === 'object' ? JSON.stringify(data) : data)
+  }
+}
+
+function debugError(tag: string, error: any, context?: DebugContext) {
+  const timestamp = new Date().toISOString()
+  const reqId = context?.requestId || ''
+  const prefix = `[QueryClassifier:${tag}:ERROR]${reqId ? ` [${reqId}]` : ''}`
+  
+  console.error(`${timestamp} ${prefix}`, {
+    message: error?.message || String(error),
+    name: error?.name,
+    stack: DEBUG_VERBOSE ? error?.stack : undefined,
+    code: error?.code,
+    status: error?.status,
+    cause: error?.cause
+  })
+}
 
 // ============================================
 // TYPES
 // ============================================
 
-export type ClassificationPath = 'CHAT' | 'COMMAND' | 'RESEARCH';
+export type Intent = 'CHAT' | 'CONTEXT' | 'RESEARCH'
+
+// Legacy alias for backward compatibility
+export type ClassificationPath = Intent
 
 export interface ClassificationResult {
-  path: ClassificationPath;
-  confidence: number;
-  reason: string;
-  // For COMMAND path
-  commandType?: 'create_study_set' | 'quiz_me' | 'summarize_notes' | 'explain_more';
-  topic?: string;
-  fromNotes?: boolean;
+  intent: Intent
+  confidence: number
+  reason: string
 }
 
 // ============================================
-// GREETING PATTERNS (Instant detection)
+// ROUTER BRAIN SYSTEM PROMPT
+// ============================================
+
+const ROUTER_SYSTEM_PROMPT = `You are the Router Brain for an intelligent RAG API.
+Your goal is to select the most efficient execution path for a user's query.
+
+Your available paths:
+1. CHAT: For casual conversation, compliments, or questions about you (the AI).
+2. CONTEXT: The user provided specific "Context Data". Analyze if this data contains the answer to the user's query. If YES, select this path.
+3. RESEARCH: The user is asking a factual question (news, stocks, definitions, history) that cannot be answered by the provided context.
+
+Input:
+- Query: {user_query}
+- Context Data: {provided_context_string}
+
+Output JSON only: { "intent": "CHAT" | "CONTEXT" | "RESEARCH", "reason": "brief explanation" }`
+
+// ============================================
+// STEP 1: SPEED GATE (Regex for greetings only)
 // ============================================
 
 const GREETING_PATTERNS = [
-  /^(hi|hey|hello|howdy|hiya|yo|sup|heya)(\s+there)?[!?.,]*$/i,
-  /^good\s+(morning|afternoon|evening|night)[!?.,]*$/i,
-  /^how\s+(are\s+you|r\s+u|do\s+you\s+do|'s\s+it\s+going)[!?.,]*$/i,
-  /^what'?s\s+up[!?.,]*$/i,
-  /^(thanks|thank\s+you|thx|ty)[!?.,\s]*(so\s+much)?[!?.,]*$/i,
-  /^(bye|goodbye|see\s+(you|ya)|later|cya|take\s+care)[!?.,]*$/i,
-  /^(ok|okay|alright|got\s+it|understood|i\s+see)[!?.,]*$/i,
-  /^(cool|nice|awesome|great|amazing|wonderful|perfect)[!?.,]*$/i,
-];
+  /^(hi|hey|hello|greetings)(\s|!|,|$)/i,
+  /^(thanks|thank\s*you)(\s|!|,|$)/i,
+]
+
+/**
+ * Fast check for obvious greetings
+ * Saves latency by avoiding API call
+ */
+function isGreeting(query: string): boolean {
+  const normalized = query.trim().toLowerCase()
+  const isMatch = GREETING_PATTERNS.some(pattern => pattern.test(normalized))
+  debug('isGreeting:check', { 
+    query: normalized.substring(0, 50), 
+    isMatch 
+  })
+  return isMatch
+}
 
 // ============================================
-// COMMAND PATTERNS
+// STEP 2: ROUTER BRAIN (Groq LLM)
 // ============================================
 
-const COMMAND_PATTERNS = [
-  // Create study set patterns
-  { pattern: /\b(create|make|generate|build)\b.*\b(flashcard|study\s*set|quiz|question)/i, type: 'create_study_set' as const },
-  { pattern: /\b(flashcard|study\s*set)\b.*\b(about|on|for)\b/i, type: 'create_study_set' as const },
-  { pattern: /\bflashcards?\b.*\b(from|using)\b.*\bnotes?\b/i, type: 'create_study_set' as const },
+/**
+ * Use Groq's Llama-3-8b-instant to classify intent
+ */
+async function routerBrain(
+  query: string,
+  context: string | undefined,
+  groqKey: string
+): Promise<ClassificationResult> {
+  const requestId = generateRequestId()
+  const startTime = performance.now()
+  const ctx: DebugContext = { requestId, startTime }
   
-  // Quiz patterns
-  { pattern: /\b(quiz|test)\s*(me|my\s*knowledge)\b/i, type: 'quiz_me' as const },
-  { pattern: /\b(start|take|give\s*me)\s*(a\s*)?(quiz|test)\b/i, type: 'quiz_me' as const },
-  { pattern: /\bpractice\s*(questions?|quiz)\b/i, type: 'quiz_me' as const },
+  debug('routerBrain:start', {
+    queryLength: query.length,
+    queryPreview: query.substring(0, 100),
+    hasContext: !!context,
+    contextLength: context?.length || 0,
+    hasGroqKey: !!groqKey
+  }, ctx)
   
-  // Summarize patterns
-  { pattern: /\b(summarize|summary)\b.*\bnotes?\b/i, type: 'summarize_notes' as const },
-  { pattern: /\b(tldr|tl;dr)\b/i, type: 'summarize_notes' as const },
-  { pattern: /\bgive\s*me\s*a\s*summary\b/i, type: 'summarize_notes' as const },
+  const groq = new Groq({ apiKey: groqKey })
   
-  // Explain more patterns
-  { pattern: /\b(explain|elaborate|expand)\b.*\b(more|further|this)\b/i, type: 'explain_more' as const },
-  { pattern: /\bgo\s*deeper\b/i, type: 'explain_more' as const },
-];
+  // Build user message with query and context
+  const contextString = context && context.length > 0 
+    ? context.substring(0, 2000) // Limit context to prevent token overflow
+    : '(No context provided)'
+  
+  const userMessage = `Query: "${query}"
+Context Data: "${contextString}"`
 
-// ============================================
-// RESEARCH PATTERNS (High confidence)
-// ============================================
+  debug('routerBrain:prompt', {
+    userMessageLength: userMessage.length,
+    contextTruncated: context ? context.length > 2000 : false
+  }, ctx)
 
-const RESEARCH_PATTERNS = [
-  // Question starters
-  /^(what|how|why|when|where|who|which)\s+(is|are|was|were|does|do|did|can|could|would|should)\b/i,
-  /^(can|could|would|should|is|are|do|does|did)\s+\w+/i,
-  // Comparison queries
-  /\b(vs|versus|compare|comparison|difference\s+between|better|best|worse|worst)\b/i,
-  /\bwh(at|ich)\s+is\s+(better|best|worse|the\s+difference)\b/i,
-  // Learning/explanation intent
-  /^(explain|describe|define|tell\s+me\s+about)\b/i,
-  /\b(how\s+to|how\s+do\s+i|how\s+can\s+i)\b/i,
-  // Research keywords
-  /\b(meaning|definition|example|tutorial|guide|learn|understand)\b/i,
-  /\b(pros\s+and\s+cons|advantages|disadvantages|benefits|drawbacks)\b/i,
-];
+  try {
+    debug('routerBrain:llmCall:start', { model: 'llama-3.1-8b-instant' }, ctx)
+    const llmStartTime = performance.now()
+    
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.1-8b-instant',
+      messages: [
+        { role: 'system', content: ROUTER_SYSTEM_PROMPT },
+        { role: 'user', content: userMessage }
+      ],
+      temperature: 0.1, // Low temp for consistent classification
+      max_tokens: 100,
+      response_format: { type: 'json_object' }
+    })
+
+    const llmLatency = Math.round(performance.now() - llmStartTime)
+    debug('routerBrain:llmCall:complete', {
+      llmLatencyMs: llmLatency,
+      finishReason: completion.choices[0]?.finish_reason,
+      usage: completion.usage
+    }, ctx)
+
+    const responseText = completion.choices[0]?.message?.content || '{}'
+    debug('routerBrain:rawResponse', { responseText }, ctx)
+    
+    let parsed: any
+    try {
+      parsed = JSON.parse(responseText)
+      debug('routerBrain:parsed', { parsed }, ctx)
+    } catch (parseError) {
+      debugError('routerBrain:parseError', parseError, ctx)
+      parsed = { intent: 'RESEARCH', reason: 'Failed to parse LLM response' }
+    }
+    
+    // Validate intent
+    const validIntents: Intent[] = ['CHAT', 'CONTEXT', 'RESEARCH']
+    const intent: Intent = validIntents.includes(parsed.intent) 
+      ? parsed.intent 
+      : 'RESEARCH'
+    
+    if (!validIntents.includes(parsed.intent)) {
+      debug('routerBrain:invalidIntent', {
+        receivedIntent: parsed.intent,
+        defaultingTo: 'RESEARCH'
+      }, ctx)
+    }
+    
+    const result: ClassificationResult = {
+      intent,
+      confidence: 0.85,
+      reason: parsed.reason || 'LLM classification'
+    }
+    
+    debug('routerBrain:result', {
+      result,
+      totalLatencyMs: Math.round(performance.now() - startTime)
+    }, ctx)
+    
+    return result
+  } catch (error: any) {
+    debugError('routerBrain:error', error, ctx)
+    
+    // Fallback: If we have context, assume CONTEXT path; otherwise RESEARCH
+    if (context && context.length > 0) {
+      const result = { 
+        intent: 'CONTEXT' as Intent, 
+        confidence: 0.6, 
+        reason: 'Fallback: context provided, assuming answer exists' 
+      }
+      debug('routerBrain:fallback', { result, reason: 'error + context' }, ctx)
+      return result
+    }
+    
+    const result = { 
+      intent: 'RESEARCH' as Intent, 
+      confidence: 0.5, 
+      reason: 'Fallback: no context, defaulting to research' 
+    }
+    debug('routerBrain:fallback', { result, reason: 'error + no context' }, ctx)
+    return result
+  }
+}
 
 // ============================================
 // MAIN CLASSIFICATION FUNCTION
 // ============================================
 
 /**
- * Classify a query using pattern matching
- * No external API calls - instant classification
+ * Classify a query using the Hybrid Brain approach
+ * 
+ * @param query - User's input query
+ * @param options - Classification options
+ * @returns Classification result with intent, confidence, and reason
+ * 
+ * Flow:
+ * 1. Speed Gate: Check for greetings (regex) -> CHAT
+ * 2. Router Brain: LLM decides CONTEXT vs RESEARCH
  */
 export async function classifyQuery(
   query: string,
   options: {
-    hasNotes?: boolean;
-    conversationContext?: string;
+    context?: string
+    groqKey?: string
   } = {}
 ): Promise<ClassificationResult> {
-  const normalizedQuery = query.trim().toLowerCase();
+  const requestId = generateRequestId()
+  const startTime = performance.now()
+  const ctx: DebugContext = { requestId, startTime }
+  
+  const normalizedQuery = query.trim()
+  
+  debug('classifyQuery:start', {
+    queryLength: normalizedQuery.length,
+    queryPreview: normalizedQuery.substring(0, 100),
+    hasContext: !!options.context,
+    contextLength: options.context?.length || 0,
+    hasGroqKey: !!options.groqKey,
+    hasEnvGroqKey: !!process.env.GROQ_API_KEY
+  }, ctx)
   
   // ============================================
-  // STEP 1: Quick Greeting Check (Regex)
+  // STEP 1: Speed Gate (Regex)
   // ============================================
-  for (const pattern of GREETING_PATTERNS) {
-    if (pattern.test(normalizedQuery)) {
-      return {
-        path: 'CHAT',
-        confidence: 0.95,
-        reason: 'Matched greeting pattern',
-      };
+  debug('speedGate:checking', { query: normalizedQuery.substring(0, 50) }, ctx)
+  
+  if (isGreeting(normalizedQuery)) {
+    const result: ClassificationResult = {
+      intent: 'CHAT',
+      confidence: 0.95,
+      reason: 'Matched greeting pattern (Speed Gate)',
     }
+    debug('speedGate:matched', {
+      result,
+      latencyMs: Math.round(performance.now() - startTime)
+    }, ctx)
+    return result
   }
+  
+  debug('speedGate:noMatch', { proceedingToLLM: true }, ctx)
 
   // ============================================
-  // STEP 2: Command Detection (Keywords)
+  // STEP 2: Router Brain (LLM)
   // ============================================
-  for (const { pattern, type } of COMMAND_PATTERNS) {
-    if (pattern.test(query)) {
-      const topic = extractTopic(query, type);
-      const fromNotes = /\b(my\s+)?notes?\b|\bmy\s+(content|material)\b/i.test(query);
-      
-      return {
-        path: 'COMMAND',
-        confidence: 0.95,
-        reason: `Matched command pattern: ${type}`,
-        commandType: type,
-        topic,
-        fromNotes,
-      };
-    }
+  const groqKey = options.groqKey || process.env.GROQ_API_KEY
+  
+  if (!groqKey) {
+    // No API key - use simple heuristic fallback
+    debug('classifyQuery:noGroqKey', { usingFallback: true }, ctx)
+    console.warn('[QueryClassifier] No GROQ_API_KEY, using fallback heuristic')
+    const result = fallbackClassification(normalizedQuery, options.context)
+    debug('classifyQuery:fallbackResult', {
+      result,
+      latencyMs: Math.round(performance.now() - startTime)
+    }, ctx)
+    return result
   }
-
-  // ============================================
-  // STEP 3: Research Pattern Detection
-  // ============================================
-  for (const pattern of RESEARCH_PATTERNS) {
-    if (pattern.test(query)) {
-      return {
-        path: 'RESEARCH',
-        confidence: 0.90,
-        reason: 'Matched research pattern',
-      };
-    }
-  }
-
-  // ============================================
-  // STEP 4: Fallback Heuristics
-  // ============================================
-  return fallbackClassification(query, options);
+  
+  debug('classifyQuery:routerBrain:start', { hasGroqKey: true }, ctx)
+  const result = await routerBrain(normalizedQuery, options.context, groqKey)
+  
+  debug('classifyQuery:complete', {
+    result,
+    totalLatencyMs: Math.round(performance.now() - startTime)
+  }, ctx)
+  
+  return result
 }
 
 /**
  * Initialize classifier (no-op, kept for API compatibility)
  */
 export async function initializeClassifier(): Promise<boolean> {
-  return true;
+  return true
 }
 
 // ============================================
-// HELPER FUNCTIONS
+// FALLBACK (No API Key)
 // ============================================
 
 /**
- * Check if query looks like a question
- */
-function looksLikeQuestion(query: string): boolean {
-  const q = query.toLowerCase().trim();
-  return (
-    q.endsWith('?') ||
-    /^(what|how|why|when|where|who|which|can|could|would|should|is|are|do|does|did)\b/i.test(q) ||
-    /\b(explain|tell\s+me|describe|compare|difference|vs|versus)\b/i.test(q)
-  );
-}
-
-/**
- * Extract topic from query based on command type
- * Simple extraction - actual topic will be refined by LLM in the API
- */
-function extractTopic(query: string, commandType?: string): string | undefined {
-  // For study set creation, we want to extract what comes after prepositions
-  // "create a study set on animals" -> "animals"
-  // "can you create a study set on animals" -> "animals"
-  
-  // Match patterns with prepositions first (most reliable)
-  const prepPatterns = [
-    /(?:study\s*set|flashcard|quiz|question)s?\s+(?:about|on|for|covering)\s+(.+)/i,
-    /(?:about|on|for|covering)\s+(.+?)(?:\s+(?:study\s*set|flashcard|quiz|question)|$)/i,
-  ]
-  
-  for (const pattern of prepPatterns) {
-    const match = query.match(pattern)
-    if (match && match[1]) {
-      const topic = match[1].trim().replace(/[?.!]+$/, '')
-      if (topic.length > 2) {
-        return topic
-      }
-    }
-  }
-  
-  // If no preposition pattern matched, return undefined
-  // The API will use LLM to extract the topic properly
-  return undefined
-}
-
-/**
- * Fallback classification using heuristics
+ * Simple fallback when no Groq API key is available
  */
 function fallbackClassification(
   query: string,
-  options: { hasNotes?: boolean; conversationContext?: string }
+  context?: string
 ): ClassificationResult {
-  const q = query.toLowerCase().trim();
-  const wordCount = q.split(/\s+/).length;
+  debug('fallbackClassification:start', {
+    queryLength: query.length,
+    hasContext: !!context,
+    contextLength: context?.length || 0
+  })
   
-  // Very short queries (1-2 words) - check for research keywords
-  if (wordCount <= 2 && !looksLikeQuestion(query)) {
-    if (/\b(vs|compare|difference|better|best|explain|how|what|why)\b/i.test(q)) {
-      return {
-        path: 'RESEARCH',
-        confidence: 0.85,
-        reason: 'Short but contains research keywords',
-      };
+  // If context is provided and query seems to reference it
+  if (context && context.length > 0) {
+    // Simple keyword check - if query asks about something potentially in context
+    const contextKeywords = context.toLowerCase().split(/\s+/).slice(0, 50)
+    const queryWords = query.toLowerCase().split(/\s+/)
+    const overlap = queryWords.filter(word => 
+      word.length > 3 && contextKeywords.includes(word)
+    )
+    
+    debug('fallbackClassification:keywordCheck', {
+      queryWords: queryWords.length,
+      contextKeywords: contextKeywords.length,
+      overlapCount: overlap.length,
+      overlapWords: overlap
+    })
+    
+    if (overlap.length >= 2) {
+      const result: ClassificationResult = {
+        intent: 'CONTEXT',
+        confidence: 0.7,
+        reason: 'Fallback: query keywords found in context'
+      }
+      debug('fallbackClassification:result', { result, method: 'keyword overlap' })
+      return result
     }
-    return {
-      path: 'CHAT',
-      confidence: 0.75,
-      reason: 'Very short non-question query',
-    };
   }
   
-  // Questions -> RESEARCH
-  if (looksLikeQuestion(query)) {
-    const confidence = wordCount >= 5 ? 0.90 : 0.85;
-    return {
-      path: 'RESEARCH',
-      confidence,
-      reason: `Question detected (${wordCount} words)`,
-    };
+  // Default to RESEARCH
+  const result: ClassificationResult = {
+    intent: 'RESEARCH',
+    confidence: 0.6,
+    reason: 'Fallback: defaulting to research'
   }
-  
-  // Multi-word queries -> likely research
-  if (wordCount >= 3) {
-    return {
-      path: 'RESEARCH',
-      confidence: 0.80,
-      reason: 'Multi-word query (assuming research intent)',
-    };
-  }
-  
-  // Default to research
-  return {
-    path: 'RESEARCH',
-    confidence: 0.75,
-    reason: 'Default fallback',
-  };
+  debug('fallbackClassification:result', { result, method: 'default' })
+  return result
 }
 
 // ============================================
@@ -267,53 +394,17 @@ function fallbackClassification(
 // ============================================
 
 export function getChatResponse(query: string): string | undefined {
-  const q = query.toLowerCase().trim();
+  const q = query.toLowerCase().trim()
   
   // Greetings
-  if (/^(hi|hey|hello|howdy|hiya|yo|sup|heya)(\s+there)?[!?.,]*$/i.test(q)) {
-    return "Hello! 👋 How can I help you today? Feel free to ask me anything about your studies, request research on a topic, or ask me to create flashcards and quizzes!";
-  }
-  
-  if (/^good\s+(morning)[!?.,]*$/i.test(q)) {
-    return "Good morning! ☀️ Ready to learn something new today?";
-  }
-  
-  if (/^good\s+(afternoon)[!?.,]*$/i.test(q)) {
-    return "Good afternoon! 🌤️ How can I help with your studies?";
-  }
-  
-  if (/^good\s+(evening|night)[!?.,]*$/i.test(q)) {
-    return "Good evening! 🌙 Still hitting the books? I'm here to help!";
-  }
-  
-  // How are you
-  if (/^how\s+(are\s+you|r\s+u|'s\s+it\s+going)/i.test(q)) {
-    return "I'm doing great, thanks for asking! 😊 How can I help you with your studies?";
+  if (/^(hi|hey|hello|greetings)(\s|!|,|$)/i.test(q)) {
+    return "Hello! 👋 How can I help you today?"
   }
   
   // Thanks
-  if (/^(thanks|thank\s+you|thx|ty)/i.test(q)) {
-    return "You're welcome! Let me know if there's anything else I can help you with. 🙌";
+  if (/^(thanks|thank\s*you)/i.test(q)) {
+    return "You're welcome! Let me know if there's anything else I can help with. 🙌"
   }
   
-  // Bye
-  if (/^(bye|goodbye|see\s+(you|ya)|later|cya|take\s+care)/i.test(q)) {
-    return "Goodbye! Good luck with your studies! 📚 Come back anytime you need help.";
-  }
-  
-  // Reactions
-  if (/^(cool|nice|awesome|great|amazing|wonderful|perfect)[!?.,]*$/i.test(q)) {
-    return "Glad I could help! 😊 Anything else you'd like to explore?";
-  }
-  
-  if (/^(ok|okay|alright|got\s+it|understood|i\s+see)[!?.,]*$/i.test(q)) {
-    return "Great! Let me know if you have any questions.";
-  }
-  
-  // Stressed
-  if (/\b(stressed|overwhelmed|anxious|tired)\b/i.test(q)) {
-    return "I hear you - studying can be tough! 💪 Remember to take breaks, stay hydrated, and don't hesitate to ask for help. What are you working on? Maybe I can make it easier.";
-  }
-  
-  return undefined;
+  return undefined
 }

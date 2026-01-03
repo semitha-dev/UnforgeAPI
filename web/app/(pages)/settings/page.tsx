@@ -16,8 +16,6 @@ import {
   Shield,
   Loader2
 } from 'lucide-react'
-import GlobalSidebar from '@/components/GlobalSidebar'
-import MobileNav from '@/components/MobileNav'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import { useSubscriptionContext } from '@/lib/SubscriptionContext'
 import { useUser, clearUserCache } from '@/lib/UserContext'
@@ -193,15 +191,6 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-neutral-950">
-      {/* Global Sidebar */}
-      <div className="hidden lg:block">
-        <GlobalSidebar
-          isPro={isPro}
-          onUpgradeClick={() => setShowUpgradeModal(true)}
-          activeItem="settings"
-        />
-      </div>
-
       {/* Upgrade Modal */}
       <UpgradeModal
         isOpen={showUpgradeModal}
@@ -210,7 +199,7 @@ export default function SettingsPage() {
       />
 
       {/* Main Content */}
-      <main className="lg:ml-[72px] min-h-screen pb-20 lg:pb-0">
+      <main className="min-h-screen pb-20 lg:pb-0">
         <div className="max-w-4xl mx-auto p-6 md:p-10 lg:p-12">
         {/* Header */}
         <header className="mb-10">
@@ -601,8 +590,6 @@ export default function SettingsPage() {
         </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <MobileNav />
       </main>
     </div>
   )

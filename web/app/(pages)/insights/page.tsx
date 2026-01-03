@@ -25,9 +25,6 @@ import {
 } from 'lucide-react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
-import GlobalSidebar from '@/components/GlobalSidebar'
-import ChatsPanel from '@/components/ChatsPanel'
-import MobileNav from '@/components/MobileNav'
 import { useSubscriptionContext } from '@/lib/SubscriptionContext'
 
 interface InsightMetadata {
@@ -92,7 +89,6 @@ export default function InsightsPage() {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [showChatsPanel, setShowChatsPanel] = useState(false)
   const [activeFilter, setActiveFilter] = useState<string>('all')
   const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null)
   const [totalInsightsCount, setTotalInsightsCount] = useState(0)
@@ -458,29 +454,8 @@ export default function InsightsPage() {
   return (
     <TooltipProvider>
       <div className="min-h-screen bg-[#111816]">
-        {/* Global Sidebar */}
-        <div className="hidden lg:block">
-          <GlobalSidebar
-            isPro={isPro}
-            onUpgradeClick={() => setShowUpgradeModal(true)}
-            onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
-            onChatsHover={() => setShowChatsPanel(true)}
-            onChatsClose={() => setShowChatsPanel(false)}
-            activeItem="insights"
-          />
-        </div>
-
-        {/* Chats Panel */}
-        <ChatsPanel
-          isOpen={showChatsPanel}
-          onClose={() => setShowChatsPanel(false)}
-          onSelectChat={loadConversation}
-          onNewChat={startNewChat}
-          currentChatId={null}
-        />
-
         {/* Main Content */}
-        <main className="lg:ml-[72px] min-h-screen pb-20 lg:pb-0">
+        <main className="min-h-screen pb-20 lg:pb-0">
           <div className="max-w-[1400px] mx-auto px-4 md:px-10 py-6 md:py-10">
             {/* Header */}
             <div className="flex flex-wrap justify-between items-start sm:items-end gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -1074,9 +1049,6 @@ export default function InsightsPage() {
             )}
           </div>
         </main>
-
-        {/* Mobile Navigation */}
-        <MobileNav onChatsClick={() => setShowChatsPanel(!showChatsPanel)} />
 
         {/* Upgrade Modal */}
         <UpgradeModal

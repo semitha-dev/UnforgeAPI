@@ -50,10 +50,6 @@ import {
 } from '@/components/ui/tooltip'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 import { useProjectTimeTracking } from '@/lib/useProjectTimeTracking'
-import GlobalSidebar from '@/components/GlobalSidebar'
-import SpaceSidebar from '@/components/SpaceSidebar'
-import ChatsPanel from '@/components/ChatsPanel'
-import MobileNav from '@/components/MobileNav'
 import { useSubscriptionContext } from '@/lib/SubscriptionContext'
 
 // YouTube URL helpers
@@ -703,7 +699,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [showChatsPanel, setShowChatsPanel] = useState(false)
   const { isPro } = useSubscriptionContext()
   
   // Space stats for sidebar
@@ -828,16 +823,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   if (!project) {
     return (
       <div className="min-h-screen bg-neutral-900">
-        {/* Global Sidebar - Always visible even during loading */}
-        <div className="hidden lg:block">
-          <GlobalSidebar 
-            currentSpaceId={projectId}
-            isPro={isPro}
-            onUpgradeClick={() => setShowUpgradeModal(true)}
-            activeItem="spaces"
-          />
-        </div>
-        <main className="lg:ml-[72px] min-h-screen" />
+        <main className="min-h-screen" />
       </div>
     )
   }
@@ -850,63 +836,8 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden" onClick={() => setMobileMenuOpen(false)} />
         )}
 
-        {/* Global Sidebar - Always visible (leftmost rail) */}
-        <div className="hidden lg:block">
-          <GlobalSidebar 
-            currentSpaceId={projectId}
-            isPro={isPro}
-            onUpgradeClick={() => setShowUpgradeModal(true)}
-            onChatsClick={() => setShowChatsPanel(!showChatsPanel)}
-            onChatsHover={() => setShowChatsPanel(true)}
-            onChatsClose={() => setShowChatsPanel(false)}
-            activeItem={showChatsPanel ? 'chats' : 'spaces'}
-          />
-        </div>
-
-        {/* Chats Panel */}
-        <ChatsPanel
-          isOpen={showChatsPanel}
-          onClose={() => setShowChatsPanel(false)}
-          onSelectChat={() => { router.push('/overview'); setShowChatsPanel(false); }}
-          onNewChat={() => { router.push('/overview'); setShowChatsPanel(false); }}
-          currentChatId={null}
-        />
-
-        {/* Space Sidebar - Secondary sidebar for space navigation */}
-        <div className="hidden lg:flex fixed inset-y-0 left-[72px] z-40 h-screen">
-          <SpaceSidebar spaceId={projectId} spaceName={project.name} notesCount={notesCount} studySetsCount={studySetsCount} />
-        </div>
-
-        {/* Mobile Sidebar - Combined for mobile */}
-        <aside className={`fixed inset-y-0 left-0 z-50 w-[280px] bg-neutral-950 border-r border-neutral-800 transition-transform duration-300 lg:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <div className="flex h-full">
-            {/* Mobile: Mini global nav */}
-            <div className="w-[60px] bg-neutral-900 border-r border-neutral-800 flex flex-col items-center py-4">
-              <GlobalSidebar 
-                currentSpaceId={projectId}
-                isPro={isPro}
-                onUpgradeClick={() => { setShowUpgradeModal(true); setMobileMenuOpen(false); }}
-                onChatsClick={() => { setShowChatsPanel(!showChatsPanel); setMobileMenuOpen(false); }}
-                onChatsHover={() => setShowChatsPanel(true)}
-                onChatsClose={() => setShowChatsPanel(false)}
-              />
-            </div>
-            {/* Mobile: Space sidebar */}
-            <div className="flex-1">
-              <SpaceSidebar 
-                spaceId={projectId} 
-                spaceName={project.name}
-                onClose={() => setMobileMenuOpen(false)}
-                isMobile={true}
-                notesCount={notesCount}
-                studySetsCount={studySetsCount}
-              />
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content Area - Offset by both sidebars on desktop */}
-        <div className="transition-all duration-300 lg:ml-[292px]">
+        {/* Main Content Area */}
+        <div className="transition-all duration-300">
           {/* Top Header */}
           <header className="sticky top-0 z-30 bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-800 h-16">
             <div className="flex items-center justify-between h-full px-4 lg:px-6">
@@ -976,9 +907,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
             {children}
           </main>
         </div>
-
-        {/* Mobile Navigation */}
-        <MobileNav onChatsClick={() => setShowChatsPanel(!showChatsPanel)} />
 
         {/* Upgrade Modal */}
         <UpgradeModal 
