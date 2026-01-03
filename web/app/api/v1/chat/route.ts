@@ -373,10 +373,41 @@ export async function POST(req: NextRequest) {
     }
 
     // Get tier from Unkey metadata (if set)
-    const tier = result.meta?.tier || 'sandbox'
-    const isByokTier = tier === 'byok'
+    const plan = result.meta?.plan || result.meta?.tier || 'sandbox'
+    const isByokPlan = plan === 'byok_starter' || plan === 'byok_pro'
+    const searchEnabled = result.meta?.searchEnabled !== false && plan !== 'sandbox'
+    const requiresUserKeys = result.meta?.requiresUserKeys || isByokPlan
     
-    debug('tier:check', { tier, isByokTier }, ctx)
+    debug('tier:check', { plan, isByokPlan, searchEnabled, requiresUserKeys }, ctx)
+    
+    // ============================================
+    // BYOK KEY REQUIREMENT CHECK
+    // ============================================
+    // If plan requires user keys (byok_starter, byok_pro), enforce header requirements
+    if (requiresUserKeys) {
+      if (!userGroqKey) {
+        debug('byok:missingGroqKey', { plan }, ctx)
+        return Response.json(
+          { 
+            error: 'BYOK plans require x-groq-key header',
+            code: 'BYOK_MISSING_GROQ_KEY',
+            hint: 'Add your Groq API key in the x-groq-key header'
+          },
+          { status: 400 }
+        )
+      }
+      if (!userTavilyKey) {
+        debug('byok:missingTavilyKey', { plan }, ctx)
+        return Response.json(
+          { 
+            error: 'BYOK plans require x-tavily-key header',
+            code: 'BYOK_MISSING_TAVILY_KEY',
+            hint: 'Add your Tavily API key in the x-tavily-key header'
+          },
+          { status: 400 }
+        )
+      }
+    }
 
     // ============================================
     // 4. SMART ROUTING DECISION
@@ -551,19 +582,34 @@ export async function POST(req: NextRequest) {
     else if (intent === 'RESEARCH') {
       // Path C: Expensive Search
       debug('path:research:start', { 
-        isByokTier, 
+        plan,
+        isByokPlan, 
+        searchEnabled,
         hasUserTavilyKey: !!userTavilyKey,
         hasActiveTavilyKey: !!activeTavilyKey
       }, ctx)
       const pathStartTime = performance.now()
       
-      // Safety Check: If BYOK tier and no Tavily key, reject
+      // Check if search is enabled for this plan
+      if (!searchEnabled) {
+        debug('path:research:rejected', { reason: 'SEARCH_DISABLED', plan }, ctx)
+        return Response.json(
+          { 
+            error: 'Search is not available on the Sandbox plan. Upgrade to enable research capabilities.',
+            code: 'SEARCH_DISABLED',
+            upgrade_hint: 'Upgrade to Managed Pro ($19.99/mo) or BYOK Starter (Free with your keys)'
+          },
+          { status: 402 }
+        )
+      }
+      
+      // Safety Check: If BYOK plan and no Tavily key, reject
       // Do not burn OUR Tavily credits for BYOK users
-      if (isByokTier && !userTavilyKey) {
+      if (isByokPlan && !userTavilyKey) {
         debug('path:research:rejected', { reason: 'BYOK_MISSING_KEY' }, ctx)
         return Response.json(
           { 
-            error: 'Research intent requires x-tavily-key header for BYOK tier',
+            error: 'Research intent requires x-tavily-key header for BYOK plans',
             code: 'BYOK_MISSING_KEY'
           },
           { status: 402 }

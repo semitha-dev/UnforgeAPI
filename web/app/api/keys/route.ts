@@ -2,6 +2,12 @@
  * API Key Management Endpoint
  * Uses Unkey HTTP API for key creation/deletion
  * Database tracks key metadata for dashboard display
+ * 
+ * 4-Tier Pricing Structure:
+ * - sandbox: 50/day (Managed, Search disabled)
+ * - managed_pro: 1000/month (Managed, Search enabled)
+ * - byok_starter: 100/day (BYOK, Search enabled, requires user keys)
+ * - byok_pro: 10/sec rate limit (BYOK, Unlimited, requires user keys)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -28,6 +34,30 @@ const supabaseAdmin = createClient(
 )
 
 const UNKEY_API_URL = 'https://api.unkey.dev'
+
+// Valid plan types
+type ApiPlan = 'sandbox' | 'managed_pro' | 'byok_starter' | 'byok_pro';
+
+// Rate limit configuration based on plan
+function getRateLimitConfig(plan: ApiPlan) {
+  switch (plan) {
+    case 'sandbox':
+      // 50 requests per day
+      return { type: 'fast' as const, limit: 50, duration: 86400000 };
+    case 'managed_pro':
+      // 1000 search requests per month
+      return { type: 'fast' as const, limit: 1000, duration: 2592000000 };
+    case 'byok_starter':
+      // 100 requests per day
+      return { type: 'fast' as const, limit: 100, duration: 86400000 };
+    case 'byok_pro':
+      // 10 requests per second (speed limit only)
+      return { type: 'fast' as const, limit: 10, duration: 1000 };
+    default:
+      // Default to sandbox limits
+      return { type: 'fast' as const, limit: 50, duration: 86400000 };
+  }
+}
 
 // Helper to get user from session cookie
 async function getUserFromSession() {
@@ -79,9 +109,13 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json()
-    const { name, tier = 'byok', workspaceId } = body
+    const { name, tier = 'sandbox', workspaceId } = body
     
-    debug('POST:body', { name, tier, workspaceId })
+    // Validate tier
+    const validTiers: ApiPlan[] = ['sandbox', 'managed_pro', 'byok_starter', 'byok_pro']
+    const plan: ApiPlan = validTiers.includes(tier) ? tier : 'sandbox'
+    
+    debug('POST:body', { name, tier, plan, workspaceId })
 
     if (!workspaceId || !name) {
       debug('POST:validation:fail', { missingWorkspaceId: !workspaceId, missingName: !name })
@@ -91,14 +125,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Define rate limits based on tier
-    const ratelimits = tier === 'sandbox' 
-      ? [{ name: 'daily', limit: 50, duration: 86400000 }] // 50/day
-      : tier === 'managed'
-      ? [{ name: 'monthly', limit: 1000, duration: 2592000000 }] // 1000/month
-      : [] // BYOK = unlimited
+    // Get rate limit configuration based on plan
+    const limitConfig = getRateLimitConfig(plan)
     
-    debug('POST:ratelimits', { tier, ratelimits })
+    debug('POST:ratelimits', { plan, limitConfig })
 
     // Create key via Unkey HTTP API
     debug('POST:unkey:creating', { apiId: process.env.UNKEY_API_ID })
@@ -114,9 +144,12 @@ export async function POST(request: NextRequest) {
         name,
         meta: {
           workspaceId: workspaceId,
-          tier
+          plan, // Use 'plan' instead of 'tier' for clarity
+          tier: plan, // Keep 'tier' for backward compatibility
+          searchEnabled: plan !== 'sandbox', // Search disabled only for sandbox
+          requiresUserKeys: plan === 'byok_starter' || plan === 'byok_pro'
         },
-        ratelimit: ratelimits.length > 0 ? ratelimits[0] : undefined,
+        ratelimit: limitConfig,
         enabled: true
       })
     })
@@ -142,9 +175,14 @@ export async function POST(request: NextRequest) {
         name,
         key_prefix: unkeyResult.key.substring(0, 10),
         key_hash: hashKey(unkeyResult.key), // Hash the full key for verification
-        tier,
+        tier: plan, // Store the plan as tier for backward compatibility
         is_active: true,
-        unkey_id: unkeyResult.keyId
+        unkey_id: unkeyResult.keyId,
+        metadata: {
+          plan,
+          searchEnabled: plan !== 'sandbox',
+          requiresUserKeys: plan === 'byok_starter' || plan === 'byok_pro'
+        }
       })
       .select()
       .single()

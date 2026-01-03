@@ -412,55 +412,81 @@ const HowItWorksSection = () => {
 
 // Pricing Section
 const PricingSection = () => {
-  const plans = [
+  const [activeTab, setActiveTab] = useState<'managed' | 'byok'>('managed');
+
+  const managedPlans = [
     {
       name: 'Sandbox',
       price: 'Free',
       period: '',
-      description: 'Perfect for testing and prototypes',
+      description: 'Perfect for testing the API',
       features: [
         '50 requests / day',
-        'All three routing paths',
-        'Basic analytics',
+        'Chat & Context paths only',
+        '❌ Search disabled',
+        'System API keys',
         'Community support',
-        'Shared infrastructure',
       ],
       cta: 'Start Free',
       popular: false,
+      badge: null,
     },
     {
-      name: 'Managed',
+      name: 'Managed Pro',
       price: '$20',
       period: '/month',
       description: 'For production applications',
       features: [
-        '1,000 search requests / month',
-        'Unlimited CHAT & CONTEXT',
-        'Advanced analytics',
+        '1,000 Search requests / month',
+        'Unlimited Chat & Context',
+        '✅ Full research capabilities',
+        'System API keys',
         'Priority support',
-        'Team workspaces',
         '99.9% uptime SLA',
       ],
       cta: 'Start Trial',
       popular: true,
+      badge: 'Most Popular',
     },
+  ];
+
+  const byokPlans = [
     {
-      name: 'BYOK',
-      price: '$5',
-      period: '/month',
-      description: 'Maximum control & savings',
+      name: 'BYOK Starter',
+      price: 'Free',
+      period: '',
+      description: 'Test the engine with your own keys',
       features: [
-        'Unlimited requests',
-        'Use your Groq API key',
-        'Use your Tavily API key',
-        'Zero markup on tokens',
-        'Full analytics suite',
-        'Premium support',
+        '100 requests / day',
+        'All three routing paths',
+        '✅ Search enabled',
+        'Your Groq & Tavily keys required',
+        'Community support',
       ],
       cta: 'Get Started',
       popular: false,
+      badge: 'New',
+    },
+    {
+      name: 'BYOK Unlimited',
+      price: '$5',
+      period: '/month',
+      description: 'Production scale. No limits.',
+      features: [
+        'Unlimited requests',
+        '10 req/sec rate limit',
+        '✅ All routing paths',
+        'Your Groq & Tavily keys',
+        'Premium support',
+        'Zero markup on tokens',
+      ],
+      cta: 'Go Unlimited',
+      popular: true,
+      badge: 'Best Value',
     },
   ];
+
+  const activePlans = activeTab === 'managed' ? managedPlans : byokPlans;
 
   return (
     <section id="pricing" className="relative py-32">
@@ -469,34 +495,97 @@ const PricingSection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-            Simple, Transparent Pricing
+            Choose Your Infrastructure
           </h2>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            Logic costs separated from compute. Only pay for what you actually need.
+            Two paths to intelligent query routing. Pick the one that fits your workflow.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {plans.map((plan, index) => (
+        {/* Tab Switcher */}
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex items-center bg-white/5 border border-white/10 rounded-2xl p-1.5">
+            <button
+              onClick={() => setActiveTab('managed')}
+              className={`px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === 'managed'
+                  ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                <span>Managed</span>
+              </div>
+              <div className="text-xs opacity-70 mt-0.5">We provide the keys</div>
+            </button>
+            
+            <div className="px-4 text-gray-600 font-medium">— OR —</div>
+            
+            <button
+              onClick={() => setActiveTab('byok')}
+              className={`px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === 'byok'
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Key className="w-4 h-4" />
+                <span>BYOK</span>
+              </div>
+              <div className="text-xs opacity-70 mt-0.5">Bring your own keys</div>
+            </button>
+          </div>
+        </div>
+
+        {/* Plan Description */}
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          {activeTab === 'managed' ? (
+            <p className="text-gray-400 max-w-xl mx-auto">
+              <span className="text-violet-400 font-medium">Zero configuration required.</span>{' '}
+              We handle the LLM infrastructure. You just call the API.
+            </p>
+          ) : (
+            <p className="text-gray-400 max-w-xl mx-auto">
+              <span className="text-amber-400 font-medium">Maximum control & savings.</span>{' '}
+              Use your own Groq and Tavily API keys with zero markup.
+            </p>
+          )}
+        </motion.div>
+
+        {/* Pricing Cards */}
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {activePlans.map((plan, index) => (
             <motion.div
-              key={plan.name}
+              key={`${activeTab}-${plan.name}`}
               initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className={`relative p-8 rounded-2xl border ${
                 plan.popular
-                  ? 'bg-gradient-to-b from-violet-500/20 to-fuchsia-500/20 border-violet-500/50'
+                  ? activeTab === 'managed'
+                    ? 'bg-gradient-to-b from-violet-500/20 to-fuchsia-500/20 border-violet-500/50'
+                    : 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
                   : 'bg-white/5 border-white/10'
               }`}
             >
-              {plan.popular && (
+              {plan.badge && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1 bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white text-sm font-medium rounded-full">
-                    Most Popular
+                  <span className={`px-4 py-1 text-white text-sm font-medium rounded-full ${
+                    activeTab === 'managed'
+                      ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                  }`}>
+                    {plan.badge}
                   </span>
                 </div>
               )}
@@ -511,7 +600,9 @@ const PricingSection = () => {
               <ul className="space-y-3 mb-8">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
-                    <Check className="w-5 h-5 text-violet-400 flex-shrink-0" />
+                    <Check className={`w-5 h-5 flex-shrink-0 ${
+                      activeTab === 'managed' ? 'text-violet-400' : 'text-amber-400'
+                    }`} />
                     {feature}
                   </li>
                 ))}
@@ -521,7 +612,9 @@ const PricingSection = () => {
                 href="/signup"
                 className={`block w-full py-3 text-center font-medium rounded-xl transition-colors ${
                   plan.popular
-                    ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90'
+                    ? activeTab === 'managed'
+                      ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90'
                     : 'bg-white/10 text-white hover:bg-white/20'
                 }`}
               >
@@ -530,6 +623,19 @@ const PricingSection = () => {
             </motion.div>
           ))}
         </div>
+
+        {/* Comparison Note */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-12 text-center"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-gray-400">
+            <Globe className="w-4 h-4" />
+            <span>Both paths use the same intelligent routing engine</span>
+          </div>
+        </motion.div>
       </div>
     </section>
   );

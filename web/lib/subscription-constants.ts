@@ -1,6 +1,152 @@
 // Client-safe subscription constants
 // This file contains no server-side imports and can be used in client components
 
+// ============================================
+// 4-TIER PRICING STRUCTURE
+// ============================================
+// Group A: Managed (We pay for LLM keys)
+//   - sandbox: Free, 50 req/day, Search disabled
+//   - managed_pro: $19.99/mo, 1000 search/mo, Unlimited Chat/Context
+// 
+// Group B: BYOK (They pay for their keys)
+//   - byok_starter: Free, 100 req/day, Must provide x-groq-key & x-tavily-key
+//   - byok_pro: $4.99/mo, Unlimited (10 req/sec rate limit)
+// ============================================
+
+export const API_PLANS = {
+  // Managed tiers (we provide keys)
+  SANDBOX: 'sandbox',
+  MANAGED_PRO: 'managed_pro',
+  // BYOK tiers (user provides keys)
+  BYOK_STARTER: 'byok_starter',
+  BYOK_PRO: 'byok_pro',
+} as const;
+
+export type ApiPlan = typeof API_PLANS[keyof typeof API_PLANS];
+
+// Polar Product IDs
+export const POLAR_PRODUCT_IDS = {
+  MANAGED_PRO: 'dce7621a-0a26-4d40-927c-7aa0aa95debd',
+  BYOK_PRO: 'c4a4824d-8be3-411e-8c15-b198371ebc37',
+} as const;
+
+// Plan configuration
+export const PLAN_CONFIG: Record<ApiPlan, {
+  name: string;
+  price: number;
+  priceLabel: string;
+  period: string;
+  description: string;
+  limitType: 'daily' | 'monthly' | 'rate';
+  limit: number;
+  duration: number; // in milliseconds
+  searchEnabled: boolean;
+  requiresUserKeys: boolean;
+  features: string[];
+}> = {
+  sandbox: {
+    name: 'Sandbox',
+    price: 0,
+    priceLabel: 'Free',
+    period: '',
+    description: 'Perfect for testing the API',
+    limitType: 'daily',
+    limit: 50,
+    duration: 86400000, // 24 hours
+    searchEnabled: false,
+    requiresUserKeys: false,
+    features: [
+      '50 requests / day',
+      'Chat & Context paths only',
+      'Search disabled',
+      'System API keys',
+      'Community support',
+    ],
+  },
+  managed_pro: {
+    name: 'Managed Pro',
+    price: 19.99,
+    priceLabel: '$20',
+    period: '/month',
+    description: 'For production applications',
+    limitType: 'monthly',
+    limit: 1000,
+    duration: 2592000000, // 30 days
+    searchEnabled: true,
+    requiresUserKeys: false,
+    features: [
+      '1,000 Search requests / month',
+      'Unlimited Chat & Context',
+      'Full research capabilities',
+      'System API keys',
+      'Priority support',
+      '99.9% uptime SLA',
+    ],
+  },
+  byok_starter: {
+    name: 'BYOK Starter',
+    price: 0,
+    priceLabel: 'Free',
+    period: '',
+    description: 'Test the engine with your own keys',
+    limitType: 'daily',
+    limit: 100,
+    duration: 86400000, // 24 hours
+    searchEnabled: true,
+    requiresUserKeys: true,
+    features: [
+      '100 requests / day',
+      'All three routing paths',
+      'Search enabled',
+      'Your Groq & Tavily keys',
+      'Community support',
+    ],
+  },
+  byok_pro: {
+    name: 'BYOK Unlimited',
+    price: 4.99,
+    priceLabel: '$5',
+    period: '/month',
+    description: 'Production scale. No limits.',
+    limitType: 'rate',
+    limit: 10,
+    duration: 1000, // 1 second (10 req/sec)
+    searchEnabled: true,
+    requiresUserKeys: true,
+    features: [
+      'Unlimited requests',
+      '10 req/sec rate limit',
+      'All three routing paths',
+      'Your Groq & Tavily keys',
+      'Premium support',
+      'Zero markup on tokens',
+    ],
+  },
+};
+
+// Helper functions
+export function isByokPlan(plan: ApiPlan): boolean {
+  return plan === 'byok_starter' || plan === 'byok_pro';
+}
+
+export function isManagedPlan(plan: ApiPlan): boolean {
+  return plan === 'sandbox' || plan === 'managed_pro';
+}
+
+export function isPaidPlan(plan: ApiPlan): boolean {
+  return plan === 'managed_pro' || plan === 'byok_pro';
+}
+
+export function getUnkeyRateLimitConfig(plan: ApiPlan) {
+  const config = PLAN_CONFIG[plan];
+  return {
+    type: 'fast' as const,
+    limit: config.limit,
+    duration: config.duration,
+  };
+}
+
+// Legacy exports for backward compatibility
 export const SUBSCRIPTION_TIERS = {
   FREE: 'free',
   PRO: 'pro',
@@ -8,7 +154,7 @@ export const SUBSCRIPTION_TIERS = {
 
 export type SubscriptionTier = typeof SUBSCRIPTION_TIERS[keyof typeof SUBSCRIPTION_TIERS];
 
-// Pro subscription product ID (Polar)
+// Pro subscription product ID (Polar) - Legacy
 export const PRO_PRODUCT_ID = 'ea4378a7-1373-4fb7-b7e4-bb1b293e10c8';
 
 // Feature limits by tier
