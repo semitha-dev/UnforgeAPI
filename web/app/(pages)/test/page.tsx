@@ -4,6 +4,8 @@ import { useState } from 'react'
 
 export default function TestAPIPage() {
   const [apiKey, setApiKey] = useState('')
+  const [groqKey, setGroqKey] = useState('')
+  const [tavilyKey, setTavilyKey] = useState('')
   const [query, setQuery] = useState('What is the capital of France?')
   const [response, setResponse] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -15,12 +17,16 @@ export default function TestAPIPage() {
     setResponse(null)
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      }
+      if (groqKey) headers['x-groq-key'] = groqKey
+      if (tavilyKey) headers['x-tavily-key'] = tavilyKey
+
       const res = await fetch('/api/v1/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
+        headers,
         body: JSON.stringify({ query })
       })
 
@@ -49,7 +55,7 @@ export default function TestAPIPage() {
           {/* API Key Input */}
           <div>
             <label className="block text-sm font-medium text-neutral-300 mb-2">
-              API Key
+              API Key <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -60,6 +66,37 @@ export default function TestAPIPage() {
             />
             <p className="mt-1 text-xs text-neutral-500">
               Get your API key from the <a href="/dashboard/keys" className="text-blue-400 hover:underline">dashboard</a>
+            </p>
+          </div>
+
+          {/* BYOK Keys */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-neutral-900/50 border border-neutral-800 rounded-lg">
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Groq API Key <span className="text-neutral-500">(for chat)</span>
+              </label>
+              <input
+                type="text"
+                value={groqKey}
+                onChange={(e) => setGroqKey(e.target.value)}
+                placeholder="gsk_xxxxxxxxxxxx"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-neutral-500 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-300 mb-2">
+                Tavily API Key <span className="text-neutral-500">(for research)</span>
+              </label>
+              <input
+                type="text"
+                value={tavilyKey}
+                onChange={(e) => setTavilyKey(e.target.value)}
+                placeholder="tvly-xxxxxxxxxxxx"
+                className="w-full px-3 py-2 bg-neutral-900 border border-neutral-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-white placeholder-neutral-500 text-sm"
+              />
+            </div>
+            <p className="col-span-2 text-xs text-neutral-500">
+              Required for BYOK tier keys. Get free keys at <a href="https://console.groq.com" target="_blank" className="text-blue-400 hover:underline">Groq</a> and <a href="https://tavily.com" target="_blank" className="text-blue-400 hover:underline">Tavily</a>
             </p>
           </div>
 
@@ -163,7 +200,9 @@ export default function TestAPIPage() {
             <pre className="text-xs text-neutral-400 overflow-x-auto whitespace-pre-wrap">
 {`curl -X POST ${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/api/v1/chat \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${apiKey || 'YOUR_API_KEY'}" \\
+  -H "Authorization: Bearer ${apiKey || 'YOUR_API_KEY'}"${groqKey ? ` \\
+  -H "x-groq-key: ${groqKey}"` : ''}${tavilyKey ? ` \\
+  -H "x-tavily-key: ${tavilyKey}"` : ''} \\
   -d '{"query": "${query.replace(/'/g, "\\'")}"}'`}
             </pre>
           </div>
