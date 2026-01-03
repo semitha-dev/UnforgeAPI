@@ -9,7 +9,7 @@ const helpCategories = [
   {
     icon: Book,
     title: 'Getting Started',
-    description: 'Learn the basics of LeafLearning',
+    description: 'Learn the basics of UnforgeAPI',
     articles: [
       { title: 'How to create your first project', answer: 'Simply click "New Project" from your dashboard, upload your study material (PDF, notes, or paste text), and our AI will help you generate flashcards, quizzes, and summaries automatically.' },
       { title: 'Uploading study materials', answer: 'You can upload PDFs, images, or paste text directly. We support files up to 10MB. For best results, ensure your PDFs have selectable text rather than scanned images.' },
@@ -53,7 +53,7 @@ const helpCategories = [
   {
     icon: Zap,
     title: 'Features & Tips',
-    description: 'Get the most out of LeafLearning',
+    description: 'Get the most out of UnforgeAPI',
     articles: [
       { title: 'Best practices for studying', answer: 'Use spaced repetition! Our system automatically schedules flashcard reviews at optimal intervals. Study for 25-minute sessions with 5-minute breaks.' },
       { title: 'Sharing flashcards with others', answer: 'Click the share button on any flashcard set to generate a share link. Recipients can view and study your flashcards without needing an account.' },
@@ -89,9 +89,9 @@ export default function HelpPage() {
           </Link>
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
+              <Image src="/new_logo.png" alt="UnforgeAPI" width={24} height={24} className="object-contain" />
             </div>
-            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
+            <span className="font-bold font-headline text-text-primary">UnforgeAPI</span>
           </Link>
         </div>
       </header>
@@ -107,7 +107,7 @@ export default function HelpPage() {
             How Can We Help You?
           </h1>
           <p className="text-xl text-text-secondary font-body max-w-3xl mx-auto mb-8">
-            Find answers to common questions and learn how to get the most out of LeafLearning.
+            Find answers to common questions and learn how to get the most out of UnforgeAPI.
           </p>
           
           {/* Search Bar */}
@@ -202,7 +202,7 @@ export default function HelpPage() {
       <footer className="py-8 border-t border-border">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} LeafLearning. All rights reserved.
+            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
           </p>
         </div>
       </footer>

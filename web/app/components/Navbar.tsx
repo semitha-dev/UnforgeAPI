@@ -85,8 +85,8 @@ export default function TopNav() {
         <div className="flex justify-between items-center h-16">
           {/* Left side - Logo */}
           <div className="flex items-center">
-            <Link href="/overview" className="text-xl font-bold text-indigo-600">
-              Leaflearning
+            <Link href="/overview" className="text-xl font-bold text-violet-600">
+              UnforgeAPI
             </Link>
           </div>
 

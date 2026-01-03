@@ -11,7 +11,7 @@ export function Logo({ className = '', size = 24 }: LogoProps) {
   return (
     <Image
       src="/new_logo.png"
-      alt="LeafLearning"
+      alt="UnforgeAPI"
       width={size}
       height={size}
       className={className}

@@ -19,9 +19,9 @@ export default function CookiesPage() {
           </Link>
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
+              <Image src="/new_logo.png" alt="UnforgeAPI" width={24} height={24} className="object-contain" />
             </div>
-            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
+            <span className="font-bold font-headline text-text-primary">UnforgeAPI</span>
           </Link>
         </div>
       </header>
@@ -57,7 +57,7 @@ export default function CookiesPage() {
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">How We Use Cookies</h2>
               <p className="text-text-secondary font-body leading-relaxed mb-4">
-                LeafLearning uses cookies for several purposes:
+                UnforgeAPI uses cookies for several purposes:
               </p>
               <div className="space-y-4">
                 <div className="bg-muted/30 rounded-xl p-4 border border-border">
@@ -169,8 +169,8 @@ export default function CookiesPage() {
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Contact Us</h2>
               <p className="text-text-secondary font-body leading-relaxed">
                 If you have any questions about our use of cookies, please contact us at{' '}
-                <a href="mailto:privacy@leaflearning.app" className="text-accent hover:underline">
-                  privacy@leaflearning.app
+                <a href="mailto:privacy@UnforgeAPI.app" className="text-accent hover:underline">
+                  privacy@UnforgeAPI.app
                 </a>
               </p>
             </div>
@@ -204,7 +204,7 @@ export default function CookiesPage() {
       <footer className="py-8 border-t border-border">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} LeafLearning. All rights reserved.
+            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
           </p>
         </div>
       </footer>

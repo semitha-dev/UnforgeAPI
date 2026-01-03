@@ -99,7 +99,7 @@ export default function VerifyEmailPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white">leaflearning</span>
+            <span className="text-2xl font-bold text-white">UnforgeAPI</span>
           </Link>
         </div>
 

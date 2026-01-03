@@ -1,43 +1,42 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
-import { ArrowLeft, Users, Target, Heart, Sparkles, GraduationCap, Globe } from 'lucide-react'
+import { ArrowLeft, Users, Target, Zap, Shield, Globe, Code } from 'lucide-react'
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-black text-white">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link 
             href="/"
-            className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium font-body">Back to Home</span>
+            <span className="font-medium">Back to Home</span>
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
+            <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-lg flex items-center justify-center">
+              <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
+            <span className="font-bold">UnforgeAPI</span>
           </Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-br from-accent/5 via-background to-secondary/5">
+      <section className="py-20 bg-gradient-to-br from-violet-500/5 via-black to-fuchsia-500/5">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full border border-accent/20 mb-6">
-            <Users className="w-4 h-4 text-accent" />
-            <span className="text-sm font-semibold font-cta text-accent">About Us</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-500/10 rounded-full border border-violet-500/20 mb-6">
+            <Users className="w-4 h-4 text-violet-400" />
+            <span className="text-sm font-semibold text-violet-400">About Us</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-6">
-            Empowering Students to Learn Smarter
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">
+            Making AI Accessible for Every Developer
           </h1>
-          <p className="text-xl text-text-secondary font-body max-w-3xl mx-auto">
-            LeafLearning was built with one mission: to make quality education accessible and effective for every student, everywhere.
+          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+            UnforgeAPI was built with one mission: to make powerful AI capabilities accessible and cost-effective for developers everywhere.
           </p>
         </div>
       </section>
@@ -48,35 +47,35 @@ export default function AboutPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-accent" />
+                <div className="w-12 h-12 bg-violet-500/10 rounded-xl flex items-center justify-center">
+                  <Target className="w-6 h-6 text-violet-400" />
                 </div>
-                <h2 className="text-3xl font-bold font-headline text-primary">Our Mission</h2>
+                <h2 className="text-3xl font-bold">Our Mission</h2>
               </div>
-              <p className="text-text-secondary font-body mb-4">
-                We believe that every student deserves access to powerful learning tools that adapt to their unique needs. Traditional studying methods are time-consuming and often ineffective.
+              <p className="text-gray-400 mb-4">
+                We believe that AI should be accessible to every developer, not just those with massive budgets. Traditional AI APIs are expensive and often wasteful - charging the same for simple greetings as complex research queries.
               </p>
-              <p className="text-text-secondary font-body">
-                LeafLearning uses artificial intelligence to transform how students study—automatically generating flashcards, quizzes, and summaries from any learning material in seconds, not hours.
+              <p className="text-gray-400">
+                UnforgeAPI uses intelligent routing to dramatically reduce costs while maintaining quality. Our Router Brain classifies queries and picks the cheapest path that still delivers great results.
               </p>
             </div>
-            <div className="bg-card rounded-2xl p-8 border border-border shadow-card">
+            <div className="bg-neutral-900 rounded-2xl p-8 border border-white/10">
               <div className="grid grid-cols-2 gap-6">
                 <div className="text-center p-4">
-                  <div className="text-4xl font-bold font-headline text-accent mb-2">10x</div>
-                  <p className="text-sm text-text-secondary font-body">Faster Study Prep</p>
+                  <div className="text-4xl font-bold text-violet-400 mb-2">80%</div>
+                  <p className="text-sm text-gray-400">Cost Savings</p>
                 </div>
                 <div className="text-center p-4">
-                  <div className="text-4xl font-bold font-headline text-accent mb-2">500+</div>
-                  <p className="text-sm text-text-secondary font-body">Active Students</p>
+                  <div className="text-4xl font-bold text-violet-400 mb-2">&lt;100ms</div>
+                  <p className="text-sm text-gray-400">Latency</p>
                 </div>
                 <div className="text-center p-4">
-                  <div className="text-4xl font-bold font-headline text-accent mb-2">95%</div>
-                  <p className="text-sm text-text-secondary font-body">User Satisfaction</p>
+                  <div className="text-4xl font-bold text-violet-400 mb-2">3</div>
+                  <p className="text-sm text-gray-400">Routing Paths</p>
                 </div>
                 <div className="text-center p-4">
-                  <div className="text-4xl font-bold font-headline text-accent mb-2">24/7</div>
-                  <p className="text-sm text-text-secondary font-body">AI Availability</p>
+                  <div className="text-4xl font-bold text-violet-400 mb-2">24/7</div>
+                  <p className="text-sm text-gray-400">API Availability</p>
                 </div>
               </div>
             </div>
@@ -85,35 +84,35 @@ export default function AboutPage() {
       </section>
 
       {/* Values Section */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-16 bg-neutral-950">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl font-bold font-headline text-primary text-center mb-12">Our Values</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">Our Values</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-card rounded-2xl p-8 border border-border shadow-sm hover:shadow-card transition-shadow">
-              <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center mb-4">
-                <Heart className="w-6 h-6 text-accent" />
+            <div className="bg-neutral-900 rounded-2xl p-8 border border-white/10">
+              <div className="w-12 h-12 bg-violet-500/10 rounded-xl flex items-center justify-center mb-4">
+                <Code className="w-6 h-6 text-violet-400" />
               </div>
-              <h3 className="text-xl font-bold font-headline text-primary mb-3">Student-First</h3>
-              <p className="text-text-secondary font-body">
-                Every feature we build starts with one question: "How does this help students learn better?"
+              <h3 className="text-xl font-bold mb-3">Developer-First</h3>
+              <p className="text-gray-400">
+                Every feature we build starts with one question: "How does this help developers build better AI applications?"
               </p>
             </div>
-            <div className="bg-card rounded-2xl p-8 border border-border shadow-sm hover:shadow-card transition-shadow">
-              <div className="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center mb-4">
-                <Sparkles className="w-6 h-6 text-secondary" />
+            <div className="bg-neutral-900 rounded-2xl p-8 border border-white/10">
+              <div className="w-12 h-12 bg-fuchsia-500/10 rounded-xl flex items-center justify-center mb-4">
+                <Shield className="w-6 h-6 text-fuchsia-400" />
               </div>
-              <h3 className="text-xl font-bold font-headline text-primary mb-3">Innovation</h3>
-              <p className="text-text-secondary font-body">
-                We leverage cutting-edge AI to create tools that weren't possible just a few years ago.
+              <h3 className="text-xl font-bold mb-3">Enterprise Ready</h3>
+              <p className="text-gray-400">
+                Built-in security features like strict_mode, grounded_only, and citation_mode make our API production-ready from day one.
               </p>
             </div>
-            <div className="bg-card rounded-2xl p-8 border border-border shadow-sm hover:shadow-card transition-shadow">
-              <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center mb-4">
-                <Globe className="w-6 h-6 text-success" />
+            <div className="bg-neutral-900 rounded-2xl p-8 border border-white/10">
+              <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center mb-4">
+                <Globe className="w-6 h-6 text-green-400" />
               </div>
-              <h3 className="text-xl font-bold font-headline text-primary mb-3">Accessibility</h3>
-              <p className="text-text-secondary font-body">
-                Quality education tools should be affordable. That's why we offer a generous free tier and fair pricing.
+              <h3 className="text-xl font-bold mb-3">Transparency</h3>
+              <p className="text-gray-400">
+                Clear pricing, honest documentation, and no hidden fees. You always know what you're paying for.
               </p>
             </div>
           </div>
@@ -123,25 +122,25 @@ export default function AboutPage() {
       {/* Team Section */}
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold font-headline text-primary mb-4">Built by Students, for Students</h2>
-          <p className="text-text-secondary font-body max-w-2xl mx-auto mb-8">
-            LeafLearning was created by a passionate team who experienced firsthand the challenges of modern education. We're committed to building the study tools we wish we had.
+          <h2 className="text-3xl font-bold mb-4">Built by Engineers, for Engineers</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto mb-8">
+            UnforgeAPI was created by developers who experienced firsthand the pain of expensive AI APIs. We're committed to building the tools we wish we had.
           </p>
           <Link 
-            href="/careers"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-accent-foreground rounded-xl font-bold font-cta hover:bg-accent/90 transition-colors"
+            href="/docs"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-xl font-bold hover:opacity-90 transition-opacity"
           >
-            <GraduationCap className="w-5 h-5" />
-            Join Our Team
+            <Code className="w-5 h-5" />
+            Read the Docs
           </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-8 border-t border-border">
+      <footer className="py-8 border-t border-white/10">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} LeafLearning. All rights reserved.
+          <p className="text-sm text-gray-500">
+            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
           </p>
         </div>
       </footer>

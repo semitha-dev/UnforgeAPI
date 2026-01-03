@@ -51,7 +51,7 @@ const InteractiveDemoLauncher = ({ className = '' }: InteractiveDemoLauncherProp
                     Demo Coming Soon
                   </h3>
                   <p className="text-text-secondary font-body mt-2">
-                    See how LeafLearning transforms your study experience
+                    See how UnforgeAPI powers your AI applications
                   </p>
                 </div>
               </div>

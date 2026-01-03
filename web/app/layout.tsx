@@ -15,32 +15,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://leaflearning.live'),
+  metadataBase: new URL('https://unforge.ai'),
   title: {
-    default: "LeafLearning - AI-Powered Study Companion | Flashcards, Quizzes & Summaries",
-    template: "%s | LeafLearning"
+    default: "UnforgeAPI - Full AI Agent API | Intelligent RAG Router",
+    template: "%s | UnforgeAPI"
   },
-  description: "Transform your learning with LeafLearning's AI-powered study tools. Generate flashcards, quizzes, summaries from PDFs & notes. Smart study schedules & progress tracking. Start free!",
+  description: "UnforgeAPI is a Full AI Agent API with intelligent routing. Save 60-80% on AI costs with our Router Brain technology. Enterprise features: strict_mode, grounded_only, citation_mode.",
   keywords: [
-    "AI study app",
-    "AI flashcard generator",
-    "AI quiz maker",
-    "study companion",
-    "PDF summarizer",
-    "smart study planner",
-    "AI learning assistant",
-    "flashcard app",
-    "quiz generator",
-    "study schedule",
-    "note summarizer",
-    "AI education",
-    "student tools",
-    "exam preparation",
-    "study productivity"
+    "AI API",
+    "RAG API",
+    "AI agent",
+    "LLM API",
+    "hybrid RAG",
+    "intelligent routing",
+    "AI cost optimization",
+    "enterprise AI",
+    "grounded AI",
+    "citation mode",
+    "jailbreak protection",
+    "AI chatbot API",
+    "Groq API",
+    "Tavily API"
   ],
-  authors: [{ name: "LeafLearning" }],
-  creator: "LeafLearning",
-  publisher: "LeafLearning",
+  authors: [{ name: "UnforgeAPI" }],
+  creator: "UnforgeAPI",
+  publisher: "UnforgeAPI",
   robots: {
     index: true,
     follow: true,
@@ -67,30 +66,30 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://leaflearning.live",
-    siteName: "LeafLearning",
-    title: "LeafLearning - AI-Powered Study Companion",
-    description: "Transform your learning with AI. Generate flashcards, quizzes, and summaries from your notes and PDFs. Smart study schedules included!",
+    url: "https://unforge.ai",
+    siteName: "UnforgeAPI",
+    title: "UnforgeAPI - Full AI Agent API",
+    description: "Save 60-80% on AI costs with intelligent routing. Enterprise-ready with strict_mode, grounded_only, and citation_mode.",
     images: [
       {
         url: "/landingpage.png",
         width: 1200,
         height: 630,
-        alt: "LeafLearning - AI Study Companion",
+        alt: "UnforgeAPI - Full AI Agent API",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "LeafLearning - AI-Powered Study Companion",
-    description: "Transform your learning with AI. Generate flashcards, quizzes, and summaries instantly!",
+    title: "UnforgeAPI - Full AI Agent API",
+    description: "Save 60-80% on AI costs with intelligent routing. Enterprise-ready features included!",
     images: ["/landingpage.png"],
   },
   verification: {
-    google: "your-google-verification-code", // Replace with actual code from Google Search Console
+    google: "your-google-verification-code",
   },
   alternates: {
-    canonical: "https://leaflearning.live",
+    canonical: "https://unforge.ai",
   },
 };
 
@@ -98,27 +97,27 @@ export const metadata: Metadata = {
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
-  name: 'LeafLearning',
-  applicationCategory: 'EducationalApplication',
+  name: 'UnforgeAPI',
+  applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Web',
-  description: 'AI-powered study companion that generates flashcards, quizzes, and summaries from your notes and PDFs.',
+  description: 'Full AI Agent API with intelligent routing. Save 60-80% on AI costs with Router Brain technology.',
   offers: {
     '@type': 'Offer',
     price: '0',
     priceCurrency: 'USD',
-    description: 'Free tier with 500 tokens included',
+    description: 'Free sandbox tier with 50 requests/day',
   },
   aggregateRating: {
     '@type': 'AggregateRating',
-    ratingValue: '4.8',
-    ratingCount: '150',
+    ratingValue: '4.9',
+    ratingCount: '50',
   },
   featureList: [
-    'AI-powered flashcard generation',
-    'Smart quiz creation',
-    'PDF and note summarization',
-    'Personalized study schedules',
-    'Progress tracking and analytics',
+    'Intelligent query routing',
+    'Enterprise features: strict_mode, grounded_only, citation_mode',
+    '60-80% cost savings',
+    'Sub-100ms latency',
+    'Full AI Agent - plug and play',
   ],
 };
 

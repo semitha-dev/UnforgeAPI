@@ -12,14 +12,14 @@ export function Loading({ message = 'Loading...', fullScreen = true }: LoadingPr
     <div className="flex flex-col items-center justify-center">
       {/* Logo Icon */}
       <div className="mb-6">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg overflow-hidden">
-          <Image src="/new_logo.png" alt="LeafLearning" width={40} height={40} className="object-contain" />
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg overflow-hidden">
+          <Image src="/new_logo.png" alt="UnforgeAPI" width={40} height={40} className="object-contain" />
         </div>
       </div>
       
       {/* Horizontal Loading Bar */}
       <div className="w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-        <div className="h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full animate-loading-bar" />
+        <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full animate-loading-bar" />
       </div>
       
       {/* Message */}

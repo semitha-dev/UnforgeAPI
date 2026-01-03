@@ -228,7 +228,7 @@ export async function GET(request: NextRequest) {
 
     const isSandbox = process.env.POLAR_SANDBOX === 'true';
     const polarBase = isSandbox ? 'https://sandbox.polar.sh' : 'https://polar.sh';
-    const orgSlug = process.env.POLAR_ORG_SLUG || 'leaflearning2';
+    const orgSlug = process.env.POLAR_ORG_SLUG || 'unforgeapi';
 
     // Use the email from user auth (more reliable) or profile
     const userEmail = user.email || profile?.email;

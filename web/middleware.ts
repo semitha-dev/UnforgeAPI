@@ -38,16 +38,15 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Define protected routes (require authentication)
-  // Note: /overview is NOT protected - anonymous users can use LeafAI with rate limiting
+  // Dashboard, API keys, settings, etc.
   const protectedRoutes = [
-    '/project',
+    '/dashboard',
     '/support',
     '/debug',
-    '/summarize',
-    '/insights',
+    '/settings',
   ]
 
-  // Define auth routes (should redirect to overview if authenticated)
+  // Define auth routes (should redirect to dashboard if authenticated)
   const authRoutes = ['/signin', '/signup']
 
   // Check if the current path is a protected route
@@ -68,10 +67,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated users away from auth pages to overview
+  // Redirect authenticated users away from auth pages to dashboard
   if (isAuthRoute && user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/overview'
+    url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 

@@ -1,11 +1,11 @@
 {
-  "name": "LeafLearning",
-  "short_name": "LeafLearning",
-  "description": "AI-Powered Study Companion | Flashcards, Quizzes & Summaries",
+  "name": "UnforgeAPI",
+  "short_name": "UnforgeAPI",
+  "description": "Full AI Agent API | Intelligent RAG Router",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#22c55e",
+  "background_color": "#000000",
+  "theme_color": "#8b5cf6",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",

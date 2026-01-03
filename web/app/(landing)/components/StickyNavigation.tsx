@@ -51,12 +51,12 @@ const StickyNavigation = () => {
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors overflow-hidden ${
               isScrolled ? 'bg-emerald-500' : 'bg-emerald-500/90'
             }`}>
-              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
+              <Image src="/new_logo.png" alt="UnforgeAPI" width={24} height={24} className="object-contain" />
             </div>
             <span className={`font-bold text-lg transition-colors ${
               isScrolled ? 'text-gray-900' : 'text-gray-900'
             }`}>
-              LeafLearning
+              UnforgeAPI
             </span>
           </Link>
 

@@ -19,9 +19,9 @@ export default function PrivacyPage() {
           </Link>
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/new_logo.png" alt="LeafLearning" width={24} height={24} className="object-contain" />
+              <Image src="/new_logo.png" alt="UnforgeAPI" width={24} height={24} className="object-contain" />
             </div>
-            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
+            <span className="font-bold font-headline text-text-primary">UnforgeAPI</span>
           </Link>
         </div>
       </header>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Introduction</h2>
               <p className="text-text-secondary font-body leading-relaxed">
-                LeafLearning ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services. Please read this policy carefully. By using LeafLearning, you consent to the practices described in this Privacy Policy.
+                UnforgeAPI ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services. Please read this policy carefully. By using UnforgeAPI, you consent to the practices described in this Privacy Policy.
               </p>
             </div>
 
@@ -130,7 +130,7 @@ export default function PrivacyPage() {
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">International Users</h2>
               <p className="text-text-secondary font-body leading-relaxed">
-                LeafLearning is operated from various locations worldwide. If you are accessing our services from outside your country, please be aware that your information may be transferred to, stored, and processed in different jurisdictions with different data protection laws than your own.
+                UnforgeAPI is operated from various locations worldwide. If you are accessing our services from outside your country, please be aware that your information may be transferred to, stored, and processed in different jurisdictions with different data protection laws than your own.
               </p>
             </div>
 
@@ -145,8 +145,8 @@ export default function PrivacyPage() {
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Contact Us</h2>
               <p className="text-text-secondary font-body leading-relaxed">
                 If you have any questions about this Privacy Policy, please contact us at{' '}
-                <a href="mailto:privacy@leaflearning.app" className="text-accent hover:underline">
-                  privacy@leaflearning.app
+                <a href="mailto:privacy@UnforgeAPI.app" className="text-accent hover:underline">
+                  privacy@UnforgeAPI.app
                 </a>
               </p>
             </div>
@@ -159,7 +159,7 @@ export default function PrivacyPage() {
       <footer className="py-8 border-t border-border">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} LeafLearning. All rights reserved.
+            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
           </p>
         </div>
       </footer>

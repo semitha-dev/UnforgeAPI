@@ -187,10 +187,10 @@ export default function ProfileSetupPage() {
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white">leaflearning</span>
+            <span className="text-2xl font-bold text-white">UnforgeAPI</span>
           </Link>
         </div>
 
@@ -198,8 +198,8 @@ export default function ProfileSetupPage() {
         <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/10 mb-6 mx-auto">
-              <User className="h-8 w-8 text-emerald-400" />
+            <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-500/10 mb-6 mx-auto">
+              <User className="h-8 w-8 text-violet-400" />
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">
               Complete Your Profile
@@ -309,12 +309,12 @@ export default function ProfileSetupPage() {
           </form>
 
           {/* Welcome note */}
-          <div className="mt-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+          <div className="mt-6 p-4 bg-violet-500/10 border border-violet-500/20 rounded-xl">
             <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <CheckCircle2 className="h-5 w-5 text-violet-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-emerald-300">Almost there!</p>
-                <p className="text-xs text-emerald-400/70 mt-0.5">Complete your profile to unlock all LeafLearning features.</p>
+                <p className="text-sm font-medium text-violet-300">Almost there!</p>
+                <p className="text-xs text-violet-400/70 mt-0.5">Complete your profile to access your dashboard.</p>
               </div>
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function ProfileSetupPage() {
             Need help?{' '}
             <Link
               href="/support"
-              className="text-emerald-400 font-medium hover:text-emerald-300 transition-colors"
+              className="text-violet-400 font-medium hover:text-violet-300 transition-colors"
             >
               Contact Support
             </Link>

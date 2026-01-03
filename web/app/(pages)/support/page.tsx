@@ -22,7 +22,7 @@ export default function SupportPage() {
     setSuccess('');
 
     // Create mailto link
-    const mailtoLink = `mailto:leaflearningoffcial@gmail.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
+    const mailtoLink = `mailto:support@unforge.ai?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
       `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
     )}`;
 
@@ -30,7 +30,7 @@ export default function SupportPage() {
     window.location.href = mailtoLink;
 
     // Show success message
-    setSuccess('Opening your email client... If it doesn\'t open automatically, please email us at leaflearningoffcial@gmail.com');
+    setSuccess('Opening your email client... If it doesn\'t open automatically, please email us at support@unforge.ai');
     
     // Reset form
     setFormData({
@@ -43,7 +43,7 @@ export default function SupportPage() {
     setSending(false);
   };
 
-  const supportEmail = 'leaflearningoffcial@gmail.com';
+  const supportEmail = 'support@unforge.ai';
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8 px-3 sm:px-6 lg:px-8">
@@ -60,7 +60,7 @@ export default function SupportPage() {
             Back
           </button>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Support</h1>
-          <p className="mt-1.5 sm:mt-2 text-sm sm:text-base text-gray-600">Get help with Leaf Learning</p>
+          <p className="mt-1.5 sm:mt-2 text-sm sm:text-base text-gray-600">Get help with UnforgeAPI</p>
         </div>
 
         {/* Success Message */}
