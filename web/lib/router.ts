@@ -366,13 +366,20 @@ Respond naturally as this company's AI representative.`
   }
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
 /**
  * Generate response from provided context (RAG without search)
+ * Now with conversation history support and anti-hallucination measures
  */
 export async function generateFromContext(
   query: string,
   context: string,
-  groqKey: string
+  groqKey: string,
+  history?: ChatMessage[]
 ): Promise<string> {
   const requestId = generateRequestId()
   const startTime = performance.now()
@@ -383,42 +390,85 @@ export async function generateFromContext(
     queryPreview: query.substring(0, 100),
     contextLength: context.length,
     contextPreview: context.substring(0, 200),
-    hasGroqKey: !!groqKey
+    hasGroqKey: !!groqKey,
+    hasHistory: !!history,
+    historyLength: history?.length || 0
   }, ctx)
   
   try {
     const groq = new Groq({ apiKey: groqKey })
     
-    // Improved system prompt that enforces company persona
-    const systemPrompt = `You are an AI assistant representing the organization described in the context below.
+    // Check if context is too minimal (less than 50 chars)
+    const isMinimalContext = context.length < 50
+    
+    // Anti-hallucination system prompt
+    let systemPrompt: string
+    
+    if (isMinimalContext) {
+      // Minimal context - be a helpful assistant, don't pretend to be a company
+      systemPrompt = `You are a helpful AI assistant. The user has provided minimal context about your purpose:
+
+"${context}"
 
 CRITICAL RULES:
-1. You ARE this organization's AI assistant - stay in character at ALL times
-2. NEVER say "I'm just an AI", "I'm a language model", or "I don't have feelings" - you represent THIS organization
-3. When users ask about "you", "your company", "the company" - refer to the organization in the context
-4. Answer questions using the provided context
-5. If specific information isn't available, say "I don't have that specific detail, but I can help connect you with our team"
-6. Be professional, helpful, and speak as a representative of this organization
-7. Use "we", "our", "us" when referring to the organization
+1. Be helpful and conversational
+2. DO NOT invent names for yourself - just say "I'm an AI assistant" if asked
+3. DO NOT invent organizational details, titles, or features
+4. DO NOT hallucinate information not provided
+5. If you don't know something, say "I don't have that information"
+6. Answer based only on what's in the context or general knowledge
+
+Be helpful but honest about your limitations.`
+    } else {
+      // Rich context - act as company representative
+      systemPrompt = `You are an AI assistant for the organization described below.
+
+CRITICAL ANTI-HALLUCINATION RULES:
+1. ONLY state facts that are explicitly in the context below
+2. DO NOT invent names, titles, features, or organizational details
+3. If asked your name and it's not in context, say "I'm the AI assistant for [organization name from context]"
+4. If information is NOT in the context, say "I don't have that specific information in my knowledge base"
+5. NEVER make up statistics, team members, products, or features
+6. When uncertain, ask clarifying questions instead of guessing
 
 ORGANIZATION CONTEXT:
 ${context}
 
-Remember: You ARE this organization's AI representative. Respond naturally and helpfully.`
+CONVERSATION STYLE:
+- Be professional and helpful
+- Use "we" and "our" when referring to the organization IF the context describes one
+- Stay grounded in the provided context only`
+    }
+
+    // Build messages array with history
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt }
+    ]
+    
+    // Add conversation history if provided
+    if (history && history.length > 0) {
+      // Limit history to last 10 messages to avoid token overflow
+      const recentHistory = history.slice(-10)
+      for (const msg of recentHistory) {
+        messages.push({ role: msg.role, content: msg.content })
+      }
+    }
+    
+    // Add current query
+    messages.push({ role: 'user', content: query })
 
     debug('generateFromContext:llmCall:start', { 
       model: 'llama-3.1-8b-instant',
-      systemPromptLength: systemPrompt.length
+      systemPromptLength: systemPrompt.length,
+      totalMessages: messages.length,
+      isMinimalContext
     }, ctx)
     const llmStartTime = performance.now()
     
     const completion = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: query }
-      ],
-      temperature: 0.5,
+      messages,
+      temperature: 0.3, // Lower temperature = less creative = less hallucination
       max_tokens: 600
     })
 

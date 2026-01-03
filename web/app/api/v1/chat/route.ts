@@ -14,7 +14,8 @@ import {
   tavilySearch,
   synthesizeAnswer,
   didBreakCharacter,
-  type Intent
+  type Intent,
+  type ChatMessage
 } from '@/lib/router'
 
 // ============================================
@@ -64,6 +65,7 @@ function debugError(tag: string, error: any, context?: DebugContext) {
 interface RequestBody {
   query: string
   context?: string
+  history?: ChatMessage[]
 }
 
 interface ResponseMeta {
@@ -248,7 +250,9 @@ export async function POST(req: NextRequest) {
         queryPreview: body.query?.substring(0, 100),
         hasContext: !!body.context,
         contextLength: body.context?.length,
-        contextPreview: body.context?.substring(0, 100)
+        contextPreview: body.context?.substring(0, 100),
+        hasHistory: !!body.history,
+        historyLength: body.history?.length
       }, ctx)
     } catch (parseError: any) {
       debugError('request:parseError', parseError, ctx)
@@ -258,7 +262,7 @@ export async function POST(req: NextRequest) {
       )
     }
     
-    const { query, context } = body
+    const { query, context, history } = body
 
     if (!query || typeof query !== 'string') {
       debug('request:invalid', { reason: 'missing query', queryType: typeof query }, ctx)
@@ -394,7 +398,7 @@ export async function POST(req: NextRequest) {
     else if (intent === 'CONTEXT') {
       // Path B: Local RAG (Zero Search Cost)
       // Absolutely NO calls to Tavily
-      debug('path:context:start', { contextLength: context?.length }, ctx)
+      debug('path:context:start', { contextLength: context?.length, historyLength: history?.length }, ctx)
       const pathStartTime = performance.now()
       
       if (!context) {
@@ -402,7 +406,7 @@ export async function POST(req: NextRequest) {
         answer = 'No context was provided to answer your question.'
       } else {
         try {
-          answer = await generateFromContext(query, context, activeGroqKey)
+          answer = await generateFromContext(query, context, activeGroqKey, history)
           
           // GUARDRAIL: Check if AI broke character
           if (didBreakCharacter(answer)) {
@@ -412,7 +416,7 @@ export async function POST(req: NextRequest) {
             
             // Retry with explicit correction
             const retryPrompt = `IMPORTANT: The user is interacting with YOUR company's AI assistant. DO NOT say you are "just an AI" or a "language model". You represent the organization in the context. Now answer naturally as their representative: ${query}`
-            answer = await generateFromContext(retryPrompt, context, activeGroqKey)
+            answer = await generateFromContext(retryPrompt, context, activeGroqKey, history)
             
             debug('path:context:guardrail:retry', { 
               retryAnswerLength: answer.length,
