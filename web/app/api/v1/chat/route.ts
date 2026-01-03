@@ -16,7 +16,8 @@ import {
   didBreakCharacter,
   type Intent,
   type ChatMessage,
-  type GenerationOptions
+  type GenerationOptions,
+  type GenerationResult
 } from '@/lib/router'
 
 // ============================================
@@ -72,6 +73,10 @@ interface RequestBody {
   force_intent?: Intent       // Override intent classification
   temperature?: number        // LLM temperature (0.0 - 1.0)
   max_tokens?: number         // Max response tokens
+  // Enterprise features
+  strict_mode?: boolean       // Enforce system prompt as hard constraints
+  grounded_only?: boolean     // Only use context, refuse if not found
+  citation_mode?: boolean     // Return which parts of context were used
 }
 
 interface ResponseMeta {
@@ -83,6 +88,14 @@ interface ResponseMeta {
   intent_forced?: boolean    // True if force_intent was used
   temperature_used?: number  // Actual temperature used
   max_tokens_used?: number   // Actual max_tokens used
+  // Enterprise features
+  confidence_score?: number  // 0.0 - 1.0 confidence in response
+  grounded?: boolean         // True if grounded_only was used
+  citations?: string[]       // Excerpts from context that were used
+  refusal?: {                // Present if strict_mode blocked the query
+    reason: string
+    violated_instruction: string
+  }
 }
 
 interface UnkeyVerifyResult {
@@ -265,7 +278,10 @@ export async function POST(req: NextRequest) {
         hasSystemPrompt: !!body.system_prompt,
         forceIntent: body.force_intent,
         temperature: body.temperature,
-        maxTokens: body.max_tokens
+        maxTokens: body.max_tokens,
+        strictMode: body.strict_mode,
+        groundedOnly: body.grounded_only,
+        citationMode: body.citation_mode
       }, ctx)
     } catch (parseError: any) {
       debugError('request:parseError', parseError, ctx)
@@ -275,7 +291,18 @@ export async function POST(req: NextRequest) {
       )
     }
     
-    const { query, context, history, system_prompt, force_intent, temperature, max_tokens } = body
+    const { 
+      query, 
+      context, 
+      history, 
+      system_prompt, 
+      force_intent, 
+      temperature, 
+      max_tokens,
+      strict_mode,
+      grounded_only,
+      citation_mode
+    } = body
 
     if (!query || typeof query !== 'string') {
       debug('request:invalid', { reason: 'missing query', queryType: typeof query }, ctx)
@@ -428,6 +455,12 @@ export async function POST(req: NextRequest) {
     // ============================================
     let answer: string
     let sources: Array<{ title: string; url: string }> | undefined
+    
+    // Enterprise feature response fields
+    let meta_confidence_score: number | undefined
+    let meta_grounded: boolean | undefined
+    let meta_citations: string[] | undefined
+    let meta_refusal: { reason: string; violated_instruction: string } | undefined
 
     if (intent === 'CHAT') {
       // Path A: Simple chat (only when NO context provided)
@@ -453,7 +486,10 @@ export async function POST(req: NextRequest) {
         historyLength: history?.length,
         hasSystemPrompt: !!system_prompt,
         temperature: validTemperature,
-        maxTokens: validMaxTokens
+        maxTokens: validMaxTokens,
+        strictMode: strict_mode,
+        groundedOnly: grounded_only,
+        citationMode: citation_mode
       }, ctx)
       const pathStartTime = performance.now()
       
@@ -461,26 +497,40 @@ export async function POST(req: NextRequest) {
         debug('path:context:noContext', { fallbackToResearch: false }, ctx)
         answer = 'No context was provided to answer your question.'
       } else {
-        // Build generation options
+        // Build generation options with enterprise features
         const genOptions: GenerationOptions = {
           history,
           system_prompt,
           temperature: validTemperature,
-          max_tokens: validMaxTokens
+          max_tokens: validMaxTokens,
+          strict_mode,
+          grounded_only,
+          citation_mode
         }
         
         try {
-          answer = await generateFromContext(query, context, activeGroqKey, genOptions)
+          const result = await generateFromContext(query, context, activeGroqKey, genOptions)
+          answer = result.answer
           
-          // GUARDRAIL: Check if AI broke character (only if no custom system_prompt)
-          if (!system_prompt && didBreakCharacter(answer)) {
+          // Populate enterprise response metadata
+          meta_confidence_score = result.confidence_score
+          meta_grounded = result.grounded
+          meta_citations = result.citations
+          meta_refusal = result.refusal
+          
+          // GUARDRAIL: Check if AI broke character (only if no custom system_prompt and not refused)
+          if (!system_prompt && !result.refusal && didBreakCharacter(answer)) {
             debug('path:context:guardrail:triggered', { 
               reason: 'AI broke character, retrying with stronger prompt'
             }, ctx)
             
             // Retry with explicit correction
             const retryPrompt = `IMPORTANT: The user is interacting with YOUR company's AI assistant. DO NOT say you are "just an AI" or a "language model". You represent the organization in the context. Now answer naturally as their representative: ${query}`
-            answer = await generateFromContext(retryPrompt, context, activeGroqKey, genOptions)
+            const retryResult = await generateFromContext(retryPrompt, context, activeGroqKey, genOptions)
+            answer = retryResult.answer
+            meta_confidence_score = retryResult.confidence_score
+            meta_grounded = retryResult.grounded
+            meta_citations = retryResult.citations
             
             debug('path:context:guardrail:retry', { 
               retryAnswerLength: answer.length,
@@ -579,6 +629,20 @@ export async function POST(req: NextRequest) {
       meta.sources = sources
     }
     
+    // Add enterprise features to response metadata
+    if (meta_confidence_score !== undefined) {
+      meta.confidence_score = meta_confidence_score
+    }
+    if (meta_grounded !== undefined) {
+      meta.grounded = meta_grounded
+    }
+    if (meta_citations !== undefined && meta_citations.length > 0) {
+      meta.citations = meta_citations
+    }
+    if (meta_refusal !== undefined) {
+      meta.refusal = meta_refusal
+    }
+    
     debug('response:success', { 
       intent,
       classifiedIntent: classification.intent,
@@ -588,7 +652,11 @@ export async function POST(req: NextRequest) {
       hasSources: !!sources,
       sourceCount: sources?.length || 0,
       temperatureUsed: validTemperature ?? 0.3,
-      maxTokensUsed: validMaxTokens ?? 600
+      maxTokensUsed: validMaxTokens ?? 600,
+      confidenceScore: meta_confidence_score,
+      grounded: meta_grounded,
+      citationCount: meta_citations?.length || 0,
+      hasRefusal: !!meta_refusal
     }, ctx)
 
     // Log usage (fire-and-forget)

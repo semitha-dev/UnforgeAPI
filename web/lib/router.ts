@@ -376,23 +376,38 @@ export interface GenerationOptions {
   system_prompt?: string  // Custom system prompt override
   temperature?: number    // 0.0 - 1.0
   max_tokens?: number     // Max response tokens
+  // Enterprise features
+  strict_mode?: boolean   // Enforce system prompt as hard constraints
+  grounded_only?: boolean // Only use context, refuse if not found
+  citation_mode?: boolean // Return which parts of context were used
+}
+
+export interface GenerationResult {
+  answer: string
+  confidence_score: number      // 0.0 - 1.0
+  citations?: string[]          // Excerpts from context used
+  grounded: boolean             // Whether answer is grounded in context
+  refusal?: {                   // Present if strict_mode blocked
+    reason: string
+    violated_instruction: string
+  }
 }
 
 /**
  * Generate response from provided context (RAG without search)
- * Now with conversation history support and anti-hallucination measures
+ * Enterprise-ready with strict_mode, grounded_only, citation_mode, and confidence scoring
  */
 export async function generateFromContext(
   query: string,
   context: string,
   groqKey: string,
   options?: GenerationOptions
-): Promise<string> {
+): Promise<GenerationResult> {
   const requestId = generateRequestId()
   const startTime = performance.now()
   const ctx: DebugContext = { requestId, startTime }
   
-  const { history, system_prompt, temperature, max_tokens } = options || {}
+  const { history, system_prompt, temperature, max_tokens, strict_mode, grounded_only, citation_mode } = options || {}
   
   debug('generateFromContext:start', { 
     queryLength: query.length,
@@ -404,28 +419,67 @@ export async function generateFromContext(
     historyLength: history?.length || 0,
     hasCustomSystemPrompt: !!system_prompt,
     customTemperature: temperature,
-    customMaxTokens: max_tokens
+    customMaxTokens: max_tokens,
+    strictMode: strict_mode,
+    groundedOnly: grounded_only,
+    citationMode: citation_mode
   }, ctx)
   
   try {
     const groq = new Groq({ apiKey: groqKey })
     
+    // STRICT MODE: Check if query violates system prompt instructions
+    if (strict_mode && system_prompt) {
+      const violationCheck = await checkStrictModeViolation(query, system_prompt, context, groqKey)
+      if (violationCheck.violated) {
+        debug('generateFromContext:strictMode:violation', { 
+          reason: violationCheck.reason,
+          violatedInstruction: violationCheck.instruction
+        }, ctx)
+        return {
+          answer: `I cannot answer this question as it falls outside my allowed scope.`,
+          confidence_score: 1.0,
+          grounded: true,
+          refusal: {
+            reason: violationCheck.reason,
+            violated_instruction: violationCheck.instruction
+          }
+        }
+      }
+    }
+    
     // Check if context is too minimal (less than 50 chars)
     const isMinimalContext = context.length < 50
     
-    // Use custom system_prompt if provided, otherwise generate anti-hallucination prompt
+    // Build system prompt based on mode
     let systemPrompt: string
     
-    if (system_prompt) {
-      // User provided custom system prompt - use it directly with context appended
+    if (grounded_only) {
+      // GROUNDED ONLY MODE: Very strict - only answer from context
+      systemPrompt = `You are a strictly grounded AI assistant. You can ONLY provide information that is EXPLICITLY stated in the context below.
+
+${system_prompt ? `PERSONA INSTRUCTIONS:\n${system_prompt}\n\n` : ''}CONTEXT:
+${context}
+
+CRITICAL GROUNDING RULES:
+1. ONLY answer using information that is EXPLICITLY written in the context above
+2. If the answer is NOT in the context, respond EXACTLY with: "I don't have that information in my knowledge base."
+3. DO NOT infer, assume, or extrapolate beyond what is explicitly stated
+4. DO NOT use general knowledge - ONLY the context
+5. DO NOT make up names, features, statistics, or any details
+6. If partially answerable, only state what IS in context and say "I don't have additional details on that."
+
+You must be 100% grounded. When in doubt, say you don't have that information.`
+    } else if (system_prompt) {
+      // Custom system prompt with context appended
       systemPrompt = `${system_prompt}
 
 CONTEXT INFORMATION:
 ${context}
 
-IMPORTANT: Only use information from the context above. Do not make up information.`
+IMPORTANT: Prefer information from the context above. Do not make up specific facts not in the context.`
     } else if (isMinimalContext) {
-      // Minimal context - be a helpful assistant, don't pretend to be a company
+      // Minimal context mode
       systemPrompt = `You are a helpful AI assistant. The user has provided minimal context about your purpose:
 
 "${context}"
@@ -440,10 +494,10 @@ CRITICAL RULES:
 
 Be helpful but honest about your limitations.`
     } else {
-      // Rich context - act as company representative
+      // Rich context - standard mode
       systemPrompt = `You are an AI assistant for the organization described below.
 
-CRITICAL ANTI-HALLUCINATION RULES:
+ANTI-HALLUCINATION RULES:
 1. ONLY state facts that are explicitly in the context below
 2. DO NOT invent names, titles, features, or organizational details
 3. If asked your name and it's not in context, say "I'm the AI assistant for [organization name from context]"
@@ -467,7 +521,6 @@ CONVERSATION STYLE:
     
     // Add conversation history if provided
     if (history && history.length > 0) {
-      // Limit history to last 10 messages to avoid token overflow
       const recentHistory = history.slice(-10)
       for (const msg of recentHistory) {
         messages.push({ role: msg.role, content: msg.content })
@@ -484,14 +537,16 @@ CONVERSATION STYLE:
       isMinimalContext,
       usingCustomPrompt: !!system_prompt,
       temperature: temperature ?? 0.3,
-      maxTokens: max_tokens ?? 600
+      maxTokens: max_tokens ?? 600,
+      strictMode: strict_mode,
+      groundedOnly: grounded_only
     }, ctx)
     const llmStartTime = performance.now()
     
     const completion = await groq.chat.completions.create({
       model: 'llama-3.1-8b-instant',
       messages,
-      temperature: temperature ?? 0.3, // Lower temperature = less creative = less hallucination
+      temperature: grounded_only ? 0.1 : (temperature ?? 0.3),
       max_tokens: max_tokens ?? 600
     })
 
@@ -504,19 +559,191 @@ CONVERSATION STYLE:
 
     const response = completion.choices[0]?.message?.content || 'I could not find an answer in the provided context.'
     
+    // Calculate confidence score
+    const confidenceScore = calculateConfidence(response, context, grounded_only)
+    
+    // Extract citations if citation_mode is enabled
+    let citations: string[] | undefined
+    if (citation_mode) {
+      citations = extractCitations(response, context)
+    }
+    
+    // Check if response is grounded
+    const isGrounded = checkGrounding(response, context)
+    
     debug('generateFromContext:complete', { 
       responseLength: response.length,
       responsePreview: response.substring(0, 200),
-      totalLatencyMs: Math.round(performance.now() - startTime)
+      totalLatencyMs: Math.round(performance.now() - startTime),
+      confidenceScore,
+      citationCount: citations?.length || 0,
+      isGrounded
     }, ctx)
     
-    return response
+    return {
+      answer: response,
+      confidence_score: confidenceScore,
+      citations,
+      grounded: isGrounded
+    }
   } catch (error: any) {
     debugError('generateFromContext:error', error, ctx)
-    const fallbackResponse = 'I could not find an answer in the provided context.'
-    debug('generateFromContext:fallback', { response: fallbackResponse }, ctx)
-    return fallbackResponse
+    return {
+      answer: 'I could not find an answer in the provided context.',
+      confidence_score: 0,
+      grounded: false
+    }
   }
+}
+
+/**
+ * Check if query violates strict mode instructions
+ */
+async function checkStrictModeViolation(
+  query: string,
+  systemPrompt: string,
+  context: string,
+  groqKey: string
+): Promise<{ violated: boolean; reason: string; instruction: string }> {
+  try {
+    const groq = new Groq({ apiKey: groqKey })
+    
+    const checkPrompt = `You are a policy checker. Analyze if the user's query violates any instructions in the system prompt.
+
+SYSTEM PROMPT INSTRUCTIONS:
+${systemPrompt}
+
+CONTEXT SCOPE:
+${context.substring(0, 500)}...
+
+USER QUERY:
+${query}
+
+Respond in JSON format only:
+{
+  "violated": true/false,
+  "reason": "Brief explanation if violated, empty string if not",
+  "instruction": "The specific instruction violated, empty string if not"
+}
+
+Only respond with the JSON, no other text.`
+
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.1-8b-instant',
+      messages: [{ role: 'user', content: checkPrompt }],
+      temperature: 0,
+      max_tokens: 200
+    })
+    
+    const response = completion.choices[0]?.message?.content || '{}'
+    
+    // Try to parse JSON from response
+    const jsonMatch = response.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0])
+      return {
+        violated: parsed.violated === true,
+        reason: parsed.reason || '',
+        instruction: parsed.instruction || ''
+      }
+    }
+    
+    return { violated: false, reason: '', instruction: '' }
+  } catch (error) {
+    // On error, don't block - fail open
+    return { violated: false, reason: '', instruction: '' }
+  }
+}
+
+/**
+ * Calculate confidence score based on response and context
+ */
+function calculateConfidence(response: string, context: string, isGroundedMode?: boolean): number {
+  let confidence = 0.5
+  
+  // Check for "I don't have" or "not in context" phrases (high confidence in admission)
+  const admissionPhrases = [
+    "i don't have that information",
+    "not in my knowledge base",
+    "i cannot find",
+    "not available in the context",
+    "i don't have specific",
+    "i'm not able to"
+  ]
+  
+  const responseLower = response.toLowerCase()
+  if (admissionPhrases.some(phrase => responseLower.includes(phrase))) {
+    return 0.95
+  }
+  
+  // Check how many context words appear in response
+  const contextWords = context.toLowerCase().split(/\s+/).filter(w => w.length > 4)
+  const responseWords = response.toLowerCase().split(/\s+/)
+  
+  let matchCount = 0
+  for (const word of contextWords) {
+    if (responseWords.some(rw => rw.includes(word) || word.includes(rw))) {
+      matchCount++
+    }
+  }
+  
+  const overlapRatio = contextWords.length > 0 ? matchCount / contextWords.length : 0
+  confidence += overlapRatio * 0.4
+  
+  if (isGroundedMode && !responseLower.includes('might') && !responseLower.includes('perhaps')) {
+    confidence += 0.1
+  }
+  
+  return Math.min(0.95, Math.max(0.1, confidence))
+}
+
+/**
+ * Extract citations from response that match context
+ */
+function extractCitations(response: string, context: string): string[] {
+  const citations: string[] = []
+  const contextChunks = context.split(/[.!?\n]+/).filter(chunk => chunk.trim().length > 20)
+  
+  for (const chunk of contextChunks) {
+    const chunkWords = chunk.toLowerCase().split(/\s+/).filter(w => w.length > 4)
+    const responseWords = response.toLowerCase()
+    
+    const matchedWords = chunkWords.filter(word => responseWords.includes(word))
+    
+    if (matchedWords.length >= 3 || (matchedWords.length >= 2 && chunkWords.length <= 5)) {
+      const trimmedChunk = chunk.trim()
+      if (trimmedChunk.length > 10 && trimmedChunk.length < 300) {
+        citations.push(trimmedChunk)
+      }
+    }
+  }
+  
+  return [...new Set(citations)].slice(0, 5)
+}
+
+/**
+ * Check if response is grounded in context
+ */
+function checkGrounding(response: string, context: string): boolean {
+  const responseLower = response.toLowerCase()
+  
+  if (responseLower.includes("don't have") || responseLower.includes("not in") || responseLower.includes("cannot find")) {
+    return true
+  }
+  
+  const contextWords = context.toLowerCase().split(/\s+/).filter(w => w.length > 5)
+  const uniqueContextWords = [...new Set(contextWords)]
+  
+  if (uniqueContextWords.length === 0) return true
+  
+  let matchCount = 0
+  for (const word of uniqueContextWords) {
+    if (responseLower.includes(word)) {
+      matchCount++
+    }
+  }
+  
+  return (matchCount / uniqueContextWords.length) >= 0.1
 }
 
 /**
