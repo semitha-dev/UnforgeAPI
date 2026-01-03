@@ -68,6 +68,29 @@ interface ClassificationResult {
 }
 
 // ============================================
+// GUARDRAIL: Detect if AI broke character
+// ============================================
+
+const CHARACTER_BREAK_PATTERNS = [
+  /i('m| am) (just )?(a|an) (large )?language model/i,
+  /i('m| am) (just )?(a|an) ai (assistant|model|program|system)/i,
+  /i don'?t have (a )?(physical|real) (body|form|presence)/i,
+  /as (a|an) ai,? i (don'?t|cannot|can'?t)/i,
+  /i('m| am) not (a )?(real|actual) (person|human|company)/i,
+  /i('m| am) (a )?software (program|application)/i,
+  /i don'?t have (feelings|emotions|consciousness)/i,
+  /i('m| am) not affiliated with any (company|organization)/i,
+]
+
+/**
+ * Check if the AI response broke character (said it's just an AI)
+ */
+export function didBreakCharacter(response: string): boolean {
+  const normalized = response.toLowerCase()
+  return CHARACTER_BREAK_PATTERNS.some(pattern => pattern.test(normalized))
+}
+
+// ============================================
 // ROUTER BRAIN SYSTEM PROMPT (Step 2)
 // ============================================
 
@@ -75,9 +98,11 @@ const ROUTER_SYSTEM_PROMPT = `You are the Router Brain for an intelligent RAG AP
 Your goal is to select the most efficient execution path for a user's query.
 
 Your available paths:
-1. CHAT: For casual conversation, compliments, or questions about you (the AI).
-2. CONTEXT: The user provided specific "Context Data". Analyze if this data contains the answer to the user's query. If YES, select this path.
-3. RESEARCH: The user is asking a factual question (news, stocks, definitions, history) that cannot be answered by the provided context.
+1. CHAT: ONLY for simple greetings like "hi", "hello", "thanks" when NO context is provided.
+2. CONTEXT: The user provided specific "Context Data". If ANY context is provided, prefer this path.
+3. RESEARCH: The user is asking a factual question (news, stocks, current events) that requires web search.
+
+IMPORTANT: If Context Data is provided, almost ALWAYS choose CONTEXT unless the query explicitly needs current web information.
 
 Input:
 - Query: {user_query}
@@ -364,10 +389,22 @@ export async function generateFromContext(
   try {
     const groq = new Groq({ apiKey: groqKey })
     
-    const systemPrompt = `Answer the user's question using ONLY the provided context. If the answer is not in the context, say so clearly.
+    // Improved system prompt that enforces company persona
+    const systemPrompt = `You are an AI assistant representing the organization described in the context below.
 
-Context:
-${context}`
+CRITICAL RULES:
+1. You ARE this organization's AI assistant - stay in character at ALL times
+2. NEVER say "I'm just an AI", "I'm a language model", or "I don't have feelings" - you represent THIS organization
+3. When users ask about "you", "your company", "the company" - refer to the organization in the context
+4. Answer questions using the provided context
+5. If specific information isn't available, say "I don't have that specific detail, but I can help connect you with our team"
+6. Be professional, helpful, and speak as a representative of this organization
+7. Use "we", "our", "us" when referring to the organization
+
+ORGANIZATION CONTEXT:
+${context}
+
+Remember: You ARE this organization's AI representative. Respond naturally and helpfully.`
 
     debug('generateFromContext:llmCall:start', { 
       model: 'llama-3.1-8b-instant',
@@ -381,8 +418,8 @@ ${context}`
         { role: 'system', content: systemPrompt },
         { role: 'user', content: query }
       ],
-      temperature: 0.3,
-      max_tokens: 500
+      temperature: 0.5,
+      max_tokens: 600
     })
 
     const llmLatency = Math.round(performance.now() - llmStartTime)

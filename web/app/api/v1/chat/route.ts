@@ -13,6 +13,7 @@ import {
   generateFromContext,
   tavilySearch,
   synthesizeAnswer,
+  didBreakCharacter,
   type Intent
 } from '@/lib/router'
 
@@ -308,25 +309,65 @@ export async function POST(req: NextRequest) {
     debug('tier:check', { tier, isByokTier }, ctx)
 
     // ============================================
-    // 4. ROUTER BRAIN (Classify Intent)
+    // 4. SMART ROUTING DECISION
     // ============================================
-    debug('router:classifying', { 
-      queryPreview: query.substring(0, 100),
-      hasContext: !!context
-    }, ctx)
+    // KEY INSIGHT: If context is provided, ALWAYS use it
+    // Only use router to decide if we need RESEARCH (external search)
     
-    const classifyStartTime = performance.now()
-    const classification = await classifyIntent(query, context, activeGroqKey)
-    const classifyLatency = Math.round(performance.now() - classifyStartTime)
+    let intent: Intent
+    let classification: { intent: Intent; confidence: number; reason: string }
     
-    const intent = classification.intent
-    
-    debug('router:classified', { 
-      intent, 
-      confidence: classification.confidence,
-      reason: classification.reason,
-      classifyLatencyMs: classifyLatency
-    }, ctx)
+    if (context) {
+      // CONTEXT PROVIDED → Always use context-aware path
+      // Only question: Does user need external search too?
+      debug('router:contextProvided', { 
+        queryPreview: query.substring(0, 100),
+        contextLength: context.length
+      }, ctx)
+      
+      const classifyStartTime = performance.now()
+      classification = await classifyIntent(query, context, activeGroqKey)
+      const classifyLatency = Math.round(performance.now() - classifyStartTime)
+      
+      // Override: If router says CHAT but we have context, use CONTEXT instead
+      // This prevents the AI from ignoring company context
+      if (classification.intent === 'CHAT') {
+        intent = 'CONTEXT'
+        debug('router:override', { 
+          originalIntent: 'CHAT',
+          newIntent: 'CONTEXT',
+          reason: 'Context provided - must use context-aware response'
+        }, ctx)
+      } else {
+        intent = classification.intent
+      }
+      
+      debug('router:classified', { 
+        originalIntent: classification.intent,
+        finalIntent: intent, 
+        confidence: classification.confidence,
+        reason: classification.reason,
+        classifyLatencyMs: classifyLatency
+      }, ctx)
+    } else {
+      // NO CONTEXT → Normal routing (CHAT vs RESEARCH)
+      debug('router:noContext', { 
+        queryPreview: query.substring(0, 100)
+      }, ctx)
+      
+      const classifyStartTime = performance.now()
+      classification = await classifyIntent(query, context, activeGroqKey)
+      const classifyLatency = Math.round(performance.now() - classifyStartTime)
+      
+      intent = classification.intent
+      
+      debug('router:classified', { 
+        intent, 
+        confidence: classification.confidence,
+        reason: classification.reason,
+        classifyLatencyMs: classifyLatency
+      }, ctx)
+    }
 
     // ============================================
     // 5. EXECUTION PATHS
@@ -335,8 +376,7 @@ export async function POST(req: NextRequest) {
     let sources: Array<{ title: string; url: string }> | undefined
 
     if (intent === 'CHAT') {
-      // Path A: Cheap/Free Llama-8b (no search cost)
-      // Pass context so AI can roleplay as company representative when available
+      // Path A: Simple chat (only when NO context provided)
       debug('path:chat:start', { hasContext: !!context }, ctx)
       const pathStartTime = performance.now()
       
@@ -363,6 +403,23 @@ export async function POST(req: NextRequest) {
       } else {
         try {
           answer = await generateFromContext(query, context, activeGroqKey)
+          
+          // GUARDRAIL: Check if AI broke character
+          if (didBreakCharacter(answer)) {
+            debug('path:context:guardrail:triggered', { 
+              reason: 'AI broke character, retrying with stronger prompt'
+            }, ctx)
+            
+            // Retry with explicit correction
+            const retryPrompt = `IMPORTANT: The user is interacting with YOUR company's AI assistant. DO NOT say you are "just an AI" or a "language model". You represent the organization in the context. Now answer naturally as their representative: ${query}`
+            answer = await generateFromContext(retryPrompt, context, activeGroqKey)
+            
+            debug('path:context:guardrail:retry', { 
+              retryAnswerLength: answer.length,
+              stillBroke: didBreakCharacter(answer)
+            }, ctx)
+          }
+          
           debug('path:context:complete', { 
             answerLength: answer.length,
             pathLatencyMs: Math.round(performance.now() - pathStartTime)
