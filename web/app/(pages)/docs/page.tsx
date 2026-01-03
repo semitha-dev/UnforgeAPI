@@ -56,6 +56,7 @@ export default function DocsPage() {
     { id: 'quickstart', label: 'Quick Start' },
     { id: 'authentication', label: 'Authentication' },
     { id: 'endpoints', label: 'API Reference' },
+    { id: 'advanced', label: 'Advanced Parameters' },
     { id: 'routing', label: 'Routing Logic' },
     { id: 'examples', label: 'Examples' },
     { id: 'pricing', label: 'Pricing' },
@@ -262,25 +263,43 @@ x-tavily-key: tvly-your_tavily_key`}
                       <td className="py-3 font-mono text-violet-400">query</td>
                       <td className="py-3">string</td>
                       <td className="py-3">Yes</td>
-                      <td className="py-3 text-gray-400">The user's input/question</td>
+                      <td className="py-3 text-gray-400">The user's input/question (max 10,000 chars)</td>
                     </tr>
                     <tr className="border-b border-white/5">
                       <td className="py-3 font-mono text-violet-400">context</td>
                       <td className="py-3">string</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">Local data to prioritize (documents, emails, etc.)</td>
+                      <td className="py-3 text-gray-400">Your business data/documents to search within</td>
                     </tr>
                     <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-violet-400">model_preference</td>
+                      <td className="py-3 font-mono text-violet-400">history</td>
+                      <td className="py-3">array</td>
+                      <td className="py-3">No</td>
+                      <td className="py-3 text-gray-400">Conversation history for multi-turn chats</td>
+                    </tr>
+                    <tr className="border-b border-white/5">
+                      <td className="py-3 font-mono text-violet-400">system_prompt</td>
                       <td className="py-3">string</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">"fast", "balanced", or "quality"</td>
+                      <td className="py-3 text-gray-400">Custom system prompt for AI persona/behavior</td>
                     </tr>
-                    <tr>
+                    <tr className="border-b border-white/5">
+                      <td className="py-3 font-mono text-violet-400">force_intent</td>
+                      <td className="py-3">string</td>
+                      <td className="py-3">No</td>
+                      <td className="py-3 text-gray-400">"CHAT", "CONTEXT", or "RESEARCH"</td>
+                    </tr>
+                    <tr className="border-b border-white/5">
                       <td className="py-3 font-mono text-violet-400">temperature</td>
                       <td className="py-3">number</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">0.0 to 1.0 (default: 0.7)</td>
+                      <td className="py-3 text-gray-400">0.0 to 1.0 (default: 0.3)</td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 font-mono text-violet-400">max_tokens</td>
+                      <td className="py-3">number</td>
+                      <td className="py-3">No</td>
+                      <td className="py-3 text-gray-400">50 to 2000 (default: 600)</td>
                     </tr>
                   </tbody>
                 </table>
@@ -292,10 +311,13 @@ x-tavily-key: tvly-your_tavily_key`}
                 code={`{
   "answer": "The capital of France is Paris.",
   "meta": {
+    "intent": "RESEARCH",
     "routed_to": "RESEARCH",
-    "router_latency": 0.09,
-    "total_latency": 1.23,
-    "cost_savings": false,
+    "cost_saving": true,
+    "latency_ms": 1230,
+    "intent_forced": false,
+    "temperature_used": 0.3,
+    "max_tokens_used": 600,
     "sources": [
       {
         "title": "Paris - Wikipedia",
@@ -305,6 +327,181 @@ x-tavily-key: tvly-your_tavily_key`}
   }
 }`}
               />
+            </div>
+          </section>
+          
+          {/* Advanced Parameters */}
+          <section id="advanced" className="mb-16">
+            <h2 className="text-2xl font-bold mb-6">Advanced Parameters</h2>
+            
+            <div className="space-y-6">
+              {/* system_prompt */}
+              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <code className="text-lg font-mono text-violet-400">system_prompt</code>
+                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded">string</span>
+                </div>
+                <p className="text-gray-400 mb-4">
+                  Control exactly how the AI behaves - its personality, tone, and constraints.
+                </p>
+                <CodeBlock
+                  language="json"
+                  code={`{
+  "query": "Who are you?",
+  "context": "TechCorp sells enterprise software.",
+  "system_prompt": "You are Aria, a friendly support agent for TechCorp. Be helpful and concise. Never make up information."
+}`}
+                />
+                <p className="text-gray-500 text-sm mt-3">
+                  💡 Use this to prevent hallucination and define your bot's identity.
+                </p>
+              </div>
+              
+              {/* force_intent */}
+              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <code className="text-lg font-mono text-violet-400">force_intent</code>
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs rounded">CHAT | CONTEXT | RESEARCH</span>
+                </div>
+                <p className="text-gray-400 mb-4">
+                  Override the automatic intent classifier. Use when you know exactly which path to use.
+                </p>
+                <CodeBlock
+                  language="json"
+                  code={`{
+  "query": "Tell me about yourself",
+  "context": "Company: TechCorp. Founded: 2020.",
+  "force_intent": "CONTEXT"
+}`}
+                />
+                <p className="text-gray-500 text-sm mt-3">
+                  💡 Without this, conversational queries might route to CHAT and ignore your context.
+                </p>
+              </div>
+              
+              {/* temperature */}
+              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <code className="text-lg font-mono text-violet-400">temperature</code>
+                  <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded">0.0 - 1.0</span>
+                </div>
+                <p className="text-gray-400 mb-4">
+                  Control creativity. Lower = more factual and consistent. Higher = more creative.
+                </p>
+                <div className="overflow-x-auto mb-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="text-left py-2 text-gray-400">Value</th>
+                        <th className="text-left py-2 text-gray-400">Use Case</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-white/5">
+                        <td className="py-2 font-mono">0.1 - 0.3</td>
+                        <td className="py-2 text-gray-400">Customer support, FAQ bots (factual)</td>
+                      </tr>
+                      <tr className="border-b border-white/5">
+                        <td className="py-2 font-mono">0.4 - 0.6</td>
+                        <td className="py-2 text-gray-400">General assistants (balanced)</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 font-mono">0.7 - 1.0</td>
+                        <td className="py-2 text-gray-400">Creative writing, brainstorming</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* max_tokens */}
+              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <code className="text-lg font-mono text-violet-400">max_tokens</code>
+                  <span className="px-2 py-0.5 bg-fuchsia-500/20 text-fuchsia-400 text-xs rounded">50 - 2000</span>
+                </div>
+                <p className="text-gray-400 mb-4">
+                  Limit response length. ~1 token ≈ 0.75 words.
+                </p>
+                <div className="overflow-x-auto mb-4">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="text-left py-2 text-gray-400">Value</th>
+                        <th className="text-left py-2 text-gray-400">~Words</th>
+                        <th className="text-left py-2 text-gray-400">Use Case</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-white/5">
+                        <td className="py-2 font-mono">100</td>
+                        <td className="py-2">~75</td>
+                        <td className="py-2 text-gray-400">Quick answers, chatbots</td>
+                      </tr>
+                      <tr className="border-b border-white/5">
+                        <td className="py-2 font-mono">300</td>
+                        <td className="py-2">~225</td>
+                        <td className="py-2 text-gray-400">Standard responses</td>
+                      </tr>
+                      <tr className="border-b border-white/5">
+                        <td className="py-2 font-mono">600</td>
+                        <td className="py-2">~450</td>
+                        <td className="py-2 text-gray-400">Detailed explanations (default)</td>
+                      </tr>
+                      <tr>
+                        <td className="py-2 font-mono">1000+</td>
+                        <td className="py-2">~750+</td>
+                        <td className="py-2 text-gray-400">Long-form content</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {/* history */}
+              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <code className="text-lg font-mono text-violet-400">history</code>
+                  <span className="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded">array</span>
+                </div>
+                <p className="text-gray-400 mb-4">
+                  Include conversation history for multi-turn conversations. The AI will remember previous messages.
+                </p>
+                <CodeBlock
+                  language="json"
+                  code={`{
+  "query": "What about international orders?",
+  "context": "...",
+  "history": [
+    { "role": "user", "content": "What's your return policy?" },
+    { "role": "assistant", "content": "We offer 30-day returns for unused items." }
+  ]
+}`}
+                />
+              </div>
+              
+              {/* Full Example */}
+              <div className="p-6 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-2xl">
+                <h4 className="font-semibold mb-4">Full Example with All Parameters</h4>
+                <CodeBlock
+                  language="bash"
+                  code={`curl -X POST https://api.unforge.com/v1/chat \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "query": "What can you help me with?",
+    "context": "TechCorp offers: Cloud hosting, API services, 24/7 support.",
+    "history": [
+      {"role": "user", "content": "Hello"},
+      {"role": "assistant", "content": "Hi! Welcome to TechCorp."}
+    ],
+    "system_prompt": "You are Alex, TechCorp helpful assistant. Be friendly.",
+    "force_intent": "CONTEXT",
+    "temperature": 0.3,
+    "max_tokens": 200
+  }'`}
+                />
+              </div>
             </div>
           </section>
           
