@@ -128,7 +128,7 @@ async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyV
   const verifyStartTime = performance.now()
   
   try {
-    const response = await fetch('https://api.unkey.dev/v2/keys.verifyKey', {
+    const response = await fetch('https://api.unkey.dev/v1/keys.verifyKey', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key })
@@ -141,9 +141,9 @@ async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyV
       ok: response.ok,
       status: response.status,
       verifyLatencyMs: verifyLatency,
-      valid: result.data?.valid,
-      code: result.data?.code,
-      hasMetadata: !!result.data?.meta
+      valid: result.valid,
+      code: result.code,
+      hasMetadata: !!result.meta
     }, context)
     
     if (!response.ok) {
@@ -152,10 +152,10 @@ async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyV
     }
 
     return {
-      valid: result.data?.valid || false,
-      code: result.data?.code,
-      meta: result.data?.meta,
-      keyId: result.data?.keyId
+      valid: result.valid || false,
+      code: result.code,
+      meta: result.meta,
+      keyId: result.keyId
     }
   } catch (error: any) {
     debugError('verifyApiKey', error, context)
