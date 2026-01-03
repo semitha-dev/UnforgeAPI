@@ -259,9 +259,10 @@ Context Data: "${contextString}"`
 }
 
 /**
- * Generate chat response (greetings, small talk)
+ * Generate chat response (greetings, small talk, or company representative)
+ * When context is provided, AI acts as the company's representative
  */
-export async function generateChat(query: string, groqKey: string): Promise<string> {
+export async function generateChat(query: string, groqKey: string, context?: string): Promise<string> {
   const requestId = generateRequestId()
   const startTime = performance.now()
   const ctx: DebugContext = { requestId, startTime }
@@ -269,13 +270,38 @@ export async function generateChat(query: string, groqKey: string): Promise<stri
   debug('generateChat:start', { 
     queryLength: query.length,
     queryPreview: query.substring(0, 100),
-    hasGroqKey: !!groqKey
+    hasGroqKey: !!groqKey,
+    hasContext: !!context,
+    contextLength: context?.length || 0
   }, ctx)
   
   try {
     const groq = new Groq({ apiKey: groqKey })
     
-    debug('generateChat:llmCall:start', { model: 'llama-3.1-8b-instant' }, ctx)
+    // Dynamic system prompt based on whether context is provided
+    let systemPrompt: string
+    
+    if (context) {
+      // When context is provided, roleplay as the company's AI assistant
+      systemPrompt = `You are an AI assistant representing the company described below. Stay in character at all times.
+
+CRITICAL RULES:
+- You ARE the company's AI assistant, NOT a generic AI or language model
+- NEVER say "I'm just an AI" or "I'm a language model" - you represent THIS company
+- If asked about "the company" or "you", refer to the company information below
+- Be professional, helpful, and on-brand for the company
+- If information isn't in the context, say "I don't have that specific information, but I can connect you with our team"
+
+COMPANY CONTEXT:
+${context}
+
+Respond naturally as this company's AI representative.`
+    } else {
+      // Default friendly assistant for simple greetings
+      systemPrompt = 'You are a friendly AI assistant. Keep responses brief and natural for casual conversation.'
+    }
+    
+    debug('generateChat:llmCall:start', { model: 'llama-3.1-8b-instant', hasCompanyContext: !!context }, ctx)
     const llmStartTime = performance.now()
     
     const completion = await groq.chat.completions.create({
@@ -283,12 +309,12 @@ export async function generateChat(query: string, groqKey: string): Promise<stri
       messages: [
         { 
           role: 'system', 
-          content: 'You are a friendly AI assistant. Keep responses brief and natural for casual conversation.' 
+          content: systemPrompt 
         },
         { role: 'user', content: query }
       ],
       temperature: 0.7,
-      max_tokens: 150
+      max_tokens: context ? 500 : 150 // Allow longer responses when representing a company
     })
 
     const llmLatency = Math.round(performance.now() - llmStartTime)

@@ -336,11 +336,12 @@ export async function POST(req: NextRequest) {
 
     if (intent === 'CHAT') {
       // Path A: Cheap/Free Llama-8b (no search cost)
-      debug('path:chat:start', {}, ctx)
+      // Pass context so AI can roleplay as company representative when available
+      debug('path:chat:start', { hasContext: !!context }, ctx)
       const pathStartTime = performance.now()
       
       try {
-        answer = await generateChat(query, activeGroqKey)
+        answer = await generateChat(query, activeGroqKey, context)
         debug('path:chat:complete', { 
           answerLength: answer.length,
           pathLatencyMs: Math.round(performance.now() - pathStartTime)
