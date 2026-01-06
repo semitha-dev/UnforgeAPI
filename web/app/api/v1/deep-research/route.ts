@@ -42,7 +42,7 @@ export const maxDuration = 60 // Reduced from 120s - we're faster now
 const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
 
 // Model configuration - optimized for speed
-const GEMINI_FLASH_MODEL = 'gemini-2.5-flash-preview-05-20'
+const GEMINI_FLASH_MODEL = 'gemini-2.5-flash'
 const GROQ_FAST_MODEL = 'llama-3.1-8b-instant'
 
 // Cache TTL: 24 hours
