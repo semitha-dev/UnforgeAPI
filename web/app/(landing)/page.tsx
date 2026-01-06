@@ -20,7 +20,10 @@ import {
   BarChart3,
   Key,
   Menu,
-  X
+  X,
+  Sparkles,
+  Bot,
+  Gauge
 } from 'lucide-react';
 
 // Navigation Component
@@ -53,6 +56,7 @@ const Navigation = () => {
 
           <nav className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
+            <a href="#deep-research" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Deep Research</a>
             <a href="#how-it-works" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">How it Works</a>
             <a href="#pricing" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Pricing</a>
             <Link href="/docs" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Docs</Link>
@@ -90,6 +94,7 @@ const Navigation = () => {
           >
             <div className="px-6 py-4 space-y-4">
               <a href="#features" className="block text-gray-400 hover:text-white">Features</a>
+              <a href="#deep-research" className="block text-gray-400 hover:text-white">Deep Research</a>
               <a href="#how-it-works" className="block text-gray-400 hover:text-white">How it Works</a>
               <a href="#pricing" className="block text-gray-400 hover:text-white">Pricing</a>
               <Link href="/signin" className="block text-gray-400 hover:text-white">Sign In</Link>
@@ -312,6 +317,215 @@ const FeaturesSection = () => {
             </motion.div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+};
+
+// Deep Research Section
+const DeepResearchSection = () => {
+  return (
+    <section id="deep-research" className="relative py-32 overflow-hidden">
+      {/* Background gradient */}
+      <div className="absolute inset-0">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-gradient-to-br from-violet-600/20 via-fuchsia-500/10 to-cyan-500/20 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 border border-violet-500/30 rounded-full mb-6">
+            <Sparkles className="w-4 h-4 text-violet-400" />
+            <span className="text-sm font-medium text-violet-300">New: Turbo Mode</span>
+          </div>
+          
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+            Deep Research for{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
+              Systems
+            </span>
+          </h2>
+          <p className="text-lg text-gray-400 max-w-3xl mx-auto">
+            Ultra-fast structured research for agents and backend systems.{' '}
+            <span className="text-white">Perplexity is for humans — Unforge Deep Research is for machines.</span>
+          </p>
+        </motion.div>
+
+        {/* Architecture Visualization */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mb-16"
+        >
+          <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+            {/* Architecture Header */}
+            <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <div className="w-3 h-3 rounded-full bg-green-500" />
+                </div>
+                <span className="text-sm text-gray-400 font-mono">Flash-Groq Relay Architecture</span>
+              </div>
+              <span className="text-xs text-emerald-400 font-medium">~4s faster than Perplexity</span>
+            </div>
+
+            {/* Architecture Flow */}
+            <div className="p-8">
+              <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+                {/* Step 1: Query */}
+                <div className="flex-1 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                    <Search className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-sm font-medium text-white mb-1">1. Search</div>
+                  <div className="text-xs text-gray-500">Tavily fetches raw content</div>
+                </div>
+
+                {/* Arrow */}
+                <div className="hidden lg:block text-gray-600">
+                  <ArrowRight className="w-6 h-6" />
+                </div>
+
+                {/* Step 2: Gemini */}
+                <div className="flex-1 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+                    <Cpu className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-sm font-medium text-white mb-1">2. Reason</div>
+                  <div className="text-xs text-gray-500">Gemini extracts structured JSON</div>
+                </div>
+
+                {/* Arrow */}
+                <div className="hidden lg:block text-gray-600">
+                  <ArrowRight className="w-6 h-6" />
+                </div>
+
+                {/* Step 3: Groq */}
+                <div className="flex-1 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                    <Zap className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-sm font-medium text-white mb-1">3. Render</div>
+                  <div className="text-xs text-gray-500">Groq writes English at hardware speed</div>
+                </div>
+
+                {/* Arrow */}
+                <div className="hidden lg:block text-gray-600">
+                  <ArrowRight className="w-6 h-6" />
+                </div>
+
+                {/* Step 4: Output */}
+                <div className="flex-1 text-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center">
+                    <FileText className="w-8 h-8 text-white" />
+                  </div>
+                  <div className="text-sm font-medium text-white mb-1">4. Report</div>
+                  <div className="text-xs text-gray-500">Structured, cited, API-ready</div>
+                </div>
+              </div>
+
+              {/* Key Insight */}
+              <div className="mt-8 p-4 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+                <p className="text-center text-sm text-gray-300">
+                  <span className="text-violet-400 font-medium">The secret:</span>{' '}
+                  Gemini performs compact structured reasoning. Groq renders the result into English at hardware speed.{' '}
+                  <span className="text-white font-medium">Result: deep research without the latency tax.</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Feature Cards */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="p-6 bg-white/5 border border-white/10 rounded-2xl"
+          >
+            <Gauge className="w-10 h-10 text-cyan-400 mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Optimized for Latency</h3>
+            <p className="text-gray-400 text-sm">
+              Separation of thinking (Gemini) and writing (Groq) eliminates the single-model bottleneck. End-to-end in ~4 seconds.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="p-6 bg-white/5 border border-white/10 rounded-2xl"
+          >
+            <Bot className="w-10 h-10 text-violet-400 mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">Built for Automation</h3>
+            <p className="text-gray-400 text-sm">
+              Deterministic, machine-friendly output designed for APIs and agent pipelines — not conversational fluff.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.3 }}
+            className="p-6 bg-white/5 border border-white/10 rounded-2xl"
+          >
+            <Key className="w-10 h-10 text-amber-400 mb-4" />
+            <h3 className="text-lg font-semibold text-white mb-2">BYOK Gemini Supported</h3>
+            <p className="text-gray-400 text-sm">
+              Bring your own Gemini, Groq, and Tavily keys. Full control over costs with zero markup on your tokens.
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Code Example */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-3xl mx-auto"
+        >
+          <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+              </div>
+              <span className="text-xs text-gray-500 ml-2">POST /v1/deep-research</span>
+            </div>
+            <pre className="p-6 text-left overflow-x-auto">
+              <code className="text-sm">
+                <span className="text-fuchsia-400">const</span> <span className="text-white">report</span> <span className="text-gray-400">=</span> <span className="text-fuchsia-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">'/api/v1/deep-research'</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
+                <span className="text-white">  method</span><span className="text-gray-400">:</span> <span className="text-green-400">'POST'</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">  headers</span><span className="text-gray-400">:</span> <span className="text-gray-400">{'{'}</span>{'\n'}
+                <span className="text-white">    </span><span className="text-green-400">'Authorization'</span><span className="text-gray-400">:</span> <span className="text-green-400">`Bearer ${'${'}API_KEY{'}'}`</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-gray-500">    // Optional: BYOK headers</span>{'\n'}
+                <span className="text-white">    </span><span className="text-green-400">'x-gemini-key'</span><span className="text-gray-400">:</span> <span className="text-green-400">'your-gemini-key'</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">    </span><span className="text-green-400">'x-groq-key'</span><span className="text-gray-400">:</span> <span className="text-green-400">'your-groq-key'</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-gray-400">  {'}'},</span>{'\n'}
+                <span className="text-white">  body</span><span className="text-gray-400">:</span> <span className="text-violet-400">JSON</span><span className="text-gray-400">.</span><span className="text-violet-400">stringify</span><span className="text-gray-400">(</span><span className="text-gray-400">{'{'}</span>{'\n'}
+                <span className="text-white">    query</span><span className="text-gray-400">:</span> <span className="text-green-400">"Latest AI agent frameworks comparison 2026"</span>{'\n'}
+                <span className="text-gray-400">  {'})'}</span>{'\n'}
+                <span className="text-gray-400">{'})'}</span>{'\n\n'}
+                <span className="text-gray-500">{'// Response in ~4 seconds'}</span>{'\n'}
+                <span className="text-gray-500">{'// → Structured report with citations'}</span>{'\n'}
+                <span className="text-gray-500">{'// → meta.latency_ms: 3847'}</span>
+              </code>
+            </pre>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
@@ -794,6 +1008,7 @@ export default function LandingPage() {
       <HeroSection />
       <StatsSection />
       <FeaturesSection />
+      <DeepResearchSection />
       <HowItWorksSection />
       <PricingSection />
       <FAQSection />
