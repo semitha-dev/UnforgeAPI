@@ -362,7 +362,7 @@ const DeepResearchSection = () => {
           </h2>
           <p className="text-lg text-gray-400 max-w-3xl mx-auto">
             Ultra-fast structured research for agents and backend systems.{' '}
-            <span className="text-white">Perplexity is for humans — Unforge Deep Research is for machines.</span>
+            <span className="text-white">Built for machines, not browsers. JSON output in seconds.</span>
           </p>
         </motion.div>
 
@@ -384,7 +384,7 @@ const DeepResearchSection = () => {
                 </div>
                 <span className="text-sm text-gray-400 font-mono">Flash-Groq Relay Architecture</span>
               </div>
-              <span className="text-xs text-emerald-400 font-medium">~4s faster than Perplexity</span>
+              <span className="text-xs text-emerald-400 font-medium">avg response: 3-6s</span>
             </div>
 
             {/* Architecture Flow */}
