@@ -48,11 +48,19 @@ function debug(tag: string, data: any, context?: DebugContext) {
   }
 }
 
+function debugSuccess(tag: string, data: any, context?: DebugContext) {
+  const timestamp = new Date().toISOString()
+  const elapsed = context?.startTime ? `+${Math.round(performance.now() - context.startTime)}ms` : ''
+  const reqId = context?.requestId || ''
+  const prefix = `✅ [UnforgeAPI:${tag}]${reqId ? ` [${reqId}]` : ''}${elapsed ? ` ${elapsed}` : ''}`
+  console.log(`${timestamp} ${prefix}`, typeof data === 'object' ? JSON.stringify(data) : data)
+}
+
 function debugError(tag: string, error: any, context?: DebugContext) {
   const timestamp = new Date().toISOString()
   const reqId = context?.requestId || ''
   const elapsed = context?.startTime ? `+${Math.round(performance.now() - context.startTime)}ms` : ''
-  const prefix = `[UnforgeAPI:${tag}:ERROR]${reqId ? ` [${reqId}]` : ''}${elapsed ? ` ${elapsed}` : ''}`
+  const prefix = `❌ [UnforgeAPI:${tag}:ERROR]${reqId ? ` [${reqId}]` : ''}${elapsed ? ` ${elapsed}` : ''}`
   
   console.error(`${timestamp} ${prefix}`, {
     message: error?.message || String(error),

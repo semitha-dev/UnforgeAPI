@@ -3,17 +3,36 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Zap, 
+import {
+  BarChart3,
+  TrendingUp,
+  Zap,
   Clock,
   ArrowUpRight,
   ArrowDownRight,
   Calendar,
-  Filter
+  Search
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+
+// Deep Research limits per API plan (must match subscription-constants.ts)
+// BYOK users now have specific daily limits for Deep Research (fair use policy)
+const DEEP_RESEARCH_LIMITS: Record<string, { limit: number; period: 'daily' | 'monthly' }> = {
+  'sandbox': { limit: 0, period: 'daily' },           // No access to deep research
+  'managed_pro': { limit: 50, period: 'monthly' },    // 50 deep research requests/month
+  'managed_ultra': { limit: 100, period: 'monthly' }, // 100 deep research requests/month
+  'enterprise': { limit: 1000, period: 'monthly' },   // 1000 deep research requests/month
+  'byok_starter': { limit: 5, period: 'daily' },      // 5 deep research requests/day (fair use)
+  'byok_pro': { limit: 25, period: 'daily' },         // 25 deep research requests/day (fair use)
+}
+
+interface DeepResearchQuota {
+  plan: string
+  used: number
+  limit: number
+  period: 'daily' | 'monthly'
+  resetsAt: string
+}
 
 interface UsageStats {
   totalRequests: number
@@ -39,7 +58,9 @@ export default function UsagePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d')
   const [selectedKeyId, setSelectedKeyId] = useState<string>('all')
-  const [apiKeys, setApiKeys] = useState<Array<{ id: string; name: string }>>([])
+  const [apiKeys, setApiKeys] = useState<Array<{ id: string; name: string; tier: string }>>([])
+  const [deepResearchQuota, setDeepResearchQuota] = useState<DeepResearchQuota | null>(null)
+  const [selectedTab, setSelectedTab] = useState<'all' | 'byok' | 'managed'>('all')
 
   const router = useRouter()
   const supabase = createClient()
@@ -92,6 +113,35 @@ export default function UsagePage() {
           dailyUsage: []
         })
       }
+
+      // Fetch Deep Research quota
+      // Get the user's API plan from their first API key (stored as 'tier' field)
+      const userPlan = keysData.keys?.[0]?.tier || keysData.keys?.[0]?.metadata?.plan || 'sandbox'
+      const deepResearchUsed = usageData?.deepResearchUsage || 0
+      const planLimits = DEEP_RESEARCH_LIMITS[userPlan] ?? { limit: 0, period: 'daily' as const }
+
+      // Calculate reset date based on period
+      const now = new Date()
+      let resetsAt: string
+      if (planLimits.period === 'daily') {
+        // Reset at midnight tomorrow
+        const tomorrow = new Date(now)
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        tomorrow.setHours(0, 0, 0, 0)
+        resetsAt = tomorrow.toISOString()
+      } else {
+        // Reset at first day of next month
+        resetsAt = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString()
+      }
+
+      setDeepResearchQuota({
+        plan: userPlan,
+        used: deepResearchUsed,
+        limit: planLimits.limit,
+        period: planLimits.period,
+        resetsAt: resetsAt
+      })
+
     } catch (err) {
       console.error('Error loading usage data:', err)
     } finally {
@@ -147,7 +197,7 @@ export default function UsagePage() {
   return (
     <>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-white">Usage Analytics</h1>
           <p className="text-neutral-400 mt-1">Track your API usage and costs</p>
@@ -185,6 +235,43 @@ export default function UsagePage() {
         </div>
       </div>
 
+      {/* BYOK / Managed Tabs */}
+      <div className="flex items-center gap-2 mb-6">
+        {(['all', 'byok', 'managed'] as const).map((tab) => {
+          const byokKeys = apiKeys.filter(k => k.tier === 'byok_starter' || k.tier === 'byok_pro' || k.tier === 'byok')
+          const managedKeys = apiKeys.filter(k => k.tier === 'sandbox' || k.tier === 'managed_pro' || k.tier === 'managed')
+          
+          return (
+            <button
+              key={tab}
+              onClick={() => setSelectedTab(tab)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                selectedTab === tab
+                  ? tab === 'byok' 
+                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    : tab === 'managed'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-neutral-700 text-white border border-neutral-600'
+                  : 'bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800'
+              }`}
+            >
+              {tab === 'all' ? 'All Keys' : tab === 'byok' ? `BYOK (${byokKeys.length})` : `Managed (${managedKeys.length})`}
+            </button>
+          )
+        })}
+        
+        {/* Show current limits based on selected tab */}
+        {selectedTab !== 'all' && (
+          <div className="ml-4 text-xs text-neutral-500">
+            {selectedTab === 'byok' ? (
+              <span>BYOK Starter: 100 req/day | BYOK Pro: Unlimited</span>
+            ) : (
+              <span>Sandbox: 50 req/day | Managed Pro: 50k req/mo</span>
+            )}
+          </div>
+        )}
+      </div>
+
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400"></div>
@@ -218,6 +305,117 @@ export default function UsagePage() {
               icon={TrendingUp}
             />
           </div>
+
+          {/* Deep Research Quota Card */}
+          {deepResearchQuota && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-br from-violet-500/10 via-neutral-900 to-fuchsia-500/10 border border-violet-500/20 rounded-xl p-6 mb-8"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-violet-500/20 rounded-lg">
+                    <Search className="w-6 h-6 text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Deep Research</h3>
+                    <p className="text-neutral-400 text-sm">
+                      AI-powered comprehensive research reports
+                    </p>
+                  </div>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  deepResearchQuota.limit === -1 
+                    ? 'bg-emerald-500/20 text-emerald-400' 
+                    : deepResearchQuota.limit === 0
+                      ? 'bg-neutral-700 text-neutral-400'
+                      : 'bg-violet-500/20 text-violet-400'
+                }`}>
+                  {deepResearchQuota.plan.replace('_', ' ').toUpperCase()}
+                </span>
+              </div>
+
+              {deepResearchQuota.limit === 0 ? (
+                // No access - sandbox users
+                <div className="text-center py-4">
+                  <p className="text-neutral-400 mb-3">
+                    Deep Research is not available on your current plan
+                  </p>
+                  <a
+                    href="/pricing"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Upgrade to Pro
+                    <ArrowUpRight className="w-4 h-4" />
+                  </a>
+                </div>
+              ) : (
+                // All plans with access - show usage bar
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-neutral-400">
+                      {deepResearchQuota.period === 'daily' ? 'Daily' : 'Monthly'} Usage
+                    </span>
+                    <span className="text-white font-medium">
+                      {deepResearchQuota.used} / {deepResearchQuota.limit} requests
+                    </span>
+                  </div>
+                  <div className="h-3 bg-neutral-800 rounded-full overflow-hidden mb-3">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        deepResearchQuota.used >= deepResearchQuota.limit
+                          ? 'bg-red-500'
+                          : deepResearchQuota.used >= deepResearchQuota.limit * 0.8
+                            ? 'bg-amber-500'
+                            : deepResearchQuota.plan.startsWith('byok')
+                              ? 'bg-amber-500'
+                              : 'bg-violet-500'
+                      }`}
+                      style={{ width: `${Math.min((deepResearchQuota.used / deepResearchQuota.limit) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className={`font-medium ${
+                      deepResearchQuota.used >= deepResearchQuota.limit
+                        ? 'text-red-400'
+                        : 'text-emerald-400'
+                    }`}>
+                      {deepResearchQuota.limit - deepResearchQuota.used} remaining
+                    </span>
+                    <span className="text-neutral-500">
+                      Resets {deepResearchQuota.period === 'daily'
+                        ? 'at midnight'
+                        : new Date(deepResearchQuota.resetsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      }
+                    </span>
+                  </div>
+
+                  {/* BYOK-specific note */}
+                  {deepResearchQuota.plan.startsWith('byok') && (
+                    <div className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                      <p className="text-amber-400 text-sm">
+                        <strong>Fair Use Policy:</strong> Deep Research uses our Gemini API for compression.
+                        {deepResearchQuota.plan === 'byok_starter'
+                          ? ' Upgrade to BYOK Pro for 25 requests/day.'
+                          : ' Contact us for higher limits.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {deepResearchQuota.used >= deepResearchQuota.limit && (
+                    <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                      <p className="text-red-400 text-sm">
+                        You&apos;ve reached your {deepResearchQuota.period} limit. {deepResearchQuota.period === 'daily'
+                          ? 'It will reset at midnight.'
+                          : <a href="/pricing" className="underline hover:no-underline">Upgrade your plan</a>}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.div>
+          )}
 
           {/* Intent Breakdown */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">

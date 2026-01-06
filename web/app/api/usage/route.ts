@@ -96,6 +96,12 @@ export async function GET(request: NextRequest) {
       research: filteredLogs.filter(log => log.intent === 'RESEARCH').length,
     }
 
+    // Deep Research usage (count this month only)
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    const deepResearchUsage = filteredLogs.filter(log => 
+      log.intent === 'DEEP_RESEARCH' && new Date(log.created_at) >= firstOfMonth
+    ).length
+
     // Average latency
     const latencies = filteredLogs
       .filter(log => log.latency_ms)
@@ -138,10 +144,11 @@ export async function GET(request: NextRequest) {
       avgLatency,
       costSaved,
       intentBreakdown,
-      dailyUsage
+      dailyUsage,
+      deepResearchUsage
     }
 
-    debug('GET:success', { totalRequests: stats.totalRequests })
+    debug('GET:success', { totalRequests: stats.totalRequests, deepResearchUsage })
 
     return NextResponse.json(stats)
 

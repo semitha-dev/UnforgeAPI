@@ -30,6 +30,35 @@ export const POLAR_PRODUCT_IDS = {
   BYOK_PRO: 'c4a4824d-8be3-411e-8c15-b198371ebc37',
 } as const;
 
+// Deep Research limits per plan
+// Note: BYOK users use our Gemini key for compression, so we must limit usage
+export const DEEP_RESEARCH_LIMITS: Record<ApiPlan, {
+  limit: number;        // -1 = unlimited, 0 = no access
+  period: 'daily' | 'monthly';
+  description: string;
+}> = {
+  sandbox: {
+    limit: 0,
+    period: 'daily',
+    description: 'No access - upgrade required',
+  },
+  managed_pro: {
+    limit: 50,
+    period: 'monthly',
+    description: '50 deep research requests per month',
+  },
+  byok_starter: {
+    limit: 5,
+    period: 'daily',
+    description: '5 deep research requests per day',
+  },
+  byok_pro: {
+    limit: 25,
+    period: 'daily',
+    description: '25 deep research requests per day (fair use)',
+  },
+};
+
 // Plan configuration
 export const PLAN_CONFIG: Record<ApiPlan, {
   name: string;
@@ -39,7 +68,9 @@ export const PLAN_CONFIG: Record<ApiPlan, {
   description: string;
   limitType: 'daily' | 'monthly' | 'rate';
   limit: number;
-  totalLimit?: number; // Fair usage limit (optional)
+  searchLimit?: number; // Web search requests limit (optional)
+  deepResearchLimit?: number; // Deep research requests limit
+  deepResearchPeriod?: 'daily' | 'monthly';
   duration: number; // in milliseconds
   searchEnabled: boolean;
   requiresUserKeys: boolean;
@@ -53,6 +84,8 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     description: 'Perfect for testing the API',
     limitType: 'daily',
     limit: 50,
+    deepResearchLimit: 0,
+    deepResearchPeriod: 'daily',
     duration: 86400000, // 24 hours
     searchEnabled: false,
     requiresUserKeys: false,
@@ -71,15 +104,17 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     period: '/month',
     description: 'For production applications',
     limitType: 'monthly',
-    limit: 1000, // Search requests limit
-    totalLimit: 50000, // Fair usage: 50k total requests/month
+    limit: 50000, // Fair usage: 50k total requests/month
+    searchLimit: 1000, // Web search requests limit
+    deepResearchLimit: 50,
+    deepResearchPeriod: 'monthly',
     duration: 2592000000, // 30 days
     searchEnabled: true,
     requiresUserKeys: false,
     features: [
       'Unlimited Chat & Context',
       '1,000 Web Search requests / month',
-      'Full research capabilities',
+      '50 Deep Research / month',
       'System API keys',
       'Priority support',
       '50,000 req/mo fair usage policy',
@@ -93,13 +128,15 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     description: 'Test the engine with your own keys',
     limitType: 'daily',
     limit: 100,
+    deepResearchLimit: 5,
+    deepResearchPeriod: 'daily',
     duration: 86400000, // 24 hours
     searchEnabled: true,
     requiresUserKeys: true,
     features: [
       '100 requests / day',
+      '5 Deep Research / day',
       'All three routing paths',
-      'Search enabled',
       'Your Groq & Tavily keys',
       'Community support',
     ],
@@ -109,19 +146,21 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     price: 4.99,
     priceLabel: '$5',
     period: '/month',
-    description: 'Production scale. No limits.',
+    description: 'Production scale with fair use limits.',
     limitType: 'rate',
     limit: 10,
+    deepResearchLimit: 25,
+    deepResearchPeriod: 'daily',
     duration: 1000, // 1 second (10 req/sec)
     searchEnabled: true,
     requiresUserKeys: true,
     features: [
       'Unlimited requests',
+      '25 Deep Research / day',
       '10 req/sec rate limit',
       'All three routing paths',
       'Your Groq & Tavily keys',
       'Premium support',
-      'Zero markup on tokens',
     ],
   },
 };

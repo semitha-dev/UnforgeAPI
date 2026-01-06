@@ -15,12 +15,23 @@ import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import crypto from 'crypto'
 
-// Debug helper
-const DEBUG = process.env.NODE_ENV === 'development'
+// Debug helper - Enhanced with more detail
+const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
 function debug(tag: string, data: any) {
   if (DEBUG) {
-    console.log(`[API/keys:${tag}]`, JSON.stringify(data, null, 2))
+    const timestamp = new Date().toISOString()
+    console.log(`${timestamp} [API/keys:${tag}]`, JSON.stringify(data, null, 2))
   }
+}
+
+function debugSuccess(tag: string, data: any) {
+  const timestamp = new Date().toISOString()
+  console.log(`${timestamp} ✅ [API/keys:${tag}]`, JSON.stringify(data, null, 2))
+}
+
+function debugError(tag: string, data: any) {
+  const timestamp = new Date().toISOString()
+  console.error(`${timestamp} ❌ [API/keys:${tag}:ERROR]`, JSON.stringify(data, null, 2))
 }
 
 // Hash function for key storage
@@ -45,8 +56,8 @@ function getRateLimitConfig(plan: ApiPlan) {
       // 50 requests per day
       return { type: 'fast' as const, limit: 50, duration: 86400000 };
     case 'managed_pro':
-      // 1000 search requests per month
-      return { type: 'fast' as const, limit: 1000, duration: 2592000000 };
+      // 50,000 requests per month (fair usage policy)
+      return { type: 'fast' as const, limit: 50000, duration: 2592000000 };
     case 'byok_starter':
       // 100 requests per day
       return { type: 'fast' as const, limit: 100, duration: 86400000 };
@@ -111,9 +122,129 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, tier = 'sandbox', workspaceId } = body
     
-    // Validate tier
-    const validTiers: ApiPlan[] = ['sandbox', 'managed_pro', 'byok_starter', 'byok_pro']
-    const plan: ApiPlan = validTiers.includes(tier) ? tier : 'sandbox'
+    debug('POST:body:raw', { name, tier, workspaceId })
+
+    if (!workspaceId || !name) {
+      debug('POST:validation:fail', { missingWorkspaceId: !workspaceId, missingName: !name })
+      return NextResponse.json(
+        { error: 'workspaceId and name are required' }, 
+        { status: 400 }
+      )
+    }
+
+    // Get workspace owner to check their subscription
+    const { data: workspace } = await supabaseAdmin
+      .from('workspaces')
+      .select('owner_id')
+      .eq('id', workspaceId)
+      .single()
+
+    let userSubscriptionTier = 'free'
+    let polarProductId: string | null = null
+    
+    if (workspace?.owner_id) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('subscription_tier, subscription_status, polar_subscription_id')
+        .eq('id', workspace.owner_id)
+        .single()
+      
+      if (profile?.subscription_status === 'active' && profile?.subscription_tier) {
+        userSubscriptionTier = profile.subscription_tier
+      }
+
+      // Get the product ID from Polar if user has active subscription
+      if (profile?.polar_subscription_id) {
+        // Check webhook_events for the product ID
+        const { data: webhookEvent } = await supabaseAdmin
+          .from('webhook_events')
+          .select('payload')
+          .eq('event_type', 'subscription.active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single()
+        
+        if (webhookEvent?.payload?.data?.product_id) {
+          polarProductId = webhookEvent.payload.data.product_id
+        }
+      }
+    }
+
+    debug('POST:subscription', { 
+      userSubscriptionTier, 
+      polarProductId,
+      subscriptionStatus: 'Retrieved from profile'
+    })
+
+    // Determine the API plan based on user selection and subscription
+    // tier from UI: 'byok' | 'managed'
+    // plan to use: 'sandbox' | 'managed_pro' | 'byok_starter' | 'byok_pro'
+    let plan: ApiPlan
+    
+    const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID || 'dce7621a-0a26-4d40-927c-7aa0aa95debd'
+    const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID || 'c4a4824d-8be3-411e-8c15-b198371ebc37'
+    
+    debug('POST:planDetermination:start', {
+      requestedTier: tier,
+      userSubscriptionTier,
+      polarProductId,
+      MANAGED_PRO_PRODUCT_ID,
+      BYOK_PRO_PRODUCT_ID,
+      isManagedProMatch: polarProductId === MANAGED_PRO_PRODUCT_ID || userSubscriptionTier === 'managed_pro',
+      isByokProMatch: polarProductId === BYOK_PRO_PRODUCT_ID || userSubscriptionTier === 'byok_pro'
+    })
+    
+    if (tier === 'byok') {
+      // User wants BYOK key
+      // Check if they have BYOK Pro subscription
+      if (polarProductId === BYOK_PRO_PRODUCT_ID || userSubscriptionTier === 'byok_pro') {
+        plan = 'byok_pro'
+        debugSuccess('POST:planDetermination', { 
+          decision: 'BYOK Pro - User has BYOK Pro subscription',
+          tier,
+          plan,
+          reason: polarProductId === BYOK_PRO_PRODUCT_ID ? 'Matched BYOK_PRO_PRODUCT_ID' : 'Matched byok_pro tier'
+        })
+      } else {
+        plan = 'byok_starter' // Free BYOK tier (100 req/day)
+        debug('POST:planDetermination', { 
+          decision: 'BYOK Starter - No pro subscription',
+          tier,
+          plan,
+          reason: 'Fallback to free BYOK tier'
+        })
+      }
+    } else if (tier === 'managed') {
+      // User wants Managed key
+      // Check if they have Managed Pro subscription
+      if (polarProductId === MANAGED_PRO_PRODUCT_ID || userSubscriptionTier === 'managed_pro' || userSubscriptionTier === 'pro') {
+        plan = 'managed_pro'
+        debugSuccess('POST:planDetermination', { 
+          decision: 'Managed Pro - User has Pro subscription',
+          tier,
+          plan,
+          reason: polarProductId === MANAGED_PRO_PRODUCT_ID ? 'Matched MANAGED_PRO_PRODUCT_ID' : `Matched tier: ${userSubscriptionTier}`
+        })
+      } else {
+        plan = 'sandbox' // Free Managed tier (50 req/day)
+        debug('POST:planDetermination', { 
+          decision: 'Sandbox - No pro subscription',
+          tier,
+          plan,
+          reason: 'Fallback to free sandbox tier'
+        })
+      }
+    } else {
+      // Direct plan specification (for backward compatibility)
+      const validTiers: ApiPlan[] = ['sandbox', 'managed_pro', 'byok_starter', 'byok_pro']
+      plan = validTiers.includes(tier as ApiPlan) ? (tier as ApiPlan) : 'sandbox'
+      debug('POST:planDetermination', { 
+        decision: 'Direct plan specification',
+        tier,
+        plan,
+        reason: 'Backward compatibility mode'
+      })
+    }
     
     debug('POST:body', { name, tier, plan, workspaceId })
 

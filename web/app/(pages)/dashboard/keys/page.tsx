@@ -12,7 +12,9 @@ import {
   Loader2,
   Eye,
   EyeOff,
-  AlertCircle
+  AlertCircle,
+  Crown,
+  Zap
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -27,6 +29,13 @@ interface ApiKey {
   unkey_id: string
 }
 
+interface UserSubscription {
+  tier: string
+  status: string
+  hasManagedPro: boolean
+  hasByokPro: boolean
+}
+
 export default function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -37,13 +46,46 @@ export default function ApiKeysPage() {
   const [newApiKey, setNewApiKey] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [subscription, setSubscription] = useState<UserSubscription>({
+    tier: 'free',
+    status: 'inactive',
+    hasManagedPro: false,
+    hasByokPro: false
+  })
 
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
     loadApiKeys()
+    loadSubscription()
   }, [])
+
+  const loadSubscription = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('subscription_tier, subscription_status')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        // Check subscription tier to determine pro status
+        const tier = profile.subscription_tier || 'free'
+        setSubscription({
+          tier,
+          status: profile.subscription_status || 'inactive',
+          hasManagedPro: tier === 'managed_pro' || tier === 'pro', // 'pro' for legacy
+          hasByokPro: tier === 'byok_pro'
+        })
+      }
+    } catch (err) {
+      console.error('Error loading subscription:', err)
+    }
+  }
 
   const loadApiKeys = async () => {
     setIsLoading(true)
@@ -240,22 +282,46 @@ export default function ApiKeysPage() {
 
       {/* Tier Explanation */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
+        <div className={`p-4 rounded-xl border ${
+          subscription.hasByokPro 
+            ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30' 
+            : 'bg-neutral-900 border-neutral-800'
+        }`}>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-amber-400" />
             <h3 className="font-medium text-white">BYOK Tier</h3>
+            {subscription.hasByokPro && (
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">
+                <Crown className="w-3 h-3" /> PRO
+              </span>
+            )}
           </div>
           <p className="text-sm text-neutral-400">
-            Bring Your Own Keys — Pass your Groq and Tavily API keys in request headers. Free to use.
+            {subscription.hasByokPro 
+              ? 'Unlimited requests (10/sec rate limit). Uses your Groq & Tavily keys.'
+              : 'Bring Your Own Keys — 100 requests/day free. Pass your Groq & Tavily API keys in headers.'
+            }
           </p>
         </div>
-        <div className="p-4 bg-neutral-900 border border-neutral-800 rounded-xl">
+        <div className={`p-4 rounded-xl border ${
+          subscription.hasManagedPro 
+            ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/30' 
+            : 'bg-neutral-900 border-neutral-800'
+        }`}>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-emerald-400" />
             <h3 className="font-medium text-white">Managed Tier</h3>
+            {subscription.hasManagedPro && (
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs rounded-full">
+                <Crown className="w-3 h-3" /> PRO
+              </span>
+            )}
           </div>
           <p className="text-sm text-neutral-400">
-            We provide the LLM keys — Pay per request with usage-based billing. Coming soon.
+            {subscription.hasManagedPro 
+              ? 'System API keys with search enabled. 50,000 requests/month fair usage.'
+              : 'We provide the LLM keys — 50 requests/day (Sandbox). Upgrade for search & more.'
+            }
           </p>
         </div>
       </div>
@@ -294,10 +360,18 @@ export default function ApiKeysPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <span className={`px-2 py-1 text-xs rounded-full ${
-                    key.tier === 'byok' ? 'bg-amber-500/20 text-amber-400' :
-                    'bg-emerald-500/20 text-emerald-400'
+                    key.tier === 'byok_pro' ? 'bg-amber-500/20 text-amber-400' :
+                    key.tier === 'byok_starter' ? 'bg-amber-500/10 text-amber-300' :
+                    key.tier === 'managed_pro' ? 'bg-emerald-500/20 text-emerald-400' :
+                    key.tier === 'byok' ? 'bg-amber-500/10 text-amber-300' :
+                    'bg-emerald-500/10 text-emerald-300'
                   }`}>
-                    {key.tier.toUpperCase()}
+                    {key.tier === 'byok_pro' ? 'BYOK PRO' :
+                     key.tier === 'byok_starter' ? 'BYOK FREE' :
+                     key.tier === 'managed_pro' ? 'MANAGED PRO' :
+                     key.tier === 'byok' ? 'BYOK' :
+                     key.tier === 'sandbox' ? 'SANDBOX' :
+                     key.tier?.toUpperCase() || 'SANDBOX'}
                   </span>
                   <span className={`w-2 h-2 rounded-full ${key.is_active ? 'bg-green-400' : 'bg-red-400'}`} />
                   <button
@@ -356,12 +430,19 @@ export default function ApiKeysPage() {
                       onClick={() => setNewKeyTier('byok')}
                       className={`p-3 rounded-xl border transition-colors ${
                         newKeyTier === 'byok'
-                          ? 'border-emerald-500 bg-emerald-500/10'
+                          ? 'border-amber-500 bg-amber-500/10'
                           : 'border-neutral-700 hover:border-neutral-600'
                       }`}
                     >
-                      <div className="text-sm font-medium text-white">BYOK</div>
-                      <div className="text-xs text-neutral-400">Bring your own keys</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium text-white">BYOK</div>
+                        {subscription.hasByokPro && (
+                          <Crown className="w-3 h-3 text-amber-400" />
+                        )}
+                      </div>
+                      <div className="text-xs text-neutral-400">
+                        {subscription.hasByokPro ? 'Unlimited (Pro)' : '100 req/day (Free)'}
+                      </div>
                     </button>
                     <button
                       type="button"
@@ -372,9 +453,31 @@ export default function ApiKeysPage() {
                           : 'border-neutral-700 hover:border-neutral-600'
                       }`}
                     >
-                      <div className="text-sm font-medium text-white">Managed</div>
-                      <div className="text-xs text-neutral-400">Pay per request</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-medium text-white">Managed</div>
+                        {subscription.hasManagedPro && (
+                          <Crown className="w-3 h-3 text-emerald-400" />
+                        )}
+                      </div>
+                      <div className="text-xs text-neutral-400">
+                        {subscription.hasManagedPro ? '50k req/mo (Pro)' : '50 req/day (Sandbox)'}
+                      </div>
                     </button>
+                  </div>
+                  
+                  {/* Show what tier will be created */}
+                  <div className="mt-3 p-2 bg-neutral-800/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-xs">
+                      <Zap className="w-3 h-3 text-neutral-400" />
+                      <span className="text-neutral-400">
+                        Will create: <span className="text-white font-medium">
+                          {newKeyTier === 'byok' 
+                            ? (subscription.hasByokPro ? 'BYOK Pro' : 'BYOK Starter')
+                            : (subscription.hasManagedPro ? 'Managed Pro' : 'Sandbox')
+                          }
+                        </span> key
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
