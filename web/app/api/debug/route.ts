@@ -153,8 +153,8 @@ export async function GET(request: NextRequest) {
         error: 'Unkey not configured'
       }
     } else {
-      // Just verify the API is reachable (don't create a key)
-      const response = await fetch('https://api.unkey.dev/v1/apis.getApi', {
+      // Verify the API is reachable by getting API info (requires apiId parameter)
+      const response = await fetch(`https://api.unkey.dev/v1/apis.getApi?apiId=${process.env.UNKEY_API_ID}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
@@ -163,6 +163,7 @@ export async function GET(request: NextRequest) {
       })
       
       const unkeyLatency = Math.round(performance.now() - unkeyStart)
+      const responseData = await response.json().catch(() => ({}))
       
       if (response.ok) {
         results.unkey = {
@@ -171,6 +172,7 @@ export async function GET(request: NextRequest) {
           latencyMs: unkeyLatency,
           details: {
             apiId: process.env.UNKEY_API_ID?.substring(0, 10) + '...',
+            apiName: responseData.name || 'Unknown',
             rootKeyConfigured: true,
             apiReachable: true
           }
@@ -180,8 +182,11 @@ export async function GET(request: NextRequest) {
           name: 'Unkey API',
           status: 'error',
           latencyMs: unkeyLatency,
-          error: `API returned ${response.status}`,
-          details: { statusCode: response.status }
+          error: responseData.error?.message || `API returned ${response.status}`,
+          details: { 
+            statusCode: response.status,
+            errorCode: responseData.error?.code
+          }
         }
       }
     }
