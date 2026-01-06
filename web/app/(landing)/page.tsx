@@ -384,7 +384,7 @@ const DeepResearchSection = () => {
                 </div>
                 <span className="text-sm text-gray-400 font-mono">Flash-Groq Relay Architecture</span>
               </div>
-              <span className="text-xs text-emerald-400 font-medium">avg response: 3-6s</span>
+              <span className="text-xs text-emerald-400 font-medium">structured JSON output</span>
             </div>
 
             {/* Architecture Flow */}
