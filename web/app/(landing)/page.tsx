@@ -37,6 +37,16 @@ const Navigation = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Smooth scroll to section without changing URL hash
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
+    e.preventDefault();
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setMobileMenuOpen(false);
+  };
+
   return (
     <motion.header
       initial={{ y: -100 }}
@@ -55,10 +65,10 @@ const Navigation = () => {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Features</a>
-            <a href="#deep-research" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Deep Research</a>
-            <a href="#how-it-works" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">How it Works</a>
-            <a href="#pricing" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Pricing</a>
+            <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Features</a>
+            <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Deep Research</a>
+            <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">How it Works</a>
+            <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Pricing</a>
             <Link href="/docs" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Docs</Link>
           </nav>
 
@@ -93,10 +103,10 @@ const Navigation = () => {
             className="md:hidden bg-black/95 border-t border-white/10"
           >
             <div className="px-6 py-4 space-y-4">
-              <a href="#features" className="block text-gray-400 hover:text-white">Features</a>
-              <a href="#deep-research" className="block text-gray-400 hover:text-white">Deep Research</a>
-              <a href="#how-it-works" className="block text-gray-400 hover:text-white">How it Works</a>
-              <a href="#pricing" className="block text-gray-400 hover:text-white">Pricing</a>
+              <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="block text-gray-400 hover:text-white cursor-pointer">Features</a>
+              <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="block text-gray-400 hover:text-white cursor-pointer">Deep Research</a>
+              <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="block text-gray-400 hover:text-white cursor-pointer">How it Works</a>
+              <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="block text-gray-400 hover:text-white cursor-pointer">Pricing</a>
               <Link href="/signin" className="block text-gray-400 hover:text-white">Sign In</Link>
               <Link href="/signup" className="block py-2 text-center bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-lg text-white">
                 Get Started Free
@@ -160,13 +170,13 @@ const HeroSection = () => {
               Start Building Free
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
-            <a
-              href="#how-it-works"
-              className="flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-colors"
+            <button
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              className="flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
             >
               <Code className="w-5 h-5" />
               View Documentation
-            </a>
+            </button>
           </div>
 
           {/* Code Preview */}
