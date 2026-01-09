@@ -1,16 +1,22 @@
 /**
- * UnforgeAPI - Deep Research Endpoint (v3 "Turbo Mode")
+ * UnforgeAPI - Deep Research Endpoint (v4 "Unforge Mode")
  * POST /api/v1/deep-research
  *
- * NEW ARCHITECTURE: Flash-Groq Relay Pattern
- * Target latency: <4 seconds (down from ~15s)
+ * ARCHITECTURE: Flash-Groq Relay Pattern
  *
  * Pipeline:
  * 1. CHECK CACHE (Upstash Redis - Global)
- * 2. SEARCH (Tavily with raw_content - saves 3s)
- * 3. COMPRESS (Gemini 2.5 Flash - reads 100k tokens, outputs tiny JSON)
- * 4. WRITE (Groq Llama-3.1-8b-instant - reads JSON, writes English)
+ * 2. SEARCH (Tavily with raw_content)
+ * 3. COMPRESS (Gemini 2.5 Flash - extracts facts)
+ * 4. WRITE/EXTRACT (Groq - generates output based on mode)
  * 5. CACHE & RETURN
+ *
+ * NEW FEATURES (v4):
+ * - Custom Output Schemas: Define your own JSON structure
+ * - Data Extraction Mode: Extract specific fields, not prose
+ * - Multi-Query Comparison: Compare multiple topics in one call
+ * - Domain Presets: Optimized for crypto, stocks, tech, academic
+ * - Webhook Delivery: Async processing with callback
  *
  * Two execution paths:
  *
@@ -37,7 +43,7 @@ import { DEEP_RESEARCH_LIMITS, type ApiPlan } from '@/lib/subscription-constants
 // CONFIGURATION
 // ============================================
 
-export const maxDuration = 60 // Reduced from 120s - we're faster now
+export const maxDuration = 60
 
 const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
 
@@ -47,6 +53,73 @@ const GROQ_FAST_MODEL = 'llama-3.1-8b-instant'
 
 // Cache TTL: 24 hours
 const CACHE_TTL_SECONDS = 86400
+
+// ============================================
+// REQUEST TYPES & MODES
+// ============================================
+
+type OutputMode = 'report' | 'extract' | 'schema' | 'compare'
+
+interface RequestBody {
+  // Basic
+  query: string
+  stream?: boolean
+  
+  // Mode selection
+  mode?: OutputMode  // Default: 'report'
+  
+  // For 'extract' mode - extract specific fields
+  extract?: string[]  // e.g., ["price", "release_date", "features"]
+  
+  // For 'schema' mode - custom output structure
+  schema?: Record<string, any>  // User-defined JSON schema
+  
+  // For 'compare' mode - compare multiple queries
+  queries?: string[]  // e.g., ["Tesla stock", "Rivian stock", "Lucid stock"]
+  
+  // Domain preset for optimized searching
+  preset?: 'general' | 'crypto' | 'stocks' | 'tech' | 'academic' | 'news'
+  
+  // Webhook for async delivery
+  webhook?: string  // URL to POST results to
+}
+
+// Domain presets with optimized search parameters
+const DOMAIN_PRESETS: Record<string, { 
+  search_depth: string
+  include_domains?: string[]
+  prompt_hint: string 
+}> = {
+  general: {
+    search_depth: 'advanced',
+    prompt_hint: 'Provide comprehensive, balanced information.'
+  },
+  crypto: {
+    search_depth: 'advanced',
+    include_domains: ['coindesk.com', 'cointelegraph.com', 'coingecko.com', 'messari.io', 'defillama.com'],
+    prompt_hint: 'Focus on price data, market cap, trading volume, DeFi metrics, and on-chain data.'
+  },
+  stocks: {
+    search_depth: 'advanced',
+    include_domains: ['yahoo.com/finance', 'bloomberg.com', 'reuters.com', 'seekingalpha.com', 'marketwatch.com'],
+    prompt_hint: 'Focus on stock price, P/E ratio, market cap, earnings, analyst ratings, and financial metrics.'
+  },
+  tech: {
+    search_depth: 'advanced',
+    include_domains: ['techcrunch.com', 'theverge.com', 'arstechnica.com', 'wired.com', 'engadget.com'],
+    prompt_hint: 'Focus on product specs, features, release dates, pricing, and technical details.'
+  },
+  academic: {
+    search_depth: 'advanced',
+    include_domains: ['arxiv.org', 'scholar.google.com', 'pubmed.ncbi.nlm.nih.gov', 'nature.com', 'sciencedirect.com'],
+    prompt_hint: 'Focus on peer-reviewed findings, methodology, citations, and research conclusions.'
+  },
+  news: {
+    search_depth: 'advanced',
+    include_domains: ['reuters.com', 'apnews.com', 'bbc.com', 'npr.org', 'nytimes.com'],
+    prompt_hint: 'Focus on recent events, dates, quotes, and factual reporting.'
+  }
+}
 
 // ============================================
 // DEEP RESEARCH RATE LIMITER (Upstash)
@@ -194,20 +267,44 @@ interface TavilySearchResponse {
   results: TavilyRawResult[]
 }
 
-async function tavilySearchRaw(query: string, tavilyKey: string, context?: DebugContext): Promise<TavilySearchResponse> {
-  debug('tavily:search:start', { query: query.substring(0, 50) }, context)
+interface TavilySearchOptions {
+  preset?: string
+  include_domains?: string[]
+}
+
+async function tavilySearchRaw(
+  query: string, 
+  tavilyKey: string, 
+  context?: DebugContext,
+  options?: TavilySearchOptions
+): Promise<TavilySearchResponse> {
+  debug('tavily:search:start', { query: query.substring(0, 50), preset: options?.preset }, context)
+
+  const presetConfig = options?.preset ? DOMAIN_PRESETS[options.preset] : DOMAIN_PRESETS.general
+  
+  const requestBody: Record<string, any> = {
+    api_key: tavilyKey,
+    query,
+    search_depth: presetConfig.search_depth,
+    include_raw_content: true,
+    include_answer: false,
+    max_results: 5
+  }
+  
+  // Add domain filtering if preset specifies it
+  if (presetConfig.include_domains && presetConfig.include_domains.length > 0) {
+    requestBody.include_domains = presetConfig.include_domains
+  }
+  
+  // Allow custom domain override
+  if (options?.include_domains && options.include_domains.length > 0) {
+    requestBody.include_domains = options.include_domains
+  }
 
   const response = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      api_key: tavilyKey,
-      query,
-      search_depth: "advanced",
-      include_raw_content: true,  // <--- KEY: Get full page content, saves separate fetch
-      include_answer: false,
-      max_results: 5  // Reduced from 10 - we get more content per result now
-    })
+    body: JSON.stringify(requestBody)
   })
 
   if (!response.ok) {
@@ -237,6 +334,31 @@ function logUsage(data: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   }).catch(() => {})
+}
+
+// ============================================
+// WEBHOOK DELIVERY
+// ============================================
+
+async function sendWebhook(url: string, data: Record<string, any>): Promise<void> {
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Unforge-Signature': createHash('sha256')
+          .update(JSON.stringify(data) + (process.env.WEBHOOK_SECRET || ''))
+          .digest('hex')
+      },
+      body: JSON.stringify({
+        event: 'deep_research.complete',
+        timestamp: new Date().toISOString(),
+        data
+      })
+    })
+  } catch (error) {
+    console.error('[Webhook] Failed to deliver:', error)
+  }
 }
 
 // ============================================
@@ -341,7 +463,7 @@ export async function POST(req: NextRequest) {
     // ============================================
     // 3. PARSE REQUEST
     // ============================================
-    let body: { query: string; stream?: boolean }
+    let body: RequestBody
 
     try {
       body = await req.json()
@@ -349,17 +471,96 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Invalid JSON body', code: 'INVALID_JSON' }, { status: 400 })
     }
 
-    const { query, stream = false } = body  // Default to non-streaming for turbo mode
+    const { 
+      query, 
+      queries,
+      stream = false,
+      mode = 'report',
+      extract,
+      schema,
+      preset = 'general',
+      webhook
+    } = body
 
-    if (!query || typeof query !== 'string') {
+    // Validate mode-specific requirements
+    if (mode === 'compare' && (!queries || queries.length < 2)) {
+      return Response.json({ 
+        error: 'Compare mode requires "queries" array with at least 2 items',
+        code: 'INVALID_REQUEST',
+        example: { mode: 'compare', queries: ['Tesla stock', 'Rivian stock'] }
+      }, { status: 400 })
+    }
+
+    if (mode === 'extract' && (!extract || extract.length === 0)) {
+      return Response.json({ 
+        error: 'Extract mode requires "extract" array with fields to extract',
+        code: 'INVALID_REQUEST',
+        example: { mode: 'extract', query: 'iPhone 16', extract: ['price', 'release_date', 'features'] }
+      }, { status: 400 })
+    }
+
+    if (mode === 'schema' && !schema) {
+      return Response.json({ 
+        error: 'Schema mode requires "schema" object defining output structure',
+        code: 'INVALID_REQUEST',
+        example: { 
+          mode: 'schema', 
+          query: 'Compare Tesla vs Rivian',
+          schema: {
+            companies: [{ name: '', market_cap: '', revenue: '' }],
+            recommendation: ''
+          }
+        }
+      }, { status: 400 })
+    }
+
+    // For non-compare modes, query is required
+    if (mode !== 'compare' && (!query || typeof query !== 'string')) {
       return Response.json({ error: 'Missing required field: query', code: 'INVALID_REQUEST' }, { status: 400 })
     }
 
-    if (query.length > 2000) {
+    const effectiveQuery = mode === 'compare' ? queries!.join(' vs ') : query
+    
+    if (effectiveQuery.length > 2000) {
       return Response.json({ error: 'Query too long (max 2000 characters)', code: 'QUERY_TOO_LONG' }, { status: 400 })
     }
 
-    debug('request:parsed', { queryLength: query.length, isByokPlan, stream }, ctx)
+    // Validate preset
+    if (preset && !DOMAIN_PRESETS[preset]) {
+      return Response.json({ 
+        error: `Invalid preset: ${preset}`,
+        code: 'INVALID_PRESET',
+        valid_presets: Object.keys(DOMAIN_PRESETS)
+      }, { status: 400 })
+    }
+
+    // Validate webhook URL if provided
+    if (webhook) {
+      try {
+        const webhookUrl = new URL(webhook)
+        if (!['http:', 'https:'].includes(webhookUrl.protocol)) {
+          throw new Error('Invalid protocol')
+        }
+      } catch {
+        return Response.json({ 
+          error: 'Invalid webhook URL',
+          code: 'INVALID_WEBHOOK',
+          hint: 'Webhook must be a valid HTTP/HTTPS URL'
+        }, { status: 400 })
+      }
+    }
+
+    debug('request:parsed', { 
+      queryLength: effectiveQuery.length, 
+      isByokPlan, 
+      stream,
+      mode,
+      preset,
+      hasWebhook: !!webhook,
+      extractFields: extract?.length,
+      hasSchema: !!schema,
+      compareCount: queries?.length
+    }, ctx)
 
     // ============================================
     // 4. DETERMINE API KEYS
@@ -499,18 +700,35 @@ export async function POST(req: NextRequest) {
     // ============================================
     // 6. SEARCH (Tavily with Raw Content)
     // ============================================
-    debug('pipeline:search:start', {}, ctx)
+    debug('pipeline:search:start', { mode, preset }, ctx)
 
     let searchResults: TavilySearchResponse
-    try {
-      searchResults = await tavilySearchRaw(query, activeTavilyKey, ctx)
-    } catch (searchError: any) {
-      debugError('pipeline:search', searchError, ctx)
-      return Response.json({
-        error: 'Search failed',
-        code: 'SEARCH_ERROR',
-        message: searchError.message
-      }, { status: 500 })
+    let allSources: Array<{ title: string; url: string }> = []
+    
+    // For compare mode, run multiple searches
+    if (mode === 'compare' && queries) {
+      const searchPromises = queries.map(q => 
+        tavilySearchRaw(q, activeTavilyKey, ctx, { preset })
+      )
+      const results = await Promise.all(searchPromises)
+      
+      // Combine results
+      searchResults = {
+        results: results.flatMap(r => r.results)
+      }
+      allSources = searchResults.results.map(r => ({ title: r.title, url: r.url }))
+    } else {
+      try {
+        searchResults = await tavilySearchRaw(effectiveQuery, activeTavilyKey, ctx, { preset })
+        allSources = searchResults.results.map(r => ({ title: r.title, url: r.url }))
+      } catch (searchError: any) {
+        debugError('pipeline:search', searchError, ctx)
+        return Response.json({
+          error: 'Search failed',
+          code: 'SEARCH_ERROR',
+          message: searchError.message
+        }, { status: 500 })
+      }
     }
 
     if (!searchResults.results || searchResults.results.length === 0) {
@@ -526,28 +744,142 @@ export async function POST(req: NextRequest) {
       .join('\n\n---\n\n')
       .slice(0, 100000)  // Limit to ~100k chars (Gemini Flash handles this easily)
 
-    const sources = searchResults.results.map(r => ({ title: r.title, url: r.url }))
+    const sources = allSources
 
     debug('pipeline:search:complete', {
       contextLength: hugeContext.length,
-      sourceCount: sources.length
+      sourceCount: sources.length,
+      mode
     }, ctx)
 
+    // Get preset hint for prompts
+    const presetConfig = DOMAIN_PRESETS[preset] || DOMAIN_PRESETS.general
+
     // ============================================
-    // 7. COMPRESS (Gemini 2.5 Flash - The Reader)
+    // 7. COMPRESS/EXTRACT (Gemini 2.5 Flash - The Reader)
     // ============================================
-    debug('pipeline:compress:start', {}, ctx)
+    debug('pipeline:compress:start', { mode }, ctx)
 
     const google = createGoogleGenerativeAI({ apiKey: activeGoogleKey })
 
-    let facts: z.infer<typeof factsSchema>
-    try {
-      const compressResult = await generateObject({
-        model: google(GEMINI_FLASH_MODEL),
-        schema: factsSchema,
-        prompt: `You are a research analyst. Analyze this raw web content and extract ONLY hard facts.
+    let facts: z.infer<typeof factsSchema> | undefined = undefined
+    let extractedData: Record<string, any> | null = null
+    let schemaData: Record<string, any> | null = null
+    let comparisonData: any[] | null = null
 
-QUERY: "${query}"
+    try {
+      if (mode === 'extract' && extract) {
+        // EXTRACT MODE: Extract specific fields
+        const extractSchema = z.object(
+          extract.reduce((acc, field) => {
+            acc[field] = z.string().describe(`The ${field} extracted from the content`)
+            return acc
+          }, {} as Record<string, z.ZodString>)
+        )
+
+        const extractResult = await generateObject({
+          model: google(GEMINI_FLASH_MODEL),
+          schema: extractSchema,
+          prompt: `You are a data extraction expert. Extract ONLY the requested fields from this content.
+
+QUERY: "${effectiveQuery}"
+
+FIELDS TO EXTRACT: ${extract.join(', ')}
+
+RAW CONTENT:
+${hugeContext}
+
+RULES:
+- Extract ONLY the requested fields
+- If a field is not found, return "Not found"
+- Be precise and concise
+- ${presetConfig.prompt_hint}`
+        })
+
+        extractedData = extractResult.object
+        debug('pipeline:extract:complete', { fields: Object.keys(extractedData) }, ctx)
+
+      } else if (mode === 'schema' && schema) {
+        // SCHEMA MODE: Fill user-defined schema
+        // Convert user schema to Zod schema dynamically
+        const schemaResult = await generateObject({
+          model: google(GEMINI_FLASH_MODEL),
+          schema: z.any(), // Accept any structure
+          prompt: `You are a data structuring expert. Fill in this exact JSON schema with data from the content.
+
+QUERY: "${effectiveQuery}"
+
+SCHEMA TO FILL:
+${JSON.stringify(schema, null, 2)}
+
+RAW CONTENT:
+${hugeContext}
+
+RULES:
+- Return data that EXACTLY matches the schema structure
+- Fill ALL fields in the schema
+- Use "N/A" for fields you cannot find
+- Be factual - only use information from the content
+- ${presetConfig.prompt_hint}
+
+Return valid JSON matching the schema.`
+        })
+
+        schemaData = schemaResult.object
+        debug('pipeline:schema:complete', { keys: Object.keys(schemaData || {}) }, ctx)
+
+      } else if (mode === 'compare' && queries) {
+        // COMPARE MODE: Structured comparison
+        const compareSchema = z.object({
+          comparison_table: z.array(z.object({
+            item: z.string(),
+            key_facts: z.array(z.string()),
+            pros: z.array(z.string()),
+            cons: z.array(z.string())
+          })),
+          recommendation: z.string(),
+          key_differences: z.array(z.string())
+        })
+
+        const compareResult = await generateObject({
+          model: google(GEMINI_FLASH_MODEL),
+          schema: compareSchema,
+          prompt: `You are a comparison analyst. Compare these items objectively.
+
+ITEMS TO COMPARE: ${queries.join(' vs ')}
+
+RAW CONTENT:
+${hugeContext}
+
+RULES:
+- Compare ALL items fairly
+- List pros and cons for each
+- Highlight key differences
+- Give a balanced recommendation
+- ${presetConfig.prompt_hint}`
+        })
+
+        comparisonData = compareResult.object.comparison_table
+        
+        // Also fill facts for the full response
+        facts = {
+          key_stats: [],
+          dates: [],
+          entities: queries,
+          summary_points: compareResult.object.key_differences,
+          sources
+        }
+        
+        debug('pipeline:compare:complete', { itemsCompared: comparisonData?.length }, ctx)
+
+      } else {
+        // REPORT MODE (default): Standard facts extraction
+        const compressResult = await generateObject({
+          model: google(GEMINI_FLASH_MODEL),
+          schema: factsSchema,
+          prompt: `You are a research analyst. Analyze this raw web content and extract ONLY hard facts.
+
+QUERY: "${effectiveQuery}"
 
 RAW CONTENT:
 ${hugeContext}
@@ -566,14 +898,16 @@ RULES:
 - Extract ONLY facts from the provided content
 - Do NOT make up information
 - Include source URLs for citations
-- Be concise - compress knowledge into minimal JSON`
-      })
+- Be concise - compress knowledge into minimal JSON
+- ${presetConfig.prompt_hint}`
+        })
 
-      facts = compressResult.object
-      debug('pipeline:compress:complete', {
-        statsCount: facts.key_stats.length,
-        pointsCount: facts.summary_points.length
-      }, ctx)
+        facts = compressResult.object
+        debug('pipeline:compress:complete', {
+          statsCount: facts.key_stats.length,
+          pointsCount: facts.summary_points.length
+        }, ctx)
+      }
     } catch (compressError: any) {
       debugError('pipeline:compress', compressError, ctx)
       return Response.json({
@@ -584,22 +918,159 @@ RULES:
     }
 
     // ============================================
-    // 8. WRITE (Groq Llama-3.1 - The Writer)
+    // 8. GENERATE OUTPUT (Groq - The Writer)
     // ============================================
-    debug('pipeline:write:start', {}, ctx)
+    
+    // For extract and schema modes, we're done - no need for Groq
+    if (mode === 'extract' && extractedData) {
+      const latencyMs = Math.round(performance.now() - startTime)
+      
+      // Cache the extracted data
+      if (redis) {
+        const cacheData = JSON.stringify(extractedData)
+        redis.set(cacheKey, cacheData, { ex: CACHE_TTL_SECONDS }).catch(() => {})
+      }
+
+      // Send webhook if configured
+      if (webhook) {
+        sendWebhook(webhook, { 
+          mode: 'extract', 
+          query: effectiveQuery, 
+          data: extractedData, 
+          sources,
+          request_id: requestId 
+        }).catch(() => {})
+      }
+
+      logUsage({
+        workspaceId: result.meta?.workspaceId,
+        keyId: result.keyId,
+        intent: 'DEEP_RESEARCH_EXTRACT',
+        latencyMs,
+        query: effectiveQuery,
+        cached: false
+      })
+
+      return Response.json({
+        mode: 'extract',
+        query: effectiveQuery,
+        data: extractedData,
+        sources,
+        meta: {
+          source: 'generated',
+          latency_ms: latencyMs,
+          sources_count: sources.length,
+          request_id: requestId,
+          preset,
+          model: GEMINI_FLASH_MODEL
+        }
+      })
+    }
+
+    if (mode === 'schema' && schemaData) {
+      const latencyMs = Math.round(performance.now() - startTime)
+      
+      if (redis) {
+        const cacheData = JSON.stringify(schemaData)
+        redis.set(cacheKey, cacheData, { ex: CACHE_TTL_SECONDS }).catch(() => {})
+      }
+
+      if (webhook) {
+        sendWebhook(webhook, { 
+          mode: 'schema', 
+          query: effectiveQuery, 
+          data: schemaData, 
+          sources,
+          request_id: requestId 
+        }).catch(() => {})
+      }
+
+      logUsage({
+        workspaceId: result.meta?.workspaceId,
+        keyId: result.keyId,
+        intent: 'DEEP_RESEARCH_SCHEMA',
+        latencyMs,
+        query: effectiveQuery,
+        cached: false
+      })
+
+      return Response.json({
+        mode: 'schema',
+        query: effectiveQuery,
+        data: schemaData,
+        sources,
+        meta: {
+          source: 'generated',
+          latency_ms: latencyMs,
+          sources_count: sources.length,
+          request_id: requestId,
+          preset,
+          model: GEMINI_FLASH_MODEL
+        }
+      })
+    }
+
+    // For report and compare modes, generate prose with Groq
+    debug('pipeline:write:start', { mode }, ctx)
 
     const groq = createGroq({ apiKey: activeGroqKey })
 
     let report: string
     try {
-      const writeResult = await generateText({
-        model: groq(GROQ_FAST_MODEL),
-        prompt: `You are an expert research analyst writing an Executive Research Report.
+      if (mode === 'compare' && comparisonData) {
+        // COMPARE MODE: Generate comparison report
+        const writeResult = await generateText({
+          model: groq(GROQ_FAST_MODEL),
+          prompt: `You are an expert analyst writing a Comparison Report.
 
-RESEARCH QUERY: "${query}"
+ITEMS COMPARED: ${queries!.join(' vs ')}
+
+COMPARISON DATA:
+${JSON.stringify(comparisonData, null, 2)}
+
+Write a professional Markdown comparison with these sections:
+
+## Executive Summary
+Brief overview of the comparison and key findings.
+
+## Comparison Table
+| Feature | ${queries!.join(' | ')} |
+|---------|${queries!.map(() => '---------|').join('')}
+(Fill with relevant data)
+
+## Individual Analysis
+### [Item 1]
+- Key facts
+- Pros
+- Cons
+
+(Repeat for each item)
+
+## Key Differences
+List the most important differences.
+
+## Recommendation
+Balanced recommendation based on the data.
+
+## Sources
+List all sources.
+
+RULES:
+- Be objective and balanced
+- Use tables for easy comparison
+- Cite sources where appropriate`
+        })
+        report = writeResult.text
+      } else {
+        // REPORT MODE (default)
+        const writeResult = await generateText({
+          model: groq(GROQ_FAST_MODEL),
+          prompt: `You are an expert research analyst writing an Executive Research Report.
+
+RESEARCH QUERY: "${effectiveQuery}"
 
 EXTRACTED FACTS:
-${JSON.stringify(facts, null, 2)}
+${JSON.stringify(facts!, null, 2)}
 
 Write a professional Markdown research report with these sections:
 
@@ -624,10 +1095,12 @@ RULES:
 - ONLY use information from the extracted facts
 - Cite sources inline using [Source](url) format
 - Be professional and concise
-- Use tables where appropriate for data`
-      })
-
-      report = writeResult.text
+- Use tables where appropriate for data
+- ${presetConfig.prompt_hint}`
+        })
+        report = writeResult.text
+      }
+      
       debug('pipeline:write:complete', { reportLength: report.length }, ctx)
     } catch (writeError: any) {
       debugError('pipeline:write', writeError, ctx)
@@ -651,42 +1124,56 @@ RULES:
             cacheKey: cacheKey.substring(0, 30) + '...', 
             reportLength: report.length,
             ttlSeconds: CACHE_TTL_SECONDS,
-            ttlHuman: `${CACHE_TTL_SECONDS / 3600} hours`,
-            nextHitWillSave: '~3-4 seconds + API costs'
+            ttlHuman: `${CACHE_TTL_SECONDS / 3600} hours`
           }, ctx)
         })
         .catch(err => {
           debugError('cache:set', err, ctx)
         })
-      debug('cache:set:queued', { ttl: CACHE_TTL_SECONDS, cacheKey: cacheKey.substring(0, 30) + '...' }, ctx)
-    } else {
-      debug('cache:set:SKIPPED', { reason: 'Redis not available' }, ctx)
+    }
+
+    // Send webhook if configured
+    if (webhook) {
+      sendWebhook(webhook, { 
+        mode, 
+        query: effectiveQuery, 
+        report,
+        facts: (mode === 'report' && facts) ? facts : undefined,
+        comparison: mode === 'compare' ? comparisonData : undefined,
+        sources,
+        request_id: requestId 
+      }).catch(() => {})
     }
 
     // Log usage
     logUsage({
       workspaceId: result.meta?.workspaceId,
       keyId: result.keyId,
-      intent: 'DEEP_RESEARCH',
+      intent: mode === 'compare' ? 'DEEP_RESEARCH_COMPARE' : 'DEEP_RESEARCH',
       latencyMs,
-      query,
+      query: effectiveQuery,
       cached: false
     })
 
     debugSuccess('pipeline:complete', { 
       latencyMs, 
+      mode,
       sourcesCount: sources.length,
       reportLength: report.length,
       cached: false
     }, ctx)
 
-    return Response.json({
+    // Build response based on mode
+    const response: Record<string, any> = {
+      mode,
+      query: effectiveQuery,
       report,
       meta: {
         source: 'generated',
         latency_ms: latencyMs,
         sources_count: sources.length,
         request_id: requestId,
+        preset,
         model: {
           reader: GEMINI_FLASH_MODEL,
           writer: GROQ_FAST_MODEL
@@ -697,7 +1184,18 @@ RULES:
           period: planConfig.period
         }
       }
-    })
+    }
+
+    // Add mode-specific data
+    if (mode === 'report' && facts) {
+      response.facts = facts
+    }
+    if (mode === 'compare' && comparisonData) {
+      response.comparison = comparisonData
+      response.queries = queries
+    }
+
+    return Response.json(response)
 
   } catch (error: any) {
     debugError('unhandled', error, ctx)
@@ -718,12 +1216,41 @@ export async function GET() {
   return Response.json({
     status: 'ok',
     service: 'UnforgeAPI Deep Research',
-    version: '3.0.0',
-    architecture: 'Flash-Groq Relay (Turbo Mode)',
-    cache: redis ? 'enabled' : 'disabled',
+    version: '4.0.0',
+    architecture: 'Flash-Groq Relay',
+    features: {
+      modes: ['report', 'extract', 'schema', 'compare'],
+      presets: Object.keys(DOMAIN_PRESETS),
+      webhook: true,
+      cache: redis ? 'enabled' : 'disabled'
+    },
     models: {
       reader: GEMINI_FLASH_MODEL,
       writer: GROQ_FAST_MODEL
+    },
+    examples: {
+      report: {
+        query: 'Latest news about Tesla',
+        preset: 'stocks'
+      },
+      extract: {
+        query: 'iPhone 16 specifications',
+        mode: 'extract',
+        extract: ['price', 'release_date', 'battery', 'chip']
+      },
+      schema: {
+        query: 'Compare AWS vs Azure',
+        mode: 'schema',
+        schema: {
+          providers: [{ name: '', market_share: '', strengths: [] }],
+          recommendation: ''
+        }
+      },
+      compare: {
+        mode: 'compare',
+        queries: ['Tesla stock', 'Rivian stock', 'Lucid stock'],
+        preset: 'stocks'
+      }
     }
   })
 }
