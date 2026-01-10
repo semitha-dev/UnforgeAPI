@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { 
   CreditCard, 
   Check, 
@@ -10,7 +11,8 @@ import {
   Key,
   AlertCircle,
   ExternalLink,
-  Loader2
+  Loader2,
+  RefreshCw
 } from 'lucide-react'
 import { API_PLANS, PLAN_CONFIG, type ApiPlan } from '@/lib/subscription-constants'
 
@@ -24,8 +26,11 @@ type CurrentPlanInfo = {
 }
 
 export default function BillingPage() {
+  const searchParams = useSearchParams()
+  const subscriptionSuccess = searchParams.get('subscription') === 'success'
+  
   // In production, this would come from user context or API
-  const [currentPlan] = useState<CurrentPlanInfo>({
+  const [currentPlan, setCurrentPlan] = useState<CurrentPlanInfo>({
     plan: 'sandbox',
     usageToday: 12,
     limitToday: 50,
@@ -33,6 +38,16 @@ export default function BillingPage() {
   
   const [isCheckingOut, setIsCheckingOut] = useState<'managed' | 'byok' | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+
+  // Auto-sync subscription when returning from checkout
+  useEffect(() => {
+    if (subscriptionSuccess) {
+      console.log('[Billing] Returned from checkout success, auto-syncing...')
+      handleSyncSubscription()
+    }
+  }, [subscriptionSuccess])
 
   const planConfig = PLAN_CONFIG[currentPlan.plan]
   const isByokPlan = currentPlan.plan === 'byok_starter' || currentPlan.plan === 'byok_pro'
@@ -45,6 +60,56 @@ export default function BillingPage() {
     : currentPlan.plan === 'managed_pro'
     ? Math.round(((currentPlan.usageThisMonth || 0) / (currentPlan.limitThisMonth || 1)) * 100)
     : 0
+
+  // Handle subscription sync from Polar
+  const handleSyncSubscription = async () => {
+    console.log('[Billing:sync:start]', { timestamp: new Date().toISOString() })
+    setIsSyncing(true)
+    setSyncMessage(null)
+    
+    try {
+      const response = await fetch('/api/subscription/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      
+      const data = await response.json()
+      
+      console.log('[Billing:sync:response]', { 
+        status: response.status, 
+        ok: response.ok,
+        data 
+      })
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sync subscription')
+      }
+      
+      // Update local state if subscription was synced
+      if (data.subscription?.tier) {
+        const newTier = data.subscription.tier as ApiPlan
+        if (PLAN_CONFIG[newTier]) {
+          setCurrentPlan(prev => ({ ...prev, plan: newTier }))
+          setSyncMessage(`✅ Subscription synced! You are now on ${PLAN_CONFIG[newTier].name}`)
+        }
+      } else if (data.tier) {
+        setSyncMessage(`Current plan: ${data.tier}`)
+      } else {
+        setSyncMessage(data.message || 'Subscription synced')
+      }
+      
+      // Refresh the page after a short delay to get updated data
+      setTimeout(() => {
+        window.location.reload()
+      }, 2000)
+      
+    } catch (error: any) {
+      console.error('[Billing:sync:error]', error)
+      setSyncMessage(`❌ ${error.message}`)
+    } finally {
+      setIsSyncing(false)
+    }
+  }
 
   // Handle checkout via API
   const handleCheckout = async (productType: 'managed' | 'byok') => {
@@ -106,8 +171,40 @@ export default function BillingPage() {
     <>
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-1">Billing</h1>
-        <p className="text-neutral-400">Manage your subscription and billing settings</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white mb-1">Billing</h1>
+            <p className="text-neutral-400">Manage your subscription and billing settings</p>
+          </div>
+          <button
+            onClick={handleSyncSubscription}
+            disabled={isSyncing}
+            className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-white rounded-lg text-sm transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Syncing...' : 'Sync Subscription'}
+          </button>
+        </div>
+        
+        {/* Sync message */}
+        {syncMessage && (
+          <div className={`mt-4 p-3 rounded-lg text-sm ${
+            syncMessage.startsWith('✅') 
+              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
+              : syncMessage.startsWith('❌')
+              ? 'bg-red-500/10 border border-red-500/30 text-red-400'
+              : 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
+          }`}>
+            {syncMessage}
+          </div>
+        )}
+        
+        {/* Success from checkout redirect */}
+        {subscriptionSuccess && !syncMessage && (
+          <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-sm">
+            🎉 Payment successful! Syncing your subscription...
+          </div>
+        )}
       </div>
 
       {/* Current Plan */}

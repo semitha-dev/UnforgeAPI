@@ -1,15 +1,26 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 
+const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true';
+
+function debug(tag: string, data: any) {
+  if (DEBUG) {
+    const timestamp = new Date().toISOString();
+    console.log(`${timestamp} [Subscription/Sync:${tag}]`, JSON.stringify(data, null, 2));
+  }
+}
+
 const POLAR_API_URL = process.env.POLAR_SANDBOX === 'true'
   ? 'https://sandbox-api.polar.sh/v1'
   : 'https://api.polar.sh/v1';
 const POLAR_ACCESS_TOKEN = process.env.POLAR_ACCESS_TOKEN;
 
-// Map product IDs to subscription tiers
+// Map product IDs to subscription tiers (including new managed_pro and byok_pro)
 const PRODUCT_TO_TIER: Record<string, string> = {
   [process.env.POLAR_PRO_PRODUCT_ID || '']: 'pro',
   [process.env.POLAR_PREMIUM_PRODUCT_ID || '']: 'premium',
+  [process.env.POLAR_MANAGED_PRO_PRODUCT_ID || '']: 'managed_pro',
+  [process.env.POLAR_BYOK_PRO_PRODUCT_ID || '']: 'byok_pro',
 };
 
 // Token allocation per tier
@@ -20,27 +31,132 @@ const MONTHLY_TOKENS: Record<string, number> = {
 };
 
 export async function POST(request: NextRequest) {
-  console.log('=== SYNC SUBSCRIPTION CALLED ===');
+  debug('POST:start', { timestamp: new Date().toISOString() });
   
   try {
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (!user || authError) {
-      console.log('Not authenticated:', authError?.message);
+      debug('POST:auth:fail', { error: authError?.message });
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    console.log('User:', user.id, user.email);
+    debug('POST:user', { userId: user.id, email: user.email });
 
     if (!POLAR_ACCESS_TOKEN) {
       return NextResponse.json({ error: 'Polar not configured' }, { status: 500 });
     }
 
     const customerEmail = user.email;
-    console.log('Searching for customer with email:', customerEmail);
+    debug('POST:searching', { email: customerEmail });
 
-    // Get all subscriptions for this customer email (including canceled ones)
+    // Log product ID mapping for debugging
+    debug('POST:productMapping', PRODUCT_TO_TIER);
+
+    // First, check orders for this email (one-time purchases that create subscriptions)
+    const ordersResponse = await fetch(
+      `${POLAR_API_URL}/orders?customer_email=${encodeURIComponent(customerEmail || '')}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${POLAR_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    debug('POST:orders:response', { status: ordersResponse.status });
+    
+    if (ordersResponse.ok) {
+      const ordersData = await ordersResponse.json();
+      debug('POST:orders:data', { 
+        count: ordersData.items?.length,
+        items: ordersData.items?.map((o: any) => ({
+          id: o.id,
+          status: o.status,
+          product_id: o.product_id,
+          product_name: o.product?.name,
+          created_at: o.created_at
+        }))
+      });
+
+      // Find paid orders
+      const paidOrders = ordersData.items?.filter((o: any) => 
+        o.status === 'paid' || o.status === 'succeeded' || o.status === 'completed'
+      ) || [];
+
+      if (paidOrders.length > 0) {
+        // Sort by created_at descending
+        paidOrders.sort((a: any, b: any) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        const latestOrder = paidOrders[0];
+        const productId = latestOrder.product_id || latestOrder.product?.id;
+        let tier = PRODUCT_TO_TIER[productId];
+        
+        // Also try product name matching
+        if (!tier && latestOrder.product?.name) {
+          const productName = latestOrder.product.name.toLowerCase();
+          if (productName.includes('managed') && productName.includes('pro')) {
+            tier = 'managed_pro';
+          } else if (productName.includes('byok') && productName.includes('pro')) {
+            tier = 'byok_pro';
+          } else if (productName.includes('pro')) {
+            tier = 'pro';
+          }
+        }
+
+        debug('POST:orders:latestPaid', {
+          orderId: latestOrder.id,
+          productId,
+          tier,
+          productName: latestOrder.product?.name
+        });
+
+        if (tier && tier !== 'free') {
+          // Update profile with this tier
+          const now = new Date();
+          const periodEnd = new Date(now);
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              subscription_tier: tier,
+              subscription_status: 'active',
+              polar_customer_id: latestOrder.customer_id || latestOrder.customer?.id,
+              subscription_ends_at: periodEnd.toISOString(),
+              next_billing_date: periodEnd.toISOString(),
+              auto_renew: true,
+              current_period_start: now.toISOString(),
+              current_period_end: periodEnd.toISOString(),
+              subscription_started_at: now.toISOString(),
+              updated_at: now.toISOString(),
+            })
+            .eq('id', user.id);
+
+          if (updateError) {
+            debug('POST:update:error', { error: updateError });
+            return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+          }
+
+          debug('POST:update:success:fromOrder', { tier });
+
+          return NextResponse.json({
+            message: 'Subscription synced from order',
+            subscription: {
+              tier: tier,
+              status: 'active',
+              source: 'order',
+              order_id: latestOrder.id,
+            }
+          });
+        }
+      }
+    }
+
+    // Get all subscriptions for this customer email
     const subsResponse = await fetch(
       `${POLAR_API_URL}/subscriptions/?customer_email=${encodeURIComponent(customerEmail || '')}`,
       {
@@ -51,7 +167,7 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    console.log('Polar subscriptions response status:', subsResponse.status);
+    debug('POST:subscriptions:response', { status: subsResponse.status });
     const subsData = await subsResponse.json();
     console.log('Polar subscriptions data:', JSON.stringify(subsData, null, 2));
 
