@@ -59,7 +59,11 @@ export default function SignInPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('[Signin] ========== START ==========')
+    console.log('[Signin] Email:', formData.email)
+    
     if (!validateForm()) {
+      console.log('[Signin] Form validation failed')
       return
     }
 
@@ -67,12 +71,21 @@ export default function SignInPage() {
     setErrors({})
 
     try {
+      console.log('[Signin] Attempting signInWithPassword...')
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       })
 
+      console.log('[Signin] Auth result:', {
+        userId: data.user?.id,
+        email: data.user?.email,
+        hasSession: !!data.session,
+        error: error?.message
+      })
+
       if (error) {
+        console.error('[Signin] Auth error:', error)
         if (error.message.includes('Invalid login credentials')) {
           setErrors({ general: 'Invalid email or password. Please check your credentials and try again.' })
         } else if (error.message.includes('Email not confirmed')) {
@@ -85,14 +98,21 @@ export default function SignInPage() {
 
       if (data.user && data.session) {
         try {
+          console.log('[Signin] Fetching profile for user:', data.user.id)
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', data.user.id)
             .single()
 
+          console.log('[Signin] Profile result:', {
+            profile: profile ? { id: profile.id, workspace: profile.default_workspace_id, onboarded: profile.onboarding_completed } : null,
+            error: profileError?.message,
+            errorCode: profileError?.code
+          })
+
           if (profileError && profileError.code !== 'PGRST116') {
-            console.error('Profile check error:', profileError)
+            console.error('[Signin] Profile check error:', profileError)
             setErrors({ general: 'An error occurred. Please try again.' })
             return
           }
@@ -100,30 +120,66 @@ export default function SignInPage() {
           await new Promise(resolve => setTimeout(resolve, 100))
 
           if (!profile) {
+            // Auto-create profile for existing auth user without profile
+            const userName = data.user.user_metadata?.full_name 
+              || data.user.email?.split('@')[0] 
+              || 'User'
+            
+            console.log('[Signin] Creating profile for user without one:', {
+              userId: data.user.id,
+              userName,
+              email: data.user.email
+            })
+            
+            const { error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: data.user.id,
+                email: data.user.email,
+                name: userName,
+                education_level: 'other',
+                subscription_tier: 'free',
+                subscription_status: 'inactive',
+                onboarding_completed: false
+              })
+            
+            if (createError) {
+              console.error('[Signin] Profile creation error:', createError)
+            } else {
+              console.log('[Signin] Profile created successfully')
+            }
+            
+            console.log('[Signin] Redirecting to onboarding (no profile)')
             router.push('/onboarding/workspace')
           } else if (!profile.default_workspace_id) {
+            console.log('[Signin] Redirecting to onboarding (no workspace)')
             router.push('/onboarding/workspace')
           } else {
             // Get workspace slug
-            const { data: workspace } = await supabase
+            console.log('[Signin] Fetching workspace:', profile.default_workspace_id)
+            const { data: workspace, error: wsError } = await supabase
               .from('workspaces')
               .select('slug')
               .eq('id', profile.default_workspace_id)
               .single()
             
+            console.log('[Signin] Workspace result:', { workspace, error: wsError?.message })
+            
             if (workspace) {
+              console.log('[Signin] Redirecting to dashboard:', workspace.slug)
               router.push(`/dashboard/${workspace.slug}`)
             } else {
+              console.log('[Signin] Redirecting to onboarding (no workspace found)')
               router.push('/onboarding/workspace')
             }
           }
         } catch (profileError) {
-          console.error('Profile check error:', profileError)
+          console.error('[Signin] Profile check error:', profileError)
           setErrors({ general: 'An error occurred while checking your profile. Please try again.' })
         }
       }
     } catch (error: any) {
-      console.error('Sign in error:', error)
+      console.error('[Signin] Unexpected error:', error)
       setErrors({ general: 'An unexpected error occurred. Please try again.' })
     } finally {
       setIsLoading(false)
@@ -131,17 +187,23 @@ export default function SignInPage() {
   }
 
   const handleGoogleSignIn = async () => {
+    console.log('[Signin] Google OAuth starting...')
     try {
+      const redirectUrl = `${window.location.origin}/auth/callback?next=/dashboard`
+      console.log('[Signin] Google OAuth redirect URL:', redirectUrl)
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`
+          redirectTo: redirectUrl
         }
       })
       if (error) {
+        console.error('[Signin] Google OAuth error:', error)
         setErrors({ general: error.message })
       }
     } catch (error: any) {
+      console.error('[Signin] Google OAuth unexpected error:', error)
       setErrors({ general: 'Failed to sign in with Google' })
     }
   }

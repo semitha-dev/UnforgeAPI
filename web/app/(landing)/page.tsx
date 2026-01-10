@@ -65,9 +65,9 @@ const Navigation = () => {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
+            <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">How It Works</a>
             <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Features</a>
-            <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Deep Research</a>
-            <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">How it Works</a>
+            <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Router</a>
             <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Pricing</a>
             <Link href="/docs" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Docs</Link>
           </nav>
@@ -103,9 +103,9 @@ const Navigation = () => {
             className="md:hidden bg-black/95 border-t border-white/10"
           >
             <div className="px-6 py-4 space-y-4">
+              <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="block text-gray-400 hover:text-white cursor-pointer">How It Works</a>
               <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="block text-gray-400 hover:text-white cursor-pointer">Features</a>
-              <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="block text-gray-400 hover:text-white cursor-pointer">Deep Research</a>
-              <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="block text-gray-400 hover:text-white cursor-pointer">How it Works</a>
+              <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="block text-gray-400 hover:text-white cursor-pointer">Router</a>
               <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="block text-gray-400 hover:text-white cursor-pointer">Pricing</a>
               <Link href="/signin" className="block text-gray-400 hover:text-white">Sign In</Link>
               <Link href="/signup" className="block py-2 text-center bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-lg text-white">
@@ -144,21 +144,22 @@ const HeroSection = () => {
             transition={{ delay: 0.2 }}
             className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-8"
           >
-            <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-            <span className="text-sm text-gray-300">Public Beta - Now Available</span>
+            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+            <span className="text-sm text-gray-300">The Research Layer for AI Agents</span>
           </motion.div>
 
           {/* Headline */}
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            Stop Paying the{' '}
+            Deep Research API{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
-              "Dumb Agent" Tax
+              Built for Machines
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-10">
-            UnforgeAPI is a Hybrid RAG Router that intelligently routes queries to the most efficient path.
-            Save up to <span className="text-white font-semibold">70% on API costs</span> while reducing latency by 3x.
+            Real-time web grounding. 30-40 second deep analysis. 
+            <span className="text-white font-semibold"> Perfectly structured JSON.</span>{' '}
+            The research endpoint your AI agents deserve.
           </p>
 
           {/* CTA Buttons */}
@@ -167,19 +168,19 @@ const HeroSection = () => {
               href="/signup"
               className="group flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all"
             >
-              Start Building Free
+              Get Your API Key
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
             <button
-              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => document.getElementById('deep-research')?.scrollIntoView({ behavior: 'smooth' })}
               className="flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
             >
               <Code className="w-5 h-5" />
-              View Documentation
+              See How It Works
             </button>
           </div>
 
-          {/* Code Preview */}
+          {/* Code Preview - Deep Research focused */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -193,21 +194,22 @@ const HeroSection = () => {
                   <div className="w-3 h-3 rounded-full bg-yellow-500" />
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
-                <span className="text-xs text-gray-500 ml-2">POST /v1/chat</span>
+                <span className="text-xs text-gray-500 ml-2">POST /v1/deep-research</span>
               </div>
               <pre className="p-6 text-left overflow-x-auto">
                 <code className="text-sm">
-                  <span className="text-gray-500">{'// One endpoint. Three intelligent paths.'}</span>{'\n'}
-                  <span className="text-fuchsia-400">const</span> <span className="text-white">response</span> <span className="text-gray-400">=</span> <span className="text-fuchsia-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">'https://homerun-snowy.vercel.app/api/v1/chat'</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
+                  <span className="text-gray-500">{'// Extract exactly what you need. Not essays.'}</span>{'\n'}
+                  <span className="text-fuchsia-400">const</span> <span className="text-white">response</span> <span className="text-gray-400">=</span> <span className="text-fuchsia-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">'/api/v1/deep-research'</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
                   <span className="text-white">  method</span><span className="text-gray-400">:</span> <span className="text-green-400">'POST'</span><span className="text-gray-400">,</span>{'\n'}
                   <span className="text-white">  headers</span><span className="text-gray-400">:</span> <span className="text-gray-400">{'{'}</span> <span className="text-green-400">'Authorization'</span><span className="text-gray-400">:</span> <span className="text-green-400">`Bearer ${'${'}API_KEY{'}'}`</span> <span className="text-gray-400">{'}'},</span>{'\n'}
                   <span className="text-white">  body</span><span className="text-gray-400">:</span> <span className="text-violet-400">JSON</span><span className="text-gray-400">.</span><span className="text-violet-400">stringify</span><span className="text-gray-400">(</span><span className="text-gray-400">{'{'}</span>{'\n'}
-                  <span className="text-white">    query</span><span className="text-gray-400">:</span> <span className="text-green-400">"What's the deadline for Project X?"</span><span className="text-gray-400">,</span>{'\n'}
-                  <span className="text-white">    context</span><span className="text-gray-400">:</span> <span className="text-green-400">"Project X deadline: Jan 15, 2026..."</span>{'\n'}
+                  <span className="text-white">    query</span><span className="text-gray-400">:</span> <span className="text-green-400">"Tesla vs Rivian 2026"</span><span className="text-gray-400">,</span>{'\n'}
+                  <span className="text-white">    mode</span><span className="text-gray-400">:</span> <span className="text-green-400">"extract"</span><span className="text-gray-400">,</span>{'\n'}
+                  <span className="text-white">    extract</span><span className="text-gray-400">:</span> <span className="text-gray-400">[</span><span className="text-green-400">"market_cap"</span><span className="text-gray-400">,</span> <span className="text-green-400">"revenue"</span><span className="text-gray-400">,</span> <span className="text-green-400">"growth_rate"</span><span className="text-gray-400">]</span>{'\n'}
                   <span className="text-gray-400">  {'})'}</span>{'\n'}
                   <span className="text-gray-400">{'})'}</span>{'\n\n'}
-                  <span className="text-gray-500">{'// Response: Routed to CONTEXT path (no web search!)'}</span>{'\n'}
-                  <span className="text-gray-500">{'// → Cost: $0.0001 | Latency: 0.3s | Savings: 90%'}</span>
+                  <span className="text-gray-500">{'// Returns structured JSON, not prose:'}</span>{'\n'}
+                  <span className="text-gray-500">{'// { "market_cap": "$800B", "revenue": "$96B", "growth_rate": "23%" }'}</span>
                 </code>
               </pre>
             </div>
@@ -221,10 +223,10 @@ const HeroSection = () => {
 // Stats Section
 const StatsSection = () => {
   const stats = [
-    { value: '70%', label: 'Cost Reduction', icon: DollarSign },
-    { value: '3x', label: 'Faster Responses', icon: Zap },
-    { value: '99.9%', label: 'Uptime SLA', icon: Shield },
-    { value: '<100ms', label: 'Router Latency', icon: Clock },
+    { value: '30-40s', label: 'Deep Analysis', icon: Clock },
+    { value: '5+', label: 'Sources Searched', icon: Search },
+    { value: 'JSON', label: 'Structured Output', icon: FileText },
+    { value: 'BYOK', label: 'Bring Your Keys', icon: Key },
   ];
 
   return (
@@ -255,39 +257,39 @@ const StatsSection = () => {
 const FeaturesSection = () => {
   const features = [
     {
-      icon: Cpu,
-      title: 'Intelligent Router Brain',
-      description: 'Our specialized classifier analyzes intent in under 100ms to determine the optimal execution path.',
+      icon: FileText,
+      title: 'Custom Schemas',
+      description: 'Define your own JSON schema. Get exactly the structure you need — prices, dates, comparisons, whatever.',
       gradient: 'from-violet-500 to-purple-500',
     },
     {
-      icon: MessageSquare,
-      title: 'CHAT Path',
-      description: 'Greetings and casual conversation routed to fast Llama-3-8b. No search costs incurred.',
+      icon: Search,
+      title: 'Data Extraction Mode',
+      description: 'Extract specific fields from web results. Get clean arrays of prices, features, or any structured data.',
       gradient: 'from-blue-500 to-cyan-500',
     },
     {
-      icon: FileText,
-      title: 'CONTEXT Path',
-      description: 'Questions answerable from your provided context skip web search entirely. Maximum savings.',
+      icon: BarChart3,
+      title: 'Multi-Query Compare',
+      description: 'Compare multiple topics in one call. Perfect for competitive analysis and product comparisons.',
       gradient: 'from-emerald-500 to-green-500',
     },
     {
-      icon: Search,
-      title: 'RESEARCH Path',
-      description: 'Factual queries that need current data get Tavily search + Llama-3-70b synthesis.',
+      icon: Globe,
+      title: 'Domain Presets',
+      description: 'Optimized source lists for crypto, stocks, tech, academic, news. Better results, less noise.',
       gradient: 'from-orange-500 to-red-500',
     },
     {
-      icon: Shield,
-      title: 'Privacy-First',
-      description: 'Zero data retention. Queries and context exist only in ephemeral memory during the request.',
+      icon: Zap,
+      title: 'Webhook Delivery',
+      description: 'Fire and forget. Get results POSTed to your endpoint when research completes.',
       gradient: 'from-pink-500 to-rose-500',
     },
     {
       icon: Key,
       title: 'BYOK Support',
-      description: 'Bring your own Groq and Tavily keys for unlimited scaling with zero markup.',
+      description: 'Bring your own Gemini, Groq, and Tavily keys for unlimited scaling with zero markup.',
       gradient: 'from-amber-500 to-yellow-500',
     },
   ];
@@ -302,10 +304,13 @@ const FeaturesSection = () => {
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-            Three Paths. One Smart Router.
+            Research API.{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
+              Your Schema.
+            </span>
           </h2>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            Stop burning money on unnecessary API calls. UnforgeAPI routes each query to the most cost-effective path.
+            Define exactly what data you need. Deep Research v4 returns structured JSON that slots directly into your pipeline.
           </p>
         </motion.div>
 
@@ -351,18 +356,19 @@ const DeepResearchSection = () => {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 border border-violet-500/30 rounded-full mb-6">
             <Sparkles className="w-4 h-4 text-violet-400" />
-            <span className="text-sm font-medium text-violet-300">New: Turbo Mode</span>
+            <span className="text-sm font-medium text-violet-300">v4: Custom Schemas + Extraction</span>
           </div>
           
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-            Deep Research for{' '}
+            How the{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
-              Systems
+              Pipeline
             </span>
+            {' '}Works
           </h2>
           <p className="text-lg text-gray-400 max-w-3xl mx-auto">
-            Ultra-fast structured research for agents and backend systems.{' '}
-            <span className="text-white">Built for machines, not browsers. JSON output in seconds.</span>
+            Multi-model orchestration that Perplexity can&apos;t offer.{' '}
+            <span className="text-white">Tavily search → Gemini reasoning → Groq rendering → Structured JSON.</span>
           </p>
         </motion.div>
 
@@ -382,9 +388,9 @@ const DeepResearchSection = () => {
                   <div className="w-3 h-3 rounded-full bg-yellow-500" />
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
-                <span className="text-sm text-gray-400 font-mono">Flash-Groq Relay Architecture</span>
+                <span className="text-sm text-gray-400 font-mono">Tavily → Gemini → Groq Pipeline</span>
               </div>
-              <span className="text-xs text-emerald-400 font-medium">structured JSON output</span>
+              <span className="text-xs text-emerald-400 font-medium">~30-40 seconds</span>
             </div>
 
             {/* Architecture Flow */}
@@ -396,7 +402,7 @@ const DeepResearchSection = () => {
                     <Search className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">1. Search</div>
-                  <div className="text-xs text-gray-500">Tavily fetches raw content</div>
+                  <div className="text-xs text-gray-500">Tavily fetches 5+ sources</div>
                 </div>
 
                 {/* Arrow */}
@@ -410,7 +416,7 @@ const DeepResearchSection = () => {
                     <Cpu className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">2. Reason</div>
-                  <div className="text-xs text-gray-500">Gemini extracts structured JSON</div>
+                  <div className="text-xs text-gray-500">Gemini 2.5 extracts insights</div>
                 </div>
 
                 {/* Arrow */}
@@ -424,7 +430,7 @@ const DeepResearchSection = () => {
                     <Zap className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">3. Render</div>
-                  <div className="text-xs text-gray-500">Groq writes English at hardware speed</div>
+                  <div className="text-xs text-gray-500">Groq writes at hardware speed</div>
                 </div>
 
                 {/* Arrow */}
@@ -438,23 +444,23 @@ const DeepResearchSection = () => {
                     <FileText className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">4. Report</div>
-                  <div className="text-xs text-gray-500">Structured, cited, API-ready</div>
+                  <div className="text-xs text-gray-500">Structured JSON with citations</div>
                 </div>
               </div>
 
               {/* Key Insight */}
               <div className="mt-8 p-4 bg-violet-500/10 border border-violet-500/20 rounded-xl">
                 <p className="text-center text-sm text-gray-300">
-                  <span className="text-violet-400 font-medium">The secret:</span>{' '}
-                  Gemini performs compact structured reasoning. Groq renders the result into English at hardware speed.{' '}
-                  <span className="text-white font-medium">Result: deep research without the latency tax.</span>
+                  <span className="text-violet-400 font-medium">Why not just Perplexity?</span>{' '}
+                  Perplexity is built for humans. We&apos;re built for machines.{' '}
+                  <span className="text-white font-medium">Custom schemas. Extraction mode. Webhook delivery. JSON, not Markdown.</span>
                 </p>
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Feature Cards */}
+        {/* Feature Cards - Updated */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -464,9 +470,9 @@ const DeepResearchSection = () => {
             className="p-6 bg-white/5 border border-white/10 rounded-2xl"
           >
             <Gauge className="w-10 h-10 text-cyan-400 mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">Optimized for Latency</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">Faster Than Deep Research</h3>
             <p className="text-gray-400 text-sm">
-              Separation of thinking (Gemini) and writing (Groq) eliminates the single-model bottleneck. End-to-end in ~4 seconds.
+              Perplexity Pro Deep Research takes 2-5 minutes. We return in 30-40 seconds with comparable depth.
             </p>
           </motion.div>
 
@@ -478,9 +484,9 @@ const DeepResearchSection = () => {
             className="p-6 bg-white/5 border border-white/10 rounded-2xl"
           >
             <Bot className="w-10 h-10 text-violet-400 mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">Built for Automation</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">Built for Machines</h3>
             <p className="text-gray-400 text-sm">
-              Deterministic, machine-friendly output designed for APIs and agent pipelines — not conversational fluff.
+              Deterministic JSON output with typed fields. No parsing Markdown. Slots directly into your agent pipeline.
             </p>
           </motion.div>
 
@@ -492,14 +498,14 @@ const DeepResearchSection = () => {
             className="p-6 bg-white/5 border border-white/10 rounded-2xl"
           >
             <Key className="w-10 h-10 text-amber-400 mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">BYOK Gemini Supported</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">BYOK = No Limits</h3>
             <p className="text-gray-400 text-sm">
-              Bring your own Gemini, Groq, and Tavily keys. Full control over costs with zero markup on your tokens.
+              Bring your own Gemini, Groq, and Tavily keys. No rate limits from us. Scale with your own quotas.
             </p>
           </motion.div>
         </div>
 
-        {/* Code Example */}
+        {/* Code Example - Updated for v4 */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -513,25 +519,26 @@ const DeepResearchSection = () => {
                 <div className="w-3 h-3 rounded-full bg-yellow-500" />
                 <div className="w-3 h-3 rounded-full bg-green-500" />
               </div>
-              <span className="text-xs text-gray-500 ml-2">POST /v1/deep-research</span>
+              <span className="text-xs text-gray-500 ml-2">Schema Mode — Define Your Output</span>
             </div>
             <pre className="p-6 text-left overflow-x-auto">
               <code className="text-sm">
-                <span className="text-fuchsia-400">const</span> <span className="text-white">report</span> <span className="text-gray-400">=</span> <span className="text-fuchsia-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">'/api/v1/deep-research'</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
+                <span className="text-gray-500">{'// Define exactly the structure you need'}</span>{'\n'}
+                <span className="text-fuchsia-400">const</span> <span className="text-white">result</span> <span className="text-gray-400">=</span> <span className="text-fuchsia-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">'/api/v1/deep-research'</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
                 <span className="text-white">  method</span><span className="text-gray-400">:</span> <span className="text-green-400">'POST'</span><span className="text-gray-400">,</span>{'\n'}
-                <span className="text-white">  headers</span><span className="text-gray-400">:</span> <span className="text-gray-400">{'{'}</span>{'\n'}
-                <span className="text-white">    </span><span className="text-green-400">'Authorization'</span><span className="text-gray-400">:</span> <span className="text-green-400">`Bearer ${'${'}API_KEY{'}'}`</span><span className="text-gray-400">,</span>{'\n'}
-                <span className="text-gray-500">    // Optional: BYOK headers</span>{'\n'}
-                <span className="text-white">    </span><span className="text-green-400">'x-gemini-key'</span><span className="text-gray-400">:</span> <span className="text-green-400">'your-gemini-key'</span><span className="text-gray-400">,</span>{'\n'}
-                <span className="text-white">    </span><span className="text-green-400">'x-groq-key'</span><span className="text-gray-400">:</span> <span className="text-green-400">'your-groq-key'</span><span className="text-gray-400">,</span>{'\n'}
-                <span className="text-gray-400">  {'}'},</span>{'\n'}
                 <span className="text-white">  body</span><span className="text-gray-400">:</span> <span className="text-violet-400">JSON</span><span className="text-gray-400">.</span><span className="text-violet-400">stringify</span><span className="text-gray-400">(</span><span className="text-gray-400">{'{'}</span>{'\n'}
-                <span className="text-white">    query</span><span className="text-gray-400">:</span> <span className="text-green-400">"Latest AI agent frameworks comparison 2026"</span>{'\n'}
+                <span className="text-white">    query</span><span className="text-gray-400">:</span> <span className="text-green-400">"Bitcoin price analysis"</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">    mode</span><span className="text-gray-400">:</span> <span className="text-green-400">"schema"</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">    preset</span><span className="text-gray-400">:</span> <span className="text-green-400">"crypto"</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">    schema</span><span className="text-gray-400">:</span> <span className="text-gray-400">{'{'}</span>{'\n'}
+                <span className="text-white">      current_price</span><span className="text-gray-400">:</span> <span className="text-green-400">"number"</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">      weekly_change</span><span className="text-gray-400">:</span> <span className="text-green-400">"string"</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">      sentiment</span><span className="text-gray-400">:</span> <span className="text-green-400">"bullish | bearish | neutral"</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">      key_events</span><span className="text-gray-400">:</span> <span className="text-green-400">"string[]"</span>{'\n'}
+                <span className="text-gray-400">    {'}'}</span>{'\n'}
                 <span className="text-gray-400">  {'})'}</span>{'\n'}
                 <span className="text-gray-400">{'})'}</span>{'\n\n'}
-                <span className="text-gray-500">{'// Response in ~4 seconds'}</span>{'\n'}
-                <span className="text-gray-500">{'// → Structured report with citations'}</span>{'\n'}
-                <span className="text-gray-500">{'// → meta.latency_ms: 3847'}</span>
+                <span className="text-gray-500">{'// → Returns your exact schema, filled with real data'}</span>
               </code>
             </pre>
           </div>
@@ -541,24 +548,24 @@ const DeepResearchSection = () => {
   );
 };
 
-// How It Works Section
+// How It Works Section - Smart Router
 const HowItWorksSection = () => {
   const steps = [
     {
       step: '01',
       title: 'Send Your Request',
-      description: 'POST to /v1/chat with your query and optional context (documents, emails, database rows).',
+      description: 'POST to /v1/chat with your query and optional context. The router handles everything.',
       code: `fetch('/v1/chat', {
   body: JSON.stringify({
-    query: "User question",
-    context: "Local data..."
+    query: "What's in my document?",
+    context: "Contract text..."
   })
 })`,
     },
     {
       step: '02',
-      title: 'Router Analyzes Intent',
-      description: 'Our Router Brain classifies the query in <100ms using pattern matching and lightweight ML.',
+      title: 'Intent Classification',
+      description: 'Our lightweight classifier determines if web search is needed — or if the answer exists in your context.',
       code: `// Router Decision
 {
   "intent": "CONTEXT",
@@ -568,14 +575,14 @@ const HowItWorksSection = () => {
     },
     {
       step: '03',
-      title: 'Optimal Path Execution',
-      description: 'Query is routed to CHAT, CONTEXT, or RESEARCH path based on what is actually needed.',
+      title: 'Smart Execution',
+      description: 'CHAT for casual queries (cheap). CONTEXT for document Q&A (no search). RESEARCH for web data.',
       code: `// Response
 {
   "answer": "Based on your document...",
   "meta": {
     "routed_to": "CONTEXT",
-    "cost_savings": true
+    "search_skipped": true
   }
 }`,
     },
@@ -590,11 +597,15 @@ const HowItWorksSection = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-6">
+            <Cpu className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-400">Also Available</span>
+          </div>
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-            How It Works
+            Smart Router API
           </h2>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            Integrate in minutes. See savings immediately.
+            Lightweight intent classification for simpler queries. Skip web search when you don&apos;t need it.
           </p>
         </motion.div>
 
@@ -1017,8 +1028,8 @@ export default function LandingPage() {
       <Navigation />
       <HeroSection />
       <StatsSection />
-      <FeaturesSection />
       <DeepResearchSection />
+      <FeaturesSection />
       <HowItWorksSection />
       <PricingSection />
       <FAQSection />

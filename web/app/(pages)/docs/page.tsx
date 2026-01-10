@@ -4,21 +4,20 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { 
   Zap, 
-  Book, 
-  Code, 
-  Key, 
   ArrowRight,
   Copy,
   Check,
-  ChevronDown,
-  Search,
   MessageSquare,
   FileText,
   Globe,
   Shield,
-  DollarSign
+  Search,
+  Sparkles,
+  Clock,
+  Database,
+  Webhook,
+  FlaskConical
 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
 
 const CodeBlock = ({ code, language = 'bash' }: { code: string; language?: string }) => {
   const [copied, setCopied] = useState(false)
@@ -30,20 +29,22 @@ const CodeBlock = ({ code, language = 'bash' }: { code: string; language?: strin
   }
   
   return (
-    <div className="relative bg-gray-900 rounded-xl border border-white/10 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-        <span className="text-xs text-gray-500">{language}</span>
+    <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-800 bg-gray-100 dark:bg-[#0c0c0e] shadow-sm">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-gray-200/50 dark:bg-[#161618]">
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{language}</span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition-colors"
+          className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-violet-500 dark:hover:text-violet-400 transition-colors"
         >
-          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
-      <pre className="p-4 overflow-x-auto text-sm">
-        <code className="text-gray-300">{code}</code>
-      </pre>
+      <div className="p-4 overflow-x-auto">
+        <pre className="font-mono text-sm leading-relaxed text-gray-800 dark:text-gray-300">
+          <code>{code}</code>
+        </pre>
+      </div>
     </div>
   )
 }
@@ -52,59 +53,56 @@ export default function DocsPage() {
   const [activeSection, setActiveSection] = useState('introduction')
   
   const sections = [
-    { id: 'introduction', label: 'Introduction' },
-    { id: 'quickstart', label: 'Quick Start' },
+    { id: 'introduction', label: 'Quick Start' },
+    { id: 'how-it-works', label: 'How It Works' },
     { id: 'authentication', label: 'Authentication' },
-    { id: 'endpoints', label: 'API Reference' },
-    { id: 'advanced', label: 'Advanced Parameters' },
-    { id: 'enterprise', label: '🔴 Enterprise' },
-    { id: 'routing', label: 'Routing Logic' },
+    { id: 'chat-endpoint', label: 'Chat API' },
+    { id: 'deep-research', label: 'Deep Research' },
+    { id: 'advanced', label: 'Parameters' },
+    { id: 'enterprise', label: 'Compliance' },
     { id: 'examples', label: 'Examples' },
     { id: 'pricing', label: 'Pricing' },
   ]
   
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-white dark:bg-[#050505] text-gray-900 dark:text-gray-100">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold">UnforgeAPI</span>
-              <span className="text-gray-500 ml-2">Docs</span>
-            </Link>
-            
-            <div className="flex items-center gap-4">
-              <Link href="/signin" className="text-sm text-gray-400 hover:text-white">
-                Sign In
-              </Link>
-              <Link
-                href="/signup"
-                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-lg"
-              >
-                Get API Key
-              </Link>
+      <header className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-[#050505]/80 backdrop-blur-md">
+        <div className="max-w-[1600px] mx-auto px-4 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-violet-500 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/20">
+              <Zap className="w-4 h-4 text-white" />
             </div>
+            <div className="flex items-baseline gap-2">
+              <span className="font-bold text-lg tracking-tight">UnforgeAPI</span>
+              <span className="text-gray-500 dark:text-gray-400 text-sm">Docs</span>
+            </div>
+          </Link>
+          
+          <div className="flex items-center gap-6 text-sm font-medium">
+            <Link
+              href="/dashboard/keys"
+              className="bg-violet-500 hover:bg-violet-600 text-white px-4 py-2 rounded-lg transition-all shadow-[0_0_20px_-5px_rgba(139,92,246,0.3)]"
+            >
+              Get Started
+            </Link>
           </div>
         </div>
       </header>
       
-      <div className="flex pt-16">
+      <div className="flex-1 max-w-[1600px] mx-auto w-full flex">
         {/* Sidebar */}
-        <aside className="fixed left-0 top-16 bottom-0 w-64 bg-neutral-950 border-r border-white/10 overflow-y-auto">
-          <nav className="p-6 space-y-1">
+        <aside className="w-64 fixed hidden md:block h-[calc(100vh-4rem)] overflow-y-auto py-8 pr-6 border-r border-gray-200 dark:border-zinc-800 bg-white dark:bg-[#050505]">
+          <nav className="space-y-1">
             {sections.map((section) => (
               <a
                 key={section.id}
                 href={`#${section.id}`}
                 onClick={() => setActiveSection(section.id)}
-                className={`block px-3 py-2 rounded-lg transition-colors ${
+                className={`block px-4 py-2 rounded-lg transition-colors ${
                   activeSection === section.id
-                    ? 'bg-violet-500/20 text-violet-400'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-violet-500/10 dark:bg-[#1e1b29] text-violet-500 font-medium border-l-2 border-violet-500'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-900 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 {section.label}
@@ -114,94 +112,108 @@ export default function DocsPage() {
         </aside>
         
         {/* Main Content */}
-        <main className="flex-1 ml-64 p-8 max-w-4xl">
-          {/* Introduction */}
+        <main className="flex-1 md:pl-72 py-10 px-6 max-w-5xl">
+          {/* Introduction - Optimized for First Success */}
           <section id="introduction" className="mb-16">
-            <h1 className="text-4xl font-bold mb-4">UnforgeAPI Documentation</h1>
-            <p className="text-xl text-gray-400 mb-8">
-              The Hybrid RAG Router that cuts your AI costs by 70%.
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight text-gray-900 dark:text-white">
+              UnforgeAPI Documentation
+            </h1>
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+              One API that routes your queries to fast chat, your private context, or live web research—automatically.
             </p>
             
-            <div className="p-6 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-2xl mb-8">
-              <h3 className="font-semibold mb-2">What is UnforgeAPI?</h3>
-              <p className="text-gray-400">
-                UnforgeAPI is intelligent middleware that analyzes every query and routes it to the most cost-effective path:
-              </p>
-              <ul className="mt-4 space-y-2">
-                <li className="flex items-center gap-2 text-gray-300">
-                  <MessageSquare className="w-5 h-5 text-blue-400" />
-                  <strong>CHAT:</strong> Greetings → Fast Llama-3-8b (no search)
-                </li>
-                <li className="flex items-center gap-2 text-gray-300">
-                  <FileText className="w-5 h-5 text-emerald-400" />
-                  <strong>CONTEXT:</strong> Answerable from your data → RAG synthesis (no search)
-                </li>
-                <li className="flex items-center gap-2 text-gray-300">
-                  <Globe className="w-5 h-5 text-orange-400" />
-                  <strong>RESEARCH:</strong> Needs facts → Web search + Llama-3-70b
-                </li>
-              </ul>
+            {/* Immediate Working Example */}
+            <div className="bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-2xl p-6 mb-6">
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Try it now</h3>
+              <CodeBlock
+                language="bash"
+                code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "What is the capital of France?"}'`}
+              />
+              
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-6 mb-4">Response</h3>
+              <CodeBlock
+                language="json"
+                code={`{
+  "answer": "The capital of France is Paris.",
+  "meta": {
+    "intent": "CHAT",
+    "latency_ms": 320,
+    "cost_saving": true
+  }
+}`}
+              />
             </div>
+            
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              That's it. The API detected this was a simple question and responded in 320ms without a web search.
+            </p>
           </section>
           
-          {/* Quick Start */}
-          <section id="quickstart" className="mb-16">
-            <h2 className="text-2xl font-bold mb-6">Quick Start</h2>
+          {/* Why Routing Exists */}
+          <section id="how-it-works" className="mb-16">
+            <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">How It Works</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              A normal chat API treats every query the same. UnforgeAPI analyzes each query and picks the fastest, cheapest path that still gives a good answer. This reduces latency and cost without you writing routing logic.
+            </p>
             
-            <div className="space-y-6">
-              <div>
-                <h3 className="font-semibold mb-3">1. Get your API key</h3>
-                <p className="text-gray-400 mb-4">
-                  Sign up and create a Managed API key from your dashboard. No additional setup needed!
+            <div className="space-y-4 mb-8">
+              <div className="p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">CHAT</h4>
+                  <span className="text-xs text-gray-500 ml-auto">~0.3s</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Greetings, simple questions, casual conversation. No web search, no context lookup.
                 </p>
-                <Link
-                  href="/signup"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-violet-600 rounded-lg font-medium hover:bg-violet-500 transition-colors"
-                >
-                  Create Account <ArrowRight className="w-4 h-4" />
-                </Link>
               </div>
               
-              <div>
-                <h3 className="font-semibold mb-3">2. Make your first request</h3>
-                <p className="text-gray-500 text-sm mb-2">
-                  With Managed tier, just use your API key - we handle the rest:
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">CONTEXT</h4>
+                  <span className="text-xs text-gray-500 ml-auto">~0.5s</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  When you pass your own data via the <code className="text-violet-600 dark:text-violet-400">context</code> field, and the answer is in that data. No web search cost.
                 </p>
-                <CodeBlock
-                  language="bash"
-                  code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
-  -H "Authorization: Bearer uf_your_api_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "query": "What is the capital of France?"
-  }'`}
-                />
               </div>
               
-              <div>
-                <h3 className="font-semibold mb-3">3. With context (recommended)</h3>
-                <CodeBlock
-                  language="bash"
-                  code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
-  -H "Authorization: Bearer uf_your_api_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "query": "What is the deadline?",
-    "context": "Project Alpha deadline is January 15, 2026. Budget: $50,000."
-  }'`}
-                />
-                <p className="text-gray-500 text-sm mt-2">
-                  ↑ This will route to CONTEXT path (no web search = cost savings!)
+              <div className="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">RESEARCH</h4>
+                  <span className="text-xs text-gray-500 ml-auto">~1.5s</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Questions that need current facts from the web. Searches and synthesizes an answer.
                 </p>
               </div>
+            </div>
+            
+            {/* When to Use What */}
+            <div className="p-6 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-2xl">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">When to use what</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                Use <strong className="text-gray-800 dark:text-gray-200">CHAT</strong> for greetings and casual conversation where speed matters. 
+                Use <strong className="text-gray-800 dark:text-gray-200">CONTEXT</strong> when you already have the answer inside your data and want to avoid web search costs. 
+                Use <strong className="text-gray-800 dark:text-gray-200">RESEARCH</strong> when freshness and external verification are required.
+                The router picks automatically, but you can override with <code className="text-violet-600 dark:text-violet-400">force_intent</code>.
+              </p>
             </div>
           </section>
           
           {/* Authentication */}
           <section id="authentication" className="mb-16">
-            <h2 className="text-2xl font-bold mb-6">Authentication</h2>
+            <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Authentication</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              All requests require an API key in the Authorization header.
+            </p>
             
-            <p className="text-gray-400 mb-4">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
               All API requests require a valid API key passed in the Authorization header.
             </p>
             
@@ -210,26 +222,26 @@ export default function DocsPage() {
               code={`Authorization: Bearer uf_your_api_key`}
             />
             
-            <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-              <p className="text-yellow-400 text-sm">
+            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-xl">
+              <p className="text-yellow-700 dark:text-yellow-400 text-sm">
                 <strong>Security Note:</strong> Never expose your API key in client-side code. 
                 Always make requests from your backend server.
               </p>
             </div>
             
             {/* Managed Tier */}
-            <h3 className="font-semibold mt-8 mb-4 flex items-center gap-2">
-              <span className="text-2xl">🔥</span> Managed Tier (Recommended)
+            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">
+              Managed Tier (Recommended)
             </h3>
-            <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-4">
-              <p className="text-emerald-300 text-sm mb-2">
-                <strong>Plug & Play:</strong> Just use your UnforgeAPI key. We provide Groq + Tavily behind the scenes.
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl mb-4">
+              <p className="text-emerald-700 dark:text-emerald-300 text-sm mb-2">
+                <strong>Plug & Play:</strong> Just use your UnforgeAPI key. We handle everything.
               </p>
-              <ul className="text-gray-400 text-sm space-y-1">
-                <li>✅ No extra setup - get your key and start building</li>
-                <li>✅ We handle infrastructure, rate limiting, monitoring</li>
-                <li>✅ Predictable billing: $29/mo flat, 10,000 requests included</li>
-                <li>✅ All enterprise features included</li>
+              <ul className="text-gray-600 dark:text-gray-400 text-sm space-y-1 list-disc list-inside">
+                <li>No extra setup - get your key and start building</li>
+                <li>We handle infrastructure, rate limiting, monitoring</li>
+                <li>Predictable billing: $20/mo flat</li>
+                <li>All features included</li>
               </ul>
             </div>
             <CodeBlock
@@ -242,18 +254,17 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
             />
 
             {/* BYOK Tier */}
-            <h3 className="font-semibold mt-8 mb-4 flex items-center gap-2">
-              <span className="text-2xl">💰</span> BYOK Tier (Bring Your Own Keys)
+            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">
+              BYOK Tier (Bring Your Own Keys)
             </h3>
-            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-4">
-              <p className="text-amber-300 text-sm mb-2">
-                <strong>Full Control:</strong> Use your own Groq and Tavily API keys for unlimited usage.
+            <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl mb-4">
+              <p className="text-amber-700 dark:text-amber-300 text-sm mb-2">
+                <strong>Full Control:</strong> Use your own API keys. BYOK Pro gets unlimited usage.
               </p>
-              <ul className="text-gray-400 text-sm space-y-1">
-                <li>✅ Unlimited usage - no rate limits from us</li>
-                <li>✅ Cost control - pay Groq/Tavily directly at their rates</li>
-                <li>✅ Enterprise scale for high-volume applications</li>
-                <li>✅ Lower platform fee: $9/mo (you handle LLM costs)</li>
+              <ul className="text-gray-600 dark:text-gray-400 text-sm space-y-1 list-disc list-inside">
+                <li>BYOK Pro: Unlimited usage with your own keys</li>
+                <li>Pay providers directly at their rates</li>
+                <li>Platform fee: $5/mo</li>
               </ul>
             </div>
             <CodeBlock
@@ -266,105 +277,380 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
   -H "Content-Type: application/json" \\
   -d '{"query": "What is quantum computing?"}'`}
             />
-            <div className="mt-4 p-4 bg-violet-500/10 border border-violet-500/20 rounded-xl">
-              <p className="text-violet-300 text-sm">
-                <strong>🔒 Stateless Security:</strong> Your Groq and Tavily keys are only used for the duration 
-                of the request and are never logged or stored. This gives you full control over your API spend.
+            <div className="mt-4 p-4 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 rounded-xl">
+              <p className="text-violet-700 dark:text-violet-300 text-sm">
+                <strong>Stateless Security:</strong> Your API keys are only used for the duration 
+                of the request and are never logged or stored.
               </p>
             </div>
           </section>
           
-          {/* API Reference */}
-          <section id="endpoints" className="mb-16">
-            <h2 className="text-2xl font-bold mb-6">API Reference</h2>
+          {/* Deep Research - Main Feature */}
+          <section id="deep-research" className="mb-16">
+            <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white flex items-center gap-3">
+              <Search className="w-7 h-7 text-violet-500" />
+              Deep Research API
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
+              Searches the web, extracts facts from multiple sources, and returns a structured report with citations. Takes about 30 seconds.
+            </p>
             
-            <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+            {/* Main Endpoint Card */}
+            <div className="p-6 bg-gradient-to-br from-violet-50 to-fuchsia-50 dark:from-violet-500/10 dark:to-fuchsia-500/10 border border-violet-200 dark:border-violet-500/30 rounded-2xl mb-8">
               <div className="flex items-center gap-2 mb-4">
-                <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-mono rounded">POST</span>
-                <code className="text-lg font-mono">/v1/chat</code>
+                <span className="px-2 py-1 bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-400 text-xs font-mono rounded font-bold">POST</span>
+                <code className="text-lg font-mono text-gray-900 dark:text-white">/v1/deep-research</code>
+                <span className="ml-auto px-2 py-1 bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 text-xs rounded">~30s</span>
               </div>
               
-              <p className="text-gray-400 mb-6">
-                The primary endpoint for routing and generation.
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Performs multi-source web research and returns a structured report with citations.
               </p>
               
-              <h4 className="font-semibold mb-3">Request Body</h4>
+              <CodeBlock
+                language="bash"
+                code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/deep-research \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "query": "What is the current state of quantum computing in 2026?"
+  }'`}
+              />
+            </div>
+            
+            {/* Request Parameters */}
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Request Parameters</h3>
+            <div className="overflow-x-auto bg-gray-50 dark:bg-zinc-900/50 rounded-2xl border border-gray-200 dark:border-zinc-800 p-6 mb-8">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-zinc-700">
+                    <th className="text-left py-2 text-gray-500 dark:text-gray-400">Parameter</th>
+                    <th className="text-left py-2 text-gray-500 dark:text-gray-400">Type</th>
+                    <th className="text-left py-2 text-gray-500 dark:text-gray-400">Required</th>
+                    <th className="text-left py-2 text-gray-500 dark:text-gray-400">Description</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-700 dark:text-gray-300">
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-mono text-violet-600 dark:text-violet-400">query</td>
+                    <td className="py-3">string</td>
+                    <td className="py-3">Yes</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Research question or topic</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-mono text-violet-600 dark:text-violet-400">mode</td>
+                    <td className="py-3">string</td>
+                    <td className="py-3">No</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">"report" | "extract" | "schema" | "compare"</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-mono text-violet-600 dark:text-violet-400">preset</td>
+                    <td className="py-3">string</td>
+                    <td className="py-3">No</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">"general" | "crypto" | "stocks" | "tech" | "academic" | "news"</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-mono text-violet-600 dark:text-violet-400">extract</td>
+                    <td className="py-3">string[]</td>
+                    <td className="py-3">No</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Fields to extract (for "extract" mode)</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-mono text-violet-600 dark:text-violet-400">schema</td>
+                    <td className="py-3">object</td>
+                    <td className="py-3">No</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Custom JSON schema (for "schema" mode)</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-mono text-violet-600 dark:text-violet-400">queries</td>
+                    <td className="py-3">string[]</td>
+                    <td className="py-3">No</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Multiple topics (for "compare" mode)</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 font-mono text-orange-600 dark:text-orange-400">webhook</td>
+                    <td className="py-3">string</td>
+                    <td className="py-3">No</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">URL for async delivery (returns immediately)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Output Modes */}
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Output Modes</h3>
+            <div className="grid md:grid-cols-2 gap-4 mb-8">
+              <div className="p-4 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4 text-violet-500" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">report</h4>
+                  <span className="text-xs text-gray-500">(default)</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Full prose report with executive summary, key findings, and sources.</p>
+              </div>
+              <div className="p-4 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <Database className="w-4 h-4 text-emerald-500" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">extract</h4>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Extract specific fields like price, date, features into structured data.</p>
+              </div>
+              <div className="p-4 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <FlaskConical className="w-4 h-4 text-blue-500" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">schema</h4>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Define your own JSON schema for custom output structure.</p>
+              </div>
+              <div className="p-4 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-orange-500" />
+                  <h4 className="font-semibold text-gray-900 dark:text-white">compare</h4>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">Compare multiple topics side-by-side in one call.</p>
+              </div>
+            </div>
+            
+            {/* Domain Presets */}
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Domain Presets</h3>
+            <div className="overflow-x-auto bg-gray-50 dark:bg-zinc-900/50 rounded-2xl border border-gray-200 dark:border-zinc-800 p-6 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                <div className="p-3 bg-white dark:bg-zinc-800/50 rounded-lg border border-gray-100 dark:border-zinc-700">
+                  <div className="font-mono text-violet-600 dark:text-violet-400 mb-1">general</div>
+                  <div className="text-gray-500 text-xs">Balanced, comprehensive results</div>
+                </div>
+                <div className="p-3 bg-white dark:bg-zinc-800/50 rounded-lg border border-gray-100 dark:border-zinc-700">
+                  <div className="font-mono text-violet-600 dark:text-violet-400 mb-1">crypto</div>
+                  <div className="text-gray-500 text-xs">CoinDesk, CoinGecko, DeFiLlama</div>
+                </div>
+                <div className="p-3 bg-white dark:bg-zinc-800/50 rounded-lg border border-gray-100 dark:border-zinc-700">
+                  <div className="font-mono text-violet-600 dark:text-violet-400 mb-1">stocks</div>
+                  <div className="text-gray-500 text-xs">Yahoo Finance, Bloomberg, Reuters</div>
+                </div>
+                <div className="p-3 bg-white dark:bg-zinc-800/50 rounded-lg border border-gray-100 dark:border-zinc-700">
+                  <div className="font-mono text-violet-600 dark:text-violet-400 mb-1">tech</div>
+                  <div className="text-gray-500 text-xs">TechCrunch, The Verge, Ars Technica</div>
+                </div>
+                <div className="p-3 bg-white dark:bg-zinc-800/50 rounded-lg border border-gray-100 dark:border-zinc-700">
+                  <div className="font-mono text-violet-600 dark:text-violet-400 mb-1">academic</div>
+                  <div className="text-gray-500 text-xs">arXiv, PubMed, Nature, Scholar</div>
+                </div>
+                <div className="p-3 bg-white dark:bg-zinc-800/50 rounded-lg border border-gray-100 dark:border-zinc-700">
+                  <div className="font-mono text-violet-600 dark:text-violet-400 mb-1">news</div>
+                  <div className="text-gray-500 text-xs">Reuters, AP News, BBC, NPR</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Example: Extract Mode */}
+            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Example: Extract Mode</h3>
+            <CodeBlock
+              language="bash"
+              code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/deep-research \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "query": "iPhone 16 Pro Max",
+    "mode": "extract",
+    "preset": "tech",
+    "extract": ["price", "release_date", "key_features", "storage_options"]
+  }'`}
+            />
+            
+            {/* Example: Webhook (Async) */}
+            <h3 className="text-xl font-semibold mb-4 mt-8 text-gray-900 dark:text-white flex items-center gap-2">
+              <Webhook className="w-5 h-5 text-orange-500" />
+              Async with Webhook
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">
+              For long-running research, use webhooks. The API returns immediately and POSTs results to your endpoint when complete.
+            </p>
+            <CodeBlock
+              language="bash"
+              code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/deep-research \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "query": "Compare Tesla, Rivian, and Lucid stock performance",
+    "mode": "compare",
+    "preset": "stocks",
+    "queries": ["Tesla stock TSLA", "Rivian stock RIVN", "Lucid stock LCID"],
+    "webhook": "https://your-app.com/api/research-callback"
+  }'
+
+# Returns immediately:
+# { "status": "processing", "request_id": "req_abc123" }
+
+# Your webhook receives the full report when ready`}
+            />
+            
+            {/* Response Example */}
+            <h3 className="text-xl font-semibold mb-4 mt-8 text-gray-900 dark:text-white">Response Example</h3>
+            <CodeBlock
+              language="json"
+              code={`{
+  "report": "## Executive Summary\\n\\nQuantum computing in 2026 has reached...",
+  "facts": {
+    "key_stats": ["IBM: 1,121 qubits", "Google: 70 logical qubits"],
+    "dates": ["Q2 2026: IBM Condor launch"],
+    "entities": ["IBM", "Google", "IonQ", "Rigetti"]
+  },
+  "sources": [
+    { "title": "IBM Quantum Roadmap 2026", "url": "https://..." },
+    { "title": "Nature: Quantum Computing Advances", "url": "https://..." }
+  ],
+  "meta": {
+    "latency_ms": 28450,
+    "cached": false,
+    "search_results": 5,
+    "preset": "tech"
+  }
+}`}
+            />
+            
+            {/* Rate Limits */}
+            <div className="mt-8 p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl">
+              <h4 className="font-semibold text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Deep Research Limits
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Sandbox</div>
+                  <div className="font-medium text-gray-900 dark:text-white">No access</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Managed Pro</div>
+                  <div className="font-medium text-gray-900 dark:text-white">50/month</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">BYOK Starter</div>
+                  <div className="font-medium text-gray-900 dark:text-white">5/day</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">BYOK Pro</div>
+                  <div className="font-medium text-gray-900 dark:text-white">25/day</div>
+                </div>
+              </div>
+            </div>
+          </section>
+          
+          {/* Chat Endpoint - Secondary */}
+          <section id="chat-endpoint" className="mb-16">
+            <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white flex items-center gap-3">
+              <MessageSquare className="w-7 h-7 text-blue-500" />
+              Chat API
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
+              The main endpoint. Analyzes each query and routes it to the fastest path that gives a good answer.
+            </p>
+            
+            <div className="p-6 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-2xl">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-2 py-1 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 text-xs font-mono rounded">POST</span>
+                <code className="text-lg font-mono text-gray-900 dark:text-white">/v1/chat</code>
+              </div>
+              
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Routes to CHAT, CONTEXT, or RESEARCH automatically based on the query.
+              </p>
+              
+              {/* Routing Paths */}
+              <div className="grid md:grid-cols-3 gap-3 mb-6">
+                <div className="p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg">
+                  <div className="font-semibold text-blue-700 dark:text-blue-400 text-sm mb-1">CHAT</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-xs">Greetings, casual talk</div>
+                  <div className="text-blue-600 dark:text-blue-400 text-xs mt-1">~0.3s • $0.0001</div>
+                </div>
+                <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-lg">
+                  <div className="font-semibold text-emerald-700 dark:text-emerald-400 text-sm mb-1">CONTEXT</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-xs">Answered from your data</div>
+                  <div className="text-emerald-600 dark:text-emerald-400 text-xs mt-1">~0.5s • $0.0002</div>
+                </div>
+                <div className="p-3 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-lg">
+                  <div className="font-semibold text-orange-700 dark:text-orange-400 text-sm mb-1">RESEARCH</div>
+                  <div className="text-gray-600 dark:text-gray-400 text-xs">Web search needed</div>
+                  <div className="text-orange-600 dark:text-orange-400 text-xs mt-1">~1.5s • $0.002</div>
+                </div>
+              </div>
+              
+              <h4 className="font-semibold mb-3 text-gray-900 dark:text-white">Request Body</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/10">
-                      <th className="text-left py-2 text-gray-400">Parameter</th>
-                      <th className="text-left py-2 text-gray-400">Type</th>
-                      <th className="text-left py-2 text-gray-400">Required</th>
-                      <th className="text-left py-2 text-gray-400">Description</th>
+                    <tr className="border-b border-gray-200 dark:border-zinc-700">
+                      <th className="text-left py-2 text-gray-500 dark:text-gray-400">Parameter</th>
+                      <th className="text-left py-2 text-gray-500 dark:text-gray-400">Type</th>
+                      <th className="text-left py-2 text-gray-500 dark:text-gray-400">Required</th>
+                      <th className="text-left py-2 text-gray-500 dark:text-gray-400">Description</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-violet-400">query</td>
+                  <tbody className="text-gray-700 dark:text-gray-300">
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <td className="py-3 font-mono text-violet-600 dark:text-violet-400">query</td>
                       <td className="py-3">string</td>
                       <td className="py-3">Yes</td>
-                      <td className="py-3 text-gray-400">The user's input/question (max 10,000 chars)</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">The user's input/question (max 10,000 chars)</td>
                     </tr>
-                    <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-violet-400">context</td>
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <td className="py-3 font-mono text-violet-600 dark:text-violet-400">context</td>
                       <td className="py-3">string</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">Your business data/documents to search within</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">Your business data/documents to search within</td>
                     </tr>
-                    <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-violet-400">history</td>
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <td className="py-3 font-mono text-violet-600 dark:text-violet-400">history</td>
                       <td className="py-3">array</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">Conversation history for multi-turn chats</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">Conversation history for multi-turn chats</td>
                     </tr>
-                    <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-violet-400">system_prompt</td>
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <td className="py-3 font-mono text-violet-600 dark:text-violet-400">system_prompt</td>
                       <td className="py-3">string</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">Custom system prompt for AI persona/behavior</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">Custom system prompt for AI persona/behavior</td>
                     </tr>
-                    <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-violet-400">force_intent</td>
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <td className="py-3 font-mono text-violet-600 dark:text-violet-400">force_intent</td>
                       <td className="py-3">string</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">"CHAT", "CONTEXT", or "RESEARCH"</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">"CHAT", "CONTEXT", or "RESEARCH"</td>
                     </tr>
-                    <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-violet-400">temperature</td>
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <td className="py-3 font-mono text-violet-600 dark:text-violet-400">temperature</td>
                       <td className="py-3">number</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">0.0 to 1.0 (default: 0.3)</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">0.0 to 1.0 (default: 0.3)</td>
                     </tr>
-                    <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-violet-400">max_tokens</td>
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <td className="py-3 font-mono text-violet-600 dark:text-violet-400">max_tokens</td>
                       <td className="py-3">number</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">50 to 2000 (default: 600)</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">50 to 2000 (default: 600)</td>
                     </tr>
-                    <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-red-400">strict_mode</td>
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <td className="py-3 font-mono text-red-500 dark:text-red-400">strict_mode</td>
                       <td className="py-3">boolean</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">🔴 Enforce system_prompt as hard constraints</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">Enforce system_prompt as hard constraints</td>
                     </tr>
-                    <tr className="border-b border-white/5">
-                      <td className="py-3 font-mono text-red-400">grounded_only</td>
+                    <tr className="border-b border-gray-100 dark:border-zinc-800">
+                      <td className="py-3 font-mono text-red-500 dark:text-red-400">grounded_only</td>
                       <td className="py-3">boolean</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">🔴 Only answer from context (zero hallucination)</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">Only answer from context (zero hallucination)</td>
                     </tr>
                     <tr>
-                      <td className="py-3 font-mono text-yellow-400">citation_mode</td>
+                      <td className="py-3 font-mono text-yellow-600 dark:text-yellow-400">citation_mode</td>
                       <td className="py-3">boolean</td>
                       <td className="py-3">No</td>
-                      <td className="py-3 text-gray-400">Return context excerpts used in response</td>
+                      <td className="py-3 text-gray-600 dark:text-gray-400">Return context excerpts used in response</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
               
-              <h4 className="font-semibold mt-8 mb-3">Response</h4>
+              <h4 className="font-semibold mt-8 mb-3 text-gray-900 dark:text-white">Response</h4>
               <CodeBlock
                 language="json"
                 code={`{
@@ -395,16 +681,16 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
           
           {/* Advanced Parameters */}
           <section id="advanced" className="mb-16">
-            <h2 className="text-2xl font-bold mb-6">Advanced Parameters</h2>
+            <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Advanced Parameters</h2>
             
             <div className="space-y-6">
               {/* system_prompt */}
-              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+              <div className="p-6 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-2xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <code className="text-lg font-mono text-violet-400">system_prompt</code>
-                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-400 text-xs rounded">string</span>
+                  <code className="text-lg font-mono text-violet-600 dark:text-violet-400">system_prompt</code>
+                  <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 text-xs rounded">string</span>
                 </div>
-                <p className="text-gray-400 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Control exactly how the AI behaves - its personality, tone, and constraints.
                 </p>
                 <CodeBlock
@@ -416,17 +702,17 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
 }`}
                 />
                 <p className="text-gray-500 text-sm mt-3">
-                  💡 Use this to prevent hallucination and define your bot's identity.
+                  Use this to prevent hallucination and define your bot's identity.
                 </p>
               </div>
               
               {/* force_intent */}
-              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+              <div className="p-6 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-2xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <code className="text-lg font-mono text-violet-400">force_intent</code>
-                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs rounded">CHAT | CONTEXT | RESEARCH</span>
+                  <code className="text-lg font-mono text-violet-600 dark:text-violet-400">force_intent</code>
+                  <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-xs rounded">CHAT | CONTEXT | RESEARCH</span>
                 </div>
-                <p className="text-gray-400 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Override the automatic intent classifier. Use when you know exactly which path to use.
                 </p>
                 <CodeBlock
@@ -438,83 +724,39 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
 }`}
                 />
                 <p className="text-gray-500 text-sm mt-3">
-                  💡 Without this, conversational queries might route to CHAT and ignore your context.
+                  Without this, conversational queries might route to CHAT and ignore your context.
                 </p>
               </div>
               
               {/* temperature */}
-              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+              <div className="p-6 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-2xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <code className="text-lg font-mono text-violet-400">temperature</code>
-                  <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded">0.0 - 1.0</span>
+                  <code className="text-lg font-mono text-violet-600 dark:text-violet-400">temperature</code>
+                  <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 text-xs rounded">0.0 - 1.0</span>
                 </div>
-                <p className="text-gray-400 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Control creativity. Lower = more factual and consistent. Higher = more creative.
                 </p>
                 <div className="overflow-x-auto mb-4">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="text-left py-2 text-gray-400">Value</th>
-                        <th className="text-left py-2 text-gray-400">Use Case</th>
+                      <tr className="border-b border-gray-200 dark:border-zinc-700">
+                        <th className="text-left py-2 text-gray-500 dark:text-gray-400">Value</th>
+                        <th className="text-left py-2 text-gray-500 dark:text-gray-400">Use Case</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      <tr className="border-b border-white/5">
+                    <tbody className="text-gray-700 dark:text-gray-300">
+                      <tr className="border-b border-gray-100 dark:border-zinc-800">
                         <td className="py-2 font-mono">0.1 - 0.3</td>
-                        <td className="py-2 text-gray-400">Customer support, FAQ bots (factual)</td>
+                        <td className="py-2 text-gray-600 dark:text-gray-400">Customer support, FAQ bots (factual)</td>
                       </tr>
-                      <tr className="border-b border-white/5">
+                      <tr className="border-b border-gray-100 dark:border-zinc-800">
                         <td className="py-2 font-mono">0.4 - 0.6</td>
-                        <td className="py-2 text-gray-400">General assistants (balanced)</td>
+                        <td className="py-2 text-gray-600 dark:text-gray-400">General assistants (balanced)</td>
                       </tr>
                       <tr>
                         <td className="py-2 font-mono">0.7 - 1.0</td>
-                        <td className="py-2 text-gray-400">Creative writing, brainstorming</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-              
-              {/* max_tokens */}
-              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <code className="text-lg font-mono text-violet-400">max_tokens</code>
-                  <span className="px-2 py-0.5 bg-fuchsia-500/20 text-fuchsia-400 text-xs rounded">50 - 2000</span>
-                </div>
-                <p className="text-gray-400 mb-4">
-                  Limit response length. ~1 token ≈ 0.75 words.
-                </p>
-                <div className="overflow-x-auto mb-4">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="text-left py-2 text-gray-400">Value</th>
-                        <th className="text-left py-2 text-gray-400">~Words</th>
-                        <th className="text-left py-2 text-gray-400">Use Case</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-white/5">
-                        <td className="py-2 font-mono">100</td>
-                        <td className="py-2">~75</td>
-                        <td className="py-2 text-gray-400">Quick answers, chatbots</td>
-                      </tr>
-                      <tr className="border-b border-white/5">
-                        <td className="py-2 font-mono">300</td>
-                        <td className="py-2">~225</td>
-                        <td className="py-2 text-gray-400">Standard responses</td>
-                      </tr>
-                      <tr className="border-b border-white/5">
-                        <td className="py-2 font-mono">600</td>
-                        <td className="py-2">~450</td>
-                        <td className="py-2 text-gray-400">Detailed explanations (default)</td>
-                      </tr>
-                      <tr>
-                        <td className="py-2 font-mono">1000+</td>
-                        <td className="py-2">~750+</td>
-                        <td className="py-2 text-gray-400">Long-form content</td>
+                        <td className="py-2 text-gray-600 dark:text-gray-400">Creative writing, brainstorming</td>
                       </tr>
                     </tbody>
                   </table>
@@ -522,12 +764,12 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
               </div>
               
               {/* history */}
-              <div className="p-6 bg-white/5 border border-white/10 rounded-2xl">
+              <div className="p-6 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-2xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <code className="text-lg font-mono text-violet-400">history</code>
-                  <span className="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded">array</span>
+                  <code className="text-lg font-mono text-violet-600 dark:text-violet-400">history</code>
+                  <span className="px-2 py-0.5 bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400 text-xs rounded">array</span>
                 </div>
-                <p className="text-gray-400 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Include conversation history for multi-turn conversations. The AI will remember previous messages.
                 </p>
                 <CodeBlock
@@ -542,27 +784,29 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
 }`}
                 />
               </div>
-              
-              {/* Enterprise Features Header */}
-              <div className="pt-8 pb-4">
-                <h3 className="text-xl font-bold text-red-400 flex items-center gap-2">
-                  <Shield className="w-5 h-5" />
-                  Enterprise Features
-                </h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  Production-ready parameters for compliance, reliability, and transparency.
-                </p>
-              </div>
-              
+            </div>
+          </section>
+          
+          {/* Enterprise Features */}
+          <section id="enterprise" className="mb-16">
+            <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white flex items-center gap-3">
+              <Shield className="w-7 h-7 text-red-500" />
+              Compliance Parameters
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-8">
+              These parameters let you control hallucination, enforce boundaries, and provide audit trails.
+            </p>
+            
+            <div className="space-y-6">
               {/* strict_mode */}
-              <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
+              <div className="p-6 bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-2xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <code className="text-lg font-mono text-red-400">strict_mode</code>
-                  <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">boolean</span>
-                  <span className="px-2 py-0.5 bg-red-500/30 text-red-300 text-xs rounded">🔴 Critical</span>
+                  <code className="text-lg font-mono text-red-600 dark:text-red-400">strict_mode</code>
+                  <span className="px-2 py-0.5 bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 text-xs rounded">boolean</span>
+                  <span className="px-2 py-0.5 bg-red-200 dark:bg-red-500/30 text-red-700 dark:text-red-300 text-xs rounded">Critical</span>
                 </div>
-                <p className="text-gray-400 mb-4">
-                  Enforce <code className="text-violet-400">system_prompt</code> as hard constraints. If a query violates your instructions, it gets blocked with a refusal response.
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  Enforce <code className="text-violet-600 dark:text-violet-400">system_prompt</code> as hard constraints. If a query violates your instructions, it gets blocked with a refusal response.
                 </p>
                 <CodeBlock
                   language="json"
@@ -586,18 +830,18 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
 }`}
                 />
                 <p className="text-gray-500 text-sm mt-3">
-                  💡 Use this to prevent jailbreaking and ensure AI stays on-topic.
+                  Use this to prevent jailbreaking and ensure AI stays on-topic.
                 </p>
               </div>
               
               {/* grounded_only */}
-              <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-2xl">
+              <div className="p-6 bg-red-50 dark:bg-red-500/5 border border-red-200 dark:border-red-500/20 rounded-2xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <code className="text-lg font-mono text-red-400">grounded_only</code>
-                  <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-xs rounded">boolean</span>
-                  <span className="px-2 py-0.5 bg-red-500/30 text-red-300 text-xs rounded">🔴 Critical</span>
+                  <code className="text-lg font-mono text-red-600 dark:text-red-400">grounded_only</code>
+                  <span className="px-2 py-0.5 bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 text-xs rounded">boolean</span>
+                  <span className="px-2 py-0.5 bg-red-200 dark:bg-red-500/30 text-red-700 dark:text-red-300 text-xs rounded">Critical</span>
                 </div>
-                <p className="text-gray-400 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Zero hallucination mode. AI can <strong>only</strong> answer from what's explicitly in the context. If info isn't there, it refuses to guess.
                 </p>
                 <CodeBlock
@@ -618,17 +862,17 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
 }`}
                 />
                 <p className="text-gray-500 text-sm mt-3">
-                  💡 Use for medical, legal, or compliance scenarios where accuracy is critical.
+                  Use for medical, legal, or compliance scenarios where accuracy is critical.
                 </p>
               </div>
               
               {/* citation_mode */}
-              <div className="p-6 bg-yellow-500/5 border border-yellow-500/20 rounded-2xl">
+              <div className="p-6 bg-yellow-50 dark:bg-yellow-500/5 border border-yellow-200 dark:border-yellow-500/20 rounded-2xl">
                 <div className="flex items-center gap-2 mb-3">
-                  <code className="text-lg font-mono text-yellow-400">citation_mode</code>
-                  <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-xs rounded">boolean</span>
+                  <code className="text-lg font-mono text-yellow-600 dark:text-yellow-400">citation_mode</code>
+                  <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 text-xs rounded">boolean</span>
                 </div>
-                <p className="text-gray-400 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Returns excerpts from the context that were used to generate the response. Great for transparency and debugging.
                 </p>
                 <CodeBlock
@@ -652,96 +896,73 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
 }`}
                 />
               </div>
-              
-              {/* Full Example */}
-              <div className="p-6 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-2xl">
-                <h4 className="font-semibold mb-4">Full Example with All Parameters</h4>
-                <CodeBlock
-                  language="bash"
-                  code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
-  -H "Authorization: Bearer uf_your_api_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "query": "What can you help me with?",
-    "context": "TechCorp offers: Cloud hosting, API services, 24/7 support.",
-    "history": [
-      {"role": "user", "content": "Hello"},
-      {"role": "assistant", "content": "Hi! Welcome to TechCorp."}
-    ],
-    "system_prompt": "You are Alex, TechCorp helpful assistant. Be friendly.",
-    "force_intent": "CONTEXT",
-    "temperature": 0.3,
-    "max_tokens": 200
-  }'`}
-                />
-              </div>
-            </div>
-          </section>
-          
-          {/* Routing Logic */}
-          <section id="routing" className="mb-16">
-            <h2 className="text-2xl font-bold mb-6">Routing Logic</h2>
-            
-            <p className="text-gray-400 mb-6">
-              The Router Brain analyzes each query and routes to the optimal path:
-            </p>
-            
-            <div className="space-y-4">
-              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <MessageSquare className="w-5 h-5 text-blue-400" />
-                  <h4 className="font-semibold">CHAT Path</h4>
-                </div>
-                <p className="text-gray-400 text-sm mb-2">
-                  Triggered for: Greetings, thanks, casual conversation
-                </p>
-                <p className="text-gray-500 text-sm">
-                  Examples: "Hello", "Thanks!", "How are you?", "Bye"
-                </p>
-                <div className="mt-2 text-xs text-blue-400">
-                  Cost: ~$0.0001 | Latency: ~0.3s
-                </div>
-              </div>
-              
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <FileText className="w-5 h-5 text-emerald-400" />
-                  <h4 className="font-semibold">CONTEXT Path</h4>
-                </div>
-                <p className="text-gray-400 text-sm mb-2">
-                  Triggered when: Query can be answered from the provided context
-                </p>
-                <p className="text-gray-500 text-sm">
-                  Example: "What's the deadline?" with project context
-                </p>
-                <div className="mt-2 text-xs text-emerald-400">
-                  Cost: ~$0.0002 | Latency: ~0.5s | 💰 No search cost!
-                </div>
-              </div>
-              
-              <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <Globe className="w-5 h-5 text-orange-400" />
-                  <h4 className="font-semibold">RESEARCH Path</h4>
-                </div>
-                <p className="text-gray-400 text-sm mb-2">
-                  Triggered when: Query needs factual/current information not in context
-                </p>
-                <p className="text-gray-500 text-sm">
-                  Examples: "What's Apple's stock price?", "Latest news about..."
-                </p>
-                <div className="mt-2 text-xs text-orange-400">
-                  Cost: ~$0.002 | Latency: ~1.5s
-                </div>
-              </div>
             </div>
           </section>
           
           {/* Examples */}
           <section id="examples" className="mb-16">
-            <h2 className="text-2xl font-bold mb-6">Examples</h2>
+            <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Examples</h2>
             
-            <h3 className="font-semibold mb-4">JavaScript / Node.js</h3>
+            {/* Deep Research Example */}
+            <h3 className="font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+              <Search className="w-4 h-4 text-violet-500" />
+              Deep Research (JavaScript)
+            </h3>
+            <CodeBlock
+              language="javascript"
+              code={`// Deep Research - get a comprehensive report
+const response = await fetch('https://homerun-snowy.vercel.app/api/v1/deep-research', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer uf_your_api_key',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    query: 'Latest developments in quantum computing',
+    preset: 'tech',
+    mode: 'report'
+  })
+});
+
+const data = await response.json();
+console.log(data.report);
+// Full research report with citations
+console.log(data.sources);
+// Array of source URLs`}
+            />
+            
+            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+              <Search className="w-4 h-4 text-violet-500" />
+              Deep Research (Python)
+            </h3>
+            <CodeBlock
+              language="python"
+              code={`import requests
+
+# Deep Research with data extraction
+response = requests.post(
+    'https://homerun-snowy.vercel.app/api/v1/deep-research',
+    headers={
+        'Authorization': 'Bearer uf_your_api_key',
+        'Content-Type': 'application/json'
+    },
+    json={
+        'query': 'Bitcoin price analysis',
+        'preset': 'crypto',
+        'mode': 'extract',
+        'extract': ['current_price', 'market_cap', '24h_change', 'volume']
+    }
+)
+
+data = response.json()
+print(data['extracted'])  # Structured data
+print(data['sources'])    # Source citations`}
+            />
+            
+            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-blue-500" />
+              Chat Router (JavaScript)
+            </h3>
             <CodeBlock
               language="javascript"
               code={`const response = await fetch('https://homerun-snowy.vercel.app/api/v1/chat', {
@@ -763,7 +984,10 @@ console.log(data.meta.routed_to);
 // "CONTEXT" - no web search needed!`}
             />
             
-            <h3 className="font-semibold mt-8 mb-4">Python</h3>
+            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-blue-500" />
+              Chat Router (Python)
+            </h3>
             <CodeBlock
               language="python"
               code={`import requests
@@ -788,58 +1012,58 @@ print(f"Routed to: {data['meta']['routed_to']}")`}
           
           {/* Pricing */}
           <section id="pricing" className="mb-16">
-            <h2 className="text-2xl font-bold mb-6">Pricing</h2>
+            <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">Pricing</h2>
             
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto bg-gray-50 dark:bg-zinc-900/50 rounded-2xl border border-gray-200 dark:border-zinc-800 p-6">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/10">
-                    <th className="text-left py-3 text-gray-400">Tier</th>
-                    <th className="text-left py-3 text-gray-400">Price</th>
-                    <th className="text-left py-3 text-gray-400">Limits</th>
-                    <th className="text-left py-3 text-gray-400">Keys</th>
+                  <tr className="border-b border-gray-200 dark:border-zinc-700">
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Tier</th>
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Price</th>
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Limits</th>
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Keys</th>
                   </tr>
                 </thead>
-                <tbody>
-                  <tr className="border-b border-white/5">
-                    <td className="py-3 font-medium">Sandbox</td>
+                <tbody className="text-gray-700 dark:text-gray-300">
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">Sandbox</td>
                     <td className="py-3">Free</td>
-                    <td className="py-3 text-gray-400">50 requests/day</td>
-                    <td className="py-3 text-gray-400">Shared</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">50 requests/day</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Shared</td>
                   </tr>
-                  <tr className="border-b border-white/5">
-                    <td className="py-3 font-medium">Managed</td>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">Managed</td>
                     <td className="py-3">$20/mo</td>
-                    <td className="py-3 text-gray-400">1,000 search requests/mo</td>
-                    <td className="py-3 text-gray-400">Shared</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">1,000 search requests/mo</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Shared</td>
                   </tr>
                   <tr>
-                    <td className="py-3 font-medium">BYOK</td>
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">BYOK</td>
                     <td className="py-3">$5/mo</td>
-                    <td className="py-3 text-gray-400">Unlimited</td>
-                    <td className="py-3 text-gray-400">Your keys (Groq/Tavily)</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Unlimited</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Your own keys</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             
-            <div className="mt-6 p-4 bg-violet-500/10 border border-violet-500/20 rounded-xl">
-              <p className="text-sm text-gray-300">
-                <strong className="text-violet-400">Recommendation:</strong> The BYOK tier is recommended for 
+            <div className="mt-6 p-4 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 rounded-xl">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <strong className="text-violet-600 dark:text-violet-400">Recommendation:</strong> The BYOK tier is recommended for 
                 production applications to ensure zero markup on token usage and unlimited scaling.
               </p>
             </div>
           </section>
           
           {/* Footer CTA */}
-          <section className="p-8 bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-2xl text-center">
-            <h3 className="text-2xl font-bold mb-3">Ready to start building?</h3>
-            <p className="text-gray-400 mb-6">
+          <section className="p-8 bg-gray-50 dark:bg-[#0f0b15] border border-gray-200 dark:border-violet-500/20 rounded-2xl text-center">
+            <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">Ready to start building?</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               Get your API key and start saving on AI costs today.
             </p>
             <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-xl font-medium hover:opacity-90 transition-opacity"
+              href="/dashboard/keys"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium transition-all shadow-[0_0_20px_-5px_rgba(139,92,246,0.3)]"
             >
               Get Your API Key
               <ArrowRight className="w-5 h-5" />

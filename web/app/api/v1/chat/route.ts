@@ -161,6 +161,7 @@ async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyV
   const verifyStartTime = performance.now()
   
   try {
+    // Unkey API endpoint
     const response = await fetch('https://api.unkey.dev/v1/keys.verifyKey', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -169,18 +170,22 @@ async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyV
 
     const verifyLatency = Math.round(performance.now() - verifyStartTime)
     
-    const result = await response.json()
+    const rawResult = await response.json()
+    // Unkey v2 wraps response in { meta, data } envelope
+    const result = rawResult.data || rawResult
+    
     debug('verifyApiKey:response', { 
       ok: response.ok,
       status: response.status,
       verifyLatencyMs: verifyLatency,
       valid: result.valid,
       code: result.code,
-      hasMetadata: !!result.meta
+      hasMetadata: !!result.meta,
+      requestId: rawResult.meta?.requestId
     }, context)
     
     if (!response.ok) {
-      debugError('verifyApiKey:httpError', { status: response.status, body: result }, context)
+      debugError('verifyApiKey:httpError', { status: response.status, body: rawResult }, context)
       return { valid: false, code: 'API_ERROR' }
     }
 

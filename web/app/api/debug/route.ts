@@ -154,6 +154,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       // Verify the API is reachable by getting API info (requires apiId parameter)
+      // Unkey API endpoint
       const response = await fetch(`https://api.unkey.dev/v1/apis.getApi?apiId=${process.env.UNKEY_API_ID}`, {
         method: 'GET',
         headers: {
@@ -163,7 +164,9 @@ export async function GET(request: NextRequest) {
       })
       
       const unkeyLatency = Math.round(performance.now() - unkeyStart)
-      const responseData = await response.json().catch(() => ({}))
+      const rawResponse = await response.json().catch(() => ({}))
+      // Unkey v2 wraps response in { meta, data } envelope
+      const responseData = rawResponse.data || rawResponse
       
       if (response.ok) {
         results.unkey = {

@@ -1,15 +1,17 @@
 /**
- * UnforgeAPI - Deep Research Endpoint (v4 "Unforge Mode")
+ * UnforgeAPI - Deep Research Endpoint (v4.2 "Cerebras-Groq Relay")
  * POST /api/v1/deep-research
  *
- * ARCHITECTURE: Flash-Groq Relay Pattern
+ * ARCHITECTURE: Cerebras-Groq Relay (Fastest + Free)
  *
  * Pipeline:
  * 1. CHECK CACHE (Upstash Redis - Global)
  * 2. SEARCH (Tavily with raw_content)
- * 3. COMPRESS (Gemini 2.5 Flash - extracts facts)
- * 4. WRITE/EXTRACT (Groq - generates output based on mode)
+ * 3. COMPRESS (Cerebras GPT OSS 120B - extracts facts from 100KB raw content)
+ * 4. WRITE REPORT (Groq llama-3.1-8b - fast text gen on small facts JSON)
  * 5. CACHE & RETURN
+ *
+ * FALLBACK: Gemini Flash if Cerebras fails
  *
  * NEW FEATURES (v4):
  * - Custom Output Schemas: Define your own JSON structure
@@ -21,12 +23,12 @@
  * Two execution paths:
  *
  * MANAGED USERS (managed_pro, managed_ultra, enterprise):
- *   - Uses system Tavily + Google + Groq keys
+ *   - Uses system Tavily + Cerebras + Groq keys
  *   - No user headers needed
  *
  * BYOK USERS (byok_starter, byok_pro):
- *   - Requires x-tavily-key and x-groq-key headers
- *   - Optional x-google-key (falls back to system key for compression only)
+ *   - Requires x-tavily-key header
+ *   - Optional x-cerebras-key, x-groq-key, x-google-key headers
  */
 
 import { NextRequest } from 'next/server'
@@ -47,9 +49,13 @@ export const maxDuration = 60
 
 const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
 
-// Model configuration - optimized for speed
-const GEMINI_FLASH_MODEL = 'gemini-2.5-flash'
-const GROQ_FAST_MODEL = 'llama-3.1-8b-instant'
+// Model configuration - Cerebras-Groq Relay
+// Primary: Cerebras GPT OSS 120B for extraction (handles large context)
+// Writer: Groq llama-3.1-8b (ultra-fast text gen, only sees small facts JSON)
+// Fallback: Gemini Flash for extraction if Cerebras fails
+const CEREBRAS_MODEL = 'gpt-oss-120b'
+const GROQ_WRITER_MODEL = 'llama-3.1-8b-instant'
+const GEMINI_FALLBACK_MODEL = 'gemini-2.5-flash'
 
 // Cache TTL: 24 hours
 const CACHE_TTL_SECONDS = 86400
@@ -231,12 +237,15 @@ async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyV
   debug('verifyApiKey:start', { keyPrefix: key.substring(0, 10) + '...' }, context)
 
   try {
+    // Unkey API endpoint
     const response = await fetch('https://api.unkey.dev/v1/keys.verifyKey', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key })
     })
-    const result = await response.json()
+    const rawResult = await response.json()
+    // Unkey v2 wraps response in { meta, data } envelope
+    const result = rawResult.data || rawResult
 
     if (!response.ok) return { valid: false, code: 'API_ERROR' }
 
@@ -568,16 +577,18 @@ export async function POST(req: NextRequest) {
 
     // Get user-provided keys from headers (BYOK)
     const userTavilyKey = req.headers.get('x-tavily-key')
+    const userCerebrasKey = req.headers.get('x-cerebras-key')
     const userGroqKey = req.headers.get('x-groq-key')
     const userGoogleKey = req.headers.get('x-google-key')
 
     // Determine active keys based on plan
     let activeTavilyKey: string | undefined
-    let activeGroqKey: string | undefined
-    let activeGoogleKey: string | undefined
+    let activeCerebrasKey: string | undefined
+    let activeGroqKey: string | undefined  // Writer (primary) + extraction fallback
+    let activeGoogleKey: string | undefined  // Extraction fallback
 
     if (isByokPlan) {
-      // BYOK: MUST use user keys - do NOT fallback to system keys
+      // BYOK: MUST use user keys - do NOT fallback to system keys for search
       if (!userTavilyKey) {
         return Response.json({
           error: 'BYOK plans require x-tavily-key header for Deep Research',
@@ -585,35 +596,43 @@ export async function POST(req: NextRequest) {
           hint: 'Add your Tavily API key in the x-tavily-key header'
         }, { status: 400 })
       }
-      if (!userGroqKey) {
-        return Response.json({
-          error: 'BYOK plans require x-groq-key header for Deep Research',
-          code: 'BYOK_MISSING_GROQ_KEY',
-          hint: 'Add your Groq API key in the x-groq-key header'
-        }, { status: 400 })
-      }
 
       activeTavilyKey = userTavilyKey
-      activeGroqKey = userGroqKey
-      // Google key is optional for BYOK - we can use system key for compression step
-      // (compression doesn't expose user data, just extracts facts from search results)
+      // Cerebras/Groq/Google keys are optional for BYOK - use system keys if not provided
+      activeCerebrasKey = userCerebrasKey || process.env.CEREBRAS_API_KEY
+      activeGroqKey = userGroqKey || process.env.GROQ_API_KEY
       activeGoogleKey = userGoogleKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY
 
-      if (!activeGoogleKey) {
+      // Need Groq for writing reports
+      if (!activeGroqKey) {
         return Response.json({
-          error: 'No Google API key available. Provide x-google-key header or contact support.',
-          code: 'MISSING_GOOGLE_KEY'
+          error: 'No Groq API key available for report writing. Provide x-groq-key header.',
+          code: 'MISSING_GROQ_KEY'
+        }, { status: 500 })
+      }
+      // Need either Cerebras or Gemini for extraction
+      if (!activeCerebrasKey && !activeGoogleKey) {
+        return Response.json({
+          error: 'No extraction API key available. Provide x-cerebras-key or x-google-key header.',
+          code: 'MISSING_EXTRACTION_KEY'
         }, { status: 500 })
       }
     } else {
       // Managed: Use system keys
       activeTavilyKey = process.env.TAVILY_API_KEY
-      activeGroqKey = process.env.GROQ_API_KEY
-      activeGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+      activeCerebrasKey = process.env.CEREBRAS_API_KEY
+      activeGroqKey = process.env.GROQ_API_KEY  // Writer
+      activeGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY  // Extraction fallback
 
-      if (!activeTavilyKey || !activeGroqKey || !activeGoogleKey) {
+      if (!activeTavilyKey || !activeGroqKey) {
         return Response.json({
           error: 'Server configuration error - missing API keys',
+          code: 'SERVER_CONFIG_ERROR'
+        }, { status: 500 })
+      }
+      if (!activeCerebrasKey && !activeGoogleKey) {
+        return Response.json({
+          error: 'Server configuration error - no extraction model configured',
           code: 'SERVER_CONFIG_ERROR'
         }, { status: 500 })
       }
@@ -621,6 +640,7 @@ export async function POST(req: NextRequest) {
 
     debug('keys:resolved', {
       hasTavily: !!activeTavilyKey,
+      hasCerebras: !!activeCerebrasKey,
       hasGroq: !!activeGroqKey,
       hasGoogle: !!activeGoogleKey,
       isByokPlan
@@ -756,16 +776,73 @@ export async function POST(req: NextRequest) {
     const presetConfig = DOMAIN_PRESETS[preset] || DOMAIN_PRESETS.general
 
     // ============================================
-    // 7. COMPRESS/EXTRACT (Gemini 2.5 Flash - The Reader)
+    // 7. ANALYZE/EXTRACT (Cerebras GPT OSS 120B - Primary, Gemini Flash - Fallback)
     // ============================================
-    debug('pipeline:compress:start', { mode }, ctx)
-
-    const google = createGoogleGenerativeAI({ apiKey: activeGoogleKey })
+    // Cerebras: Smart extraction, handles massive context (100k+ chars) → outputs small facts JSON (~2KB)
+    // Gemini Flash: Fallback if Cerebras fails
+    debug('pipeline:extract:start', { mode, useCerebras: !!activeCerebrasKey }, ctx)
 
     let facts: z.infer<typeof factsSchema> | undefined = undefined
     let extractedData: Record<string, any> | null = null
     let schemaData: Record<string, any> | null = null
     let comparisonData: any[] | null = null
+    let extractionModel = 'cerebras'
+
+    // Helper to call Cerebras API for structured extraction
+    async function cerebrasExtract(prompt: string): Promise<any> {
+      const response = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${activeCerebrasKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: CEREBRAS_MODEL,
+          messages: [
+            { role: 'system', content: 'You are a data extraction expert. Always respond with valid JSON matching the requested schema.' },
+            { role: 'user', content: prompt + '\n\nRespond ONLY with valid JSON, no markdown or explanation.' }
+          ],
+          temperature: 0.1,
+          max_tokens: 8000
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}))
+        throw new Error(`Cerebras API error: ${response.status} - ${JSON.stringify(error)}`)
+      }
+
+      const result = await response.json()
+      const content = result.choices?.[0]?.message?.content || ''
+      
+      // Parse JSON from response (handle markdown code blocks)
+      let jsonStr = content.trim()
+      if (jsonStr.startsWith('```json')) {
+        jsonStr = jsonStr.slice(7)
+      } else if (jsonStr.startsWith('```')) {
+        jsonStr = jsonStr.slice(3)
+      }
+      if (jsonStr.endsWith('```')) {
+        jsonStr = jsonStr.slice(0, -3)
+      }
+      
+      return JSON.parse(jsonStr.trim())
+    }
+
+    // Gemini Flash fallback for extraction (if Cerebras fails)
+    const google = createGoogleGenerativeAI({ apiKey: activeGoogleKey })
+    
+    // Groq for report writing (hardware speed)
+    const groq = createGroq({ apiKey: activeGroqKey })
+
+    async function geminiFallbackExtract<T>(prompt: string, schema: z.ZodType<T>): Promise<T> {
+      const result = await generateObject({
+        model: google(GEMINI_FALLBACK_MODEL),
+        schema: schema as any,
+        prompt
+      })
+      return result.object as T
+    }
 
     try {
       if (mode === 'extract' && extract) {
@@ -777,10 +854,7 @@ export async function POST(req: NextRequest) {
           }, {} as Record<string, z.ZodString>)
         )
 
-        const extractResult = await generateObject({
-          model: google(GEMINI_FLASH_MODEL),
-          schema: extractSchema,
-          prompt: `You are a data extraction expert. Extract ONLY the requested fields from this content.
+        const extractPrompt = `You are a data extraction expert. Extract ONLY the requested fields from this content.
 
 QUERY: "${effectiveQuery}"
 
@@ -793,19 +867,32 @@ RULES:
 - Extract ONLY the requested fields
 - If a field is not found, return "Not found"
 - Be precise and concise
-- ${presetConfig.prompt_hint}`
-        })
+- ${presetConfig.prompt_hint}
 
-        extractedData = extractResult.object
-        debug('pipeline:extract:complete', { fields: Object.keys(extractedData) }, ctx)
+Return a JSON object with these exact fields: ${extract.join(', ')}`
+
+        try {
+          if (activeCerebrasKey) {
+            extractedData = await cerebrasExtract(extractPrompt)
+            extractionModel = 'cerebras'
+          } else {
+            throw new Error('No Cerebras key, using fallback')
+          }
+        } catch (cerebrasError: any) {
+          debug('pipeline:extract:cerebras:failed', { error: cerebrasError.message }, ctx)
+          if (activeGoogleKey) {
+            extractedData = await geminiFallbackExtract(extractPrompt, extractSchema)
+            extractionModel = 'gemini-fallback'
+          } else {
+            throw cerebrasError
+          }
+        }
+        
+        debug('pipeline:extract:complete', { fields: Object.keys(extractedData || {}), model: extractionModel }, ctx)
 
       } else if (mode === 'schema' && schema) {
-        // SCHEMA MODE: Fill user-defined schema
-        // Convert user schema to Zod schema dynamically
-        const schemaResult = await generateObject({
-          model: google(GEMINI_FLASH_MODEL),
-          schema: z.any(), // Accept any structure
-          prompt: `You are a data structuring expert. Fill in this exact JSON schema with data from the content.
+        // SCHEMA MODE: Fill user-defined schema with Cerebras/Groq
+        const schemaPrompt = `You are a data structuring expert. Fill in this exact JSON schema with data from the content.
 
 QUERY: "${effectiveQuery}"
 
@@ -823,13 +910,33 @@ RULES:
 - ${presetConfig.prompt_hint}
 
 Return valid JSON matching the schema.`
-        })
 
-        schemaData = schemaResult.object
-        debug('pipeline:schema:complete', { keys: Object.keys(schemaData || {}) }, ctx)
+        try {
+          if (activeCerebrasKey) {
+            schemaData = await cerebrasExtract(schemaPrompt)
+            extractionModel = 'cerebras'
+          } else {
+            throw new Error('No Cerebras key, using fallback')
+          }
+        } catch (cerebrasError: any) {
+          debug('pipeline:schema:cerebras:failed', { error: cerebrasError.message }, ctx)
+          if (activeGoogleKey) {
+            // For schema mode, use generateText with Gemini as fallback
+            const schemaResult = await generateText({
+              model: google(GEMINI_FALLBACK_MODEL),
+              prompt: schemaPrompt
+            })
+            schemaData = JSON.parse(schemaResult.text)
+            extractionModel = 'gemini-fallback'
+          } else {
+            throw cerebrasError
+          }
+        }
+        
+        debug('pipeline:schema:complete', { keys: Object.keys(schemaData || {}), model: extractionModel }, ctx)
 
       } else if (mode === 'compare' && queries) {
-        // COMPARE MODE: Structured comparison
+        // COMPARE MODE: Structured comparison with Cerebras/Groq
         const compareSchema = z.object({
           comparison_table: z.array(z.object({
             item: z.string(),
@@ -841,10 +948,7 @@ Return valid JSON matching the schema.`
           key_differences: z.array(z.string())
         })
 
-        const compareResult = await generateObject({
-          model: google(GEMINI_FLASH_MODEL),
-          schema: compareSchema,
-          prompt: `You are a comparison analyst. Compare these items objectively.
+        const comparePrompt = `You are a comparison analyst. Compare these items objectively.
 
 ITEMS TO COMPARE: ${queries.join(' vs ')}
 
@@ -856,28 +960,44 @@ RULES:
 - List pros and cons for each
 - Highlight key differences
 - Give a balanced recommendation
-- ${presetConfig.prompt_hint}`
-        })
+- ${presetConfig.prompt_hint}
 
-        comparisonData = compareResult.object.comparison_table
+Return a JSON object with: comparison_table (array of {item, key_facts, pros, cons}), recommendation, key_differences`
+
+        let compareResult: any
+        try {
+          if (activeCerebrasKey) {
+            compareResult = await cerebrasExtract(comparePrompt)
+            extractionModel = 'cerebras'
+          } else {
+            throw new Error('No Cerebras key, using fallback')
+          }
+        } catch (cerebrasError: any) {
+          debug('pipeline:compare:cerebras:failed', { error: cerebrasError.message }, ctx)
+          if (activeGoogleKey) {
+            compareResult = await geminiFallbackExtract(comparePrompt, compareSchema)
+            extractionModel = 'gemini-fallback'
+          } else {
+            throw cerebrasError
+          }
+        }
+
+        comparisonData = compareResult.comparison_table
         
         // Also fill facts for the full response
         facts = {
           key_stats: [],
           dates: [],
           entities: queries,
-          summary_points: compareResult.object.key_differences,
+          summary_points: compareResult.key_differences,
           sources
         }
         
-        debug('pipeline:compare:complete', { itemsCompared: comparisonData?.length }, ctx)
+        debug('pipeline:compare:complete', { itemsCompared: comparisonData?.length, model: extractionModel }, ctx)
 
       } else {
-        // REPORT MODE (default): Standard facts extraction
-        const compressResult = await generateObject({
-          model: google(GEMINI_FLASH_MODEL),
-          schema: factsSchema,
-          prompt: `You are a research analyst. Analyze this raw web content and extract ONLY hard facts.
+        // REPORT MODE (default): Standard facts extraction with Cerebras/Groq
+        const factsPrompt = `You are a research analyst. Analyze this raw web content and extract ONLY hard facts.
 
 QUERY: "${effectiveQuery}"
 
@@ -887,12 +1007,12 @@ ${hugeContext}
 SOURCES:
 ${sources.map((s, i) => `[${i + 1}] ${s.title}: ${s.url}`).join('\n')}
 
-Extract:
-1. key_stats: Important numbers, percentages, metrics (with source reference)
-2. dates: Relevant dates and timelines
-3. entities: Companies, people, products mentioned
-4. summary_points: 5-10 key findings as bullet points
-5. sources: Include the URL for each source used
+Extract and return JSON with:
+1. key_stats: Array of important numbers, percentages, metrics (with source reference)
+2. dates: Array of relevant dates and timelines
+3. entities: Array of companies, people, products mentioned
+4. summary_points: Array of 5-10 key findings as bullet points
+5. sources: Array of {title, url} for each source used
 
 RULES:
 - Extract ONLY facts from the provided content
@@ -900,20 +1020,36 @@ RULES:
 - Include source URLs for citations
 - Be concise - compress knowledge into minimal JSON
 - ${presetConfig.prompt_hint}`
-        })
 
-        facts = compressResult.object
-        debug('pipeline:compress:complete', {
-          statsCount: facts.key_stats.length,
-          pointsCount: facts.summary_points.length
+        try {
+          if (activeCerebrasKey) {
+            facts = await cerebrasExtract(factsPrompt)
+            extractionModel = 'cerebras'
+          } else {
+            throw new Error('No Cerebras key, using fallback')
+          }
+        } catch (cerebrasError: any) {
+          debug('pipeline:facts:cerebras:failed', { error: cerebrasError.message }, ctx)
+          if (activeGoogleKey) {
+            facts = await geminiFallbackExtract(factsPrompt, factsSchema)
+            extractionModel = 'gemini-fallback'
+          } else {
+            throw cerebrasError
+          }
+        }
+        
+        debug('pipeline:facts:complete', {
+          statsCount: facts?.key_stats?.length || 0,
+          pointsCount: facts?.summary_points?.length || 0,
+          model: extractionModel
         }, ctx)
       }
-    } catch (compressError: any) {
-      debugError('pipeline:compress', compressError, ctx)
+    } catch (extractError: any) {
+      debugError('pipeline:extract', extractError, ctx)
       return Response.json({
         error: 'Failed to analyze search results',
-        code: 'COMPRESS_ERROR',
-        message: compressError.message
+        code: 'EXTRACT_ERROR',
+        message: extractError.message
       }, { status: 500 })
     }
 
@@ -962,7 +1098,7 @@ RULES:
           sources_count: sources.length,
           request_id: requestId,
           preset,
-          model: GEMINI_FLASH_MODEL
+          model: extractionModel === 'cerebras' ? CEREBRAS_MODEL : GEMINI_FALLBACK_MODEL
         }
       })
     }
@@ -1005,22 +1141,21 @@ RULES:
           sources_count: sources.length,
           request_id: requestId,
           preset,
-          model: GEMINI_FLASH_MODEL
+          model: extractionModel === 'cerebras' ? CEREBRAS_MODEL : GEMINI_FALLBACK_MODEL
         }
       })
     }
 
-    // For report and compare modes, generate prose with Groq
+    // For report and compare modes, generate prose with Groq (hardware speed writer)
+    // Facts JSON is ~2KB, so Groq's TPM is not a constraint
     debug('pipeline:write:start', { mode }, ctx)
-
-    const groq = createGroq({ apiKey: activeGroqKey })
 
     let report: string
     try {
       if (mode === 'compare' && comparisonData) {
-        // COMPARE MODE: Generate comparison report
+        // COMPARE MODE: Generate comparison report with Groq
         const writeResult = await generateText({
-          model: groq(GROQ_FAST_MODEL),
+          model: groq(GROQ_WRITER_MODEL),
           prompt: `You are an expert analyst writing a Comparison Report.
 
 ITEMS COMPARED: ${queries!.join(' vs ')}
@@ -1062,9 +1197,9 @@ RULES:
         })
         report = writeResult.text
       } else {
-        // REPORT MODE (default)
+        // REPORT MODE (default) - Generate with Groq (hardware speed)
         const writeResult = await generateText({
-          model: groq(GROQ_FAST_MODEL),
+          model: groq(GROQ_WRITER_MODEL),
           prompt: `You are an expert research analyst writing an Executive Research Report.
 
 RESEARCH QUERY: "${effectiveQuery}"
@@ -1160,6 +1295,7 @@ RULES:
       mode,
       sourcesCount: sources.length,
       reportLength: report.length,
+      extractionModel,
       cached: false
     }, ctx)
 
@@ -1175,8 +1311,8 @@ RULES:
         request_id: requestId,
         preset,
         model: {
-          reader: GEMINI_FLASH_MODEL,
-          writer: GROQ_FAST_MODEL
+          extractor: extractionModel === 'cerebras' ? CEREBRAS_MODEL : GEMINI_FALLBACK_MODEL,
+          writer: GROQ_WRITER_MODEL
         },
         quota: {
           limit: planConfig.limit,
@@ -1216,8 +1352,9 @@ export async function GET() {
   return Response.json({
     status: 'ok',
     service: 'UnforgeAPI Deep Research',
-    version: '4.0.0',
-    architecture: 'Flash-Groq Relay',
+    version: '4.2.0',
+    architecture: 'Cerebras-Groq Relay (Fastest + Free)',
+    description: 'Cerebras for smart extraction → Groq for hardware-speed writing',
     features: {
       modes: ['report', 'extract', 'schema', 'compare'],
       presets: Object.keys(DOMAIN_PRESETS),
@@ -1225,8 +1362,9 @@ export async function GET() {
       cache: redis ? 'enabled' : 'disabled'
     },
     models: {
-      reader: GEMINI_FLASH_MODEL,
-      writer: GROQ_FAST_MODEL
+      extractor: CEREBRAS_MODEL,
+      extractor_fallback: GEMINI_FALLBACK_MODEL,
+      writer: GROQ_WRITER_MODEL
     },
     examples: {
       report: {

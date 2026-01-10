@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/app/lib/supabaseClient'
 import { 
   Key, 
@@ -10,11 +11,12 @@ import {
   Copy, 
   Check, 
   Loader2,
-  Eye,
-  EyeOff,
   AlertCircle,
   Crown,
-  Zap
+  Zap,
+  KeyRound,
+  HelpCircle,
+  ExternalLink
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -55,6 +57,7 @@ export default function ApiKeysPage() {
 
   const router = useRouter()
   const supabase = createClient()
+  const MAX_KEYS = 5
 
   useEffect(() => {
     loadApiKeys()
@@ -75,11 +78,18 @@ export default function ApiKeysPage() {
       if (profile) {
         // Check subscription tier to determine pro status
         const tier = profile.subscription_tier || 'free'
+        console.log('[Keys] Loaded subscription tier:', tier, 'status:', profile.subscription_status)
+        
+        // Only mark as pro if explicitly on a pro plan
+        // 'free', 'sandbox', 'byok_starter' are all free tiers
+        const isManagedPro = tier === 'managed_pro'
+        const isByokPro = tier === 'byok_pro'
+        
         setSubscription({
           tier,
           status: profile.subscription_status || 'inactive',
-          hasManagedPro: tier === 'managed_pro' || tier === 'pro', // 'pro' for legacy
-          hasByokPro: tier === 'byok_pro'
+          hasManagedPro: isManagedPro,
+          hasByokPro: isByokPro
         })
       }
     } catch (err) {
@@ -199,6 +209,8 @@ export default function ApiKeysPage() {
     setTimeout(() => setCopiedKey(null), 2000)
   }
 
+  const keysUsedPercentage = (apiKeys.length / MAX_KEYS) * 100
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -208,183 +220,220 @@ export default function ApiKeysPage() {
   }
 
   return (
-    <>
-      {/* New API Key Banner */}
-      <AnimatePresence>
-        {newApiKey && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mb-8 p-6 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-2xl"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                  <Key className="w-5 h-5 text-emerald-400" />
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="h-14 border-b border-neutral-800 flex items-center justify-end px-8 bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10">
+        <button
+          onClick={() => setShowNewKeyModal(true)}
+          className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          Create Key
+        </button>
+      </header>
+
+      <div className="p-8 max-w-6xl mx-auto space-y-8">
+        {/* Title Section */}
+        <div className="space-y-2">
+          <h2 className="text-3xl font-bold tracking-tight text-white">Manage API Keys</h2>
+          <p className="text-neutral-400">Control access to your projects by creating and managing secure API tokens.</p>
+        </div>
+
+        {/* New API Key Banner */}
+        <AnimatePresence>
+          {newApiKey && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="p-6 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-xl"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                    <Key className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg text-white mb-1">Your API Key is Ready!</h3>
+                    <p className="text-neutral-400 text-sm mb-4">
+                      Copy this key now — you won't be able to see it again.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <code className="px-4 py-2 bg-neutral-900 rounded-lg font-mono text-sm text-white break-all">
+                        {newApiKey}
+                      </code>
+                      <button
+                        onClick={() => copyToClipboard(newApiKey, 'new')}
+                        className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                      >
+                        {copiedKey === 'new' ? (
+                          <Check className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <Copy className="w-5 h-5 text-neutral-400" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg text-white mb-1">Your API Key is Ready!</h3>
-                  <p className="text-neutral-400 text-sm mb-4">
-                    Copy this key now — you won't be able to see it again.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <code className="px-4 py-2 bg-neutral-900 rounded-lg font-mono text-sm text-white break-all">
-                      {newApiKey}
-                    </code>
+                <button
+                  onClick={() => setNewApiKey(null)}
+                  className="text-neutral-400 hover:text-white text-xl"
+                >
+                  ×
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Error Banner */}
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-400" />
+            <p className="text-red-400">{error}</p>
+            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-300">×</button>
+          </div>
+        )}
+
+        {/* Tier Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className={`p-6 rounded-xl border transition-all ${
+            subscription.hasByokPro 
+              ? 'bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/30' 
+              : 'bg-neutral-900/40 border-neutral-800'
+          }`}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              <h3 className="font-bold text-xs tracking-widest uppercase text-neutral-300">
+                {subscription.hasByokPro ? 'BYOK PRO' : 'BYOK FREE'}
+              </h3>
+              {subscription.hasByokPro && (
+                <Crown className="w-3 h-3 text-amber-400" />
+              )}
+            </div>
+            <p className="text-[15px] text-neutral-400 leading-relaxed">
+              {subscription.hasByokPro 
+                ? 'Unlimited requests (10/sec rate limit). Uses your Groq & Tavily keys.'
+                : '100 requests/day. Pass your own AI provider keys in headers for higher limits.'
+              }
+            </p>
+          </div>
+          <div className={`p-6 rounded-xl border transition-all ${
+            subscription.hasManagedPro 
+              ? 'bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border-emerald-500/30' 
+              : 'bg-neutral-900/40 border-neutral-800'
+          }`}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <h3 className="font-bold text-xs tracking-widest uppercase text-neutral-300">
+                {subscription.hasManagedPro ? 'MANAGED PRO' : 'MANAGED FREE'}
+              </h3>
+              {subscription.hasManagedPro && (
+                <Crown className="w-3 h-3 text-emerald-400" />
+              )}
+            </div>
+            <p className="text-[15px] text-neutral-400 leading-relaxed">
+              {subscription.hasManagedPro 
+                ? 'System API keys with search enabled. 50,000 requests/month fair usage.'
+                : '50 requests/day. Integrated billing for all providers in one simple place.'
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* API Keys List */}
+        <div className="rounded-xl border border-neutral-800 bg-neutral-900 overflow-hidden min-h-[400px] flex flex-col">
+          <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between">
+            <h3 className="font-semibold text-sm text-white">Your Active Keys</h3>
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-neutral-500">{apiKeys.length} of {MAX_KEYS} keys used</span>
+              <div className="w-20 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 transition-all duration-300" 
+                  style={{ width: `${keysUsedPercentage}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+          
+          {apiKeys.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center">
+              <div className="w-16 h-16 bg-neutral-800/50 rounded-full flex items-center justify-center mb-6">
+                <KeyRound className="w-8 h-8 text-neutral-600" />
+              </div>
+              <h4 className="text-lg font-semibold mb-2 text-white">No API keys yet</h4>
+              <p className="text-neutral-400 max-w-sm text-sm mb-8 leading-relaxed">
+                Generate your first API key to start integrating our production-grade models into your application.
+              </p>
+              <button
+                onClick={() => setShowNewKeyModal(true)}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-md font-medium flex items-center gap-2 transition-all"
+              >
+                <Plus className="w-5 h-5" />
+                Create Your First Key
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-neutral-800">
+              {apiKeys.map((key) => (
+                <div key={key.id} className="p-4 flex items-center justify-between hover:bg-neutral-800/30 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center">
+                      <Key className="w-5 h-5 text-neutral-400" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-white">{key.name}</div>
+                      <div className="text-sm text-neutral-500 font-mono">{key.key_prefix}...</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+                      key.tier === 'byok_pro' ? 'bg-amber-500/20 text-amber-400' :
+                      key.tier === 'byok_starter' ? 'bg-amber-500/10 text-amber-300' :
+                      key.tier === 'managed_pro' ? 'bg-emerald-500/20 text-emerald-400' :
+                      key.tier === 'byok' ? 'bg-amber-500/10 text-amber-300' :
+                      'bg-emerald-500/10 text-emerald-300'
+                    }`}>
+                      {key.tier === 'byok_pro' ? 'BYOK PRO' :
+                       key.tier === 'byok_starter' ? 'BYOK FREE' :
+                       key.tier === 'managed_pro' ? 'MANAGED PRO' :
+                       key.tier === 'byok' ? 'BYOK' :
+                       key.tier === 'sandbox' ? 'MANAGED FREE' :
+                       key.tier?.toUpperCase() || 'MANAGED FREE'}
+                    </span>
+                    <span className={`w-2 h-2 rounded-full ${key.is_active ? 'bg-green-400' : 'bg-red-400'}`} />
                     <button
-                      onClick={() => copyToClipboard(newApiKey, 'new')}
-                      className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+                      onClick={() => deleteApiKey(key.unkey_id)}
+                      className="p-2 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                     >
-                      {copiedKey === 'new' ? (
-                        <Check className="w-5 h-5 text-green-400" />
-                      ) : (
-                        <Copy className="w-5 h-5 text-neutral-400" />
-                      )}
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-              </div>
-              <button
-                onClick={() => setNewApiKey(null)}
-                className="text-neutral-400 hover:text-white text-xl"
-              >
-                ×
-              </button>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </div>
 
-      {/* Error Banner */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-red-400" />
-          <p className="text-red-400">{error}</p>
-          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-300">×</button>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-1">API Keys</h1>
-          <p className="text-neutral-400">Manage your API keys for UnforgeAPI access</p>
-        </div>
-        <button
-          onClick={() => setShowNewKeyModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium text-white transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Create Key
-        </button>
-      </div>
-
-      {/* Tier Explanation */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <div className={`p-4 rounded-xl border ${
-          subscription.hasByokPro 
-            ? 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30' 
-            : 'bg-neutral-900 border-neutral-800'
-        }`}>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-amber-400" />
-            <h3 className="font-medium text-white">BYOK Tier</h3>
-            {subscription.hasByokPro && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs rounded-full">
-                <Crown className="w-3 h-3" /> PRO
-              </span>
-            )}
+        {/* Help Section */}
+        <div className="flex flex-col md:flex-row gap-6 items-center justify-between p-6 border border-dashed border-neutral-700 rounded-xl bg-neutral-900/30">
+          <div className="flex items-center gap-4 text-left">
+            <div className="w-9 h-9 rounded-md bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+              <HelpCircle className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-medium text-sm text-white">Need help getting started?</h4>
+              <p className="text-xs text-neutral-500">Check out our quickstart guide for developers.</p>
+            </div>
           </div>
-          <p className="text-sm text-neutral-400">
-            {subscription.hasByokPro 
-              ? 'Unlimited requests (10/sec rate limit). Uses your Groq & Tavily keys.'
-              : 'Bring Your Own Keys — 100 requests/day free. Pass your Groq & Tavily API keys in headers.'
-            }
-          </p>
+          <Link 
+            href="/docs" 
+            className="text-sm font-semibold text-emerald-500 hover:underline flex items-center gap-1"
+          >
+            View Documentation
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
         </div>
-        <div className={`p-4 rounded-xl border ${
-          subscription.hasManagedPro 
-            ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/30' 
-            : 'bg-neutral-900 border-neutral-800'
-        }`}>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
-            <h3 className="font-medium text-white">Managed Tier</h3>
-            {subscription.hasManagedPro && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs rounded-full">
-                <Crown className="w-3 h-3" /> PRO
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-neutral-400">
-            {subscription.hasManagedPro 
-              ? 'System API keys with search enabled. 50,000 requests/month fair usage.'
-              : 'We provide the LLM keys — 50 requests/day (Sandbox). Upgrade for search & more.'
-            }
-          </p>
-        </div>
-      </div>
-
-      {/* API Keys List */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl">
-        <div className="p-6 border-b border-neutral-800">
-          <h2 className="font-semibold text-white">Your API Keys</h2>
-        </div>
-        
-        {apiKeys.length === 0 ? (
-          <div className="p-12 text-center">
-            <Key className="w-12 h-12 mx-auto mb-4 text-neutral-600" />
-            <h3 className="text-lg font-medium text-white mb-2">No API keys yet</h3>
-            <p className="text-neutral-400 mb-6">Create your first API key to start using UnforgeAPI</p>
-            <button
-              onClick={() => setShowNewKeyModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-medium text-white transition-colors"
-            >
-              <Plus className="w-5 h-5" />
-              Create Your First Key
-            </button>
-          </div>
-        ) : (
-          <div className="divide-y divide-neutral-800">
-            {apiKeys.map((key) => (
-              <div key={key.id} className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center">
-                    <Key className="w-5 h-5 text-neutral-400" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-white">{key.name}</div>
-                    <div className="text-sm text-neutral-500 font-mono">{key.key_prefix}...</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    key.tier === 'byok_pro' ? 'bg-amber-500/20 text-amber-400' :
-                    key.tier === 'byok_starter' ? 'bg-amber-500/10 text-amber-300' :
-                    key.tier === 'managed_pro' ? 'bg-emerald-500/20 text-emerald-400' :
-                    key.tier === 'byok' ? 'bg-amber-500/10 text-amber-300' :
-                    'bg-emerald-500/10 text-emerald-300'
-                  }`}>
-                    {key.tier === 'byok_pro' ? 'BYOK PRO' :
-                     key.tier === 'byok_starter' ? 'BYOK FREE' :
-                     key.tier === 'managed_pro' ? 'MANAGED PRO' :
-                     key.tier === 'byok' ? 'BYOK' :
-                     key.tier === 'sandbox' ? 'SANDBOX' :
-                     key.tier?.toUpperCase() || 'SANDBOX'}
-                  </span>
-                  <span className={`w-2 h-2 rounded-full ${key.is_active ? 'bg-green-400' : 'bg-red-400'}`} />
-                  <button
-                    onClick={() => deleteApiKey(key.unkey_id)}
-                    className="p-2 text-neutral-400 hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Create Key Modal */}
@@ -435,13 +484,15 @@ export default function ApiKeysPage() {
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <div className="text-sm font-medium text-white">BYOK</div>
+                        <div className="text-sm font-medium text-white">
+                          {subscription.hasByokPro ? 'BYOK PRO' : 'BYOK FREE'}
+                        </div>
                         {subscription.hasByokPro && (
                           <Crown className="w-3 h-3 text-amber-400" />
                         )}
                       </div>
                       <div className="text-xs text-neutral-400">
-                        {subscription.hasByokPro ? 'Unlimited (Pro)' : '100 req/day (Free)'}
+                        {subscription.hasByokPro ? 'Unlimited (10/sec)' : '100 req/day'}
                       </div>
                     </button>
                     <button
@@ -454,13 +505,15 @@ export default function ApiKeysPage() {
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <div className="text-sm font-medium text-white">Managed</div>
+                        <div className="text-sm font-medium text-white">
+                          {subscription.hasManagedPro ? 'MANAGED PRO' : 'MANAGED FREE'}
+                        </div>
                         {subscription.hasManagedPro && (
                           <Crown className="w-3 h-3 text-emerald-400" />
                         )}
                       </div>
                       <div className="text-xs text-neutral-400">
-                        {subscription.hasManagedPro ? '50k req/mo (Pro)' : '50 req/day (Sandbox)'}
+                        {subscription.hasManagedPro ? '50k req/mo' : '50 req/day'}
                       </div>
                     </button>
                   </div>
@@ -472,8 +525,8 @@ export default function ApiKeysPage() {
                       <span className="text-neutral-400">
                         Will create: <span className="text-white font-medium">
                           {newKeyTier === 'byok' 
-                            ? (subscription.hasByokPro ? 'BYOK Pro' : 'BYOK Starter')
-                            : (subscription.hasManagedPro ? 'Managed Pro' : 'Sandbox')
+                            ? (subscription.hasByokPro ? 'BYOK PRO' : 'BYOK FREE')
+                            : (subscription.hasManagedPro ? 'MANAGED PRO' : 'MANAGED FREE')
                           }
                         </span> key
                       </span>
@@ -508,6 +561,6 @@ export default function ApiKeysPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   )
 }

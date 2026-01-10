@@ -3,15 +3,132 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { PRO_PRODUCT_ID } from '@/lib/subscription';
 
+// Product IDs for different tiers
+const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID || 'dce7621a-0a26-4d40-927c-7aa0aa95debd';
+const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID || 'c4a4824d-8be3-411e-8c15-b198371ebc37';
+
 // Product IDs to tier mapping (subscriptions)
 // Pro subscription product ID from subscription.ts
 const PRODUCT_TO_TIER: Record<string, string> = {
-  [PRO_PRODUCT_ID]: 'pro',
+  [PRO_PRODUCT_ID]: 'pro', // Legacy
+  [MANAGED_PRO_PRODUCT_ID]: 'managed_pro',
+  [BYOK_PRO_PRODUCT_ID]: 'byok_pro',
   // Also support environment variable override for testing
   [process.env.POLAR_PRO_PRODUCT_ID || '']: 'pro',
 };
 
 const POLAR_WEBHOOK_SECRET = process.env.POLAR_WEBHOOK_SECRET;
+
+// Unkey API URL
+const UNKEY_API_URL = 'https://api.unkey.dev';
+
+/**
+ * Upgrade existing API keys when user subscription changes
+ * This upgrades keys of the same type (BYOK or Managed) to pro tier
+ */
+async function upgradeUserApiKeys(
+  supabase: ReturnType<typeof createAdminClient>,
+  userId: string,
+  newTier: string
+): Promise<void> {
+  console.log(`[Keys Upgrade] Upgrading keys for user ${userId} to tier ${newTier}`);
+  
+  // Get user's workspace
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('default_workspace_id')
+    .eq('id', userId)
+    .single();
+  
+  const workspaceId = profile?.default_workspace_id || userId;
+  
+  // Get all API keys for this workspace
+  const { data: keys, error } = await supabase
+    .from('api_keys')
+    .select('id, unkey_id, tier, name')
+    .eq('workspace_id', workspaceId)
+    .eq('is_active', true);
+  
+  if (error || !keys?.length) {
+    console.log(`[Keys Upgrade] No keys found for workspace ${workspaceId}`);
+    return;
+  }
+  
+  // Determine which keys to upgrade based on new subscription tier
+  // If user gets byok_pro, upgrade byok_starter keys to byok_pro
+  // If user gets managed_pro, upgrade sandbox keys to managed_pro
+  const keysToUpgrade = keys.filter(key => {
+    if (newTier === 'byok_pro' && (key.tier === 'byok_starter' || key.tier === 'byok')) {
+      return true;
+    }
+    if ((newTier === 'managed_pro' || newTier === 'pro') && key.tier === 'sandbox') {
+      return true;
+    }
+    return false;
+  });
+  
+  if (!keysToUpgrade.length) {
+    console.log(`[Keys Upgrade] No keys need upgrading for tier ${newTier}`);
+    return;
+  }
+  
+  console.log(`[Keys Upgrade] Upgrading ${keysToUpgrade.length} keys to ${newTier}`);
+  
+  // Determine the new plan based on subscription tier
+  const newPlan = newTier === 'byok_pro' ? 'byok_pro' : 'managed_pro';
+  
+  // Get rate limit config for the new plan
+  const rateLimitConfig = newPlan === 'byok_pro' 
+    ? { type: 'fast' as const, limit: 10, duration: 1000 } // 10 req/sec
+    : { type: 'fast' as const, limit: 50000, duration: 2592000000 }; // 50k/month
+  
+  for (const key of keysToUpgrade) {
+    try {
+      // Update key in Unkey
+      const unkeyResponse = await fetch(`${UNKEY_API_URL}/v1/keys.updateKey`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          keyId: key.unkey_id,
+          meta: {
+            plan: newPlan,
+            tier: newPlan,
+            searchEnabled: true, // Pro tiers have search enabled
+            requiresUserKeys: newPlan === 'byok_pro'
+          },
+          ratelimit: rateLimitConfig
+        })
+      });
+      
+      if (!unkeyResponse.ok) {
+        const error = await unkeyResponse.json();
+        console.error(`[Keys Upgrade] Failed to upgrade Unkey key ${key.unkey_id}:`, error);
+        continue;
+      }
+      
+      // Update key in our database
+      await supabase
+        .from('api_keys')
+        .update({
+          tier: newPlan,
+          metadata: {
+            plan: newPlan,
+            searchEnabled: true,
+            requiresUserKeys: newPlan === 'byok_pro',
+            upgradedAt: new Date().toISOString()
+          }
+        })
+        .eq('id', key.id);
+      
+      console.log(`[Keys Upgrade] ✅ Upgraded key ${key.name} (${key.unkey_id}) to ${newPlan}`);
+    } catch (err) {
+      console.error(`[Keys Upgrade] Error upgrading key ${key.unkey_id}:`, err);
+    }
+  }
+}
 
 /**
  * Verify webhook signature from Polar
@@ -249,6 +366,15 @@ export async function POST(request: NextRequest) {
             console.error('Error updating profile from checkout:', updateError);
           } else {
             console.log(`✅ Subscription activated from checkout for user ${profile.id}: tier=${tier}`);
+            
+            // Upgrade existing API keys when subscription is activated
+            if (tier === 'managed_pro' || tier === 'byok_pro' || tier === 'pro') {
+              try {
+                await upgradeUserApiKeys(supabase, profile.id, tier);
+              } catch (keyErr) {
+                console.error('Error upgrading API keys from checkout:', keyErr);
+              }
+            }
           }
         }
         break;
@@ -371,6 +497,16 @@ export async function POST(request: NextRequest) {
         }
 
         console.log(`✅ Updated subscription for ${customerEmail}: tier=${tier}, status=${status}, ends_at=${periodEnd.toISOString()}`);
+        
+        // Upgrade existing API keys when subscription is activated
+        if (status === 'active' && (tier === 'managed_pro' || tier === 'byok_pro' || tier === 'pro')) {
+          try {
+            await upgradeUserApiKeys(supabase, profile.id, tier);
+          } catch (keyErr) {
+            console.error('Error upgrading API keys:', keyErr);
+            // Don't fail the webhook - key upgrade is non-critical
+          }
+        }
         break;
       }
 

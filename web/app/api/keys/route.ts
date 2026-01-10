@@ -285,11 +285,27 @@ export async function POST(request: NextRequest) {
       })
     })
 
-    const unkeyResult = await unkeyResponse.json()
-    debug('POST:unkey:response', { ok: unkeyResponse.ok, keyId: unkeyResult.keyId })
+    // Handle response - first get raw text to debug any parsing issues
+    const responseText = await unkeyResponse.text()
+    debug('POST:unkey:rawResponse', { status: unkeyResponse.status, text: responseText.substring(0, 500) })
+    
+    let rawResult
+    try {
+      rawResult = JSON.parse(responseText)
+    } catch (parseError) {
+      console.error('[API/keys:POST:JSON_PARSE_ERROR]', { responseText: responseText.substring(0, 500), error: (parseError as Error).message })
+      return NextResponse.json(
+        { error: 'Failed to parse Unkey API response', details: responseText.substring(0, 200) }, 
+        { status: 500 }
+      )
+    }
+    
+    // Unkey v2 wraps response in { meta, data } envelope
+    const unkeyResult = rawResult.data || rawResult
+    debug('POST:unkey:response', { ok: unkeyResponse.ok, keyId: unkeyResult.keyId, requestId: rawResult.meta?.requestId })
 
     if (!unkeyResponse.ok) {
-      console.error('[API/keys:POST:unkey:ERROR]', unkeyResult)
+      console.error('[API/keys:POST:unkey:ERROR]', rawResult)
       return NextResponse.json(
         { error: 'Failed to create API key' }, 
         { status: 500 }

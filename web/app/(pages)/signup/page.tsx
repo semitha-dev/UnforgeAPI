@@ -74,7 +74,12 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('[Signup] ========== START ==========')
+    console.log('[Signup] Name:', formData.name)
+    console.log('[Signup] Email:', formData.email)
+    
     if (!validateForm()) {
+      console.log('[Signup] Form validation failed')
       return
     }
 
@@ -82,6 +87,7 @@ export default function SignUpPage() {
     setErrors({})
 
     try {
+      console.log('[Signup] Attempting signUp...')
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -92,21 +98,62 @@ export default function SignUpPage() {
         }
       })
 
+      console.log('[Signup] Auth result:', {
+        userId: data.user?.id,
+        email: data.user?.email,
+        emailConfirmed: data.user?.email_confirmed_at,
+        error: error?.message
+      })
+
       if (error) {
+        console.error('[Signup] Auth error:', error)
         setErrors({ general: error.message })
         return
       }
 
       if (data.user) {
+        // Auto-create profile with the name from signup form
+        console.log('[Signup] Creating profile for new user:', {
+          userId: data.user.id,
+          name: formData.name,
+          email: formData.email
+        })
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            email: formData.email,
+            name: formData.name,
+            education_level: 'other',
+            subscription_tier: 'free',
+            subscription_status: 'inactive',
+            onboarding_completed: false
+          })
+        
+        if (profileError) {
+          console.error('[Signup] Profile creation error:', {
+            code: profileError.code,
+            message: profileError.message,
+            details: profileError.details,
+            hint: profileError.hint
+          })
+        } else {
+          console.log('[Signup] Profile created successfully')
+        }
+
         if (data.user.email_confirmed_at) {
           // Email already confirmed, go to workspace creation
+          console.log('[Signup] Email confirmed, redirecting to onboarding')
           router.push('/onboarding/workspace')
         } else {
           // Need to verify email first
+          console.log('[Signup] Email not confirmed, redirecting to verify-email')
           router.push('/auth/verify-email')
         }
       }
     } catch (error: any) {
+      console.error('[Signup] Unexpected error:', error)
       setErrors({ general: 'An unexpected error occurred. Please try again.' })
     } finally {
       setIsLoading(false)
@@ -114,6 +161,7 @@ export default function SignUpPage() {
   }
 
   const handleGoogleSignIn = async () => {
+    console.log('[Signup] Google OAuth starting...')
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
