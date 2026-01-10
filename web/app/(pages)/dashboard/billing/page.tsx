@@ -48,36 +48,55 @@ export default function BillingPage() {
 
   // Handle checkout via API
   const handleCheckout = async (productType: 'managed' | 'byok') => {
+    console.log('[Billing:checkout:start]', { productType, timestamp: new Date().toISOString() })
     setIsCheckingOut(productType)
     setCheckoutError(null)
     
     try {
-      // Get the product ID from environment (passed via API)
+      const requestBody = {
+        productType // Let the API determine the product ID from env vars
+      }
+      
+      console.log('[Billing:checkout:request]', { 
+        url: '/api/subscription/checkout',
+        body: requestBody 
+      })
+      
       const response = await fetch('/api/subscription/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: productType === 'managed' 
-            ? process.env.NEXT_PUBLIC_POLAR_MANAGED_PRO_PRODUCT_ID 
-            : process.env.NEXT_PUBLIC_POLAR_BYOK_PRO_PRODUCT_ID,
-          productType // Let the API determine the product ID
-        })
+        body: JSON.stringify(requestBody)
       })
       
       const data = await response.json()
       
+      console.log('[Billing:checkout:response]', { 
+        status: response.status, 
+        ok: response.ok,
+        data 
+      })
+      
       if (!response.ok) {
+        console.error('[Billing:checkout:error]', { 
+          status: response.status, 
+          error: data.error,
+          details: data.details 
+        })
         throw new Error(data.error || data.details?.detail || 'Failed to create checkout')
       }
       
       // Redirect to Polar checkout
       if (data.url) {
+        console.log('[Billing:checkout:redirect]', { url: data.url })
         window.location.href = data.url
       } else {
         throw new Error('No checkout URL returned')
       }
     } catch (error: any) {
-      console.error('Checkout error:', error)
+      console.error('[Billing:checkout:exception]', { 
+        message: error.message, 
+        stack: error.stack 
+      })
       setCheckoutError(error.message || 'Failed to start checkout')
       setIsCheckingOut(null)
     }

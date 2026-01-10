@@ -98,10 +98,12 @@ export default function ApiKeysPage() {
   }
 
   const loadApiKeys = async () => {
+    console.log('[Keys:load:start]')
     setIsLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
+        console.log('[Keys:load:noUser] Redirecting to signin')
         router.push('/signin')
         return
       }
@@ -115,22 +117,31 @@ export default function ApiKeysPage() {
 
       if (!profile?.default_workspace_id) {
         // Create default workspace for new users
-        console.log('No workspace found, will use user ID as workspace')
+        console.log('[Keys:load] No workspace found, will use user ID as workspace')
       }
 
       const workspaceId = profile?.default_workspace_id || user.id
+      console.log('[Keys:load:request]', { workspaceId })
 
       // Fetch API keys via our API (bypasses RLS)
       const response = await fetch(`/api/keys?workspaceId=${workspaceId}`)
       const data = await response.json()
 
+      console.log('[Keys:load:response]', { 
+        status: response.status, 
+        ok: response.ok,
+        keyCount: data.keys?.length || 0 
+      })
+
       if (!response.ok) {
+        console.error('[Keys:load:error]', data)
         throw new Error(data.error || 'Failed to load API keys')
       }
 
       setApiKeys(data.keys || [])
+      console.log('[Keys:load:success]', { keyCount: data.keys?.length || 0 })
     } catch (err) {
-      console.error('Error loading API keys:', err)
+      console.error('[Keys:load:exception]', err)
       setError('Failed to load API keys')
     } finally {
       setIsLoading(false)
@@ -138,12 +149,16 @@ export default function ApiKeysPage() {
   }
 
   const createApiKey = async () => {
+    console.log('[Keys:create:start]', { name: newKeyName, tier: newKeyTier })
     setIsCreatingKey(true)
     setError(null)
     
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        console.error('[Keys:create:error] No user found')
+        return
+      }
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -154,22 +169,36 @@ export default function ApiKeysPage() {
       // Use default_workspace_id or user.id as fallback
       const workspaceId = profile?.default_workspace_id || user.id
 
+      const requestBody = {
+        name: newKeyName,
+        tier: newKeyTier,
+        workspaceId: workspaceId
+      }
+      
+      console.log('[Keys:create:request]', requestBody)
+
       // Call API to create key via Unkey
       const response = await fetch('/api/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newKeyName,
-          tier: newKeyTier,
-          workspaceId: workspaceId
-        })
+        body: JSON.stringify(requestBody)
       })
 
       const data = await response.json()
+      
+      console.log('[Keys:create:response]', { 
+        status: response.status, 
+        ok: response.ok,
+        hasKey: !!data.key,
+        error: data.error 
+      })
 
       if (!response.ok) {
+        console.error('[Keys:create:error]', data)
         throw new Error(data.error || 'Failed to create API key')
       }
+
+      console.log('[Keys:create:success]', { keyPrefix: data.key?.substring(0, 10) + '...' })
 
       // Show the new key (only shown once)
       setNewApiKey(data.key)
@@ -179,6 +208,7 @@ export default function ApiKeysPage() {
       // Reload keys
       loadApiKeys()
     } catch (err: any) {
+      console.error('[Keys:create:exception]', { message: err.message, stack: err.stack })
       setError(err.message)
     } finally {
       setIsCreatingKey(false)
@@ -186,19 +216,31 @@ export default function ApiKeysPage() {
   }
 
   const deleteApiKey = async (unkeyId: string) => {
+    console.log('[Keys:delete:start]', { unkeyId })
     try {
       const response = await fetch(`/api/keys?id=${unkeyId}`, {
         method: 'DELETE'
       })
 
+      const data = await response.json()
+      
+      console.log('[Keys:delete:response]', { 
+        status: response.status, 
+        ok: response.ok,
+        data 
+      })
+
       if (!response.ok) {
-        const data = await response.json()
+        console.error('[Keys:delete:error]', data)
         throw new Error(data.error || 'Failed to delete API key')
       }
+
+      console.log('[Keys:delete:success]')
 
       // Remove from local state
       setApiKeys(keys => keys.filter(k => k.unkey_id !== unkeyId))
     } catch (err: any) {
+      console.error('[Keys:delete:exception]', { message: err.message })
       setError(err.message)
     }
   }
