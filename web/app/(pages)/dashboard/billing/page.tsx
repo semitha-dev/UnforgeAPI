@@ -5,204 +5,145 @@ import { useSearchParams } from 'next/navigation'
 import { 
   CreditCard, 
   Check, 
-  Zap,
   ArrowRight,
   Shield,
   Key,
   AlertCircle,
   ExternalLink,
   Loader2,
-  RefreshCw
+  Crown,
+  Settings,
+  Sparkles
 } from 'lucide-react'
-import { API_PLANS, PLAN_CONFIG, type ApiPlan } from '@/lib/subscription-constants'
+import { PLAN_CONFIG, type ApiPlan } from '@/lib/subscription-constants'
+import { useUser } from '@/lib/UserContext'
+import { UpgradeModal } from '@/components/ui/upgrade-modal'
 
-// Mock current plan - in production this would come from user context/API
-type CurrentPlanInfo = {
-  plan: ApiPlan
-  usageToday?: number
-  usageThisMonth?: number
-  limitToday?: number
-  limitThisMonth?: number
+type SubscriptionInfo = {
+  tier: ApiPlan
+  status: string | null
+  endsAt: string | null
+  polarCustomerId: string | null
 }
 
 export default function BillingPage() {
   const searchParams = useSearchParams()
   const subscriptionSuccess = searchParams.get('subscription') === 'success'
+  const { user, isLoading: userLoading, refetch: refetchUser } = useUser()
   
-  // In production, this would come from user context or API
-  const [currentPlan, setCurrentPlan] = useState<CurrentPlanInfo>({
-    plan: 'sandbox',
-    usageToday: 12,
-    limitToday: 50,
+  const [subscription, setSubscription] = useState<SubscriptionInfo>({
+    tier: 'sandbox',
+    status: null,
+    endsAt: null,
+    polarCustomerId: null,
   })
-  
-  const [isCheckingOut, setIsCheckingOut] = useState<'managed' | 'byok' | null>(null)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  const [isLoadingPortal, setIsLoadingPortal] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [isRefetching, setIsRefetching] = useState(true)
 
-  // Auto-sync subscription when returning from checkout
+  // Debug helper
+  const debug = (tag: string, data: any) => {
+    console.log(`%c[Billing:${tag}]`, 'color: #10B981; font-weight: bold', data)
+  }
+
+  // Always force refetch on billing page mount to ensure fresh subscription data
+  useEffect(() => {
+    const doRefetch = async () => {
+      debug('mount:refetch', { timestamp: new Date().toISOString() })
+      await refetchUser()
+      debug('mount:refetchDone', { user: user?.subscriptionTier })
+      setIsRefetching(false)
+    }
+    doRefetch()
+  }, []) // Empty deps - only run once on mount
+
+  // Fetch subscription data from user context
+  useEffect(() => {
+    debug('userEffect', { 
+      hasUser: !!user, 
+      subscriptionTier: user?.subscriptionTier,
+      subscriptionStatus: user?.subscriptionStatus,
+      isRefetching 
+    })
+    
+    if (user) {
+      const tier = (user.subscriptionTier || 'sandbox') as ApiPlan
+      const isValidTier = !!PLAN_CONFIG[tier]
+      
+      debug('setSubscription', { 
+        rawTier: user.subscriptionTier, 
+        mappedTier: tier,
+        isValidTier,
+        finalTier: isValidTier ? tier : 'sandbox'
+      })
+      
+      setSubscription({
+        tier: PLAN_CONFIG[tier] ? tier : 'sandbox',
+        status: user.subscriptionStatus,
+        endsAt: user.subscriptionEndsAt,
+        polarCustomerId: null, // We'll get this from API if needed
+      })
+    }
+  }, [user])
+
+  // Refetch user data when returning from checkout success
   useEffect(() => {
     if (subscriptionSuccess) {
-      console.log('[Billing] Returned from checkout success, auto-syncing...')
-      handleSyncSubscription()
+      debug('checkoutSuccess', { timestamp: new Date().toISOString() })
+      // Wait a bit for webhook to process, then refetch
+      const timer = setTimeout(() => {
+        debug('checkoutSuccess:refetch', {})
+        refetchUser()
+      }, 2000)
+      return () => clearTimeout(timer)
     }
-  }, [subscriptionSuccess])
+  }, [subscriptionSuccess, refetchUser])
 
-  const planConfig = PLAN_CONFIG[currentPlan.plan]
-  const isByokPlan = currentPlan.plan === 'byok_starter' || currentPlan.plan === 'byok_pro'
-  const isManagedPlan = currentPlan.plan === 'sandbox' || currentPlan.plan === 'managed_pro'
-  const isPaidPlan = currentPlan.plan === 'managed_pro' || currentPlan.plan === 'byok_pro'
+  const planConfig = PLAN_CONFIG[subscription.tier] || PLAN_CONFIG.sandbox
+  const isByokPlan = subscription.tier === 'byok_starter' || subscription.tier === 'byok_pro'
+  const isManagedPlan = subscription.tier === 'sandbox' || subscription.tier === 'managed_pro'
+  const isPaidPlan = subscription.tier === 'managed_pro' || subscription.tier === 'byok_pro'
+  const isFreeTier = subscription.tier === 'sandbox' || subscription.tier === 'byok_starter'
 
-  // Calculate usage percentage
-  const usagePercentage = currentPlan.plan === 'sandbox' || currentPlan.plan === 'byok_starter'
-    ? Math.round(((currentPlan.usageToday || 0) / (currentPlan.limitToday || 1)) * 100)
-    : currentPlan.plan === 'managed_pro'
-    ? Math.round(((currentPlan.usageThisMonth || 0) / (currentPlan.limitThisMonth || 1)) * 100)
-    : 0
-
-  // Handle subscription sync from Polar
-  const handleSyncSubscription = async () => {
-    console.log('[Billing:sync:start]', { timestamp: new Date().toISOString() })
-    setIsSyncing(true)
-    setSyncMessage(null)
-    
+  // Handle opening customer portal
+  const handleManageSubscription = async () => {
+    setIsLoadingPortal(true)
     try {
-      const response = await fetch('/api/subscription/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      })
-      
+      const response = await fetch('/api/subscription/manage')
       const data = await response.json()
       
-      console.log('[Billing:sync:response]', { 
-        status: response.status, 
-        ok: response.ok,
-        data 
-      })
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to sync subscription')
-      }
-      
-      // Update local state if subscription was synced
-      if (data.subscription?.tier) {
-        const newTier = data.subscription.tier as ApiPlan
-        if (PLAN_CONFIG[newTier]) {
-          setCurrentPlan(prev => ({ ...prev, plan: newTier }))
-          setSyncMessage(`✅ Subscription synced! You are now on ${PLAN_CONFIG[newTier].name}`)
-        }
-      } else if (data.tier) {
-        setSyncMessage(`Current plan: ${data.tier}`)
+      if (data.portalUrl) {
+        window.open(data.portalUrl, '_blank')
       } else {
-        setSyncMessage(data.message || 'Subscription synced')
+        // Fallback to Polar billing page
+        window.open('https://polar.sh/settings/billing', '_blank')
       }
-      
-      // Refresh the page after a short delay to get updated data
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
-      
-    } catch (error: any) {
-      console.error('[Billing:sync:error]', error)
-      setSyncMessage(`❌ ${error.message}`)
+    } catch (error) {
+      window.open('https://polar.sh/settings/billing', '_blank')
     } finally {
-      setIsSyncing(false)
+      setIsLoadingPortal(false)
     }
   }
 
-  // Handle checkout via API
-  const handleCheckout = async (productType: 'managed' | 'byok') => {
-    console.log('[Billing:checkout:start]', { productType, timestamp: new Date().toISOString() })
-    setIsCheckingOut(productType)
-    setCheckoutError(null)
-    
-    try {
-      const requestBody = {
-        productType // Let the API determine the product ID from env vars
-      }
-      
-      console.log('[Billing:checkout:request]', { 
-        url: '/api/subscription/checkout',
-        body: requestBody 
-      })
-      
-      const response = await fetch('/api/subscription/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody)
-      })
-      
-      const data = await response.json()
-      
-      console.log('[Billing:checkout:response]', { 
-        status: response.status, 
-        ok: response.ok,
-        data 
-      })
-      
-      if (!response.ok) {
-        console.error('[Billing:checkout:error]', { 
-          status: response.status, 
-          error: data.error,
-          details: data.details 
-        })
-        throw new Error(data.error || data.details?.detail || 'Failed to create checkout')
-      }
-      
-      // Redirect to Polar checkout
-      if (data.url) {
-        console.log('[Billing:checkout:redirect]', { url: data.url })
-        window.location.href = data.url
-      } else {
-        throw new Error('No checkout URL returned')
-      }
-    } catch (error: any) {
-      console.error('[Billing:checkout:exception]', { 
-        message: error.message, 
-        stack: error.stack 
-      })
-      setCheckoutError(error.message || 'Failed to start checkout')
-      setIsCheckingOut(null)
-    }
+  if (userLoading || isRefetching) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+      </div>
+    )
   }
 
   return (
     <>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-1">Billing</h1>
-            <p className="text-neutral-400">Manage your subscription and billing settings</p>
-          </div>
-          <button
-            onClick={handleSyncSubscription}
-            disabled={isSyncing}
-            className="flex items-center gap-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-white rounded-lg text-sm transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Syncing...' : 'Sync Subscription'}
-          </button>
-        </div>
-        
-        {/* Sync message */}
-        {syncMessage && (
-          <div className={`mt-4 p-3 rounded-lg text-sm ${
-            syncMessage.startsWith('✅') 
-              ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400'
-              : syncMessage.startsWith('❌')
-              ? 'bg-red-500/10 border border-red-500/30 text-red-400'
-              : 'bg-blue-500/10 border border-blue-500/30 text-blue-400'
-          }`}>
-            {syncMessage}
-          </div>
-        )}
+        <h1 className="text-2xl font-bold text-white mb-1">Billing</h1>
+        <p className="text-neutral-400">Manage your subscription and billing settings</p>
         
         {/* Success from checkout redirect */}
-        {subscriptionSuccess && !syncMessage && (
+        {subscriptionSuccess && (
           <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-sm">
-            🎉 Payment successful! Syncing your subscription...
+            🎉 Payment successful! Your subscription has been activated.
           </div>
         )}
       </div>
@@ -212,327 +153,161 @@ export default function BillingPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-semibold text-white">Current Plan</h2>
-            <p className="text-neutral-400">You are currently on the {planConfig.name} tier</p>
+            <p className="text-neutral-400">
+              {isPaidPlan 
+                ? `You're on the ${planConfig.name} plan`
+                : `You are currently on the ${planConfig.name} tier`
+              }
+            </p>
           </div>
-          <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-            isByokPlan 
-              ? 'bg-amber-500/20 text-amber-400'
-              : 'bg-violet-500/20 text-violet-400'
+          <div className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 ${
+            isPaidPlan
+              ? isByokPlan 
+                ? 'bg-amber-500/20 text-amber-400'
+                : 'bg-violet-500/20 text-violet-400'
+              : 'bg-neutral-700 text-neutral-300'
           }`}>
+            {isPaidPlan && <Crown className="w-4 h-4" />}
             {planConfig.name}
           </div>
         </div>
 
-        <div className="p-4 bg-neutral-800 rounded-xl">
+        <div className={`p-4 rounded-xl ${
+          isPaidPlan
+            ? isByokPlan
+              ? 'bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20'
+              : 'bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20'
+            : 'bg-neutral-800'
+        }`}>
           <div className="flex items-center gap-3 mb-4">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              isByokPlan ? 'bg-amber-500/20' : 'bg-violet-500/20'
+              isPaidPlan
+                ? isByokPlan ? 'bg-amber-500/20' : 'bg-violet-500/20'
+                : 'bg-neutral-700'
             }`}>
               {isByokPlan ? (
-                <Key className={`w-5 h-5 ${isByokPlan ? 'text-amber-400' : 'text-violet-400'}`} />
+                <Key className={`w-5 h-5 ${isPaidPlan ? 'text-amber-400' : 'text-neutral-400'}`} />
               ) : (
-                <Shield className={`w-5 h-5 ${isByokPlan ? 'text-amber-400' : 'text-violet-400'}`} />
+                <Shield className={`w-5 h-5 ${isPaidPlan ? 'text-violet-400' : 'text-neutral-400'}`} />
               )}
             </div>
-            <div>
+            <div className="flex-1">
               <div className="font-medium text-white">{planConfig.name}</div>
               <div className="text-sm text-neutral-400">{planConfig.description}</div>
             </div>
+            {isPaidPlan && (
+              <div className="text-right">
+                <div className="text-xl font-bold text-white">
+                  {subscription.tier === 'managed_pro' ? '$19.99' : '$4.99'}
+                </div>
+                <div className="text-sm text-neutral-400">per month</div>
+              </div>
+            )}
           </div>
 
-          {/* Usage Bar for limited plans */}
-          {(currentPlan.plan === 'sandbox' || currentPlan.plan === 'byok_starter' || currentPlan.plan === 'managed_pro') && (
-            <div className="mb-4 p-3 bg-neutral-900 rounded-lg">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-neutral-400">
-                  {currentPlan.plan === 'managed_pro' ? 'Monthly' : 'Daily'} Usage
-                </span>
-                <span className="text-white font-medium">
-                  {currentPlan.plan === 'managed_pro' 
-                    ? `${currentPlan.usageThisMonth || 0} / ${currentPlan.limitThisMonth || planConfig.limit}`
-                    : `${currentPlan.usageToday || 0} / ${currentPlan.limitToday || planConfig.limit}`
-                  } requests
-                </span>
-              </div>
-              <div className="h-2 bg-neutral-700 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all ${
-                    usagePercentage > 80 
-                      ? 'bg-red-500' 
-                      : usagePercentage > 50 
-                      ? 'bg-amber-500' 
-                      : isByokPlan ? 'bg-amber-400' : 'bg-violet-400'
-                  }`}
-                  style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-                />
-              </div>
-              {usagePercentage > 80 && (
-                <div className="flex items-center gap-2 mt-2 text-amber-400 text-sm">
-                  <AlertCircle className="w-4 h-4" />
-                  <span>Approaching limit. Consider upgrading for uninterrupted service.</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          <ul className="space-y-2 text-sm text-neutral-300">
+          {/* Features */}
+          <ul className="space-y-2 text-sm text-neutral-300 mb-4">
             {planConfig.features.map((feature, index) => (
               <li key={index} className="flex items-center gap-2">
-                <Check className={`w-4 h-4 ${isByokPlan ? 'text-amber-400' : 'text-emerald-400'}`} />
+                <Check className={`w-4 h-4 ${
+                  isPaidPlan
+                    ? isByokPlan ? 'text-amber-400' : 'text-violet-400'
+                    : 'text-emerald-400'
+                }`} />
                 {feature}
               </li>
             ))}
           </ul>
+
+          {/* Subscription details for paid plans */}
+          {isPaidPlan && subscription.endsAt && (
+            <div className="pt-4 border-t border-neutral-700/50">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-neutral-400">
+                  {subscription.status === 'canceled' ? 'Access until' : 'Next billing date'}
+                </span>
+                <span className="text-white">
+                  {new Date(subscription.endsAt).toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </span>
+              </div>
+              {subscription.status === 'canceled' && (
+                <div className="mt-2 text-amber-400 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Subscription canceled - you'll keep access until the end of your billing period
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      </div>
 
-      {/* Upgrade Options */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-white mb-4">Upgrade Your Plan</h2>
-        
-        {/* Show relevant upgrade options based on current plan */}
-        {isManagedPlan && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Managed Pro Upgrade - only show if on Sandbox */}
-            {currentPlan.plan === 'sandbox' && (
-              <div className="bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/30 rounded-2xl p-6">
-                <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Shield className="w-5 h-5 text-violet-400" />
-                    <h3 className="text-xl font-semibold text-white">Managed Pro</h3>
-                  </div>
-                  <p className="text-neutral-400 text-sm">Full power, we handle the keys</p>
-                </div>
-
-                <div className="mb-6">
-                  <div className="text-3xl font-bold text-white">$19.99</div>
-                  <div className="text-neutral-400 text-sm">per month</div>
-                </div>
-
-                <ul className="space-y-3 mb-6 text-sm">
-                  <li className="flex items-center gap-2 text-neutral-300">
-                    <Check className="w-4 h-4 text-violet-400" />
-                    Unlimited Chat & Context
-                  </li>
-                  <li className="flex items-center gap-2 text-neutral-300">
-                    <Check className="w-4 h-4 text-violet-400" />
-                    1,000 Web Search requests / month
-                  </li>
-                  <li className="flex items-center gap-2 text-neutral-300">
-                    <Check className="w-4 h-4 text-violet-400" />
-                    Full research capabilities
-                  </li>
-                  <li className="flex items-center gap-2 text-neutral-300">
-                    <Check className="w-4 h-4 text-violet-400" />
-                    System API keys
-                  </li>
-                  <li className="flex items-center gap-2 text-neutral-300">
-                    <Check className="w-4 h-4 text-violet-400" />
-                    50,000 req/mo fair usage policy
-                  </li>
-                </ul>
-
-                {checkoutError && isCheckingOut === null && (
-                  <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
-                    {checkoutError}
-                  </div>
-                )}
-
-                <button
-                  onClick={() => handleCheckout('managed')}
-                  disabled={isCheckingOut !== null}
-                  className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
-                >
-                  {isCheckingOut === 'managed' ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      Upgrade to Pro
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-
-            {/* BYOK Pro Upgrade */}
-            <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-6">
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-1">
-                  <Key className="w-5 h-5 text-amber-400" />
-                  <h3 className="text-xl font-semibold text-white">BYOK Unlimited</h3>
-                </div>
-                <p className="text-neutral-400 text-sm">Use your own keys, unlimited scale</p>
-              </div>
-
-              <div className="mb-6">
-                <div className="text-3xl font-bold text-white">$4.99</div>
-                <div className="text-neutral-400 text-sm">per month</div>
-              </div>
-
-              <ul className="space-y-3 mb-6 text-sm">
-                {PLAN_CONFIG.byok_pro.features.map((feature, index) => (
-                  <li key={index} className="flex items-center gap-2 text-neutral-300">
-                    <Check className="w-4 h-4 text-amber-400" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => handleCheckout('byok')}
-                disabled={isCheckingOut !== null}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
-              >
-                {isCheckingOut === 'byok' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Go Unlimited
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* BYOK Starter - show upgrade to BYOK Pro */}
-        {currentPlan.plan === 'byok_starter' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-6">
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-1">
-                  <Zap className="w-5 h-5 text-amber-400" />
-                  <h3 className="text-xl font-semibold text-white">BYOK Unlimited</h3>
-                </div>
-                <p className="text-neutral-400 text-sm">Remove the 100/day limit</p>
-              </div>
-
-              <div className="mb-6">
-                <div className="text-3xl font-bold text-white">$4.99</div>
-                <div className="text-neutral-400 text-sm">per month</div>
-              </div>
-
-              <ul className="space-y-3 mb-6 text-sm">
-                {PLAN_CONFIG.byok_pro.features.map((feature, index) => (
-                  <li key={index} className="flex items-center gap-2 text-neutral-300">
-                    <Check className="w-4 h-4 text-amber-400" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => handleCheckout('byok')}
-                disabled={isCheckingOut !== null}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
-              >
-                {isCheckingOut === 'byok' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Upgrade to Unlimited
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Option to switch to Managed */}
-            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-1">
-                  <Shield className="w-5 h-5 text-violet-400" />
-                  <h3 className="text-xl font-semibold text-white">Switch to Managed</h3>
-                </div>
-                <p className="text-neutral-400 text-sm">Let us handle the API keys</p>
-              </div>
-
-              <div className="mb-6">
-                <div className="text-3xl font-bold text-white">$19.99</div>
-                <div className="text-neutral-400 text-sm">per month</div>
-              </div>
-
-              <ul className="space-y-3 mb-6 text-sm">
-                {PLAN_CONFIG.managed_pro.features.map((feature, index) => (
-                  <li key={index} className="flex items-center gap-2 text-neutral-300">
-                    <Check className="w-4 h-4 text-violet-400" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => handleCheckout('managed')}
-                disabled={isCheckingOut !== null}
-                className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
-              >
-                {isCheckingOut === 'managed' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Switch to Managed Pro
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Enterprise */}
-        <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6">
-          <div className="mb-6">
-            <h3 className="text-xl font-semibold text-white mb-1">Enterprise</h3>
-            <p className="text-neutral-400 text-sm">For teams and organizations</p>
-          </div>
-
-          <div className="mb-6">
-            <div className="text-3xl font-bold text-white">Custom</div>
-            <div className="text-neutral-400 text-sm">contact for pricing</div>
-          </div>
-
-          <ul className="space-y-3 mb-6 text-sm">
-            <li className="flex items-center gap-2 text-neutral-300">
-              <Check className="w-4 h-4 text-emerald-400" />
-              Volume discounts
-            </li>
-            <li className="flex items-center gap-2 text-neutral-300">
-              <Check className="w-4 h-4 text-emerald-400" />
-              Dedicated support
-            </li>
-            <li className="flex items-center gap-2 text-neutral-300">
-              <Check className="w-4 h-4 text-emerald-400" />
-              Custom integrations
-            </li>
-            <li className="flex items-center gap-2 text-neutral-300">
-              <Check className="w-4 h-4 text-emerald-400" />
-              SLA guarantees
-            </li>
-          </ul>
-
-          <a
-            href="mailto:enterprise@unforge.com"
-            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+        {/* Manage Subscription Button for paid plans */}
+        {isPaidPlan && (
+          <button
+            onClick={handleManageSubscription}
+            disabled={isLoadingPortal}
+            className="mt-4 w-full py-3 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
           >
-            Contact Sales
-            <ArrowRight className="w-4 h-4" />
-          </a>
-        </div>
+            {isLoadingPortal ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Settings className="w-4 h-4" />
+            )}
+            Manage Subscription
+            <ExternalLink className="w-4 h-4 ml-1" />
+          </button>
+        )}
       </div>
+
+      {/* Upgrade Options - Only show for free tiers */}
+      {isFreeTier && (
+        <div className="mb-8">
+          <div className="bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 border border-violet-500/20 rounded-2xl p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold text-white mb-2">Ready to upgrade?</h2>
+                <p className="text-neutral-400">
+                  Unlock unlimited potential with our Pro tiers. Choose between Managed Pro or BYOK Unlimited.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl font-semibold transition-all whitespace-nowrap"
+              >
+                <Sparkles className="w-5 h-5" />
+                View Plans
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Enterprise */}
+          <div className="mt-6 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-1">Enterprise</h3>
+                <p className="text-neutral-400 text-sm">For teams and organizations with custom needs</p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-white">Custom</div>
+                  <div className="text-neutral-400 text-sm">contact for pricing</div>
+                </div>
+                <a
+                  href="mailto:enterprise@leaflearning.com"
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
+                >
+                  Contact Sales
+                  <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment Method */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
@@ -552,22 +327,17 @@ export default function BillingPage() {
         </div>
         <p className="text-neutral-500 text-sm">
           {isPaidPlan
-            ? 'Your subscription is managed through Polar. Click below to update your payment method or view invoices.'
+            ? 'Your subscription is managed through Polar. Click "Manage Subscription" above to update your payment method or view invoices.'
             : `You're on the ${planConfig.name} tier. Add a payment method when you upgrade to a paid plan.`
           }
         </p>
-        {isPaidPlan && (
-          <a
-            href="https://polar.sh/settings/billing"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center gap-2 text-sm text-violet-400 hover:text-violet-300"
-          >
-            Manage billing on Polar
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        )}
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </>
   )
 }

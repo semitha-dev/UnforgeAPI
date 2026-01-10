@@ -10,6 +10,7 @@ import {
   ChevronDown, Plus, Building2, Check, Loader2, Sparkles
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
+import { UpgradeModal } from '@/components/ui/upgrade-modal'
 
 type SubscriptionTier = 'free' | 'managed_pro' | 'byok_pro' | 'pro' | 'sandbox'
 
@@ -43,11 +44,18 @@ export default function DashboardLayout({
   const [newWorkspaceName, setNewWorkspaceName] = useState('')
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('')
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const workspaceMenuRef = useRef<HTMLDivElement>(null)
+
+  // Debug helper
+  const debug = (tag: string, data: any) => {
+    console.log(`%c[DashboardLayout:${tag}]`, 'color: #F59E0B; font-weight: bold', data)
+  }
 
   useEffect(() => {
     if (!fetchedRef.current) {
       fetchedRef.current = true
+      debug('mount', { timestamp: new Date().toISOString() })
       loadUserData()
       loadWorkspaces()
     }
@@ -65,23 +73,34 @@ export default function DashboardLayout({
   }, [])
 
   const loadUserData = async () => {
+    debug('loadUserData:start', {})
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      debug('loadUserData:auth', { hasUser: !!user, userId: user?.id, error: authError?.message })
+      
       if (!user) {
+        debug('loadUserData:noUser', { redirecting: '/signin' })
         router.push('/signin')
         return
       }
       
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('name, subscription_tier')
         .eq('id', user.id)
         .single()
       
+      debug('loadUserData:profile', { 
+        hasProfile: !!profileData, 
+        subscription_tier: profileData?.subscription_tier,
+        error: profileError?.message 
+      })
+      
       if (profileData) {
         setProfile(profileData)
       }
     } catch (error) {
+      debug('loadUserData:error', { error })
       console.error('Error loading user data:', error)
     } finally {
       setIsLoading(false)
@@ -300,13 +319,13 @@ export default function DashboardLayout({
           {/* Upgrade Button - Show for non-pro users */}
           {(!profile?.subscription_tier || profile.subscription_tier === 'free' || profile.subscription_tier === 'sandbox') && (
             <div className="px-4 pb-2">
-              <Link
-                href="/dashboard/billing"
+              <button
+                onClick={() => setShowUpgradeModal(true)}
                 className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white rounded-lg transition-all font-medium text-sm shadow-lg shadow-violet-500/20"
               >
                 <Sparkles className="h-4 w-4" />
                 Upgrade to Pro
-              </Link>
+              </button>
             </div>
           )}
 
@@ -453,6 +472,12 @@ export default function DashboardLayout({
           {children}
         </div>
       </main>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={showUpgradeModal} 
+        onClose={() => setShowUpgradeModal(false)} 
+      />
     </div>
   )
 }

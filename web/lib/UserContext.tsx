@@ -3,6 +3,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react'
 import { createClient } from '@/app/lib/supabaseClient'
 
+// Debug helper
+function debug(tag: string, data: any) {
+  const timestamp = new Date().toISOString()
+  console.log(`%c[UserContext:${tag}]`, 'color: #8B5CF6; font-weight: bold', data)
+}
+
 interface UserProfile {
   id: string
   name: string
@@ -56,33 +62,68 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const initialLoadDone = useRef(!!globalUserCache)
 
   const fetchUser = useCallback(async (force = false) => {
+    debug('fetchUser:start', { force, hasCachedUser: !!globalUserCache })
+    
+    // If forcing, clear the cache first
+    if (force) {
+      debug('fetchUser:clearCache', { reason: 'force=true' })
+      globalUserCache = null
+      fetchingRef.current = false // Reset in case previous fetch hung
+    }
+    
     // Check global cache first (unless forced)
     if (!force && globalUserCache && Date.now() - globalUserCache.timestamp < CACHE_DURATION) {
+      debug('fetchUser:useCache', { 
+        subscriptionTier: globalUserCache.user.subscriptionTier,
+        cacheAge: Math.round((Date.now() - globalUserCache.timestamp) / 1000) + 's'
+      })
       setUser(globalUserCache.user)
       setIsLoading(false)
       return
     }
 
     // Prevent concurrent fetches
-    if (fetchingRef.current) return
+    if (fetchingRef.current) {
+      debug('fetchUser:skip', { reason: 'already fetching' })
+      return
+    }
     fetchingRef.current = true
+    setIsLoading(true)
+    debug('fetchUser:fetching', { timestamp: new Date().toISOString() })
 
     try {
       const supabase = createClient()
-      const { data: { user: authUser } } = await supabase.auth.getUser()
+      debug('fetchUser:getAuth', { timestamp: new Date().toISOString() })
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
+      
+      debug('fetchUser:authResult', { 
+        hasUser: !!authUser, 
+        userId: authUser?.id,
+        email: authUser?.email,
+        error: authError?.message 
+      })
       
       if (!authUser) {
+        debug('fetchUser:noAuth', { reason: 'No authenticated user' })
         const anonymousUser = { ...defaultUser, subscriptionTier: 'anonymous' }
         setUser(anonymousUser)
         globalUserCache = { user: anonymousUser, timestamp: Date.now() }
         return
       }
 
-      const { data: profile } = await supabase
+      debug('fetchUser:queryProfile', { userId: authUser.id })
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, name, full_name, email, avatar_url, education_level, subscription_tier, subscription_status, subscription_ends_at, created_at')
         .eq('id', authUser.id)
         .single()
+      
+      debug('fetchUser:profileResult', { 
+        hasProfile: !!profile,
+        error: profileError?.message,
+        subscription_tier: profile?.subscription_tier,
+        subscription_status: profile?.subscription_status
+      })
 
       const userData: UserProfile = {
         id: authUser.id,
@@ -96,8 +137,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
         createdAt: profile?.created_at || null
       }
 
+      debug('fetchUser:success', { 
+        subscriptionTier: userData.subscriptionTier,
+        subscriptionStatus: userData.subscriptionStatus,
+        name: userData.name,
+        email: userData.email
+      })
+      
       setUser(userData)
       globalUserCache = { user: userData, timestamp: Date.now() }
+      debug('fetchUser:cached', { tier: userData.subscriptionTier })
     } catch (error) {
       console.error('Error fetching user:', error)
       // On error, set as guest
@@ -136,7 +185,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const value: UserContextType = {
     user,
-    isPro: user?.subscriptionTier === 'pro',
+    isPro: user?.subscriptionTier === 'pro' || user?.subscriptionTier === 'managed_pro' || user?.subscriptionTier === 'byok_pro',
     isAnonymous: !user || user.subscriptionTier === 'anonymous',
     isLoading,
     refetch: () => fetchUser(true),
