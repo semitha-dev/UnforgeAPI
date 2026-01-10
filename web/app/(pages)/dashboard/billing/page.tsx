@@ -9,9 +9,10 @@ import {
   Shield,
   Key,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from 'lucide-react'
-import { API_PLANS, PLAN_CONFIG, POLAR_PRODUCT_IDS, type ApiPlan } from '@/lib/subscription-constants'
+import { API_PLANS, PLAN_CONFIG, type ApiPlan } from '@/lib/subscription-constants'
 
 // Mock current plan - in production this would come from user context/API
 type CurrentPlanInfo = {
@@ -29,6 +30,9 @@ export default function BillingPage() {
     usageToday: 12,
     limitToday: 50,
   })
+  
+  const [isCheckingOut, setIsCheckingOut] = useState<'managed' | 'byok' | null>(null)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   const planConfig = PLAN_CONFIG[currentPlan.plan]
   const isByokPlan = currentPlan.plan === 'byok_starter' || currentPlan.plan === 'byok_pro'
@@ -41,6 +45,43 @@ export default function BillingPage() {
     : currentPlan.plan === 'managed_pro'
     ? Math.round(((currentPlan.usageThisMonth || 0) / (currentPlan.limitThisMonth || 1)) * 100)
     : 0
+
+  // Handle checkout via API
+  const handleCheckout = async (productType: 'managed' | 'byok') => {
+    setIsCheckingOut(productType)
+    setCheckoutError(null)
+    
+    try {
+      // Get the product ID from environment (passed via API)
+      const response = await fetch('/api/subscription/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: productType === 'managed' 
+            ? process.env.NEXT_PUBLIC_POLAR_MANAGED_PRO_PRODUCT_ID 
+            : process.env.NEXT_PUBLIC_POLAR_BYOK_PRO_PRODUCT_ID,
+          productType // Let the API determine the product ID
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.error || data.details?.detail || 'Failed to create checkout')
+      }
+      
+      // Redirect to Polar checkout
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL returned')
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error)
+      setCheckoutError(error.message || 'Failed to start checkout')
+      setIsCheckingOut(null)
+    }
+  }
 
   return (
     <>
@@ -175,15 +216,29 @@ export default function BillingPage() {
                   </li>
                 </ul>
 
-                <a
-                  href={`https://buy.polar.sh/polar_cl_${POLAR_PRODUCT_IDS.MANAGED_PRO}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+                {checkoutError && isCheckingOut === null && (
+                  <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">
+                    {checkoutError}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => handleCheckout('managed')}
+                  disabled={isCheckingOut !== null}
+                  className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:opacity-90 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
                 >
-                  Upgrade to Pro
-                  <ExternalLink className="w-4 h-4" />
-                </a>
+                  {isCheckingOut === 'managed' ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Upgrade to Pro
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
               </div>
             )}
 
@@ -211,15 +266,23 @@ export default function BillingPage() {
                 ))}
               </ul>
 
-              <a
-                href={`https://buy.polar.sh/polar_cl_${POLAR_PRODUCT_IDS.BYOK_PRO}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+              <button
+                onClick={() => handleCheckout('byok')}
+                disabled={isCheckingOut !== null}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
               >
-                Go Unlimited
-                <ExternalLink className="w-4 h-4" />
-              </a>
+                {isCheckingOut === 'byok' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Go Unlimited
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}
@@ -250,15 +313,23 @@ export default function BillingPage() {
                 ))}
               </ul>
 
-              <a
-                href={`https://buy.polar.sh/polar_cl_${POLAR_PRODUCT_IDS.BYOK_PRO}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+              <button
+                onClick={() => handleCheckout('byok')}
+                disabled={isCheckingOut !== null}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:opacity-90 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
               >
-                Upgrade to Unlimited
-                <ExternalLink className="w-4 h-4" />
-              </a>
+                {isCheckingOut === 'byok' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Upgrade to Unlimited
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
             </div>
 
             {/* Option to switch to Managed */}
@@ -285,15 +356,23 @@ export default function BillingPage() {
                 ))}
               </ul>
 
-              <a
-                href={`https://buy.polar.sh/polar_cl_${POLAR_PRODUCT_IDS.MANAGED_PRO}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
+              <button
+                onClick={() => handleCheckout('managed')}
+                disabled={isCheckingOut !== null}
+                className="w-full py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
               >
-                Switch to Managed Pro
-                <ArrowRight className="w-4 h-4" />
-              </a>
+                {isCheckingOut === 'managed' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Switch to Managed Pro
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}

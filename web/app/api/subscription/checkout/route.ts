@@ -34,13 +34,30 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     debug('body:raw', body);
-    const { productId } = body;
+    const { productId, productType } = body;
 
-    // Use provided productId or default to Pro
-    const finalProductId = productId || PRO_PRODUCT_ID;
+    // Determine product ID from type or use provided ID
+    let finalProductId = productId;
+    
+    if (!finalProductId && productType) {
+      // Map product type to product ID from environment
+      if (productType === 'managed') {
+        finalProductId = process.env.POLAR_MANAGED_PRO_PRODUCT_ID;
+        debug('productId:fromType', { type: 'managed', productId: finalProductId })
+      } else if (productType === 'byok') {
+        finalProductId = process.env.POLAR_BYOK_PRO_PRODUCT_ID;
+        debug('productId:fromType', { type: 'byok', productId: finalProductId })
+      }
+    }
+    
+    // Fallback to legacy PRO_PRODUCT_ID
+    if (!finalProductId) {
+      finalProductId = PRO_PRODUCT_ID;
+      debug('productId:fallback', { productId: finalProductId })
+    }
     
     if (!finalProductId) {
-      debug('validation:fail', { reason: 'No product ID provided' })
+      debug('validation:fail', { reason: 'No product ID provided or configured' })
       return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
     }
 
@@ -64,6 +81,7 @@ export async function POST(request: NextRequest) {
       customer_email: customerEmail,
       metadata: {
         user_id: user.id,
+        product_type: productType || 'unknown'
       },
     };
     
