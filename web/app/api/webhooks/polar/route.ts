@@ -3,9 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { PRO_PRODUCT_ID } from '@/lib/subscription';
 
-// Product IDs for different tiers
-const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID || 'dce7621a-0a26-4d40-927c-7aa0aa95debd';
-const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID || 'c4a4824d-8be3-411e-8c15-b198371ebc37';
+// Debug helper
+const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
+function debug(tag: string, data: any) {
+  if (DEBUG) {
+    const timestamp = new Date().toISOString()
+    console.log(`${timestamp} [Polar/Webhook:${tag}]`, JSON.stringify(data, null, 2))
+  }
+}
+
+// Product IDs for different tiers (from environment variables)
+const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID!;
+const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID!;
 
 // Product IDs to tier mapping (subscriptions)
 // Pro subscription product ID from subscription.ts
@@ -214,6 +223,8 @@ function calculatePeriodEnd(startDate: Date): Date {
 // Polar Webhook Handler
 // Handles all subscription lifecycle events from Polar
 export async function POST(request: NextRequest) {
+  debug('POST:start', { timestamp: new Date().toISOString() })
+  
   try {
     const rawBody = await request.text();
     
@@ -222,15 +233,23 @@ export async function POST(request: NextRequest) {
     const webhookTimestamp = request.headers.get('webhook-timestamp');
     const webhookSignature = request.headers.get('webhook-signature');
     
+    debug('POST:headers', { 
+      webhookId, 
+      webhookTimestamp, 
+      hasSignature: !!webhookSignature 
+    })
+    
     // Always verify signature when configured (security critical)
     const signatureCheck = verifyWebhookSignature(rawBody, webhookSignature, webhookId, webhookTimestamp);
     if (!signatureCheck.valid) {
-      console.error('Webhook signature validation failed:', signatureCheck.reason);
+      debug('POST:signature:fail', { reason: signatureCheck.reason })
       return NextResponse.json({ error: signatureCheck.reason }, { status: 401 });
     }
     
     const body = JSON.parse(rawBody);
     const { type, data } = body;
+    
+    debug('POST:event', { type, dataId: data?.id })
     
     // Extract event ID for idempotency
     // Use webhook-id header (unique per delivery) if available, otherwise construct from data

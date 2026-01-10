@@ -24,10 +24,10 @@ export const API_PLANS = {
 
 export type ApiPlan = typeof API_PLANS[keyof typeof API_PLANS];
 
-// Polar Product IDs
+// Polar Product IDs (from environment variables)
 export const POLAR_PRODUCT_IDS = {
-  MANAGED_PRO: 'dce7621a-0a26-4d40-927c-7aa0aa95debd',
-  BYOK_PRO: 'c4a4824d-8be3-411e-8c15-b198371ebc37',
+  MANAGED_PRO: process.env.POLAR_MANAGED_PRO_PRODUCT_ID!,
+  BYOK_PRO: process.env.POLAR_BYOK_PRO_PRODUCT_ID!,
 } as const;
 
 // Deep Research limits per plan

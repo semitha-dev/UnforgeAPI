@@ -1,6 +1,15 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Debug helper
+const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
+function debug(tag: string, data: any) {
+  if (DEBUG) {
+    const timestamp = new Date().toISOString()
+    console.log(`${timestamp} [Subscription/Manage:${tag}]`, JSON.stringify(data, null, 2))
+  }
+}
+
 // Use sandbox API for testing, production API for live
 const POLAR_API_URL = process.env.POLAR_SANDBOX === 'true'
   ? 'https://sandbox-api.polar.sh/v1'
@@ -9,11 +18,14 @@ const POLAR_ACCESS_TOKEN = process.env.POLAR_ACCESS_TOKEN;
 
 // Cancel subscription - schedules cancellation at period end (user keeps access)
 export async function DELETE(request: NextRequest) {
+  debug('DELETE:start', { timestamp: new Date().toISOString() })
+  
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
+      debug('DELETE:auth:fail', { reason: 'Not authenticated' })
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
@@ -24,15 +36,24 @@ export async function DELETE(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    debug('DELETE:profile', { 
+      userId: user.id,
+      subscriptionId: profile?.polar_subscription_id,
+      tier: profile?.subscription_tier,
+      endsAt: profile?.subscription_ends_at
+    })
+
     if (!profile?.polar_subscription_id) {
+      debug('DELETE:fail', { reason: 'No active subscription' })
       return NextResponse.json({ error: 'No active subscription' }, { status: 400 });
     }
 
     if (!POLAR_ACCESS_TOKEN) {
+      debug('DELETE:config:fail', { reason: 'Polar not configured' })
       return NextResponse.json({ error: 'Polar not configured' }, { status: 500 });
     }
 
-    console.log('Canceling subscription:', profile.polar_subscription_id);
+    debug('DELETE:polar:request', { subscriptionId: profile.polar_subscription_id })
 
     // Cancel subscription in Polar (this schedules cancellation at period end)
     const response = await fetch(`${POLAR_API_URL}/subscriptions/${profile.polar_subscription_id}`, {
@@ -44,7 +65,7 @@ export async function DELETE(request: NextRequest) {
     });
 
     const responseText = await response.text();
-    console.log('Polar cancel response:', response.status, responseText);
+    debug('DELETE:polar:response', { status: response.status, body: responseText.substring(0, 500) })
 
     if (!response.ok && response.status !== 404) {
       let errorData;
@@ -53,7 +74,7 @@ export async function DELETE(request: NextRequest) {
       } catch {
         errorData = { message: responseText };
       }
-      console.error('Polar cancel error:', errorData);
+      debug('DELETE:polar:error', errorData)
       return NextResponse.json({ error: 'Failed to cancel subscription with payment provider' }, { status: 500 });
     }
 
@@ -82,8 +103,13 @@ export async function DELETE(request: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('Error updating profile after cancel:', updateError);
+      debug('DELETE:db:error', { error: updateError })
     }
+
+    debug('DELETE:success', { 
+      tier: profile.subscription_tier,
+      accessUntil: subscriptionEndsAt 
+    })
 
     return NextResponse.json({ 
       success: true, 
@@ -93,7 +119,7 @@ export async function DELETE(request: NextRequest) {
       note: `You will retain ${profile.subscription_tier} access until ${new Date(subscriptionEndsAt).toLocaleDateString()}`
     });
   } catch (error: any) {
-    console.error('Error canceling subscription:', error);
+    debug('DELETE:error', { name: error.name, message: error.message })
     return NextResponse.json(
       { error: 'Failed to cancel subscription' },
       { status: 500 }
@@ -103,11 +129,14 @@ export async function DELETE(request: NextRequest) {
 
 // Reactivate a canceled subscription (if still in period) - calls Polar API to uncancel
 export async function POST(request: NextRequest) {
+  debug('POST:reactivate:start', { timestamp: new Date().toISOString() })
+  
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
+      debug('POST:auth:fail', { reason: 'Not authenticated' })
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
@@ -117,26 +146,38 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    debug('POST:profile', {
+      userId: user.id,
+      subscriptionId: profile?.polar_subscription_id,
+      status: profile?.subscription_status,
+      tier: profile?.subscription_tier,
+      endsAt: profile?.subscription_ends_at
+    })
+
     if (!profile?.polar_subscription_id) {
+      debug('POST:fail', { reason: 'No subscription to reactivate' })
       return NextResponse.json({ error: 'No subscription to reactivate' }, { status: 400 });
     }
 
     if (profile.subscription_status !== 'canceled') {
+      debug('POST:fail', { reason: 'Subscription is not canceled', currentStatus: profile.subscription_status })
       return NextResponse.json({ error: 'Subscription is not canceled' }, { status: 400 });
     }
 
     // Check if still within the subscription period
     if (profile.subscription_ends_at && new Date(profile.subscription_ends_at) <= new Date()) {
+      debug('POST:fail', { reason: 'Subscription period has ended', endsAt: profile.subscription_ends_at })
       return NextResponse.json({ 
         error: 'Subscription period has ended. Please subscribe again.' 
       }, { status: 400 });
     }
 
     if (!POLAR_ACCESS_TOKEN) {
+      debug('POST:config:fail', { reason: 'Polar not configured' })
       return NextResponse.json({ error: 'Polar not configured' }, { status: 500 });
     }
 
-    console.log('Reactivating subscription in Polar:', profile.polar_subscription_id);
+    debug('POST:polar:request', { subscriptionId: profile.polar_subscription_id })
 
     // Call Polar API to uncancel/reactivate the subscription
     // Polar uses PATCH to update subscription properties
@@ -152,7 +193,7 @@ export async function POST(request: NextRequest) {
     });
 
     const polarResponseText = await polarResponse.text();
-    console.log('Polar reactivate response:', polarResponse.status, polarResponseText);
+    debug('POST:polar:response', { status: polarResponse.status, body: polarResponseText.substring(0, 500) })
 
     if (!polarResponse.ok) {
       let errorData;
@@ -164,7 +205,7 @@ export async function POST(request: NextRequest) {
       
       // If Polar doesn't support uncanceling, we can still update locally
       // and the webhook will correct the state on next event
-      console.warn('Polar API reactivation failed, updating local state:', errorData);
+      debug('POST:polar:warning', { message: 'Polar API reactivation failed, updating local state', error: errorData })
     }
 
     // Update local status regardless (webhook will sync if different)
@@ -180,9 +221,11 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id);
 
     if (updateError) {
-      console.error('Error updating profile after reactivation:', updateError);
+      debug('POST:db:error', { error: updateError })
       return NextResponse.json({ error: 'Failed to update subscription status' }, { status: 500 });
     }
+
+    debug('POST:success', { tier: profile.subscription_tier, nextBilling: profile.subscription_ends_at })
 
     return NextResponse.json({ 
       success: true, 
@@ -191,7 +234,7 @@ export async function POST(request: NextRequest) {
       next_billing: profile.subscription_ends_at,
     });
   } catch (error: any) {
-    console.error('Error reactivating subscription:', error);
+    debug('POST:error', { name: error.name, message: error.message })
     return NextResponse.json(
       { error: 'Failed to reactivate subscription' },
       { status: 500 }
@@ -201,11 +244,14 @@ export async function POST(request: NextRequest) {
 
 // Get customer portal URL
 export async function GET(request: NextRequest) {
+  debug('GET:portal:start', { timestamp: new Date().toISOString() })
+  
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
+      debug('GET:auth:fail', { reason: 'Not authenticated' })
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
@@ -226,6 +272,13 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
+    debug('GET:profile', {
+      userId: user.id,
+      customerId: profile?.polar_customer_id,
+      tier: profile?.subscription_tier,
+      status: profile?.subscription_status
+    })
+
     const isSandbox = process.env.POLAR_SANDBOX === 'true';
     const polarBase = isSandbox ? 'https://sandbox.polar.sh' : 'https://polar.sh';
     const orgSlug = process.env.POLAR_ORG_SLUG || 'unforgeapi';
@@ -236,8 +289,12 @@ export async function GET(request: NextRequest) {
     // If user has a Polar customer ID, use the portal request URL with email verification
     if (profile?.polar_customer_id && userEmail) {
       const encodedEmail = encodeURIComponent(userEmail);
+      const portalUrl = `${polarBase}/${orgSlug}/portal/request?id=${profile.polar_customer_id}&email=${encodedEmail}`;
+      
+      debug('GET:success', { hasCustomerId: true, portalUrl })
+      
       return NextResponse.json({ 
-        portalUrl: `${polarBase}/${orgSlug}/portal/request?id=${profile.polar_customer_id}&email=${encodedEmail}`,
+        portalUrl,
         subscription: {
           tier: profile?.subscription_tier || 'free',
           status: profile?.subscription_status || 'inactive',
@@ -251,8 +308,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Fallback: return the org's portal page (user may need to log in)
+    const portalUrl = `${polarBase}/${orgSlug}/portal`;
+    
+    debug('GET:success', { hasCustomerId: false, portalUrl })
+    
     return NextResponse.json({ 
-      portalUrl: `${polarBase}/${orgSlug}/portal`,
+      portalUrl,
       subscription: {
         tier: profile?.subscription_tier || 'free',
         status: profile?.subscription_status || 'inactive',
@@ -264,7 +325,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    console.error('Error getting portal URL:', error);
+    debug('GET:error', { name: error.name, message: error.message })
     return NextResponse.json(
       { error: 'Failed to get subscription info' },
       { status: 500 }

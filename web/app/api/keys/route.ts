@@ -181,8 +181,8 @@ export async function POST(request: NextRequest) {
     // plan to use: 'sandbox' | 'managed_pro' | 'byok_starter' | 'byok_pro'
     let plan: ApiPlan
     
-    const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID || 'dce7621a-0a26-4d40-927c-7aa0aa95debd'
-    const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID || 'c4a4824d-8be3-411e-8c15-b198371ebc37'
+    const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID!
+    const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID!
     
     debug('POST:planDetermination:start', {
       requestedTier: tier,

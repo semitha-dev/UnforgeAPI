@@ -7,9 +7,11 @@ import Image from 'next/image'
 import { createClient } from '@/app/lib/supabaseClient'
 import { 
   LayoutDashboard, Settings, Menu, LogOut, Key, FileText, CreditCard, BarChart3,
-  ChevronDown, Plus, Building2, Check, Loader2
+  ChevronDown, Plus, Building2, Check, Loader2, Sparkles
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
+
+type SubscriptionTier = 'free' | 'managed_pro' | 'byok_pro' | 'pro' | 'sandbox'
 
 interface Workspace {
   id: string
@@ -28,7 +30,7 @@ export default function DashboardLayout({
   const pathname = usePathname()
   const supabase = createClient()
   
-  const [profile, setProfile] = useState<{ name: string } | null>(null)
+  const [profile, setProfile] = useState<{ name: string; subscription_tier?: SubscriptionTier } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const fetchedRef = useRef(false)
@@ -72,7 +74,7 @@ export default function DashboardLayout({
       
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('name')
+        .select('name, subscription_tier')
         .eq('id', user.id)
         .single()
       
@@ -295,14 +297,53 @@ export default function DashboardLayout({
             </div>
           </div>
 
+          {/* Upgrade Button - Show for non-pro users */}
+          {(!profile?.subscription_tier || profile.subscription_tier === 'free' || profile.subscription_tier === 'sandbox') && (
+            <div className="px-4 pb-2">
+              <Link
+                href="/dashboard/billing"
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white rounded-lg transition-all font-medium text-sm shadow-lg shadow-violet-500/20"
+              >
+                <Sparkles className="h-4 w-4" />
+                Upgrade to Pro
+              </Link>
+            </div>
+          )}
+
           {/* User section */}
           <div className="p-4 border-t border-neutral-800">
             <div className="flex items-center gap-3 px-4 py-3">
-              <div className="h-9 w-9 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold">
-                {profile?.name?.[0] || 'U'}
+              <div className="relative">
+                <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold ${
+                  profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'pro'
+                    ? 'bg-violet-500/20 text-violet-400 ring-2 ring-violet-500'
+                    : profile?.subscription_tier === 'byok_pro'
+                    ? 'bg-orange-500/20 text-orange-400 ring-2 ring-orange-500'
+                    : 'bg-emerald-500/20 text-emerald-400'
+                }`}>
+                  {profile?.name?.[0] || 'U'}
+                </div>
+                {(profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'byok_pro' || profile?.subscription_tier === 'pro') && (
+                  <div className={`absolute -bottom-1 -right-1 px-1 py-0.5 rounded text-[8px] font-bold uppercase ${
+                    profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'pro'
+                      ? 'bg-violet-500 text-white'
+                      : 'bg-orange-500 text-white'
+                  }`}>
+                    Pro
+                  </div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{profile?.name || 'Developer'}</p>
+                {(profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'byok_pro' || profile?.subscription_tier === 'pro') && (
+                  <p className={`text-xs truncate ${
+                    profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'pro'
+                      ? 'text-violet-400'
+                      : 'text-orange-400'
+                  }`}>
+                    {profile?.subscription_tier === 'byok_pro' ? 'BYOK Pro' : 'Managed Pro'}
+                  </p>
+                )}
               </div>
               <button onClick={handleSignOut} className="p-2 text-neutral-400 hover:text-white transition-colors">
                 <LogOut className="h-4 w-4" />

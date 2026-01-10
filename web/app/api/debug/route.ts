@@ -358,8 +358,8 @@ export async function POST(request: NextRequest) {
       // Test API key plan determination logic
       const { subscriptionTier, polarProductId, requestedTier } = body
       
-      const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID || 'dce7621a-0a26-4d40-927c-7aa0aa95debd'
-      const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID || 'c4a4824d-8be3-411e-8c15-b198371ebc37'
+      const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID!
+      const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID!
       
       let plan: string
       let reason: string

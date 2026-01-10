@@ -2,6 +2,15 @@ import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
 import { PRO_PRODUCT_ID } from '@/lib/subscription';
 
+// Debug helper
+const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
+function debug(tag: string, data: any) {
+  if (DEBUG) {
+    const timestamp = new Date().toISOString()
+    console.log(`${timestamp} [Checkout:${tag}]`, JSON.stringify(data, null, 2))
+  }
+}
+
 // Use sandbox API for testing, production API for live
 const POLAR_API_URL = process.env.POLAR_SANDBOX === 'true' 
   ? 'https://sandbox-api.polar.sh/v1' 
@@ -9,62 +18,59 @@ const POLAR_API_URL = process.env.POLAR_SANDBOX === 'true'
 const POLAR_ACCESS_TOKEN = process.env.POLAR_ACCESS_TOKEN;
 
 export async function POST(request: NextRequest) {
-  // Only log debug info in development
-  if (process.env.NODE_ENV === 'development') {
-    console.log('=== CHECKOUT API CALLED ===');
-    console.log('Environment check:');
-    console.log('- POLAR_ACCESS_TOKEN exists:', !!POLAR_ACCESS_TOKEN);
-  }
+  debug('POST:start', { timestamp: new Date().toISOString() })
   
   try {
     const supabase = await createClient();
-    console.log('Supabase client created');
+    debug('supabase:created', {})
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('Auth result:', { user: user?.id, email: user?.email, error: authError?.message });
+    debug('auth:result', { userId: user?.id, email: user?.email, error: authError?.message });
 
     if (!user) {
-      console.log('ERROR: User not authenticated');
+      debug('auth:fail', { reason: 'User not authenticated' })
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
     const body = await request.json();
-    console.log('Request body:', body);
+    debug('body:raw', body);
     const { productId } = body;
 
     // Use provided productId or default to Pro
     const finalProductId = productId || PRO_PRODUCT_ID;
     
     if (!finalProductId) {
-      console.log('ERROR: No product ID provided');
+      debug('validation:fail', { reason: 'No product ID provided' })
       return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
     }
 
     if (!POLAR_ACCESS_TOKEN) {
-      console.log('ERROR: POLAR_ACCESS_TOKEN is not set');
+      debug('config:fail', { reason: 'POLAR_ACCESS_TOKEN not set' })
       return NextResponse.json({ error: 'Polar not configured - missing access token' }, { status: 500 });
     }
 
     // Get user email from auth
     const customerEmail = user.email;
-    console.log('Customer email:', customerEmail);
+    debug('customer', { email: customerEmail });
     
     if (!customerEmail) {
-      console.log('ERROR: No email found for user');
+      debug('validation:fail', { reason: 'No email found for user' })
       return NextResponse.json({ error: 'User email not found' }, { status: 400 });
     }
 
     const checkoutPayload = {
       products: [finalProductId],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/settings?subscription=success`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing?subscription=success`,
       customer_email: customerEmail,
       metadata: {
         user_id: user.id,
       },
     };
     
-    console.log('Polar checkout payload:', JSON.stringify(checkoutPayload, null, 2));
-    console.log('Polar API URL:', `${POLAR_API_URL}/checkouts/`);
+    debug('polar:request', { 
+      url: `${POLAR_API_URL}/checkouts/`,
+      payload: checkoutPayload 
+    });
 
     // Create checkout session with Polar (new API format)
     const response = await fetch(`${POLAR_API_URL}/checkouts/`, {
@@ -77,9 +83,7 @@ export async function POST(request: NextRequest) {
     });
 
     const responseText = await response.text();
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Polar API response status:', response.status);
-    }
+    debug('polar:response', { status: response.status, body: responseText.substring(0, 500) });
 
     if (!response.ok) {
       let errorData;
@@ -88,7 +92,7 @@ export async function POST(request: NextRequest) {
       } catch {
         errorData = { raw: responseText };
       }
-      console.log('ERROR: Polar API returned error:', errorData);
+      debug('polar:error', errorData);
       return NextResponse.json({ 
         error: 'Failed to create checkout session', 
         details: errorData,
@@ -97,19 +101,14 @@ export async function POST(request: NextRequest) {
     }
 
     const checkoutData = JSON.parse(responseText);
-    console.log('SUCCESS: Checkout created');
-    console.log('Checkout URL:', checkoutData.url);
-    console.log('Checkout ID:', checkoutData.id);
+    debug('polar:success', { checkoutId: checkoutData.id, url: checkoutData.url });
 
     return NextResponse.json({
       url: checkoutData.url,
       checkoutId: checkoutData.id,
     });
   } catch (error: any) {
-    console.log('=== UNEXPECTED ERROR ===');
-    console.log('Error name:', error.name);
-    console.log('Error message:', error.message);
-    console.log('Error stack:', error.stack);
+    debug('error', { name: error.name, message: error.message, stack: error.stack });
     return NextResponse.json(
       { error: 'Failed to create checkout session', details: error.message },
       { status: 500 }
