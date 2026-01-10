@@ -195,7 +195,6 @@ export default function SettingsPage() {
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        isPro={isPro}
       />
 
       {/* Main Content */}

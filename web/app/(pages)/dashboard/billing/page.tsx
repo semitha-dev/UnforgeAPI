@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { 
   CreditCard, 
@@ -26,7 +26,8 @@ type SubscriptionInfo = {
   polarCustomerId: string | null
 }
 
-export default function BillingPage() {
+// Wrapper component to handle Suspense boundary for useSearchParams
+function BillingPageContent() {
   const searchParams = useSearchParams()
   const subscriptionSuccess = searchParams.get('subscription') === 'success'
   const { user, isLoading: userLoading, refetch: refetchUser } = useUser()
@@ -339,5 +340,18 @@ export default function BillingPage() {
         onClose={() => setShowUpgradeModal(false)} 
       />
     </>
+  )
+}
+
+// Main export with Suspense boundary
+export default function BillingPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+      </div>
+    }>
+      <BillingPageContent />
+    </Suspense>
   )
 }
