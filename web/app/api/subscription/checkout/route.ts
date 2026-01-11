@@ -41,9 +41,12 @@ export async function POST(request: NextRequest) {
     
     if (!finalProductId && productType) {
       // Map product type to product ID from environment
-      if (productType === 'managed') {
+      if (productType === 'managed' || productType === 'managed_pro') {
         finalProductId = process.env.POLAR_MANAGED_PRO_PRODUCT_ID;
-        debug('productId:fromType', { type: 'managed', productId: finalProductId })
+        debug('productId:fromType', { type: 'managed_pro', productId: finalProductId })
+      } else if (productType === 'managed_expert') {
+        finalProductId = process.env.POLAR_MANAGED_EXPERT_PRODUCT_ID;
+        debug('productId:fromType', { type: 'managed_expert', productId: finalProductId })
       } else if (productType === 'byok') {
         finalProductId = process.env.POLAR_BYOK_PRO_PRODUCT_ID;
         debug('productId:fromType', { type: 'byok', productId: finalProductId })

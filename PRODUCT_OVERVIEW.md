@@ -37,7 +37,7 @@ User Question → [INTELLIGENT ROUTER] → Best Path → Answer
 | Endpoint | Purpose | What It Does |
 |----------|---------|--------------|
 | `POST /api/v1/chat` | Intelligent Router | Classifies query → routes to correct path → returns answer |
-| `POST /api/v1/deep-research` | Deep Research | Tavily search → Gemini compress → Groq write → structured report |
+| `POST /api/v1/deep-research` | Deep Research | Web search → AI processing → structured report |
 
 ### The Chat Router Logic (from `router.ts`)
 
@@ -47,8 +47,8 @@ Step 1: SPEED GATE (Regex)
    ↓ YES → CHAT (instant, no API call)
    ↓ NO → Continue to Step 2
 
-Step 2: ROUTER BRAIN (Groq LLM)
-   ↓ Send query + context to llama-3.1-8b-instant
+Step 2: ROUTER BRAIN (LLM)
+   ↓ Send query + context to classifier
    ↓ LLM decides: CHAT | CONTEXT | RESEARCH
    ↓
    └→ CHAT: Simple greeting, general knowledge
@@ -59,9 +59,8 @@ Step 2: ROUTER BRAIN (Groq LLM)
 ### Deep Research Pipeline
 
 ```
-Query → Tavily Search (5 sources with raw_content)
-     → Gemini 2.5 Flash (compress to structured facts)
-     → Groq llama-3.1-8b-instant (write English report)
+Query → Tavily Search (12 sources with raw_content)
+     → AI Processing (multi-stage extraction & synthesis)
      → Return JSON with report, facts, sources
 ```
 
@@ -270,7 +269,7 @@ POST /api/v1/extract
 | API Key Management | Unkey | Rate limiting, key validation |
 | Payments | Polar | Subscriptions |
 | Cache | Upstash Redis | Response caching |
-| LLM | Groq (Llama), Google (Gemini) | Text generation |
+| LLM | Multiple providers | Text generation |
 | Search | Tavily | Web search |
 | Hosting | Vercel | Serverless deployment |
 
@@ -278,7 +277,7 @@ POST /api/v1/extract
 
 ```
 Request → Vercel Edge → Unkey (auth + rate limit)
-       → Route Handler → Intent Classification (Groq)
+       → Route Handler → Intent Classification (LLM)
        → Execute Path (Chat/Context/Research)
        → Response (JSON)
 ```

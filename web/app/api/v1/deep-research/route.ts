@@ -34,18 +34,23 @@
 import { NextRequest } from 'next/server'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { createGroq } from '@ai-sdk/groq'
-import { generateObject, generateText } from 'ai'
+import { generateObject, generateText, streamText } from 'ai'
 import { z } from 'zod'
 import { Redis } from '@upstash/redis'
 import { Ratelimit } from '@upstash/ratelimit'
 import { createHash } from 'crypto'
-import { DEEP_RESEARCH_LIMITS, type ApiPlan } from '@/lib/subscription-constants'
+import { DEEP_RESEARCH_LIMITS, WEB_SEARCH_LIMITS, isByokPlan, type ApiPlan } from '@/lib/subscription-constants'
 
 // ============================================
 // CONFIGURATION
 // ============================================
 
-export const maxDuration = 60
+export const maxDuration = 300
+
+// Auto-cut timer: Stop processing at 4m10s to leave room for emergency finalization
+// Vercel Fluid Compute gives us 300s (5 minutes) on Free Tier
+const TIME_LIMIT_MS = 250_000
+const EMERGENCY_BUFFER_MS = 50_000  // 50s reserved for emergency Groq finalization
 
 const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
 
@@ -159,6 +164,30 @@ function getDeepResearchRateLimiter(plan: ApiPlan): Ratelimit | null {
   }
 }
 
+// Web Search rate limiter for Deep Research (counts against monthly search quota)
+// This is separate from Deep Research quota - each Tavily call counts as 1 search
+function getWebSearchRateLimiterForDeepResearch(plan: ApiPlan): Ratelimit | null {
+  const redis = getRedisClient()
+  if (!redis) return null
+
+  const searchLimits = WEB_SEARCH_LIMITS[plan]
+  if (!searchLimits || searchLimits.limit <= 0) return null
+
+  if (searchLimits.period === 'daily') {
+    return new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(searchLimits.limit, '1 d'),
+      prefix: 'websearch:daily:',
+    })
+  } else {
+    return new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(searchLimits.limit, '30 d'),
+      prefix: 'websearch:monthly:',
+    })
+  }
+}
+
 // ============================================
 // SCHEMAS
 // ============================================
@@ -203,6 +232,161 @@ function debugError(tag: string, error: any, context?: DebugContext) {
   const timestamp = new Date().toISOString()
   const prefix = `❌ [DeepResearch:${tag}:ERROR]${context?.requestId ? ` [${context.requestId}]` : ''}`
   console.error(`${timestamp} ${prefix}`, { message: error?.message, name: error?.name, stack: error?.stack?.split('\n')[0] })
+}
+
+// ============================================
+// AUTO-CUT TIMER UTILITIES
+// ============================================
+
+interface TimerContext {
+  startTime: number
+  abortController: AbortController
+  isTimedOut: boolean
+  partialData: {
+    searchResults?: any
+    sources?: Array<{ title: string; url: string }>
+    facts?: any
+    extractedData?: any
+    comparisonData?: any
+  }
+}
+
+function createTimerContext(): TimerContext {
+  return {
+    startTime: performance.now(),
+    abortController: new AbortController(),
+    isTimedOut: false,
+    partialData: {}
+  }
+}
+
+function getElapsedMs(timer: TimerContext): number {
+  return performance.now() - timer.startTime
+}
+
+function getRemainingMs(timer: TimerContext): number {
+  return TIME_LIMIT_MS - getElapsedMs(timer)
+}
+
+function isTimeExpired(timer: TimerContext): boolean {
+  return getElapsedMs(timer) >= TIME_LIMIT_MS
+}
+
+function checkAndAbort(timer: TimerContext, stage: string, context?: DebugContext): boolean {
+  if (isTimeExpired(timer)) {
+    timer.isTimedOut = true
+    timer.abortController.abort()
+    debug('timer:TIMEOUT', { 
+      stage, 
+      elapsedMs: Math.round(getElapsedMs(timer)),
+      limitMs: TIME_LIMIT_MS,
+      partialDataCollected: Object.keys(timer.partialData)
+    }, context)
+    return true
+  }
+  return false
+}
+
+// Emergency finalizer - generates a report from whatever data we have
+async function emergencyFinalize(
+  timer: TimerContext, 
+  query: string,
+  groqKey: string,
+  context?: DebugContext
+): Promise<string> {
+  debug('emergency:start', { 
+    elapsedMs: Math.round(getElapsedMs(timer)),
+    partialData: Object.keys(timer.partialData)
+  }, context)
+
+  const groq = createGroq({ apiKey: groqKey })
+  
+  // Build context from whatever partial data we have
+  let availableData = ''
+  
+  if (timer.partialData.facts) {
+    availableData += `\nEXTRACTED FACTS:\n${JSON.stringify(timer.partialData.facts, null, 2)}`
+  }
+  
+  if (timer.partialData.searchResults?.results) {
+    const snippets = timer.partialData.searchResults.results
+      .slice(0, 5)  // Take first 5 results
+      .map((r: any) => `- ${r.title}: ${(r.content || '').substring(0, 300)}...`)
+      .join('\n')
+    availableData += `\nSEARCH RESULTS SNIPPETS:\n${snippets}`
+  }
+  
+  if (timer.partialData.sources?.length) {
+    const sourceList = timer.partialData.sources
+      .slice(0, 8)
+      .map((s, i) => `[${i + 1}] ${s.title}: ${s.url}`)
+      .join('\n')
+    availableData += `\nSOURCES:\n${sourceList}`
+  }
+
+  if (timer.partialData.comparisonData) {
+    availableData += `\nCOMPARISON DATA:\n${JSON.stringify(timer.partialData.comparisonData, null, 2)}`
+  }
+
+  if (timer.partialData.extractedData) {
+    availableData += `\nEXTRACTED DATA:\n${JSON.stringify(timer.partialData.extractedData, null, 2)}`
+  }
+
+  // If we have literally nothing, return a minimal response
+  if (!availableData.trim()) {
+    return `# Research Report: ${query}
+
+## Status
+⚠️ **Partial Results** - The research process was interrupted due to time constraints.
+
+## Summary
+The search was initiated but did not complete in time. Please try again with a more specific query or during off-peak hours.
+
+## Recommendations
+- Try breaking your query into smaller, more focused questions
+- Use a domain preset (crypto, stocks, tech, academic, news) for faster results
+- Consider using extract mode for specific data points`
+  }
+
+  const emergencyPrompt = `You are a research analyst. Generate a QUICK summary report from the available data.
+
+IMPORTANT: This is an EMERGENCY finalization - be concise and fast.
+
+QUERY: "${query}"
+
+AVAILABLE DATA:
+${availableData}
+
+Write a brief Markdown report with:
+1. ## Summary (2-3 sentences of key findings)
+2. ## Key Points (bullet list of main facts found)
+3. ## Sources (list available sources)
+
+Note at the top: "⚠️ **Partial Results** - Research was interrupted due to time constraints."
+
+Keep it under 500 words. Focus on what we found, not what we couldn't find.`
+
+  try {
+    const result = await generateText({
+      model: groq('llama-3.1-8b-instant'),
+      prompt: emergencyPrompt
+    })
+    
+    debug('emergency:complete', { reportLength: result.text.length }, context)
+    return result.text
+  } catch (error: any) {
+    debugError('emergency:failed', error, context)
+    // Return a basic fallback report
+    return `# Research Report: ${query}
+
+⚠️ **Partial Results** - Research was interrupted due to time constraints.
+
+## Available Information
+${availableData || 'No data was collected before the timeout.'}
+
+## Note
+Please try your request again. Consider using a more specific query for faster results.`
+  }
 }
 
 // ============================================
@@ -279,6 +463,7 @@ interface TavilySearchResponse {
 interface TavilySearchOptions {
   preset?: string
   include_domains?: string[]
+  signal?: AbortSignal  // For timeout cancellation
 }
 
 async function tavilySearchRaw(
@@ -297,7 +482,7 @@ async function tavilySearchRaw(
     search_depth: presetConfig.search_depth,
     include_raw_content: true,
     include_answer: false,
-    max_results: 5
+    max_results: 12
   }
   
   // Add domain filtering if preset specifies it
@@ -313,7 +498,8 @@ async function tavilySearchRaw(
   const response = await fetch('https://api.tavily.com/search', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody)
+    body: JSON.stringify(requestBody),
+    signal: options?.signal  // Enable abort
   })
 
   if (!response.ok) {
@@ -378,8 +564,11 @@ export async function POST(req: NextRequest) {
   const startTime = performance.now()
   const requestId = `dr-${Date.now()}-${Math.random().toString(36).substring(7)}`
   const ctx: DebugContext = { requestId, startTime }
+  
+  // Initialize auto-cut timer
+  const timer = createTimerContext()
 
-  debug('POST:start', { timestamp: new Date().toISOString() }, ctx)
+  debug('POST:start', { timestamp: new Date().toISOString(), timeLimitMs: TIME_LIMIT_MS }, ctx)
 
   try {
     // ============================================
@@ -405,18 +594,19 @@ export async function POST(req: NextRequest) {
     // 2. TIER CHECK
     // ============================================
     const plan = result.meta?.plan || result.meta?.tier || 'sandbox'
-    const isByokPlan = plan === 'byok_starter' || plan === 'byok_pro'
-    const isManagedPlan = ['managed_pro', 'managed_ultra', 'enterprise'].includes(plan)
+    const isUserOnByokPlan = plan === 'byok_starter' || plan === 'byok_pro'
+    const isManagedPlan = ['sandbox', 'managed_pro', 'managed_expert', 'managed_ultra', 'enterprise'].includes(plan)
 
-    debug('tier:check', { plan, isByokPlan, isManagedPlan }, ctx)
+    debug('tier:check', { plan, isUserOnByokPlan, isManagedPlan }, ctx)
 
-    const allowedPlans = ['managed_pro', 'managed_ultra', 'byok_starter', 'byok_pro', 'enterprise']
+    // All plans now have access - limits are enforced by rate limiter below
+    const allowedPlans = ['sandbox', 'managed_pro', 'managed_expert', 'managed_ultra', 'byok_starter', 'byok_pro', 'enterprise']
 
     if (!allowedPlans.includes(plan)) {
       return Response.json({
-        error: 'Deep Research requires Managed Pro or BYOK plan',
+        error: 'Deep Research requires a valid plan',
         code: 'PLAN_UPGRADE_REQUIRED',
-        hint: 'Upgrade at https://unforge.ai/pricing',
+        hint: 'Create a free API key at https://unforge.ai/dashboard',
         current_plan: plan
       }, { status: 403 })
     }
@@ -500,6 +690,22 @@ export async function POST(req: NextRequest) {
       }, { status: 400 })
     }
 
+    // ============================================
+    // COMPARE MODE GUARDRAILS
+    // ============================================
+    // Limit compare mode to max 3 queries to prevent abuse
+    // Each query = 1 Tavily search = 1 credit against user's limit
+    const MAX_COMPARE_QUERIES = 3
+    if (mode === 'compare' && queries && queries.length > MAX_COMPARE_QUERIES) {
+      return Response.json({ 
+        error: `Compare mode is limited to ${MAX_COMPARE_QUERIES} queries per request to ensure quality results.`,
+        code: 'TOO_MANY_COMPARE_QUERIES',
+        max_queries: MAX_COMPARE_QUERIES,
+        your_queries: queries.length,
+        hint: 'Split your comparison into multiple API calls'
+      }, { status: 400 })
+    }
+
     if (mode === 'extract' && (!extract || extract.length === 0)) {
       return Response.json({ 
         error: 'Extract mode requires "extract" array with fields to extract',
@@ -561,7 +767,7 @@ export async function POST(req: NextRequest) {
 
     debug('request:parsed', { 
       queryLength: effectiveQuery.length, 
-      isByokPlan, 
+      isUserOnByokPlan, 
       stream,
       mode,
       preset,
@@ -587,7 +793,7 @@ export async function POST(req: NextRequest) {
     let activeGroqKey: string | undefined  // Writer (primary) + extraction fallback
     let activeGoogleKey: string | undefined  // Extraction fallback
 
-    if (isByokPlan) {
+    if (isUserOnByokPlan) {
       // BYOK: MUST use user keys - do NOT fallback to system keys for search
       if (!userTavilyKey) {
         return Response.json({
@@ -643,14 +849,14 @@ export async function POST(req: NextRequest) {
       hasCerebras: !!activeCerebrasKey,
       hasGroq: !!activeGroqKey,
       hasGoogle: !!activeGoogleKey,
-      isByokPlan
+      isUserOnByokPlan
     }, ctx)
 
     // ============================================
     // 5. CHECK CACHE (Global - Upstash Redis)
     // ============================================
     const redis = getRedisClient()
-    const queryHash = hashQuery(query)
+    const queryHash = hashQuery(effectiveQuery)
     const cacheKey = `research:${queryHash}`
 
     debug('cache:init', {
@@ -722,26 +928,129 @@ export async function POST(req: NextRequest) {
     // ============================================
     debug('pipeline:search:start', { mode, preset }, ctx)
 
+    // Calculate number of searches this request will use
+    const searchCount = (mode === 'compare' && queries) ? queries.length : 1
+
+    // ============================================
+    // 6.1 WEB SEARCH CREDIT CHECK (Managed Plans Only)
+    // ============================================
+    // Each Tavily search counts against the user's monthly search quota
+    // BYOK users are exempt since they use their own Tavily key
+    const isUserByok = isByokPlan(validPlan)
+    const searchLimits = WEB_SEARCH_LIMITS[validPlan]
+
+    if (!isUserByok && searchLimits && searchLimits.limit > 0 && result.keyId) {
+      const searchRateLimiter = getWebSearchRateLimiterForDeepResearch(validPlan)
+      
+      if (searchRateLimiter) {
+        // For compare mode, we need to check if we have enough credits for ALL queries
+        // We'll consume credits one at a time to get accurate remaining count
+        for (let i = 0; i < searchCount; i++) {
+          const { success, remaining, reset, limit } = await searchRateLimiter.limit(result.keyId)
+          
+          debug('pipeline:search:creditCheck', {
+            queryIndex: i + 1,
+            totalQueries: searchCount,
+            success,
+            remaining,
+            limit,
+            plan: validPlan
+          }, ctx)
+
+          if (!success) {
+            const resetDate = new Date(reset)
+            const periodLabel = searchLimits.period === 'monthly' ? 'month' : 'day'
+            
+            return Response.json({
+              error: `You've reached your web search limit (${searchLimits.limit}/${periodLabel}). Your limit resets ${resetDate.toLocaleDateString()}.`,
+              code: 'SEARCH_LIMIT_EXCEEDED',
+              limit: searchLimits.limit,
+              period: searchLimits.period,
+              reset_at: reset,
+              searches_attempted: searchCount,
+              searches_used: i,
+              upgrade_hint: validPlan === 'sandbox'
+                ? 'Upgrade to Managed Pro ($20/mo) for 1,000 searches/month'
+                : validPlan === 'managed_pro' 
+                ? 'Upgrade to Managed Expert ($79/mo) for 5,000 searches/month'
+                : validPlan === 'managed_expert'
+                ? 'Contact us for Enterprise pricing with higher limits'
+                : 'Upgrade to increase your search limit'
+            }, { status: 429 })
+          }
+        }
+      }
+    }
+
     let searchResults: TavilySearchResponse
     let allSources: Array<{ title: string; url: string }> = []
+    
+    // ============================================
+    // AUTO-CUT CHECK: Before search
+    // ============================================
+    if (checkAndAbort(timer, 'pre-search', ctx)) {
+      return Response.json({
+        error: 'Request timed out before search could complete',
+        code: 'TIMEOUT',
+        partial: false
+      }, { status: 504 })
+    }
     
     // For compare mode, run multiple searches
     if (mode === 'compare' && queries) {
       const searchPromises = queries.map(q => 
-        tavilySearchRaw(q, activeTavilyKey, ctx, { preset })
+        tavilySearchRaw(q, activeTavilyKey, ctx, { preset, signal: timer.abortController.signal })
       )
-      const results = await Promise.all(searchPromises)
       
-      // Combine results
-      searchResults = {
-        results: results.flatMap(r => r.results)
-      }
-      allSources = searchResults.results.map(r => ({ title: r.title, url: r.url }))
-    } else {
       try {
-        searchResults = await tavilySearchRaw(effectiveQuery, activeTavilyKey, ctx, { preset })
+        const results = await Promise.all(searchPromises)
+        // Combine results
+        searchResults = {
+          results: results.flatMap(r => r.results)
+        }
         allSources = searchResults.results.map(r => ({ title: r.title, url: r.url }))
       } catch (searchError: any) {
+        // If aborted due to timeout, trigger emergency finalization
+        if (searchError.name === 'AbortError' || timer.isTimedOut) {
+          debug('pipeline:search:aborted', { reason: 'timeout' }, ctx)
+          timer.partialData.sources = allSources
+          const emergencyReport = await emergencyFinalize(timer, effectiveQuery, activeGroqKey, ctx)
+          return Response.json({
+            report: emergencyReport,
+            meta: {
+              source: 'emergency',
+              partial: true,
+              latency_ms: Math.round(performance.now() - startTime),
+              reason: 'timeout_during_search',
+              request_id: requestId
+            }
+          })
+        }
+        throw searchError
+      }
+    } else {
+      try {
+        searchResults = await tavilySearchRaw(effectiveQuery, activeTavilyKey, ctx, { 
+          preset, 
+          signal: timer.abortController.signal 
+        })
+        allSources = searchResults.results.map(r => ({ title: r.title, url: r.url }))
+      } catch (searchError: any) {
+        // If aborted due to timeout, return minimal response
+        if (searchError.name === 'AbortError' || timer.isTimedOut) {
+          debug('pipeline:search:aborted', { reason: 'timeout' }, ctx)
+          const emergencyReport = await emergencyFinalize(timer, effectiveQuery, activeGroqKey, ctx)
+          return Response.json({
+            report: emergencyReport,
+            meta: {
+              source: 'emergency',
+              partial: true,
+              latency_ms: Math.round(performance.now() - startTime),
+              reason: 'timeout_during_search',
+              request_id: requestId
+            }
+          })
+        }
         debugError('pipeline:search', searchError, ctx)
         return Response.json({
           error: 'Search failed',
@@ -750,6 +1059,10 @@ export async function POST(req: NextRequest) {
         }, { status: 500 })
       }
     }
+    
+    // Store partial data for potential emergency finalization
+    timer.partialData.searchResults = searchResults
+    timer.partialData.sources = allSources
 
     if (!searchResults.results || searchResults.results.length === 0) {
       return Response.json({
@@ -780,7 +1093,32 @@ export async function POST(req: NextRequest) {
     // ============================================
     // Cerebras: Smart extraction, handles massive context (100k+ chars) → outputs small facts JSON (~2KB)
     // Gemini Flash: Fallback if Cerebras fails
-    debug('pipeline:extract:start', { mode, useCerebras: !!activeCerebrasKey }, ctx)
+    
+    // ============================================
+    // AUTO-CUT CHECK: Before extraction
+    // ============================================
+    if (checkAndAbort(timer, 'pre-extraction', ctx)) {
+      debug('timer:emergency:extraction', { elapsedMs: Math.round(getElapsedMs(timer)) }, ctx)
+      const emergencyReport = await emergencyFinalize(timer, effectiveQuery, activeGroqKey, ctx)
+      return Response.json({
+        report: emergencyReport,
+        sources: timer.partialData.sources,
+        meta: {
+          source: 'emergency',
+          partial: true,
+          latency_ms: Math.round(performance.now() - startTime),
+          sources_count: timer.partialData.sources?.length || 0,
+          reason: 'timeout_before_extraction',
+          request_id: requestId
+        }
+      })
+    }
+    
+    debug('pipeline:extract:start', { 
+      mode, 
+      useCerebras: !!activeCerebrasKey,
+      remainingMs: Math.round(getRemainingMs(timer))
+    }, ctx)
 
     let facts: z.infer<typeof factsSchema> | undefined = undefined
     let extractedData: Record<string, any> | null = null
@@ -804,7 +1142,8 @@ export async function POST(req: NextRequest) {
           ],
           temperature: 0.1,
           max_tokens: 8000
-        })
+        }),
+        signal: timer.abortController.signal  // Enable abort on timeout
       })
 
       if (!response.ok) {
@@ -1044,7 +1383,31 @@ RULES:
           model: extractionModel
         }, ctx)
       }
+      
+      // Store extracted data for potential emergency use
+      if (facts) timer.partialData.facts = facts
+      if (extractedData) timer.partialData.extractedData = extractedData
+      if (comparisonData) timer.partialData.comparisonData = comparisonData
+      
     } catch (extractError: any) {
+      // Check if error is due to timeout/abort
+      if (extractError.name === 'AbortError' || timer.isTimedOut) {
+        debug('pipeline:extract:aborted', { reason: 'timeout' }, ctx)
+        const emergencyReport = await emergencyFinalize(timer, effectiveQuery, activeGroqKey, ctx)
+        return Response.json({
+          report: emergencyReport,
+          sources: timer.partialData.sources,
+          meta: {
+            source: 'emergency',
+            partial: true,
+            latency_ms: Math.round(performance.now() - startTime),
+            sources_count: timer.partialData.sources?.length || 0,
+            reason: 'timeout_during_extraction',
+            request_id: requestId
+          }
+        })
+      }
+      
       debugError('pipeline:extract', extractError, ctx)
       return Response.json({
         error: 'Failed to analyze search results',
@@ -1148,8 +1511,163 @@ RULES:
 
     // For report and compare modes, generate prose with Groq (hardware speed writer)
     // Facts JSON is ~2KB, so Groq's TPM is not a constraint
-    debug('pipeline:write:start', { mode }, ctx)
+    
+    // ============================================
+    // AUTO-CUT CHECK: Before report generation
+    // ============================================
+    if (checkAndAbort(timer, 'pre-write', ctx)) {
+      debug('timer:emergency:write', { elapsedMs: Math.round(getElapsedMs(timer)) }, ctx)
+      const emergencyReport = await emergencyFinalize(timer, effectiveQuery, activeGroqKey, ctx)
+      return Response.json({
+        report: emergencyReport,
+        sources: timer.partialData.sources,
+        meta: {
+          source: 'emergency',
+          partial: true,
+          latency_ms: Math.round(performance.now() - startTime),
+          sources_count: timer.partialData.sources?.length || 0,
+          reason: 'timeout_before_write',
+          request_id: requestId
+        }
+      })
+    }
+    
+    debug('pipeline:write:start', { 
+      mode, 
+      stream,
+      remainingMs: Math.round(getRemainingMs(timer))
+    }, ctx)
 
+    // ============================================
+    // STREAMING MODE: Use AI SDK streamText for real-time output
+    // ============================================
+    // Streaming keeps the connection active and prevents Vercel from killing
+    // the function for being "idle". User sees progress in real-time.
+    if (stream) {
+      debug('pipeline:write:streaming', { mode }, ctx)
+      
+      const writePrompt = mode === 'compare' && comparisonData
+        ? `You are an expert analyst writing a Comparison Report.
+
+ITEMS COMPARED: ${queries!.join(' vs ')}
+
+COMPARISON DATA:
+${JSON.stringify(comparisonData, null, 2)}
+
+Write a professional Markdown comparison with these sections:
+
+## Executive Summary
+Brief overview of the comparison and key findings.
+
+## Comparison Table
+| Feature | ${queries!.join(' | ')} |
+|---------|${queries!.map(() => '---------|').join('')}
+(Fill with relevant data)
+
+## Individual Analysis
+(For each item: key facts, pros, cons)
+
+## Key Differences
+List the most important differences.
+
+## Recommendation
+Balanced recommendation based on the data.
+
+## Sources
+List all sources with clickable links.
+
+RULES:
+- Be objective and balanced
+- Use tables for easy comparison
+- Cite sources where appropriate`
+        : `You are an expert research analyst writing an Executive Research Report.
+
+RESEARCH QUERY: "${effectiveQuery}"
+
+EXTRACTED FACTS:
+${JSON.stringify(facts!, null, 2)}
+
+Write a professional Markdown research report with these sections:
+
+## Executive Summary
+2-3 paragraphs summarizing the key findings.
+
+## Key Statistics
+- Present the key_stats as a formatted list or table
+
+## Detailed Findings
+- Expand on the summary_points with context
+- Include relevant dates and timelines
+- Mention key entities (companies, people, products)
+
+## Key Takeaways
+- 3-5 actionable insights
+
+## Sources
+- List all sources with clickable links: [Title](url)
+
+RULES:
+- ONLY use information from the extracted facts
+- Cite sources inline using [Source](url) format
+- Be professional and concise
+- Use tables where appropriate for data
+- ${presetConfig.prompt_hint}`
+
+      try {
+        const streamResult = await streamText({
+          model: groq(GROQ_WRITER_MODEL),
+          prompt: writePrompt,
+          abortSignal: timer.abortController.signal
+        })
+
+        // Return streaming response with proper headers
+        // The AI SDK handles the streaming format automatically
+        const response = streamResult.toTextStreamResponse({
+          headers: {
+            'X-Request-Id': requestId,
+            'X-Sources-Count': String(sources.length),
+            'X-Mode': mode,
+            'X-Preset': preset
+          }
+        })
+
+        // Log usage asynchronously (don't block the stream)
+        logUsage({
+          workspaceId: result.meta?.workspaceId,
+          keyId: result.keyId,
+          intent: mode === 'compare' ? 'DEEP_RESEARCH_COMPARE_STREAM' : 'DEEP_RESEARCH_STREAM',
+          latencyMs: Math.round(performance.now() - startTime),
+          query: effectiveQuery,
+          cached: false
+        })
+
+        debug('pipeline:write:stream:started', { requestId }, ctx)
+        return response
+        
+      } catch (streamError: any) {
+        // If streaming fails due to timeout, try emergency finalization
+        if (streamError.name === 'AbortError' || timer.isTimedOut) {
+          debug('pipeline:write:stream:aborted', { reason: 'timeout' }, ctx)
+          const emergencyReport = await emergencyFinalize(timer, effectiveQuery, activeGroqKey, ctx)
+          return Response.json({
+            report: emergencyReport,
+            sources: timer.partialData.sources,
+            meta: {
+              source: 'emergency',
+              partial: true,
+              latency_ms: Math.round(performance.now() - startTime),
+              reason: 'timeout_during_stream',
+              request_id: requestId
+            }
+          })
+        }
+        throw streamError
+      }
+    }
+
+    // ============================================
+    // NON-STREAMING MODE: Generate full report then return
+    // ============================================
     let report: string
     try {
       if (mode === 'compare' && comparisonData) {
@@ -1193,7 +1711,8 @@ List all sources.
 RULES:
 - Be objective and balanced
 - Use tables for easy comparison
-- Cite sources where appropriate`
+- Cite sources where appropriate`,
+          abortSignal: timer.abortController.signal
         })
         report = writeResult.text
       } else {
@@ -1231,13 +1750,32 @@ RULES:
 - Cite sources inline using [Source](url) format
 - Be professional and concise
 - Use tables where appropriate for data
-- ${presetConfig.prompt_hint}`
+- ${presetConfig.prompt_hint}`,
+          abortSignal: timer.abortController.signal
         })
         report = writeResult.text
       }
       
       debug('pipeline:write:complete', { reportLength: report.length }, ctx)
     } catch (writeError: any) {
+      // Handle timeout during write
+      if (writeError.name === 'AbortError' || timer.isTimedOut) {
+        debug('pipeline:write:aborted', { reason: 'timeout' }, ctx)
+        const emergencyReport = await emergencyFinalize(timer, effectiveQuery, activeGroqKey, ctx)
+        return Response.json({
+          report: emergencyReport,
+          sources: timer.partialData.sources,
+          meta: {
+            source: 'emergency',
+            partial: true,
+            latency_ms: Math.round(performance.now() - startTime),
+            sources_count: timer.partialData.sources?.length || 0,
+            reason: 'timeout_during_write',
+            request_id: requestId
+          }
+        })
+      }
+      
       debugError('pipeline:write', writeError, ctx)
       return Response.json({
         error: 'Failed to generate report',
@@ -1310,10 +1848,6 @@ RULES:
         sources_count: sources.length,
         request_id: requestId,
         preset,
-        model: {
-          extractor: extractionModel === 'cerebras' ? CEREBRAS_MODEL : GEMINI_FALLBACK_MODEL,
-          writer: GROQ_WRITER_MODEL
-        },
         quota: {
           limit: planConfig.limit,
           remaining: rateLimitRemaining,
@@ -1353,18 +1887,12 @@ export async function GET() {
     status: 'ok',
     service: 'UnforgeAPI Deep Research',
     version: '4.2.0',
-    architecture: 'Cerebras-Groq Relay (Fastest + Free)',
-    description: 'Cerebras for smart extraction → Groq for hardware-speed writing',
+    description: 'Web search with AI-powered analysis and structured reports',
     features: {
       modes: ['report', 'extract', 'schema', 'compare'],
       presets: Object.keys(DOMAIN_PRESETS),
       webhook: true,
       cache: redis ? 'enabled' : 'disabled'
-    },
-    models: {
-      extractor: CEREBRAS_MODEL,
-      extractor_fallback: GEMINI_FALLBACK_MODEL,
-      writer: GROQ_WRITER_MODEL
     },
     examples: {
       report: {

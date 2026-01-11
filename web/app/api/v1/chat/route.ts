@@ -19,6 +19,9 @@ import {
   type GenerationOptions,
   type GenerationResult
 } from '@/lib/router'
+import { Redis } from '@upstash/redis'
+import { Ratelimit } from '@upstash/ratelimit'
+import { WEB_SEARCH_LIMITS, PLAN_CONFIG, isPriorityPlan, type ApiPlan } from '@/lib/subscription-constants'
 
 // ============================================
 // ENHANCED DEBUG SYSTEM
@@ -45,6 +48,44 @@ function debug(tag: string, data: any, context?: DebugContext) {
     console.log(`${timestamp} ${prefix}`, JSON.stringify(data, null, 2))
   } else {
     console.log(`${timestamp} ${prefix}`, typeof data === 'object' ? JSON.stringify(data) : data)
+  }
+}
+
+// ============================================
+// UPSTASH REDIS FOR SEARCH RATE LIMITING
+// ============================================
+
+function getRedisClient(): Redis | null {
+  if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    return null
+  }
+  return new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  })
+}
+
+// Web Search rate limiter per plan
+function getWebSearchRateLimiter(plan: ApiPlan): Ratelimit | null {
+  const redis = getRedisClient()
+  if (!redis) return null
+
+  const planLimits = WEB_SEARCH_LIMITS[plan]
+  if (!planLimits || planLimits.limit <= 0) return null
+
+  // Create rate limiter based on plan's period
+  if (planLimits.period === 'daily') {
+    return new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(planLimits.limit, '1 d'),
+      prefix: 'websearch:daily:',
+    })
+  } else {
+    return new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(planLimits.limit, '30 d'),
+      prefix: 'websearch:monthly:',
+    })
   }
 }
 
@@ -387,11 +428,53 @@ export async function POST(req: NextRequest) {
 
     // Get tier from Unkey metadata (if set)
     const plan = result.meta?.plan || result.meta?.tier || 'sandbox'
+    const validPlanType = plan as ApiPlan
     const isByokPlan = plan === 'byok_starter' || plan === 'byok_pro'
     const searchEnabled = result.meta?.searchEnabled !== false && plan !== 'sandbox'
     const requiresUserKeys = result.meta?.requiresUserKeys || isByokPlan
+    const isPriority = isPriorityPlan(validPlanType)
     
-    debug('tier:check', { plan, isByokPlan, searchEnabled, requiresUserKeys }, ctx)
+    debug('tier:check', { plan, isByokPlan, searchEnabled, requiresUserKeys, isPriority }, ctx)
+
+    // ============================================
+    // PRIORITY QUEUE CHECK (Free users throttled under load)
+    // ============================================
+    if (!isPriority) {
+      const redis = getRedisClient()
+      if (redis) {
+        try {
+          // Check system load (requests in last minute from free users)
+          const freeUserLoadKey = 'system:free_user_load'
+          const currentLoad = await redis.incr(freeUserLoadKey)
+          
+          // Set expiry if this is a new key
+          if (currentLoad === 1) {
+            await redis.expire(freeUserLoadKey, 60)
+          }
+          
+          // If more than 100 free user requests per minute, throttle
+          const FREE_USER_THROTTLE_THRESHOLD = 100
+          if (currentLoad > FREE_USER_THROTTLE_THRESHOLD) {
+            debug('priority:throttled', { 
+              plan, 
+              currentLoad, 
+              threshold: FREE_USER_THROTTLE_THRESHOLD 
+            }, ctx)
+            
+            return Response.json({
+              error: 'System is currently busy. Paid users are prioritized during high traffic.',
+              code: 'SYSTEM_BUSY',
+              hint: 'Please try again in a few seconds, or upgrade to a paid plan for priority access.',
+              retry_after: 5,
+              upgrade_url: 'https://unforge.ai/pricing'
+            }, { status: 503 })
+          }
+        } catch (loadCheckError) {
+          // Don't fail the request if load check fails
+          debugError('priority:loadCheckError', loadCheckError, ctx)
+        }
+      }
+    }
     
     // ============================================
     // BYOK KEY REQUIREMENT CHECK
@@ -614,6 +697,47 @@ export async function POST(req: NextRequest) {
           },
           { status: 402 }
         )
+      }
+
+      // ============================================
+      // WEB SEARCH RATE LIMIT CHECK (Managed Plans Only)
+      // ============================================
+      // BYOK users use their own Tavily key, so no limit needed from us
+      const validPlan = (plan as ApiPlan) || 'sandbox'
+      const searchLimits = WEB_SEARCH_LIMITS[validPlan]
+      
+      if (!isByokPlan && searchLimits && searchLimits.limit > 0) {
+        const searchRateLimiter = getWebSearchRateLimiter(validPlan)
+        
+        if (searchRateLimiter && result.keyId) {
+          const { success, remaining, reset } = await searchRateLimiter.limit(result.keyId)
+          
+          debug('path:research:searchLimit', { 
+            success, 
+            remaining, 
+            limit: searchLimits.limit,
+            period: searchLimits.period,
+            resetAt: reset 
+          }, ctx)
+          
+          if (!success) {
+            const resetDate = new Date(reset)
+            const periodLabel = searchLimits.period === 'monthly' ? 'month' : 'day'
+            
+            return Response.json({
+              error: `You've reached your web search limit (${searchLimits.limit}/${periodLabel}). Your limit resets ${resetDate.toLocaleDateString()}.`,
+              code: 'SEARCH_LIMIT_EXCEEDED',
+              limit: searchLimits.limit,
+              period: searchLimits.period,
+              reset_at: reset,
+              upgrade_hint: validPlan === 'sandbox'
+                ? 'Upgrade to Managed Pro ($20/mo) for 1,000 searches/month'
+                : validPlan === 'managed_pro' 
+                ? 'Upgrade to Managed Expert ($79/mo) for 5,000 searches/month'
+                : 'Upgrade to increase your search limit'
+            }, { status: 429 })
+          }
+        }
       }
       
       // Safety Check: If BYOK plan and no Tavily key, reject

@@ -14,6 +14,7 @@ function debug(tag: string, data: any) {
 
 // Product IDs for different tiers (from environment variables)
 const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID!;
+const MANAGED_EXPERT_PRODUCT_ID = process.env.POLAR_MANAGED_EXPERT_PRODUCT_ID!;
 const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID!;
 
 // Product IDs to tier mapping (subscriptions)
@@ -21,6 +22,7 @@ const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID!;
 const PRODUCT_TO_TIER: Record<string, string> = {
   [PRO_PRODUCT_ID]: 'pro', // Legacy
   [MANAGED_PRO_PRODUCT_ID]: 'managed_pro',
+  [MANAGED_EXPERT_PRODUCT_ID]: 'managed_expert',
   [BYOK_PRO_PRODUCT_ID]: 'byok_pro',
   // Also support environment variable override for testing
   [process.env.POLAR_PRO_PRODUCT_ID || '']: 'pro',
@@ -65,12 +67,17 @@ async function upgradeUserApiKeys(
   
   // Determine which keys to upgrade based on new subscription tier
   // If user gets byok_pro, upgrade byok_starter keys to byok_pro
-  // If user gets managed_pro, upgrade sandbox keys to managed_pro
+  // If user gets managed_pro or managed_expert, upgrade sandbox/managed_pro keys
   const keysToUpgrade = keys.filter(key => {
     if (newTier === 'byok_pro' && (key.tier === 'byok_starter' || key.tier === 'byok')) {
       return true;
     }
+    // managed_pro upgrades sandbox keys
     if ((newTier === 'managed_pro' || newTier === 'pro') && key.tier === 'sandbox') {
+      return true;
+    }
+    // managed_expert upgrades sandbox AND managed_pro keys
+    if (newTier === 'managed_expert' && (key.tier === 'sandbox' || key.tier === 'managed_pro')) {
       return true;
     }
     return false;
@@ -84,12 +91,14 @@ async function upgradeUserApiKeys(
   console.log(`[Keys Upgrade] Upgrading ${keysToUpgrade.length} keys to ${newTier}`);
   
   // Determine the new plan based on subscription tier
-  const newPlan = newTier === 'byok_pro' ? 'byok_pro' : 'managed_pro';
+  const newPlan = newTier === 'byok_pro' ? 'byok_pro' : newTier; // Keep managed_pro or managed_expert as-is
   
   // Get rate limit config for the new plan
   const rateLimitConfig = newPlan === 'byok_pro' 
     ? { type: 'fast' as const, limit: 10, duration: 1000 } // 10 req/sec
-    : { type: 'fast' as const, limit: 50000, duration: 2592000000 }; // 50k/month
+    : newPlan === 'managed_expert'
+    ? { type: 'fast' as const, limit: 250000, duration: 2592000000 } // 250k/month for Expert
+    : { type: 'fast' as const, limit: 50000, duration: 2592000000 }; // 50k/month for Pro
   
   for (const key of keysToUpgrade) {
     try {
@@ -135,6 +144,97 @@ async function upgradeUserApiKeys(
       console.log(`[Keys Upgrade] ✅ Upgraded key ${key.name} (${key.unkey_id}) to ${newPlan}`);
     } catch (err) {
       console.error(`[Keys Upgrade] Error upgrading key ${key.unkey_id}:`, err);
+    }
+  }
+}
+
+/**
+ * Downgrade API keys when subscription is revoked
+ * This downgrades paid keys back to free tier
+ */
+async function downgradeUserApiKeys(
+  supabase: ReturnType<typeof createAdminClient>,
+  userId: string
+): Promise<void> {
+  console.log(`[Keys Downgrade] Downgrading keys for user ${userId} to free tier`);
+  
+  // Get user's workspace
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('default_workspace_id')
+    .eq('id', userId)
+    .single();
+  
+  const workspaceId = profile?.default_workspace_id || userId;
+  
+  // Get all API keys for this workspace that are paid tiers
+  const { data: keys, error } = await supabase
+    .from('api_keys')
+    .select('id, unkey_id, tier, name')
+    .eq('workspace_id', workspaceId)
+    .eq('is_active', true)
+    .in('tier', ['managed_pro', 'managed_expert', 'byok_pro']);
+  
+  if (error || !keys?.length) {
+    console.log(`[Keys Downgrade] No paid keys found for workspace ${workspaceId}`);
+    return;
+  }
+  
+  console.log(`[Keys Downgrade] Downgrading ${keys.length} keys to free tier`);
+  
+  for (const key of keys) {
+    try {
+      // Determine new free tier based on current tier
+      const newPlan = ['managed_pro', 'managed_expert'].includes(key.tier) ? 'sandbox' : 'byok_starter';
+      
+      // Get rate limit config for the free plan
+      const rateLimitConfig = newPlan === 'sandbox' 
+        ? { type: 'fast' as const, limit: 50, duration: 86400000 } // 50/day
+        : { type: 'fast' as const, limit: 100, duration: 86400000 }; // 100/day
+      
+      // Update key in Unkey
+      const unkeyResponse = await fetch(`${UNKEY_API_URL}/v1/keys.updateKey`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          keyId: key.unkey_id,
+          meta: {
+            plan: newPlan,
+            tier: newPlan,
+            searchEnabled: true, // Sandbox now has limited search
+            requiresUserKeys: newPlan === 'byok_starter',
+            downgradedAt: new Date().toISOString()
+          },
+          ratelimit: rateLimitConfig
+        })
+      });
+      
+      if (!unkeyResponse.ok) {
+        const error = await unkeyResponse.json();
+        console.error(`[Keys Downgrade] Failed to downgrade Unkey key ${key.unkey_id}:`, error);
+        continue;
+      }
+      
+      // Update key in our database
+      await supabase
+        .from('api_keys')
+        .update({
+          tier: newPlan,
+          metadata: {
+            plan: newPlan,
+            searchEnabled: true,
+            requiresUserKeys: newPlan === 'byok_starter',
+            downgradedAt: new Date().toISOString()
+          }
+        })
+        .eq('id', key.id);
+      
+      console.log(`[Keys Downgrade] ✅ Downgraded key ${key.name} (${key.unkey_id}) to ${newPlan}`);
+    } catch (err) {
+      console.error(`[Keys Downgrade] Error downgrading key ${key.unkey_id}:`, err);
     }
   }
 }
@@ -387,7 +487,7 @@ export async function POST(request: NextRequest) {
             console.log(`✅ Subscription activated from checkout for user ${profile.id}: tier=${tier}`);
             
             // Upgrade existing API keys when subscription is activated
-            if (tier === 'managed_pro' || tier === 'byok_pro' || tier === 'pro') {
+            if (tier === 'managed_pro' || tier === 'managed_expert' || tier === 'byok_pro' || tier === 'pro') {
               try {
                 await upgradeUserApiKeys(supabase, profile.id, tier);
               } catch (keyErr) {
@@ -518,7 +618,7 @@ export async function POST(request: NextRequest) {
         console.log(`✅ Updated subscription for ${customerEmail}: tier=${tier}, status=${status}, ends_at=${periodEnd.toISOString()}`);
         
         // Upgrade existing API keys when subscription is activated
-        if (status === 'active' && (tier === 'managed_pro' || tier === 'byok_pro' || tier === 'pro')) {
+        if (status === 'active' && (tier === 'managed_pro' || tier === 'managed_expert' || tier === 'byok_pro' || tier === 'pro')) {
           try {
             await upgradeUserApiKeys(supabase, profile.id, tier);
           } catch (keyErr) {
@@ -618,6 +718,13 @@ export async function POST(request: NextRequest) {
               })
               .eq('id', profile.id);
             console.log(`✅ Subscription revoked for ${customerEmail}`);
+            
+            // Downgrade API keys back to free tier
+            try {
+              await downgradeUserApiKeys(supabase, profile.id);
+            } catch (keyErr) {
+              console.error('Error downgrading API keys:', keyErr);
+            }
           } else {
             // Uncanceled - restore auto-renew
             const periodEnd = data.current_period_end || data.ends_at;

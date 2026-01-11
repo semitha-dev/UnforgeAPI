@@ -2,11 +2,12 @@
 // This file contains no server-side imports and can be used in client components
 
 // ============================================
-// 4-TIER PRICING STRUCTURE
+// 5-TIER PRICING STRUCTURE
 // ============================================
 // Group A: Managed (We pay for LLM keys)
-//   - sandbox: Free, 50 req/day, Search disabled
-//   - managed_pro: $19.99/mo, 1000 search/mo, Unlimited Chat/Context
+//   - sandbox: Free, 50 req/day, 3 search/day, 3 Deep Research/day
+//   - managed_pro: $20/mo, 1000 search/mo, 50 Deep Research/mo
+//   - managed_expert: $79/mo, 5000 search/mo, 200 Deep Research/mo
 // 
 // Group B: BYOK (They pay for their keys)
 //   - byok_starter: Free, 100 req/day, Must provide x-groq-key & x-tavily-key
@@ -17,6 +18,7 @@ export const API_PLANS = {
   // Managed tiers (we provide keys)
   SANDBOX: 'sandbox',
   MANAGED_PRO: 'managed_pro',
+  MANAGED_EXPERT: 'managed_expert',
   // BYOK tiers (user provides keys)
   BYOK_STARTER: 'byok_starter',
   BYOK_PRO: 'byok_pro',
@@ -27,35 +29,75 @@ export type ApiPlan = typeof API_PLANS[keyof typeof API_PLANS];
 // Polar Product IDs (from environment variables)
 export const POLAR_PRODUCT_IDS = {
   MANAGED_PRO: process.env.POLAR_MANAGED_PRO_PRODUCT_ID!,
+  MANAGED_EXPERT: process.env.POLAR_MANAGED_EXPERT_PRODUCT_ID!,
   BYOK_PRO: process.env.POLAR_BYOK_PRO_PRODUCT_ID!,
 } as const;
 
 // Deep Research limits per plan
-// Note: BYOK users use our Gemini key for compression, so we must limit usage
+// Note: BYOK users provide their own Tavily key, we only use free Cerebras/Groq
+// So BYOK deep research is essentially free for us - API rate limit is the guard
 export const DEEP_RESEARCH_LIMITS: Record<ApiPlan, {
   limit: number;        // -1 = unlimited, 0 = no access
   period: 'daily' | 'monthly';
   description: string;
 }> = {
   sandbox: {
-    limit: 0,
+    limit: 3,
     period: 'daily',
-    description: 'No access - upgrade required',
+    description: '3 deep research requests per day',
   },
   managed_pro: {
     limit: 50,
     period: 'monthly',
     description: '50 deep research requests per month',
   },
+  managed_expert: {
+    limit: 200,
+    period: 'monthly',
+    description: '200 deep research requests per month',
+  },
   byok_starter: {
-    limit: 5,
+    limit: -1,  // Unlimited - 50 req/day API limit is the guard
     period: 'daily',
-    description: '5 deep research requests per day',
+    description: 'Unlimited (within 50 req/day API limit)',
   },
   byok_pro: {
-    limit: 25,
+    limit: -1,  // Unlimited - they pay for Tavily
     period: 'daily',
-    description: '25 deep research requests per day (fair use)',
+    description: 'Unlimited (your Tavily key)',
+  },
+};
+
+// Web Search limits per plan (for /api/v1/chat RESEARCH intent)
+export const WEB_SEARCH_LIMITS: Record<ApiPlan, {
+  limit: number;        // -1 = unlimited, 0 = no access
+  period: 'daily' | 'monthly';
+  description: string;
+}> = {
+  sandbox: {
+    limit: 3,
+    period: 'daily',
+    description: '3 web searches per day',
+  },
+  managed_pro: {
+    limit: 1000,
+    period: 'monthly',
+    description: '1,000 web searches per month',
+  },
+  managed_expert: {
+    limit: 5000,
+    period: 'monthly',
+    description: '5,000 web searches per month',
+  },
+  byok_starter: {
+    limit: -1,  // Unlimited (they pay Tavily directly)
+    period: 'daily',
+    description: 'Unlimited (your Tavily key)',
+  },
+  byok_pro: {
+    limit: -1,  // Unlimited (they pay Tavily directly)
+    period: 'daily',
+    description: 'Unlimited (your Tavily key)',
   },
 };
 
@@ -74,6 +116,7 @@ export const PLAN_CONFIG: Record<ApiPlan, {
   duration: number; // in milliseconds
   searchEnabled: boolean;
   requiresUserKeys: boolean;
+  isPriority: boolean; // For queue prioritization
   features: string[];
 }> = {
   sandbox: {
@@ -89,6 +132,7 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     duration: 86400000, // 24 hours
     searchEnabled: false,
     requiresUserKeys: false,
+    isPriority: false,
     features: [
       '50 requests / day',
       'Chat & Context paths only',
@@ -111,13 +155,37 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     duration: 2592000000, // 30 days
     searchEnabled: true,
     requiresUserKeys: false,
+    isPriority: true,
     features: [
       'Unlimited Chat & Context',
-      '1,000 Web Search requests / month',
+      '1,000 Web Search / month',
       '50 Deep Research / month',
       'System API keys',
       'Priority support',
-      '50,000 req/mo fair usage policy',
+    ],
+  },
+  managed_expert: {
+    name: 'Managed Expert',
+    price: 79,
+    priceLabel: '$79',
+    period: '/month',
+    description: 'For high-volume production apps',
+    limitType: 'monthly',
+    limit: 200000, // Fair usage: 200k total requests/month
+    searchLimit: 5000, // Web search requests limit
+    deepResearchLimit: 200,
+    deepResearchPeriod: 'monthly',
+    duration: 2592000000, // 30 days
+    searchEnabled: true,
+    requiresUserKeys: false,
+    isPriority: true,
+    features: [
+      'Unlimited Chat & Context',
+      '5,000 Web Search / month',
+      '200 Deep Research / month',
+      'System API keys',
+      'Priority support',
+      'Dedicated account manager',
     ],
   },
   byok_starter: {
@@ -133,6 +201,7 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     duration: 86400000, // 24 hours
     searchEnabled: true,
     requiresUserKeys: true,
+    isPriority: false,
     features: [
       '100 requests / day',
       '5 Deep Research / day',
@@ -154,6 +223,7 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     duration: 1000, // 1 second (10 req/sec)
     searchEnabled: true,
     requiresUserKeys: true,
+    isPriority: true,
     features: [
       'Unlimited requests',
       '25 Deep Research / day',
@@ -171,11 +241,15 @@ export function isByokPlan(plan: ApiPlan): boolean {
 }
 
 export function isManagedPlan(plan: ApiPlan): boolean {
-  return plan === 'sandbox' || plan === 'managed_pro';
+  return plan === 'sandbox' || plan === 'managed_pro' || plan === 'managed_expert';
 }
 
 export function isPaidPlan(plan: ApiPlan): boolean {
-  return plan === 'managed_pro' || plan === 'byok_pro';
+  return plan === 'managed_pro' || plan === 'managed_expert' || plan === 'byok_pro';
+}
+
+export function isPriorityPlan(plan: ApiPlan): boolean {
+  return PLAN_CONFIG[plan]?.isPriority ?? false;
 }
 
 export function getUnkeyRateLimitConfig(plan: ApiPlan) {

@@ -224,7 +224,7 @@ const HeroSection = () => {
 const StatsSection = () => {
   const stats = [
     { value: '30-40s', label: 'Deep Analysis', icon: Clock },
-    { value: '5+', label: 'Sources Searched', icon: Search },
+    { value: '12+', label: 'Sources Searched', icon: Search },
     { value: 'JSON', label: 'Structured Output', icon: FileText },
     { value: 'BYOK', label: 'Bring Your Keys', icon: Key },
   ];
@@ -360,15 +360,15 @@ const DeepResearchSection = () => {
           </div>
           
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
-            How the{' '}
+            How{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
-              Pipeline
+              Deep Research
             </span>
             {' '}Works
           </h2>
           <p className="text-lg text-gray-400 max-w-3xl mx-auto">
-            Multi-model orchestration that Perplexity can&apos;t offer.{' '}
-            <span className="text-white">Tavily search → Gemini reasoning → Groq rendering → Structured JSON.</span>
+            Multi-stage AI pipeline optimized for speed and accuracy.{' '}
+            <span className="text-white">Web search → AI analysis → Structured JSON output.</span>
           </p>
         </motion.div>
 
@@ -388,7 +388,7 @@ const DeepResearchSection = () => {
                   <div className="w-3 h-3 rounded-full bg-yellow-500" />
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                 </div>
-                <span className="text-sm text-gray-400 font-mono">Tavily → Gemini → Groq Pipeline</span>
+                <span className="text-sm text-gray-400 font-mono">Deep Research Pipeline</span>
               </div>
               <span className="text-xs text-emerald-400 font-medium">~30-40 seconds</span>
             </div>
@@ -402,7 +402,7 @@ const DeepResearchSection = () => {
                     <Search className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">1. Search</div>
-                  <div className="text-xs text-gray-500">Tavily fetches 5+ sources</div>
+                  <div className="text-xs text-gray-500">Fetches 12+ web sources</div>
                 </div>
 
                 {/* Arrow */}
@@ -410,13 +410,13 @@ const DeepResearchSection = () => {
                   <ArrowRight className="w-6 h-6" />
                 </div>
 
-                {/* Step 2: Gemini */}
+                {/* Step 2: Extract */}
                 <div className="flex-1 text-center">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
                     <Cpu className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">2. Reason</div>
-                  <div className="text-xs text-gray-500">Gemini 2.5 extracts insights</div>
+                  <div className="text-xs text-gray-500">AI extracts key insights</div>
                 </div>
 
                 {/* Arrow */}
@@ -424,13 +424,13 @@ const DeepResearchSection = () => {
                   <ArrowRight className="w-6 h-6" />
                 </div>
 
-                {/* Step 3: Groq */}
+                {/* Step 3: Write */}
                 <div className="flex-1 text-center">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
                     <Zap className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">3. Render</div>
-                  <div className="text-xs text-gray-500">Groq writes at hardware speed</div>
+                  <div className="text-xs text-gray-500">Lightning-fast report writing</div>
                 </div>
 
                 {/* Arrow */}
@@ -451,8 +451,7 @@ const DeepResearchSection = () => {
               {/* Key Insight */}
               <div className="mt-8 p-4 bg-violet-500/10 border border-violet-500/20 rounded-xl">
                 <p className="text-center text-sm text-gray-300">
-                  <span className="text-violet-400 font-medium">Why not just Perplexity?</span>{' '}
-                  Perplexity is built for humans. We&apos;re built for machines.{' '}
+                  <span className="text-violet-400 font-medium">Built for developers, not end users.</span>{' '}
                   <span className="text-white font-medium">Custom schemas. Extraction mode. Webhook delivery. JSON, not Markdown.</span>
                 </p>
               </div>
@@ -470,9 +469,9 @@ const DeepResearchSection = () => {
             className="p-6 bg-white/5 border border-white/10 rounded-2xl"
           >
             <Gauge className="w-10 h-10 text-cyan-400 mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">Faster Than Deep Research</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">Lightning Fast Research</h3>
             <p className="text-gray-400 text-sm">
-              Perplexity Pro Deep Research takes 2-5 minutes. We return in 30-40 seconds with comparable depth.
+              Get comprehensive research reports in 30-40 seconds. Optimized pipeline delivers speed without sacrificing depth.
             </p>
           </motion.div>
 
@@ -673,15 +672,31 @@ const PricingSection = () => {
       description: 'For production applications',
       features: [
         'Unlimited Chat & Context',
-        '1,000 Web Search requests / month',
-        '✅ Full research capabilities',
+        '1,000 Web Search / month',
+        '50 Deep Research / month',
         'System API keys',
         'Priority support',
-        '50,000 req/mo fair usage policy',
       ],
       cta: 'Start Trial',
       popular: true,
       badge: 'Most Popular',
+    },
+    {
+      name: 'Managed Expert',
+      price: '$79',
+      period: '/month',
+      description: 'For high-volume production apps',
+      features: [
+        'Unlimited Chat & Context',
+        '5,000 Web Search / month',
+        '200 Deep Research / month',
+        'System API keys',
+        'Priority support',
+        'Dedicated account manager',
+      ],
+      cta: 'Go Expert',
+      popular: false,
+      badge: 'High Volume',
     },
   ];
 
@@ -693,7 +708,7 @@ const PricingSection = () => {
       description: 'Test the engine with your own keys',
       features: [
         '100 requests / day',
-        'All three routing paths',
+        '5 Deep Research / day',
         '✅ Search enabled',
         'Your Groq & Tavily keys required',
         'Community support',
@@ -706,14 +721,13 @@ const PricingSection = () => {
       name: 'BYOK Unlimited',
       price: '$5',
       period: '/month',
-      description: 'Production scale. No limits.',
+      description: 'Production scale. Fair use limits.',
       features: [
         'Unlimited requests',
+        '25 Deep Research / day',
         '10 req/sec rate limit',
-        '✅ All routing paths',
         'Your Groq & Tavily keys',
         'Premium support',
-        'Zero markup on tokens',
       ],
       cta: 'Go Unlimited',
       popular: true,
