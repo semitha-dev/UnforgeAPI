@@ -5,7 +5,6 @@ import {
   X,
   Check, 
   Loader2,
-  Sparkles,
 } from 'lucide-react'
 
 interface UpgradeModalProps {
@@ -58,37 +57,64 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
     }
   }
 
-  const managedProFeatures = [
-    'Unlimited Chat & Context requests',
-    '1,000 web searches per month',
-    '50 deep research requests per month',
-    'System-managed API keys',
-    'Priority support',
+  const managedPlans = [
+    {
+      id: 'managed_pro' as const,
+      name: 'Managed Pro',
+      price: '$20',
+      period: '/month',
+      description: 'For production applications',
+      features: [
+        'Unlimited Chat & Context',
+        '1,000 Web Search / month',
+        '50 Deep Research / month',
+        'Priority support',
+      ],
+      popular: true,
+      badge: 'Most Popular',
+    },
+    {
+      id: 'managed_expert' as const,
+      name: 'Managed Expert',
+      price: '$79',
+      period: '/month',
+      description: 'For high-volume production apps',
+      features: [
+        'Unlimited Chat & Context',
+        '5,000 Web Search / month',
+        '200 Deep Research / month',
+        'Priority support',
+        'Dedicated account manager',
+      ],
+      popular: false,
+      badge: 'High Volume',
+    },
   ]
 
-  const managedExpertFeatures = [
-    'Unlimited Chat & Context requests',
-    '5,000 web searches per month',
-    '200 deep research requests per month',
-    'System-managed API keys',
-    'Priority support',
-    'Dedicated account manager',
-  ]
-
-  const byokFeatures = [
-    'Unlimited requests (10 req/sec)',
-    'Unlimited web search with your Tavily key',
-    '25 deep research requests per day',
-    'Use your own API keys',
-    'Full control & transparency',
-  ]
+  const byokPlan = {
+    id: 'byok' as const,
+    name: 'BYOK Unlimited',
+    price: '$5',
+    period: '/month',
+    description: 'Unlimited scale for production apps.',
+    features: [
+      'Unlimited requests*',
+      'Unlimited Web Search',
+      'Unlimited Deep Research',
+      'Your Groq & Tavily keys',
+      'Premium support',
+    ],
+    popular: true,
+    badge: 'Best Value',
+    footnote: '*Subject to platform fair use policy to prevent abuse.',
+  }
 
   return (
-    <div className="fixed inset-0 z-50 bg-neutral-950 overflow-auto">
+    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm overflow-auto">
       {/* Close button - top right */}
       <button
         onClick={onClose}
-        className="fixed top-6 right-6 z-50 p-2 text-neutral-400 hover:text-white transition-colors"
+        className="fixed top-6 right-6 z-50 p-2 text-gray-400 hover:text-white transition-colors"
         aria-label="Close"
       >
         <X className="w-6 h-6" />
@@ -96,24 +122,30 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
 
       {/* Content centered */}
       <div className="min-h-screen flex flex-col items-center justify-center px-6 py-20">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-white mb-2">Upgrade Your Plan</h2>
+          <p className="text-gray-400">Choose the plan that works best for you</p>
+        </div>
+
         {/* Tab selector */}
-        <div className="flex items-center gap-1 bg-neutral-900 rounded-full p-1 mb-12">
+        <div className="flex items-center gap-1 bg-white/5 rounded-full p-1 mb-10">
           <button 
             onClick={() => setActiveTab('managed')}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
               activeTab === 'managed' 
-                ? 'bg-teal-600 text-white' 
-                : 'text-neutral-400 hover:text-white'
+                ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25' 
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             Managed
           </button>
           <button 
             onClick={() => setActiveTab('byok')}
-            className={`px-5 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
               activeTab === 'byok' 
-                ? 'bg-teal-600 text-white' 
-                : 'text-neutral-400 hover:text-white'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25' 
+                : 'text-gray-400 hover:text-white'
             }`}
           >
             BYOK
@@ -128,146 +160,118 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
 
         {/* Managed Plans */}
         {activeTab === 'managed' && (
-          <div className="flex flex-col lg:flex-row gap-6 max-w-5xl w-full">
-            {/* Managed Pro */}
-            <div className="flex-1 border border-neutral-800 rounded-xl p-8 hover:border-neutral-700 transition-colors">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-white">Managed Pro</h3>
-                <span className="px-3 py-1 bg-teal-500/20 text-teal-400 text-xs font-medium rounded-full">
-                  Popular
-                </span>
-              </div>
-
-              <div className="mb-2">
-                <span className="text-4xl font-bold text-white">$20</span>
-                <span className="text-neutral-400 text-sm ml-1">USD / month</span>
-              </div>
-
-              <p className="text-neutral-300 text-sm mb-6">
-                Full API access with managed keys. Perfect for production apps.
-              </p>
-
-              <button
-                onClick={() => handleCheckout('managed_pro')}
-                disabled={isCheckingOut !== null}
-                className="w-full py-3 bg-teal-500 hover:bg-teal-400 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors mb-8"
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl w-full">
+            {managedPlans.map((plan) => (
+              <div
+                key={plan.id}
+                className={`relative p-8 rounded-2xl border flex flex-col ${
+                  plan.popular
+                    ? 'bg-gradient-to-b from-violet-500/20 to-fuchsia-500/20 border-violet-500/50'
+                    : 'bg-white/5 border-white/10'
+                }`}
               >
-                {isCheckingOut === 'managed_pro' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  'Get Managed Pro'
+                {plan.badge && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <span className="px-4 py-1 text-white text-sm font-medium rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500">
+                      {plan.badge}
+                    </span>
+                  </div>
                 )}
-              </button>
 
-              <ul className="space-y-4">
-                {managedProFeatures.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3 text-neutral-300 text-sm">
-                    <Check className="w-4 h-4 text-teal-400 mt-0.5 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+                <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-4xl font-bold text-white">{plan.price}</span>
+                  <span className="text-gray-400">{plan.period}</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
 
-            {/* Managed Expert */}
-            <div className="flex-1 border-2 border-violet-500/50 rounded-xl p-8 hover:border-violet-500 transition-colors relative">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <span className="px-4 py-1 bg-violet-500 text-white text-xs font-medium rounded-full flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  High Volume
-                </span>
+                <ul className="space-y-3 mb-8 flex-grow">
+                  {plan.features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
+                      <Check className="w-5 h-5 flex-shrink-0 text-violet-400" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  onClick={() => handleCheckout(plan.id)}
+                  disabled={isCheckingOut !== null}
+                  className={`w-full py-3 text-center font-medium rounded-xl transition-all mt-auto flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    plan.popular
+                      ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  {isCheckingOut === plan.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    `Get ${plan.name}`
+                  )}
+                </button>
               </div>
-              
-              <div className="flex items-center justify-between mb-4 mt-2">
-                <h3 className="text-xl font-semibold text-white">Managed Expert</h3>
-              </div>
-
-              <div className="mb-2">
-                <span className="text-4xl font-bold text-white">$79</span>
-                <span className="text-neutral-400 text-sm ml-1">USD / month</span>
-              </div>
-
-              <p className="text-neutral-300 text-sm mb-6">
-                5x the capacity for high-volume production applications.
-              </p>
-
-              <button
-                onClick={() => handleCheckout('managed_expert')}
-                disabled={isCheckingOut !== null}
-                className="w-full py-3 bg-violet-500 hover:bg-violet-400 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors mb-8"
-              >
-                {isCheckingOut === 'managed_expert' ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  'Get Managed Expert'
-                )}
-              </button>
-
-              <ul className="space-y-4">
-                {managedExpertFeatures.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3 text-neutral-300 text-sm">
-                    <Check className="w-4 h-4 text-violet-400 mt-0.5 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            ))}
           </div>
         )}
 
         {/* BYOK Plan */}
         {activeTab === 'byok' && (
           <div className="max-w-md w-full">
-            <div className="border border-neutral-800 rounded-xl p-8 hover:border-neutral-700 transition-colors">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-white">BYOK Unlimited</h3>
-                <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full">
-                  Best Value
-                </span>
-              </div>
+            <div
+              className={`relative p-8 rounded-2xl border flex flex-col ${
+                byokPlan.popular
+                  ? 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
+                  : 'bg-white/5 border-white/10'
+              }`}
+            >
+              {byokPlan.badge && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <span className="px-4 py-1 text-white text-sm font-medium rounded-full bg-gradient-to-r from-amber-500 to-orange-500">
+                    {byokPlan.badge}
+                  </span>
+                </div>
+              )}
 
-              <div className="mb-2">
-                <span className="text-4xl font-bold text-white">$5</span>
-                <span className="text-neutral-400 text-sm ml-1">USD / month</span>
+              <h3 className="text-xl font-semibold text-white mb-2">{byokPlan.name}</h3>
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className="text-4xl font-bold text-white">{byokPlan.price}</span>
+                <span className="text-gray-400">{byokPlan.period}</span>
               </div>
+              <p className="text-gray-400 text-sm mb-6">{byokPlan.description}</p>
 
-              <p className="text-neutral-300 text-sm mb-6">
-                Bring your own API keys for unlimited scale and full control.
-              </p>
+              <ul className="space-y-3 mb-8 flex-grow">
+                {byokPlan.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
+                    <Check className="w-5 h-5 flex-shrink-0 text-amber-400" />
+                    {feature}
+                  </li>
+                ))}
+              </ul>
 
               <button
-                onClick={() => handleCheckout('byok')}
+                onClick={() => handleCheckout(byokPlan.id)}
                 disabled={isCheckingOut !== null}
-                className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors mb-8"
+                className="w-full py-3 text-center font-medium rounded-xl transition-all mt-auto flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90"
               >
-                {isCheckingOut === 'byok' ? (
+                {isCheckingOut === byokPlan.id ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Processing...
                   </>
                 ) : (
-                  'Get BYOK Unlimited'
+                  `Get ${byokPlan.name}`
                 )}
               </button>
 
-              <ul className="space-y-4">
-                {byokFeatures.map((feature, index) => (
-                  <li key={index} className="flex items-start gap-3 text-neutral-300 text-sm">
-                    <Check className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mt-8 pt-6 border-t border-neutral-800">
-                <p className="text-neutral-500 text-xs">
+              <div className="mt-6 pt-6 border-t border-white/10 space-y-2">
+                <p className="text-gray-500 text-xs text-center">
                   Requires your own Groq and Tavily API keys.
+                </p>
+                <p className="text-gray-600 text-[10px] text-center">
+                  {byokPlan.footnote}
                 </p>
               </div>
             </div>
@@ -275,7 +279,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
         )}
 
         {/* Footer */}
-        <p className="text-neutral-500 text-sm mt-12 text-center">
+        <p className="text-gray-500 text-sm mt-12 text-center">
           All plans include a 7-day money-back guarantee. Cancel anytime.
         </p>
       </div>

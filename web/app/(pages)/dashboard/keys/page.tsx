@@ -4,19 +4,21 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/app/lib/supabaseClient'
-import { 
-  Key, 
-  Plus, 
-  Trash2, 
-  Copy, 
-  Check, 
+import {
+  Key,
+  Plus,
+  Trash2,
+  Copy,
+  Check,
   Loader2,
   AlertCircle,
   Crown,
   Zap,
   KeyRound,
   HelpCircle,
-  ExternalLink
+  ExternalLink,
+  Shield,
+  Clock
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -76,15 +78,12 @@ export default function ApiKeysPage() {
         .single()
 
       if (profile) {
-        // Check subscription tier to determine pro status
         const tier = profile.subscription_tier || 'free'
         console.log('[Keys] Loaded subscription tier:', tier, 'status:', profile.subscription_status)
-        
-        // Only mark as pro if explicitly on a pro plan
-        // 'free', 'sandbox', 'byok_starter' are all free tiers
+
         const isManagedPro = tier === 'managed_pro'
         const isByokPro = tier === 'byok_pro'
-        
+
         setSubscription({
           tier,
           status: profile.subscription_status || 'inactive',
@@ -108,7 +107,6 @@ export default function ApiKeysPage() {
         return
       }
 
-      // Get user's workspace
       const { data: profile } = await supabase
         .from('profiles')
         .select('default_workspace_id')
@@ -116,21 +114,19 @@ export default function ApiKeysPage() {
         .single()
 
       if (!profile?.default_workspace_id) {
-        // Create default workspace for new users
         console.log('[Keys:load] No workspace found, will use user ID as workspace')
       }
 
       const workspaceId = profile?.default_workspace_id || user.id
       console.log('[Keys:load:request]', { workspaceId })
 
-      // Fetch API keys via our API (bypasses RLS)
       const response = await fetch(`/api/keys?workspaceId=${workspaceId}`)
       const data = await response.json()
 
-      console.log('[Keys:load:response]', { 
-        status: response.status, 
+      console.log('[Keys:load:response]', {
+        status: response.status,
         ok: response.ok,
-        keyCount: data.keys?.length || 0 
+        keyCount: data.keys?.length || 0
       })
 
       if (!response.ok) {
@@ -152,7 +148,7 @@ export default function ApiKeysPage() {
     console.log('[Keys:create:start]', { name: newKeyName, tier: newKeyTier })
     setIsCreatingKey(true)
     setError(null)
-    
+
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -166,7 +162,6 @@ export default function ApiKeysPage() {
         .eq('id', user.id)
         .single()
 
-      // Use default_workspace_id or user.id as fallback
       const workspaceId = profile?.default_workspace_id || user.id
 
       const requestBody = {
@@ -174,10 +169,9 @@ export default function ApiKeysPage() {
         tier: newKeyTier,
         workspaceId: workspaceId
       }
-      
+
       console.log('[Keys:create:request]', requestBody)
 
-      // Call API to create key via Unkey
       const response = await fetch('/api/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -185,12 +179,12 @@ export default function ApiKeysPage() {
       })
 
       const data = await response.json()
-      
-      console.log('[Keys:create:response]', { 
-        status: response.status, 
+
+      console.log('[Keys:create:response]', {
+        status: response.status,
         ok: response.ok,
         hasKey: !!data.key,
-        error: data.error 
+        error: data.error
       })
 
       if (!response.ok) {
@@ -200,12 +194,10 @@ export default function ApiKeysPage() {
 
       console.log('[Keys:create:success]', { keyPrefix: data.key?.substring(0, 10) + '...' })
 
-      // Show the new key (only shown once)
       setNewApiKey(data.key)
       setShowNewKeyModal(false)
       setNewKeyName('Production Key')
-      
-      // Reload keys
+
       loadApiKeys()
     } catch (err: any) {
       console.error('[Keys:create:exception]', { message: err.message, stack: err.stack })
@@ -223,11 +215,11 @@ export default function ApiKeysPage() {
       })
 
       const data = await response.json()
-      
-      console.log('[Keys:delete:response]', { 
-        status: response.status, 
+
+      console.log('[Keys:delete:response]', {
+        status: response.status,
         ok: response.ok,
-        data 
+        data
       })
 
       if (!response.ok) {
@@ -237,7 +229,6 @@ export default function ApiKeysPage() {
 
       console.log('[Keys:delete:success]')
 
-      // Remove from local state
       setApiKeys(keys => keys.filter(k => k.unkey_id !== unkeyId))
     } catch (err: any) {
       console.error('[Keys:delete:exception]', { message: err.message })
@@ -252,201 +243,248 @@ export default function ApiKeysPage() {
   }
 
   const keysUsedPercentage = (apiKeys.length / MAX_KEYS) * 100
+  const byokKeys = apiKeys.filter(k => k.tier?.includes('byok'))
+  const managedKeys = apiKeys.filter(k => !k.tier?.includes('byok'))
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <header className="h-14 border-b border-neutral-800 flex items-center justify-end px-8 bg-neutral-950/50 backdrop-blur-md sticky top-0 z-10">
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">API Keys</h1>
+          <p className="text-slate-500 max-w-2xl text-sm leading-relaxed">
+            Create and manage API keys to authenticate your requests.
+          </p>
+        </div>
         <button
           onClick={() => setShowNewKeyModal(true)}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors shadow-lg shadow-indigo-500/25"
         >
           <Plus className="w-4 h-4" />
-          Create Key
+          Create New Key
         </button>
-      </header>
+      </div>
 
-      <div className="p-8 max-w-6xl mx-auto space-y-8">
-        {/* Title Section */}
-        <div className="space-y-2">
-          <h2 className="text-3xl font-bold tracking-tight text-white">Manage API Keys</h2>
-          <p className="text-neutral-400">Control access to your projects by creating and managing secure API tokens.</p>
-        </div>
-
-        {/* New API Key Banner */}
-        <AnimatePresence>
-          {newApiKey && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="p-6 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-xl"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                    <Key className="w-5 h-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg text-white mb-1">Your API Key is Ready!</h3>
-                    <p className="text-neutral-400 text-sm mb-4">
-                      Copy this key now — you won't be able to see it again.
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <code className="px-4 py-2 bg-neutral-900 rounded-lg font-mono text-sm text-white break-all">
-                        {newApiKey}
-                      </code>
-                      <button
-                        onClick={() => copyToClipboard(newApiKey, 'new')}
-                        className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
-                      >
-                        {copiedKey === 'new' ? (
-                          <Check className="w-5 h-5 text-green-400" />
-                        ) : (
-                          <Copy className="w-5 h-5 text-neutral-400" />
-                        )}
-                      </button>
-                    </div>
+      {/* New API Key Banner */}
+      <AnimatePresence>
+        {newApiKey && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                  <Key className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white mb-1">Your API Key is Ready!</h3>
+                  <p className="text-slate-400 text-sm mb-3">
+                    Copy this key now — you won't be able to see it again.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="px-3 py-2 bg-[#0e0e11] border border-white/5 rounded-lg font-mono text-sm text-white break-all">
+                      {newApiKey}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(newApiKey, 'new')}
+                      className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                    >
+                      {copiedKey === 'new' ? (
+                        <Check className="w-5 h-5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-5 h-5 text-slate-400" />
+                      )}
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={() => setNewApiKey(null)}
-                  className="text-neutral-400 hover:text-white text-xl"
-                >
-                  ×
-                </button>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Error Banner */}
-        {error && (
-          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400" />
-            <p className="text-red-400">{error}</p>
-            <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-300">×</button>
-          </div>
+              <button
+                onClick={() => setNewApiKey(null)}
+                className="text-slate-400 hover:text-white text-xl"
+              >
+                ×
+              </button>
+            </div>
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {/* Tier Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className={`p-6 rounded-xl border transition-all ${
-            subscription.hasByokPro 
-              ? 'bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/30' 
-              : 'bg-neutral-900/40 border-neutral-800'
-          }`}>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-              <h3 className="font-bold text-xs tracking-widest uppercase text-neutral-300">
-                {subscription.hasByokPro ? 'BYOK PRO' : 'BYOK FREE'}
-              </h3>
-              {subscription.hasByokPro && (
-                <Crown className="w-3 h-3 text-amber-400" />
-              )}
-            </div>
-            <p className="text-[15px] text-neutral-400 leading-relaxed">
-              {subscription.hasByokPro 
-                ? 'Unlimited requests (10/sec rate limit). Uses your Groq & Tavily keys.'
-                : '100 requests/day. Pass your own AI provider keys in headers for higher limits.'
-              }
-            </p>
+      {/* Error Banner */}
+      {error && (
+        <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-400" />
+          <p className="text-red-400 text-sm">{error}</p>
+          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-300">×</button>
+        </div>
+      )}
+
+      {/* Top 3 Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        {/* Total Keys Card */}
+        <div className="bg-[#0e0e11]/60 backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 relative overflow-hidden group">
+          <div className="absolute top-8 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Key className="w-16 h-16" />
           </div>
-          <div className={`p-6 rounded-xl border transition-all ${
-            subscription.hasManagedPro 
-              ? 'bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border-emerald-500/30' 
-              : 'bg-neutral-900/40 border-neutral-800'
-          }`}>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <h3 className="font-bold text-xs tracking-widest uppercase text-neutral-300">
-                {subscription.hasManagedPro ? 'MANAGED PRO' : 'MANAGED FREE'}
-              </h3>
-              {subscription.hasManagedPro && (
-                <Crown className="w-3 h-3 text-emerald-400" />
-              )}
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Total Keys</p>
+              <h3 className="text-2xl font-bold text-white">{apiKeys.length} / {MAX_KEYS}</h3>
             </div>
-            <p className="text-[15px] text-neutral-400 leading-relaxed">
-              {subscription.hasManagedPro 
-                ? 'System API keys with search enabled. 50,000 requests/month fair usage.'
-                : '50 requests/day. Integrated billing for all providers in one simple place.'
-              }
-            </p>
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_-3px_rgba(52,211,153,0.3)]">
+              ACTIVE
+            </span>
+          </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-1.5 flex-1 bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                style={{ width: `${keysUsedPercentage}%` }}
+              />
+            </div>
+            <span className="text-xs text-slate-400">{Math.round(keysUsedPercentage)}%</span>
+          </div>
+          <p className="text-sm text-slate-400 font-light">API key slots used</p>
+        </div>
+
+        {/* BYOK Keys Card */}
+        <div className="bg-[#0e0e11]/60 backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 relative">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">BYOK Keys</p>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-bold text-white tracking-tight font-mono">
+                  {byokKeys.length}
+                </span>
+                <span className="text-sm text-slate-500 font-medium">keys</span>
+              </div>
+            </div>
+            <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
+              <Zap className="w-6 h-6 text-amber-400" />
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 mt-2">
+            {subscription.hasByokPro ? 'Unlimited requests (10/sec)' : '100 requests/day limit'}
+          </p>
+          <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
+            {subscription.hasByokPro && <Crown className="w-4 h-4 text-amber-400" />}
+            <span className="text-xs text-slate-400">
+              {subscription.hasByokPro ? 'BYOK Pro Active' : 'BYOK Free Tier'}
+            </span>
           </div>
         </div>
 
-        {/* API Keys List */}
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900 overflow-hidden min-h-[400px] flex flex-col">
-          <div className="px-6 py-4 border-b border-neutral-800 flex items-center justify-between">
-            <h3 className="font-semibold text-sm text-white">Your Active Keys</h3>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-neutral-500">{apiKeys.length} of {MAX_KEYS} keys used</span>
-              <div className="w-20 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-emerald-500 transition-all duration-300" 
-                  style={{ width: `${keysUsedPercentage}%` }}
-                ></div>
+        {/* Managed Keys Card */}
+        <div className="bg-[#0e0e11]/60 backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 relative">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Managed Keys</p>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-bold text-white tracking-tight font-mono">
+                  {managedKeys.length}
+                </span>
+                <span className="text-sm text-slate-500 font-medium">keys</span>
               </div>
             </div>
+            <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+              <Shield className="w-6 h-6 text-emerald-400" />
+            </div>
           </div>
-          
+          <p className="text-xs text-slate-500 mt-2">
+            {subscription.hasManagedPro ? '50,000 requests/month' : '50 requests/day limit'}
+          </p>
+          <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
+            {subscription.hasManagedPro && <Crown className="w-4 h-4 text-emerald-400" />}
+            <span className="text-xs text-slate-400">
+              {subscription.hasManagedPro ? 'Managed Pro Active' : 'Managed Free Tier'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* API Keys List */}
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-white">Your API Keys</h2>
+          <Link
+            href="/docs"
+            className="text-sm text-slate-400 hover:text-indigo-400 transition-colors flex items-center gap-1"
+          >
+            View Documentation
+            <ExternalLink className="w-4 h-4" />
+          </Link>
+        </div>
+
+        <div className="bg-[#0e0e11] rounded-xl border border-white/5 overflow-hidden">
+          {/* Table Header */}
+          <div className="bg-[#18181b] px-6 py-3 border-b border-white/5 flex text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <div className="flex-1">Key Details</div>
+            <div className="w-32 text-center">Tier</div>
+            <div className="w-24 text-center">Status</div>
+            <div className="w-20 text-right">Actions</div>
+          </div>
+
           {apiKeys.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-20 px-6 text-center">
-              <div className="w-16 h-16 bg-neutral-800/50 rounded-full flex items-center justify-center mb-6">
-                <KeyRound className="w-8 h-8 text-neutral-600" />
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+              <div className="h-14 w-14 rounded-full bg-slate-900/50 flex items-center justify-center mb-4">
+                <KeyRound className="w-7 h-7 text-slate-600" />
               </div>
-              <h4 className="text-lg font-semibold mb-2 text-white">No API keys yet</h4>
-              <p className="text-neutral-400 max-w-sm text-sm mb-8 leading-relaxed">
-                Generate your first API key to start integrating our production-grade models into your application.
-              </p>
+              <p className="text-sm text-slate-400 font-medium mb-1">No API keys yet</p>
+              <p className="text-xs text-slate-600 mb-6">Create your first key to start making API requests</p>
               <button
                 onClick={() => setShowNewKeyModal(true)}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-md font-medium flex items-center gap-2 transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-lg transition-colors"
               >
-                <Plus className="w-5 h-5" />
+                <Plus className="w-4 h-4" />
                 Create Your First Key
               </button>
             </div>
           ) : (
-            <div className="divide-y divide-neutral-800">
+            <div className="divide-y divide-white/5">
               {apiKeys.map((key) => (
-                <div key={key.id} className="p-4 flex items-center justify-between hover:bg-neutral-800/30 transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-neutral-800 flex items-center justify-center">
-                      <Key className="w-5 h-5 text-neutral-400" />
+                <div key={key.id} className="px-6 py-4 flex items-center hover:bg-white/[0.02] transition-colors">
+                  <div className="flex-1 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-slate-800/50 border border-white/5 flex items-center justify-center">
+                      <Key className="w-5 h-5 text-slate-400" />
                     </div>
                     <div>
-                      <div className="font-medium text-white">{key.name}</div>
-                      <div className="text-sm text-neutral-500 font-mono">{key.key_prefix}...</div>
+                      <div className="font-medium text-white text-sm">{key.name}</div>
+                      <div className="text-xs text-slate-500 font-mono mt-0.5">{key.key_prefix}...</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                      key.tier === 'byok_pro' ? 'bg-amber-500/20 text-amber-400' :
-                      key.tier === 'byok_starter' ? 'bg-amber-500/10 text-amber-300' :
-                      key.tier === 'managed_pro' ? 'bg-emerald-500/20 text-emerald-400' :
-                      key.tier === 'byok' ? 'bg-amber-500/10 text-amber-300' :
-                      'bg-emerald-500/10 text-emerald-300'
+                  <div className="w-32 flex justify-center">
+                    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full ${
+                      key.tier === 'byok_pro' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                      key.tier === 'byok_starter' || key.tier === 'byok' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' :
+                      key.tier === 'managed_pro' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                      'bg-slate-800 text-slate-400 border border-slate-700'
                     }`}>
                       {key.tier === 'byok_pro' ? 'BYOK PRO' :
-                       key.tier === 'byok_starter' ? 'BYOK FREE' :
+                       key.tier === 'byok_starter' || key.tier === 'byok' ? 'BYOK' :
                        key.tier === 'managed_pro' ? 'MANAGED PRO' :
-                       key.tier === 'byok' ? 'BYOK' :
-                       key.tier === 'sandbox' ? 'MANAGED FREE' :
-                       key.tier?.toUpperCase() || 'MANAGED FREE'}
+                       'MANAGED'}
                     </span>
-                    <span className={`w-2 h-2 rounded-full ${key.is_active ? 'bg-green-400' : 'bg-red-400'}`} />
+                  </div>
+                  <div className="w-24 flex justify-center">
+                    <span className={`inline-flex items-center gap-1.5 text-xs ${key.is_active ? 'text-emerald-400' : 'text-red-400'}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${key.is_active ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                      {key.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                  <div className="w-20 flex justify-end">
                     <button
                       onClick={() => deleteApiKey(key.unkey_id)}
-                      className="p-2 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -455,26 +493,69 @@ export default function ApiKeysPage() {
               ))}
             </div>
           )}
-        </div>
 
-        {/* Help Section */}
-        <div className="flex flex-col md:flex-row gap-6 items-center justify-between p-6 border border-dashed border-neutral-700 rounded-xl bg-neutral-900/30">
-          <div className="flex items-center gap-4 text-left">
-            <div className="w-9 h-9 rounded-md bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
-              <HelpCircle className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-white">Need help getting started?</h4>
-              <p className="text-xs text-neutral-500">Check out our quickstart guide for developers.</p>
+          <div className="p-3 bg-[#18181b]/30 border-t border-white/5 text-center">
+            <span className="text-[10px] text-slate-600 uppercase tracking-widest font-semibold">
+              {apiKeys.length} of {MAX_KEYS} keys created
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Help Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Key Types</h2>
+          </div>
+          <div className="bg-[#0e0e11] rounded-xl border border-white/5 p-6">
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                <div className="p-2 bg-amber-500/20 rounded-lg">
+                  <Zap className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-white text-sm mb-1">BYOK (Bring Your Own Key)</h4>
+                  <p className="text-xs text-slate-400">Pass your own AI provider keys in headers. Free tier: 100 req/day. Pro: Unlimited.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                  <Shield className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h4 className="font-medium text-white text-sm mb-1">Managed</h4>
+                  <p className="text-xs text-slate-400">We handle the AI providers. Free tier: 50 req/day. Pro: 50k req/month.</p>
+                </div>
+              </div>
             </div>
           </div>
-          <Link 
-            href="/docs" 
-            className="text-sm font-semibold text-emerald-500 hover:underline flex items-center gap-1"
-          >
-            View Documentation
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Quick Start</h2>
+          </div>
+          <div className="bg-[#0e0e11] rounded-xl border border-white/5 p-6 h-[calc(100%-44px)] flex flex-col justify-between">
+            <div className="flex items-start gap-4">
+              <div className="p-2 bg-indigo-500/20 rounded-lg border border-indigo-500/20">
+                <HelpCircle className="w-5 h-5 text-indigo-400" />
+              </div>
+              <div>
+                <h4 className="font-medium text-white text-sm mb-1">Need help getting started?</h4>
+                <p className="text-xs text-slate-400">Check out our quickstart guide to integrate the API into your application.</p>
+              </div>
+            </div>
+            <div className="mt-6 pt-4 border-t border-white/5">
+              <Link
+                href="/docs"
+                className="text-sm text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 group transition-colors"
+              >
+                View Documentation
+                <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -485,7 +566,7 @@ export default function ApiKeysPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
             onClick={() => setShowNewKeyModal(false)}
           >
             <motion.div
@@ -493,86 +574,69 @@ export default function ApiKeysPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md p-6 bg-neutral-900 border border-neutral-700 rounded-2xl"
+              className="w-full max-w-md p-6 bg-[#0e0e11] border border-white/10 rounded-2xl shadow-2xl"
             >
-              <h3 className="text-xl font-semibold text-white mb-4">Create API Key</h3>
-              
-              <div className="space-y-4 mb-6">
+              <h3 className="text-xl font-semibold text-white mb-6">Create API Key</h3>
+
+              <div className="space-y-5 mb-6">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">
+                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
                     Key Name
                   </label>
                   <input
                     type="text"
                     value={newKeyName}
                     onChange={(e) => setNewKeyName(e.target.value)}
-                    className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                    className="w-full px-4 py-3 bg-[#18181b] border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-colors"
                     placeholder="e.g., Production, Development"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-neutral-300 mb-2">
-                    Tier
+                  <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+                    Key Type
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setNewKeyTier('byok')}
-                      className={`p-3 rounded-xl border transition-colors ${
+                      className={`p-4 rounded-xl border transition-all ${
                         newKeyTier === 'byok'
-                          ? 'border-amber-500 bg-amber-500/10'
-                          : 'border-neutral-700 hover:border-neutral-600'
+                          ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)]'
+                          : 'border-white/10 hover:border-white/20 bg-[#18181b]'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm font-medium text-white">
-                          {subscription.hasByokPro ? 'BYOK PRO' : 'BYOK FREE'}
-                        </div>
-                        {subscription.hasByokPro && (
-                          <Crown className="w-3 h-3 text-amber-400" />
-                        )}
+                      <div className="flex items-center gap-2 mb-1">
+                        <Zap className="w-4 h-4 text-amber-400" />
+                        <span className="text-sm font-medium text-white">
+                          {subscription.hasByokPro ? 'BYOK Pro' : 'BYOK'}
+                        </span>
+                        {subscription.hasByokPro && <Crown className="w-3 h-3 text-amber-400" />}
                       </div>
-                      <div className="text-xs text-neutral-400">
+                      <p className="text-xs text-slate-500 text-left">
                         {subscription.hasByokPro ? 'Unlimited (10/sec)' : '100 req/day'}
-                      </div>
+                      </p>
                     </button>
                     <button
                       type="button"
                       onClick={() => setNewKeyTier('managed')}
-                      className={`p-3 rounded-xl border transition-colors ${
+                      className={`p-4 rounded-xl border transition-all ${
                         newKeyTier === 'managed'
-                          ? 'border-emerald-500 bg-emerald-500/10'
-                          : 'border-neutral-700 hover:border-neutral-600'
+                          ? 'border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_-3px_rgba(52,211,153,0.2)]'
+                          : 'border-white/10 hover:border-white/20 bg-[#18181b]'
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm font-medium text-white">
-                          {subscription.hasManagedPro ? 'MANAGED PRO' : 'MANAGED FREE'}
-                        </div>
-                        {subscription.hasManagedPro && (
-                          <Crown className="w-3 h-3 text-emerald-400" />
-                        )}
+                      <div className="flex items-center gap-2 mb-1">
+                        <Shield className="w-4 h-4 text-emerald-400" />
+                        <span className="text-sm font-medium text-white">
+                          {subscription.hasManagedPro ? 'Managed Pro' : 'Managed'}
+                        </span>
+                        {subscription.hasManagedPro && <Crown className="w-3 h-3 text-emerald-400" />}
                       </div>
-                      <div className="text-xs text-neutral-400">
+                      <p className="text-xs text-slate-500 text-left">
                         {subscription.hasManagedPro ? '50k req/mo' : '50 req/day'}
-                      </div>
+                      </p>
                     </button>
-                  </div>
-                  
-                  {/* Show what tier will be created */}
-                  <div className="mt-3 p-2 bg-neutral-800/50 rounded-lg">
-                    <div className="flex items-center gap-2 text-xs">
-                      <Zap className="w-3 h-3 text-neutral-400" />
-                      <span className="text-neutral-400">
-                        Will create: <span className="text-white font-medium">
-                          {newKeyTier === 'byok' 
-                            ? (subscription.hasByokPro ? 'BYOK PRO' : 'BYOK FREE')
-                            : (subscription.hasManagedPro ? 'MANAGED PRO' : 'MANAGED FREE')
-                          }
-                        </span> key
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -580,21 +644,21 @@ export default function ApiKeysPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowNewKeyModal(false)}
-                  className="flex-1 px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl font-medium text-white hover:bg-neutral-700 transition-colors"
+                  className="flex-1 px-4 py-3 bg-[#18181b] border border-white/10 rounded-xl font-medium text-white hover:bg-white/5 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={createApiKey}
                   disabled={isCreatingKey || !newKeyName.trim()}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium text-white transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25"
                 >
                   {isCreatingKey ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
                       <Plus className="w-5 h-5" />
-                      Create
+                      Create Key
                     </>
                   )}
                 </button>

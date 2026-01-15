@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/app/lib/supabaseClient'
 
 interface Profile {
@@ -85,8 +86,9 @@ export default function TopNav() {
         <div className="flex justify-between items-center h-16">
           {/* Left side - Logo */}
           <div className="flex items-center">
-            <Link href="/overview" className="text-xl font-bold text-violet-600">
-              UnforgeAPI
+            <Link href="/overview" className="flex items-center gap-2">
+              <Image src="/reallogo.png" alt="UnforgeAPI" width={32} height={32} className="object-contain" />
+              <span className="text-xl font-bold text-violet-600">UnforgeAPI</span>
             </Link>
           </div>
 

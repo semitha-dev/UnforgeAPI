@@ -1,0 +1,1321 @@
+2026-01-14T13:24:27.520335066Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:27.520348416Z [inf]          "dataKeys": [
+2026-01-14T13:24:27.520348857Z [inf]     └─ Data: {
+2026-01-14T13:24:27.520358422Z [inf]            "conversationId",
+2026-01-14T13:24:27.520360949Z [inf]          "event": "whatsapp:message:status",
+2026-01-14T13:24:27.520369346Z [inf]            "messageId",
+2026-01-14T13:24:27.520369497Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:27.520375710Z [inf]          "dataKeys": [
+2026-01-14T13:24:27.520381748Z [inf]            "conversationId",
+2026-01-14T13:24:27.520396466Z [inf]            "status",
+2026-01-14T13:24:27.520404606Z [inf]            "timestamp"
+2026-01-14T13:24:27.520412133Z [inf]          ],
+2026-01-14T13:24:27.520419254Z [inf]          "timestamp": "2026-01-14T13:24:22.760Z"
+2026-01-14T13:24:27.520432914Z [inf]        }
+2026-01-14T13:24:27.520439988Z [inf]  [2026-01-14T13:24:22.792Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:status" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:24:27.528814777Z [inf]            "messageId",
+2026-01-14T13:24:27.529950033Z [inf]            "status",
+2026-01-14T13:24:27.529963969Z [inf]            "timestamp"
+2026-01-14T13:24:27.529972924Z [inf]          ],
+2026-01-14T13:24:27.529981414Z [inf]          "timestamp": "2026-01-14T13:24:22.792Z"
+2026-01-14T13:24:27.529988705Z [inf]        }
+2026-01-14T13:24:30.511558753Z [inf]    isMetaFormat: true
+2026-01-14T13:24:30.511570654Z [inf]  }
+2026-01-14T13:24:30.511572101Z [inf]              "messaging_product": "whatsapp",
+2026-01-14T13:24:30.511580756Z [inf]              "metadata": {
+2026-01-14T13:24:30.511583788Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:24:30.511593254Z [inf]                "display_phone_number": "94778747690",
+2026-01-14T13:24:30.511595458Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"contacts":[{"profile":{"name":"^"},"wa_id":"94783269749"}],"messages":[{"from":"94783269749","id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgASGBQzQTA3MEYwQUMyMjU5RDIwODQxNAA=","timestamp":"1768397067","text":{"body":"I like computer science in bachelor"},"type":"text"}]},"field":"messages"}]}]}
+2026-01-14T13:24:30.511600804Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:24:30.511605447Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:24:30.511611565Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397069962-2k4d9ry02] {
+2026-01-14T13:24:30.511616361Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:24:30.511622516Z [inf]    timestamp: '2026-01-14T13:24:29.963Z',
+2026-01-14T13:24:30.511626632Z [inf]    "entry": [
+2026-01-14T13:24:30.511633621Z [inf]    type: 'messages',
+2026-01-14T13:24:30.511637684Z [inf]      {
+2026-01-14T13:24:30.511643316Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgASGBQzQTA3MEYwQUMyMjU5RDIwODQxNAA=',
+2026-01-14T13:24:30.511647984Z [inf]        "id": "910190741576091",
+2026-01-14T13:24:30.511653626Z [inf]    isNativeFormat: false,
+2026-01-14T13:24:30.511659047Z [inf]        "changes": [
+2026-01-14T13:24:30.511665304Z [inf]          {
+2026-01-14T13:24:30.511675601Z [inf]            "value": {
+2026-01-14T13:24:30.528529113Z [inf]                }
+2026-01-14T13:24:30.528627833Z [inf]          }
+2026-01-14T13:24:30.528640052Z [inf]        ]
+2026-01-14T13:24:30.528653825Z [inf]      }
+2026-01-14T13:24:30.528663048Z [inf]    ]
+2026-01-14T13:24:30.528667891Z [inf]              ]
+2026-01-14T13:24:30.528675567Z [inf]            },
+2026-01-14T13:24:30.528683621Z [inf]  }
+2026-01-14T13:24:30.528686141Z [inf]            "field": "messages"
+2026-01-14T13:24:30.528696544Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:24:30.528715048Z [inf]  [Summary] message-saved:TEXT: 4 occurrences in last 30s
+2026-01-14T13:24:30.529429338Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:24:30.529435955Z [inf]              },
+2026-01-14T13:24:30.529442509Z [inf]              "contacts": [
+2026-01-14T13:24:30.529449472Z [inf]                {
+2026-01-14T13:24:30.529456051Z [inf]                  "profile": {
+2026-01-14T13:24:30.529464498Z [inf]                    "name": "^"
+2026-01-14T13:24:30.529471240Z [inf]                  },
+2026-01-14T13:24:30.529477566Z [inf]                  "wa_id": "94783269749"
+2026-01-14T13:24:30.529484837Z [inf]                }
+2026-01-14T13:24:30.529505882Z [inf]              ],
+2026-01-14T13:24:30.529512959Z [inf]              "messages": [
+2026-01-14T13:24:30.529520535Z [inf]                {
+2026-01-14T13:24:30.529528752Z [inf]                  "from": "94783269749",
+2026-01-14T13:24:30.529538080Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgASGBQzQTA3MEYwQUMyMjU5RDIwODQxNAA=",
+2026-01-14T13:24:30.529547409Z [inf]                  "timestamp": "1768397067",
+2026-01-14T13:24:30.529554721Z [inf]                  "text": {
+2026-01-14T13:24:30.529561351Z [inf]                    "body": "I like computer science in bachelor"
+2026-01-14T13:24:30.529569695Z [inf]                  },
+2026-01-14T13:24:30.529578137Z [inf]                  "type": "text"
+2026-01-14T13:24:30.536690477Z [inf]    ],
+2026-01-14T13:24:30.536697042Z [inf]        "type": "phone_number",
+2026-01-14T13:24:30.536700119Z [inf]    "enableAIMessaging": true,
+2026-01-14T13:24:30.536706248Z [inf]        "title": "📞 Call {{agentName}}",
+2026-01-14T13:24:30.536709098Z [inf]    "aiHandoverThreshold": 50,
+2026-01-14T13:24:30.536716232Z [inf]    "aiHandoverConfidence": 0
+2026-01-14T13:24:30.536716594Z [inf]    "aiMaxResponsesBeforeHandover": 50,
+2026-01-14T13:24:30.536723229Z [inf]    "aiEnableLeadScoring": true,
+2026-01-14T13:24:30.536729502Z [inf]  }
+2026-01-14T13:24:30.536731611Z [inf]    "aiEnableQualification": true,
+2026-01-14T13:24:30.536739211Z [inf]  [ConfigService] Loaded config for account 6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501: {
+2026-01-14T13:24:30.536739673Z [inf]    "aiPersona": "Friendly and professional education consultant who helps prospective students explore programs and courses.",
+2026-01-14T13:24:30.536749262Z [inf]    "aiHandoverFrequency": 0,
+2026-01-14T13:24:30.536753029Z [inf]    "assignmentStrategy": "ROUND_ROBIN",
+2026-01-14T13:24:30.536754395Z [inf]    "slaInBusinessHours": 30,
+2026-01-14T13:24:30.536762429Z [inf]    "fallbackToAdmin": true,
+2026-01-14T13:24:30.536764209Z [inf]    "slaResolutionDeadline": 24,
+2026-01-14T13:24:30.536767093Z [inf]        "value": "{{agentContactNumber}}"
+2026-01-14T13:24:30.536775216Z [inf]    "enableSLA": true,
+2026-01-14T13:24:30.536778992Z [inf]    "notifyOnAssignment": true,
+2026-01-14T13:24:30.536779747Z [inf]      },
+2026-01-14T13:24:30.536787805Z [inf]      {
+2026-01-14T13:24:30.536795216Z [inf]        "type": "url",
+2026-01-14T13:24:30.536802741Z [inf]        "title": "💬 Message {{agentName}}",
+2026-01-14T13:24:30.536812539Z [inf]        "value": "https://wa.me/{{agentContactNumber}}?text=Hi%20{{agentName}},%20regarding%20Ticket%20{{ticketNumber}}"
+2026-01-14T13:24:30.536818425Z [inf]      }
+2026-01-14T13:24:30.537845490Z [inf]  [ConfigService] Loaded config for account 6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501: {
+2026-01-14T13:24:30.537852501Z [inf]    "assignmentStrategy": "ROUND_ROBIN",
+2026-01-14T13:24:30.537859054Z [inf]    "fallbackToAdmin": true,
+2026-01-14T13:24:30.537866245Z [inf]    "enableSLA": true,
+2026-01-14T13:24:30.537874124Z [inf]    "slaInBusinessHours": 30,
+2026-01-14T13:24:30.537884633Z [inf]    "slaResolutionDeadline": 24,
+2026-01-14T13:24:30.537891548Z [inf]    "notifyOnAssignment": true,
+2026-01-14T13:24:30.537897952Z [inf]    "notifyOnNewMessage": true,
+2026-01-14T13:24:30.537904781Z [inf]    "notifyOnPriorityChange": true,
+2026-01-14T13:24:30.537911204Z [inf]    "notifyOnSLABreach": true,
+2026-01-14T13:24:30.537917896Z [inf]    "notificationChannels": {
+2026-01-14T13:24:30.537924595Z [inf]      "email": true,
+2026-01-14T13:24:30.537930912Z [inf]      "inApp": true,
+2026-01-14T13:24:30.537941972Z [inf]      "sms": false,
+2026-01-14T13:24:30.537949505Z [inf]      "socket": true
+2026-01-14T13:24:30.537956200Z [inf]    },
+2026-01-14T13:24:30.537962896Z [inf]    "enableAutoReply": true,
+2026-01-14T13:24:30.537969677Z [inf]    "autoReplyOnTicketCreate": false,
+2026-01-14T13:24:30.537976069Z [inf]    "autoReplyOnReassignment": false,
+2026-01-14T13:24:30.537982564Z [inf]    "autoReplyMessageOnCreate": "Hi {{contactName}}! 👋 Thank you for contacting us. Your message has been received and assigned to {{agentName}} (Ticket #{{ticketNumber}}). They will respond to you shortly.",
+2026-01-14T13:24:30.537990872Z [inf]    "autoReplyMessageOnReassign": "Hi {{contactName}}! Your request has been reassigned to {{agentName}} who will continue assisting you shortly.",
+2026-01-14T13:24:30.537998384Z [inf]    "autoReplyDelay": 2,
+2026-01-14T13:24:30.538006271Z [inf]    "enableButtons": false,
+2026-01-14T13:24:30.538012784Z [inf]    "buttons": [
+2026-01-14T13:24:30.538019285Z [inf]      {
+2026-01-14T13:24:30.540672523Z [inf]      {
+2026-01-14T13:24:30.540686288Z [inf]        "title": "💬 Message {{agentName}}",
+2026-01-14T13:24:30.540689651Z [inf]        "type": "phone_number",
+2026-01-14T13:24:30.540701592Z [inf]        "title": "📞 Call {{agentName}}",
+2026-01-14T13:24:30.540702956Z [inf]        "value": "https://wa.me/{{agentContactNumber}}?text=Hi%20{{agentName}},%20regarding%20Ticket%20{{ticketNumber}}"
+2026-01-14T13:24:30.540737799Z [inf]        "value": "{{agentContactNumber}}"
+2026-01-14T13:24:30.540746226Z [inf]      },
+2026-01-14T13:24:30.540753812Z [inf]      {
+2026-01-14T13:24:30.540762363Z [inf]        "type": "url",
+2026-01-14T13:24:30.541240228Z [inf]    "notifyOnNewMessage": true,
+2026-01-14T13:24:30.541244671Z [inf]    "notifyOnPriorityChange": true,
+2026-01-14T13:24:30.541249734Z [inf]    "notifyOnSLABreach": true,
+2026-01-14T13:24:30.541254359Z [inf]    "notificationChannels": {
+2026-01-14T13:24:30.541259182Z [inf]      "email": true,
+2026-01-14T13:24:30.541263980Z [inf]      "inApp": true,
+2026-01-14T13:24:30.541268522Z [inf]      "sms": false,
+2026-01-14T13:24:30.541272743Z [inf]      "socket": true
+2026-01-14T13:24:30.541277175Z [inf]    },
+2026-01-14T13:24:30.541283340Z [inf]    "enableAutoReply": true,
+2026-01-14T13:24:30.541288265Z [inf]    "autoReplyOnTicketCreate": false,
+2026-01-14T13:24:30.541292938Z [inf]    "autoReplyOnReassignment": false,
+2026-01-14T13:24:30.541297795Z [inf]    "autoReplyMessageOnCreate": "Hi {{contactName}}! 👋 Thank you for contacting us. Your message has been received and assigned to {{agentName}} (Ticket #{{ticketNumber}}). They will respond to you shortly.",
+2026-01-14T13:24:30.541302078Z [inf]    "autoReplyMessageOnReassign": "Hi {{contactName}}! Your request has been reassigned to {{agentName}} who will continue assisting you shortly.",
+2026-01-14T13:24:30.541306412Z [inf]    "autoReplyDelay": 2,
+2026-01-14T13:24:30.541312384Z [inf]    "enableButtons": false,
+2026-01-14T13:24:30.541316619Z [inf]    "buttons": [
+2026-01-14T13:24:30.543705119Z [inf]      }
+2026-01-14T13:24:30.543711407Z [inf]    ],
+2026-01-14T13:24:30.543718148Z [inf]    "enableAIMessaging": true,
+2026-01-14T13:24:30.543904161Z [inf]    "aiHandoverThreshold": 50,
+2026-01-14T13:24:30.543911540Z [inf]    "aiMaxResponsesBeforeHandover": 50,
+2026-01-14T13:24:30.543920698Z [inf]    "aiEnableLeadScoring": true,
+2026-01-14T13:24:30.543928113Z [inf]    "aiEnableQualification": true,
+2026-01-14T13:24:30.543932835Z [inf]    "aiPersona": "Friendly and professional education consultant who helps prospective students explore programs and courses.",
+2026-01-14T13:24:30.543938054Z [inf]    "aiHandoverFrequency": 0,
+2026-01-14T13:24:30.543942582Z [inf]    "aiHandoverConfidence": 0
+2026-01-14T13:24:30.543947608Z [inf]  }
+2026-01-14T13:24:30.543952327Z [inf]  [AI-Chat-Model] RAG enabled: true
+2026-01-14T13:24:30.543956761Z [inf]  [AI-Chat-Model] ✅ CONVERSATION HISTORY LOADED: {
+2026-01-14T13:24:30.543960900Z [inf]    userId: '94783269749',
+2026-01-14T13:24:30.543966346Z [inf]    messagesLoaded: 3,
+2026-01-14T13:24:30.543970905Z [inf]    responsesLoaded: 3,
+2026-01-14T13:24:30.543975519Z [inf]    totalMessages: 6,
+2026-01-14T13:24:30.543979906Z [inf]    oldestMessage: 2026-01-14T13:23:53.551Z,
+2026-01-14T13:24:30.543984398Z [inf]    newestMessage: 2026-01-14T13:24:18.520Z
+2026-01-14T13:24:30.543989512Z [inf]  }
+2026-01-14T13:24:30.627749945Z [inf]        contentPreview: 'University Name: Northbridge Global University (NGU)\n' +
+2026-01-14T13:24:30.627761337Z [inf]          'Type: Private International University\n' +
+2026-01-14T13:24:30.627768393Z [inf]          'Founded:...'
+2026-01-14T13:24:30.627786518Z [inf]          'Founded:...'
+2026-01-14T13:24:30.627794666Z [inf]      },
+2026-01-14T13:24:30.627803044Z [inf]      {
+2026-01-14T13:24:30.627805259Z [inf]        category: 'general',
+2026-01-14T13:24:30.627810775Z [inf]        title: 'About the university',
+2026-01-14T13:24:30.627821149Z [inf]        category: 'general',
+2026-01-14T13:24:30.627821633Z [inf]        contentPreview: 'University Name: Northbridge Global University (NGU)\n' +
+2026-01-14T13:24:30.627832503Z [inf]          'Type: Private International University\n' +
+2026-01-14T13:24:30.627835723Z [inf]        category: 'FAQ',
+2026-01-14T13:24:30.627860027Z [inf]  [AI-Chat-Model] RAG retrieval results: {
+2026-01-14T13:24:30.627869395Z [inf]    query: 'I like computer science in bachelor',
+2026-01-14T13:24:30.627877829Z [inf]    sectionsFound: 5,
+2026-01-14T13:24:30.627885968Z [inf]    confidence: 1,
+2026-01-14T13:24:30.627894463Z [inf]    sections: [
+2026-01-14T13:24:30.627903276Z [inf]      {
+2026-01-14T13:24:30.627911144Z [inf]        title: 'About the University',
+2026-01-14T13:24:30.628423492Z [inf]      },
+2026-01-14T13:24:30.628438861Z [inf]      {
+2026-01-14T13:24:30.628446968Z [inf]        title: 'Human Handover Message',
+2026-01-14T13:24:30.628453600Z [inf]        category: 'GENERAL',
+2026-01-14T13:24:30.628460168Z [inf]        contentPreview: "I understand you'd like to speak with a human representative. Let me connect you with one of our tea..."
+2026-01-14T13:24:30.628468336Z [inf]      },
+2026-01-14T13:24:30.628475206Z [inf]      {
+2026-01-14T13:24:30.628484745Z [inf]        title: 'Unknown Query Response',
+2026-01-14T13:24:30.632583210Z [inf]  }
+2026-01-14T13:24:30.632592684Z [inf]  [AI-Chat-Model] Building system prompt with config: {
+2026-01-14T13:24:30.632600855Z [inf]    organizationName: 'UniKey Global',
+2026-01-14T13:24:30.632608622Z [inf]    botName: 'AI Assistant',
+2026-01-14T13:24:30.632616373Z [inf]    hasCustomSystemPrompt: true,
+2026-01-14T13:24:30.632620378Z [inf]        contentPreview: "I don't have specific information about that at the moment, but I'd be happy to connect you with som..."
+2026-01-14T13:24:30.632630743Z [inf]      },
+2026-01-14T13:24:30.632631347Z [inf]    systemPromptPreview: 'You are a helpful AI assistant for UniKey Global, an education consultancy.\n' +
+2026-01-14T13:24:30.632641244Z [inf]      '\n' +
+2026-01-14T13:24:30.632642677Z [inf]      {
+2026-01-14T13:24:30.632653550Z [inf]        title: 'Default Greeting',
+2026-01-14T13:24:30.632654013Z [inf]  }
+2026-01-14T13:24:30.632659180Z [inf]      'LANGUAGE DETECTION & RE'
+2026-01-14T13:24:30.632661451Z [inf]    hasRagContext: true,
+2026-01-14T13:24:30.632670110Z [inf]        category: 'GENERAL',
+2026-01-14T13:24:30.632670518Z [inf]  }
+2026-01-14T13:24:30.632670916Z [inf]  [AI-Chat-Model] 🔧 BUILDING LLM MESSAGES: {
+2026-01-14T13:24:30.632672319Z [inf]    ragSections: 5,
+2026-01-14T13:24:30.632680972Z [inf]  [AI-Chat-Model] Using CUSTOM system prompt from config
+2026-01-14T13:24:30.632682349Z [inf]        contentPreview: "Hello! Welcome to our service. I'm your AI assistant and I'm here to help you with any questions you..."
+2026-01-14T13:24:30.632682735Z [inf]    provider: 'groq',
+2026-01-14T13:24:30.632684369Z [inf]    userMessagesCount: 4,
+2026-01-14T13:24:30.632690321Z [inf]  [AI-Chat-Model] System prompt built: {
+2026-01-14T13:24:30.632693115Z [inf]    model: 'llama-3.3-70b-versatile'
+2026-01-14T13:24:30.632694476Z [inf]      }
+2026-01-14T13:24:30.632699312Z [inf]    length: 10559,
+2026-01-14T13:24:30.632704371Z [inf]    ]
+2026-01-14T13:24:30.637978350Z [inf]    aiResponsesCount: 3,
+2026-01-14T13:24:30.637983321Z [inf]    systemPromptLength: 10559
+2026-01-14T13:24:30.637988235Z [inf]  }
+2026-01-14T13:24:30.637993970Z [inf]  [AI-Chat-Model] 📨 LLM MESSAGES BUILT: {
+2026-01-14T13:24:30.637999399Z [inf]    totalMessages: 8,
+2026-01-14T13:24:30.638004931Z [inf]    userMessages: 4,
+2026-01-14T13:24:30.638029819Z [inf]    assistantMessages: 3,
+2026-01-14T13:24:30.638036019Z [inf]    messagePreview: [
+2026-01-14T13:24:30.638040589Z [inf]      { role: 'system', contentPreview: '[SYSTEM PROMPT]' },
+2026-01-14T13:24:30.638045477Z [inf]      { role: 'user', contentPreview: 'Hey...' },
+2026-01-14T13:24:30.638052135Z [inf]      {
+2026-01-14T13:24:30.638059078Z [inf]        role: 'assistant',
+2026-01-14T13:24:30.638064436Z [inf]        contentPreview: "Hi! 👋 Welcome to UniKey Global! I'm your AI assis..."
+2026-01-14T13:24:30.638069492Z [inf]      },
+2026-01-14T13:24:30.638074891Z [inf]      { role: 'user', contentPreview: 'I like to join you uni...' },
+2026-01-14T13:24:30.638080576Z [inf]      {
+2026-01-14T13:24:30.638086088Z [inf]        role: 'assistant',
+2026-01-14T13:24:30.638091733Z [inf]        contentPreview: "Welcome to UniKey Global! I'm excited to help you ..."
+2026-01-14T13:24:30.638097564Z [inf]      }
+2026-01-14T13:24:30.638102471Z [inf]    ]
+2026-01-14T13:24:30.638107742Z [inf]  }
+2026-01-14T13:24:32.994989634Z [inf]    accountId: '6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501',
+2026-01-14T13:24:32.994999244Z [inf]    to: '94783269749',
+2026-01-14T13:24:32.995006768Z [inf]    messageLength: 841,
+2026-01-14T13:24:32.995015360Z [inf]    hasTemplate: false,
+2026-01-14T13:24:32.995023125Z [inf]    conversationId: 'bc724cf9-00e7-4b4e-b011-1f9c3cf8e365',
+2026-01-14T13:24:32.995028716Z [inf]    hasConversation: true,
+2026-01-14T13:24:32.995044954Z [inf]    conversationId: 'bc724cf9-00e7-4b4e-b011-1f9c3cf8e365',
+2026-01-14T13:24:32.995054789Z [inf]    tempMessageId: 'temp-1768397072108-njmdi2x9g',
+2026-01-14T13:24:32.995070822Z [inf]    hasQuickReplies: true,
+2026-01-14T13:24:32.995084552Z [inf]    quickReplyCount: 3,
+2026-01-14T13:24:32.995090516Z [inf]  WhatsApp sendMessage called: {
+2026-01-14T13:24:32.995095442Z [inf]    skipDbSave: false
+2026-01-14T13:24:32.995106480Z [inf]  }
+2026-01-14T13:24:32.995108254Z [inf]    phoneNumber: '+94778747690',
+2026-01-14T13:24:32.995117962Z [inf]    status: 'ACTIVE'
+2026-01-14T13:24:32.995121118Z [inf]  WhatsApp account found: {
+2026-01-14T13:24:32.995127035Z [inf]  }
+2026-01-14T13:24:32.995134365Z [inf]    accountId: '6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501',
+2026-01-14T13:24:32.995138493Z [inf]  [DEBUG] About to create message record: {
+2026-01-14T13:24:32.995149466Z [inf]    apiProvider: 'CHAKRA',
+2026-01-14T13:24:32.995152345Z [inf]    messagePreview: 'Our BSc Computer Science program at Northbridge Gl',
+2026-01-14T13:24:32.995160050Z [inf]    metadata: '{"source":"ai_assistant"}',
+2026-01-14T13:24:32.995168434Z [inf]    skipDbSave: false
+2026-01-14T13:24:32.995558647Z [inf]  }
+2026-01-14T13:24:32.995571985Z [inf]  [DEBUG] ✅ Message record CREATED successfully: {
+2026-01-14T13:24:32.995579137Z [inf]    dbMessageId: '945cb0aa-abb7-4cf1-af4c-834ae0b5f11b',
+2026-01-14T13:24:32.995584845Z [inf]    conversationId: 'bc724cf9-00e7-4b4e-b011-1f9c3cf8e365',
+2026-01-14T13:24:34.184675540Z [inf]    direction: 'OUTBOUND',
+2026-01-14T13:24:34.184680377Z [inf]    tempMessageId: 'temp-1768397072108-njmdi2x9g'
+2026-01-14T13:24:34.184686989Z [inf]  }
+2026-01-14T13:24:34.184692203Z [inf]  Sending via Chakra HQ...
+2026-01-14T13:24:34.184696961Z [inf]  Chakra send attempt: {
+2026-01-14T13:24:34.184702463Z [inf]    accountId: '6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501',
+2026-01-14T13:24:34.184707774Z [inf]    to: '94783269749',
+2026-01-14T13:24:34.184712960Z [inf]    messageLength: 841,
+2026-01-14T13:24:34.184718189Z [inf]    hasAccessToken: true,
+2026-01-14T13:24:34.184723148Z [inf]    pluginId: '974733d0-8f2d-4811-b796-823d194c7127',
+2026-01-14T13:24:34.184728746Z [inf]    apiVersion: 'v19.0',
+2026-01-14T13:24:34.184734089Z [inf]    isTemplate: undefined,
+2026-01-14T13:24:34.184741816Z [inf]    templateName: undefined,
+2026-01-14T13:24:34.184747623Z [inf]    hasButtons: false,
+2026-01-14T13:24:34.184752798Z [inf]    buttonCount: 0
+2026-01-14T13:24:34.184757977Z [inf]  }
+2026-01-14T13:24:34.184763020Z [inf]  [QuickReplies] Processing 3 quick reply buttons
+2026-01-14T13:24:34.184769097Z [inf]  [QuickReplies] Created 3 quick reply buttons
+2026-01-14T13:24:34.184774187Z [inf]  Chakra API request: {
+2026-01-14T13:24:34.184779348Z [inf]    url: 'https://api.chakrahq.com/v1/ext/plugin/whatsapp/974733d0-8f2d-4811-b796-823d194c7127/api/v19.0/873090089229167/messages',
+2026-01-14T13:24:34.184784234Z [inf]    payload: {
+2026-01-14T13:24:34.184789484Z [inf]      messaging_product: 'whatsapp',
+2026-01-14T13:24:34.184794396Z [inf]      recipient_type: 'individual',
+2026-01-14T13:24:34.184799421Z [inf]      to: '94783269749',
+2026-01-14T13:24:34.184804410Z [inf]      type: 'interactive',
+2026-01-14T13:24:34.184809474Z [inf]      interactive: { type: 'button', body: [Object], action: [Object] },
+2026-01-14T13:24:34.184814590Z [inf]      text: { body: '[841 chars]' }
+2026-01-14T13:24:35.225276657Z [inf]    hasDbMessage: true
+2026-01-14T13:24:35.225285775Z [inf]  }
+2026-01-14T13:24:35.225291625Z [inf]  [DEBUG] ✅ Message updated to SENT with WhatsApp ID: wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA
+2026-01-14T13:24:35.225296864Z [inf]  [2026-01-14T13:24:33.840Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:24:35.225301734Z [inf]     └─ Data: {
+2026-01-14T13:24:35.225675592Z [inf]    }
+2026-01-14T13:24:35.225681591Z [inf]  }
+2026-01-14T13:24:35.225687037Z [inf]  Chakra API Success Response: {
+2026-01-14T13:24:35.225692738Z [inf]    responseStructure: {
+2026-01-14T13:24:35.225698328Z [inf]      hasMessages: false,
+2026-01-14T13:24:35.225703787Z [inf]      messagesLength: undefined,
+2026-01-14T13:24:35.225709167Z [inf]      hasData: true,
+2026-01-14T13:24:35.225719770Z [inf]      messageId: undefined,
+2026-01-14T13:24:35.225724778Z [inf]      whatsappMessageId: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA',
+2026-01-14T13:24:35.225731006Z [inf]      externalId: undefined,
+2026-01-14T13:24:35.225736852Z [inf]      text: undefined
+2026-01-14T13:24:35.225741681Z [inf]    },
+2026-01-14T13:24:35.225747878Z [inf]    fullResponse: {
+2026-01-14T13:24:35.225753938Z [inf]      _data: {
+2026-01-14T13:24:35.225760176Z [inf]        whatsappMessageId: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA'
+2026-01-14T13:24:35.225766650Z [inf]      }
+2026-01-14T13:24:35.225772022Z [inf]    }
+2026-01-14T13:24:35.225778226Z [inf]  }
+2026-01-14T13:24:35.225784786Z [inf]  [DEBUG] WhatsApp API result: {
+2026-01-14T13:24:35.225790915Z [inf]    success: true,
+2026-01-14T13:24:35.225796844Z [inf]    messageId: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA',
+2026-01-14T13:24:35.225805872Z [inf]    error: undefined,
+2026-01-14T13:24:36.328457448Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:24:36.328468559Z [inf]          "roomId": "admin:whatsapp",
+2026-01-14T13:24:36.328475161Z [inf]          "dataKeys": [
+2026-01-14T13:24:36.328480876Z [inf]            "conversationId",
+2026-01-14T13:24:36.328486683Z [inf]            "message",
+2026-01-14T13:24:36.328492820Z [inf]            "timestamp"
+2026-01-14T13:24:36.328499342Z [inf]          ],
+2026-01-14T13:24:36.328505384Z [inf]          "timestamp": "2026-01-14T13:24:33.841Z"
+2026-01-14T13:24:36.328510949Z [inf]        }
+2026-01-14T13:24:36.328517796Z [inf]  [2026-01-14T13:24:33.841Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:24:36.328524252Z [inf]     └─ Data: {
+2026-01-14T13:24:36.328529665Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:24:36.328535179Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:36.329462381Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:24:36.329468583Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:36.329474652Z [inf]          "dataKeys": [
+2026-01-14T13:24:36.329480892Z [inf]            "conversationId",
+2026-01-14T13:24:36.329486846Z [inf]            "message",
+2026-01-14T13:24:36.329492923Z [inf]            "timestamp"
+2026-01-14T13:24:36.329499382Z [inf]          ],
+2026-01-14T13:24:36.329505423Z [inf]          "timestamp": "2026-01-14T13:24:33.840Z"
+2026-01-14T13:24:36.329512015Z [inf]        }
+2026-01-14T13:24:36.329518737Z [inf]  [Summary] socket-broadcast:whatsapp:message:new: 19 occurrences in last 30s
+2026-01-14T13:24:36.329525380Z [inf]  [2026-01-14T13:24:33.841Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "admin:whatsapp"
+2026-01-14T13:24:36.329532024Z [inf]     └─ Data: {
+2026-01-14T13:24:37.524987230Z [inf]          "dataKeys": [
+2026-01-14T13:24:37.524992761Z [inf]            "conversationId",
+2026-01-14T13:24:37.524998124Z [inf]            "message",
+2026-01-14T13:24:37.525068863Z [inf]            "timestamp"
+2026-01-14T13:24:37.525073824Z [inf]          ],
+2026-01-14T13:24:37.525078241Z [inf]          "timestamp": "2026-01-14T13:24:33.841Z"
+2026-01-14T13:24:37.525082651Z [inf]        }
+2026-01-14T13:24:37.525087173Z [inf]  [2026-01-14T13:24:33.842Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "admin:whatsapp"
+2026-01-14T13:24:37.525091964Z [inf]     └─ Data: {
+2026-01-14T13:24:37.525097584Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:24:37.525102469Z [inf]          "roomId": "admin:whatsapp",
+2026-01-14T13:24:37.525106512Z [inf]          "dataKeys": [
+2026-01-14T13:24:37.525110808Z [inf]            "conversationId",
+2026-01-14T13:24:37.525122036Z [inf]            "message",
+2026-01-14T13:24:37.525127212Z [inf]            "timestamp"
+2026-01-14T13:24:37.525131489Z [inf]          ],
+2026-01-14T13:24:37.525135573Z [inf]          "timestamp": "2026-01-14T13:24:33.842Z"
+2026-01-14T13:24:37.525139895Z [inf]        }
+2026-01-14T13:24:37.525144055Z [inf]  [2026-01-14T13:24:33.842Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:conversation:updated" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:24:37.525148619Z [inf]     └─ Data: {
+2026-01-14T13:24:37.525153242Z [inf]          "event": "whatsapp:conversation:updated",
+2026-01-14T13:24:37.525157306Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:37.525161530Z [inf]          "dataKeys": [
+2026-01-14T13:24:37.525165417Z [inf]            "conversationId",
+2026-01-14T13:24:37.525169726Z [inf]            "updates",
+2026-01-14T13:24:37.525173834Z [inf]            "timestamp"
+2026-01-14T13:24:38.634157354Z [inf]          ],
+2026-01-14T13:24:38.634163521Z [inf]          "timestamp": "2026-01-14T13:24:33.842Z"
+2026-01-14T13:24:38.634170765Z [inf]        }
+2026-01-14T13:24:38.634176772Z [inf]  [Summary] socket-broadcast:whatsapp:conversation:updated: 4 occurrences in last 30s
+2026-01-14T13:24:38.634182906Z [inf]  [Summary] socket-inbound-broadcast: 4 occurrences in last 30s
+2026-01-14T13:24:38.634190939Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:24:38.634197061Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397074326-km49we9hn] {
+2026-01-14T13:24:38.634203053Z [inf]    timestamp: '2026-01-14T13:24:34.326Z',
+2026-01-14T13:24:38.634209051Z [inf]    type: 'message_echoes',
+2026-01-14T13:24:38.634262972Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA',
+2026-01-14T13:24:38.634384980Z [inf]    isNativeFormat: false,
+2026-01-14T13:24:38.634394661Z [inf]    isMetaFormat: true
+2026-01-14T13:24:38.635236058Z [inf]  }
+2026-01-14T13:24:38.635257904Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:24:38.635264881Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"field":"message_echoes","value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"message_echoes":[{"type":"interactive","interactive":{"interactive":{"body":{"text":"Our BSc Computer Science program at Northbridge Global University (NGU) is a great choice. Here are some key details about the program:\n\n* Duration: 3 Years\n* Intake: January and September\n* Mode: Available both On-Campus and Online\n* Entry Requirements:\n\t+ High school completion\n\t+ Basic mathematics knowledge\n\t+ English proficiency\n\nThe program covers a wide range of topics in computer science, and our faculty is dedicated to helping you achieve your academic and professional goals.\n\nRegarding fees, our undergraduate programs have the following tuition fees:\n* On-Campus: £9,500 per year\n* Online: £6,200 per year\n\nWe also offer scholarships, such as the Merit Scholarship (up to 20%) and the Early Application Discount (10%).\n\nWould you like to know more about the program structure, career opportunities, or the application process?"},"type":"button","action":{"buttons":[{"type":"reply","reply":{"id":"qr_1768397072085_0","title":"What's cost?"}},{"type":"reply","reply":{"id":"qr_1768397072085_1","title":"Apply now?"}},{"type":"reply","reply":{"id":"qr_1768397072085_2","title":"More info?"}}]}}},"to":"94783269749","from":"94778747690","id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA","timestamp":1768397073634}],"contacts":[{"wa_id":"94783269749","profile":{"name":"^"}}]}}]}]}
+2026-01-14T13:24:39.556763582Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:24:39.556769872Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:24:39.556775905Z [inf]    "entry": [
+2026-01-14T13:24:39.556780749Z [inf]      {
+2026-01-14T13:24:39.556786635Z [inf]        "id": "910190741576091",
+2026-01-14T13:24:39.556793814Z [inf]        "changes": [
+2026-01-14T13:24:39.556800943Z [inf]          {
+2026-01-14T13:24:39.556806586Z [inf]            "field": "message_echoes",
+2026-01-14T13:24:39.556815687Z [inf]            "value": {
+2026-01-14T13:24:39.556822272Z [inf]              "messaging_product": "whatsapp",
+2026-01-14T13:24:39.556828714Z [inf]              "metadata": {
+2026-01-14T13:24:39.556835099Z [inf]                "display_phone_number": "94778747690",
+2026-01-14T13:24:39.556842180Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:24:39.556848672Z [inf]              },
+2026-01-14T13:24:39.556854307Z [inf]              "message_echoes": [
+2026-01-14T13:24:39.556860464Z [inf]                {
+2026-01-14T13:24:39.556865918Z [inf]                  "type": "interactive",
+2026-01-14T13:24:39.556871977Z [inf]                  "interactive": {
+2026-01-14T13:24:39.556878613Z [inf]                    "interactive": {
+2026-01-14T13:24:39.556884226Z [inf]                      "body": {
+2026-01-14T13:24:39.556890924Z [inf]                        "text": "Our BSc Computer Science program at Northbridge Global University (NGU) is a great choice. Here are some key details about the program:\n\n* Duration: 3 Years\n* Intake: January and September\n* Mode: Available both On-Campus and Online\n* Entry Requirements:\n\t+ High school completion\n\t+ Basic mathematics knowledge\n\t+ English proficiency\n\nThe program covers a wide range of topics in computer science, and our faculty is dedicated to helping you achieve your academic and professional goals.\n\nRegarding fees, our undergraduate programs have the following tuition fees:\n* On-Campus: £9,500 per year\n* Online: £6,200 per year\n\nWe also offer scholarships, such as the Merit Scholarship (up to 20%) and the Early Application Discount (10%).\n\nWould you like to know more about the program structure, career opportunities, or the application process?"
+2026-01-14T13:24:39.564807664Z [inf]                              "title": "Apply now?"
+2026-01-14T13:24:39.564819402Z [inf]                            }
+2026-01-14T13:24:39.564826280Z [inf]                          },
+2026-01-14T13:24:39.564835924Z [inf]                        "buttons": [
+2026-01-14T13:24:39.564839208Z [inf]                          {
+2026-01-14T13:24:39.564847502Z [inf]                          {
+2026-01-14T13:24:39.564849216Z [inf]                            "type": "reply",
+2026-01-14T13:24:39.564859846Z [inf]                            "type": "reply",
+2026-01-14T13:24:39.564860272Z [inf]                            "reply": {
+2026-01-14T13:24:39.564869934Z [inf]                              "id": "qr_1768397072085_2",
+2026-01-14T13:24:39.564873328Z [inf]                            "reply": {
+2026-01-14T13:24:39.564882744Z [inf]                              "title": "More info?"
+2026-01-14T13:24:39.564889494Z [inf]                            }
+2026-01-14T13:24:39.564898361Z [inf]                              "id": "qr_1768397072085_0",
+2026-01-14T13:24:39.564898834Z [inf]                          }
+2026-01-14T13:24:39.564909074Z [inf]                        ]
+2026-01-14T13:24:39.564911304Z [inf]                              "title": "What's cost?"
+2026-01-14T13:24:39.564922263Z [inf]                            }
+2026-01-14T13:24:39.564931766Z [inf]                          },
+2026-01-14T13:24:39.564939340Z [inf]                          {
+2026-01-14T13:24:39.564946962Z [inf]                            "type": "reply",
+2026-01-14T13:24:39.564954588Z [inf]                            "reply": {
+2026-01-14T13:24:39.564962312Z [inf]                              "id": "qr_1768397072085_1",
+2026-01-14T13:24:39.565214018Z [inf]                      },
+2026-01-14T13:24:39.565219913Z [inf]                      "type": "button",
+2026-01-14T13:24:39.565225995Z [inf]                      "action": {
+2026-01-14T13:24:39.569261522Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:24:39.569275780Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:39.569664404Z [inf]                      }
+2026-01-14T13:24:39.569671678Z [inf]                    }
+2026-01-14T13:24:39.569706619Z [inf]                  },
+2026-01-14T13:24:39.569713672Z [inf]                  "to": "94783269749",
+2026-01-14T13:24:39.569720943Z [inf]                  "from": "94778747690",
+2026-01-14T13:24:39.569748338Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA",
+2026-01-14T13:24:39.569755690Z [inf]                  "timestamp": 1768397073634
+2026-01-14T13:24:39.569762670Z [inf]                }
+2026-01-14T13:24:39.569771300Z [inf]              ],
+2026-01-14T13:24:39.569788704Z [inf]              "contacts": [
+2026-01-14T13:24:39.569795027Z [inf]                {
+2026-01-14T13:24:39.569801061Z [inf]                  "wa_id": "94783269749",
+2026-01-14T13:24:39.569808014Z [inf]                  "profile": {
+2026-01-14T13:24:39.569814409Z [inf]                    "name": "^"
+2026-01-14T13:24:39.569819949Z [inf]                  }
+2026-01-14T13:24:39.569826118Z [inf]                }
+2026-01-14T13:24:39.569900718Z [inf]              ]
+2026-01-14T13:24:39.569908894Z [inf]            }
+2026-01-14T13:24:39.569918755Z [inf]          }
+2026-01-14T13:24:39.570022025Z [inf]        ]
+2026-01-14T13:24:39.570028778Z [inf]      }
+2026-01-14T13:24:39.570035659Z [inf]    ]
+2026-01-14T13:24:39.570043364Z [inf]  }
+2026-01-14T13:24:39.570049995Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:24:39.570056267Z [inf]  [2026-01-14T13:24:34.402Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:24:39.570064190Z [inf]     └─ Data: {
+2026-01-14T13:24:39.575946101Z [inf]          "dataKeys": [
+2026-01-14T13:24:39.575951217Z [inf]            "conversationId",
+2026-01-14T13:24:39.575956014Z [inf]            "message",
+2026-01-14T13:24:39.575960154Z [inf]            "timestamp"
+2026-01-14T13:24:39.575965828Z [inf]          ],
+2026-01-14T13:24:39.575970303Z [inf]          "timestamp": "2026-01-14T13:24:34.402Z"
+2026-01-14T13:24:39.575974844Z [inf]        }
+2026-01-14T13:24:39.575979522Z [inf]  [2026-01-14T13:24:34.402Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "admin:whatsapp"
+2026-01-14T13:24:39.575985179Z [inf]     └─ Data: {
+2026-01-14T13:24:39.575989387Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:24:39.575993786Z [inf]          "roomId": "admin:whatsapp",
+2026-01-14T13:24:39.575998269Z [inf]          "dataKeys": [
+2026-01-14T13:24:39.576003484Z [inf]            "conversationId",
+2026-01-14T13:24:39.576008100Z [inf]            "message",
+2026-01-14T13:24:39.576012758Z [inf]            "timestamp"
+2026-01-14T13:24:39.576017246Z [inf]          ],
+2026-01-14T13:24:39.576021867Z [inf]          "timestamp": "2026-01-14T13:24:34.402Z"
+2026-01-14T13:24:39.576026286Z [inf]        }
+2026-01-14T13:24:39.576031849Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397075827-ooy08tx6r] {
+2026-01-14T13:24:39.576036123Z [inf]    timestamp: '2026-01-14T13:24:35.828Z',
+2026-01-14T13:24:39.576040941Z [inf]    type: 'messages',
+2026-01-14T13:24:39.576045235Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA',
+2026-01-14T13:24:39.576051235Z [inf]    isNativeFormat: false,
+2026-01-14T13:24:39.576055617Z [inf]    isMetaFormat: true
+2026-01-14T13:24:39.576060445Z [inf]  }
+2026-01-14T13:24:39.576064836Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:24:39.576070011Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"statuses":[{"id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA","status":"sent","timestamp":"1768397073","recipient_id":"94783269749","pricing":{"billable":false,"pricing_model":"PMP","category":"service","type":"free_customer_service"}}]},"field":"messages"}]}]}
+2026-01-14T13:24:39.576205609Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:24:39.576213796Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:24:39.576220943Z [inf]    "entry": [
+2026-01-14T13:24:39.576230382Z [inf]      {
+2026-01-14T13:24:39.576238705Z [inf]        "id": "910190741576091",
+2026-01-14T13:24:39.576246158Z [inf]        "changes": [
+2026-01-14T13:24:39.576253005Z [inf]          {
+2026-01-14T13:24:39.576260352Z [inf]            "value": {
+2026-01-14T13:24:39.576267299Z [inf]              "messaging_product": "whatsapp",
+2026-01-14T13:24:39.576277878Z [inf]              "metadata": {
+2026-01-14T13:24:39.576284493Z [inf]                "display_phone_number": "94778747690",
+2026-01-14T13:24:39.576291127Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:24:39.576298346Z [inf]              },
+2026-01-14T13:24:39.576305580Z [inf]              "statuses": [
+2026-01-14T13:24:39.576312041Z [inf]                {
+2026-01-14T13:24:39.576318308Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA",
+2026-01-14T13:24:39.576324555Z [inf]                  "status": "sent",
+2026-01-14T13:24:39.576331448Z [inf]                  "timestamp": "1768397073",
+2026-01-14T13:24:39.576337487Z [inf]                  "recipient_id": "94783269749",
+2026-01-14T13:24:39.576344034Z [inf]                  "pricing": {
+2026-01-14T13:24:39.576350046Z [inf]                    "billable": false,
+2026-01-14T13:24:39.576356023Z [inf]                    "pricing_model": "PMP",
+2026-01-14T13:24:39.576361801Z [inf]                    "category": "service",
+2026-01-14T13:24:39.576367377Z [inf]                    "type": "free_customer_service"
+2026-01-14T13:24:39.576374915Z [inf]                  }
+2026-01-14T13:24:39.576380116Z [inf]                }
+2026-01-14T13:24:39.576385088Z [inf]              ]
+2026-01-14T13:24:39.580779204Z [inf]        }
+2026-01-14T13:24:39.580792565Z [inf]  [Summary] socket-broadcast:whatsapp:message:status: 10 occurrences in last 30s
+2026-01-14T13:24:39.580802563Z [inf]  [Summary] status-update:sent: 4 occurrences in last 30s
+2026-01-14T13:24:39.580818311Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:24:39.580827682Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397075987-40sqxccqp] {
+2026-01-14T13:24:39.580840909Z [inf]    timestamp: '2026-01-14T13:24:35.988Z',
+2026-01-14T13:24:39.580861985Z [inf]  [2026-01-14T13:24:35.845Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:status" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:24:39.580873411Z [inf]     └─ Data: {
+2026-01-14T13:24:39.580873864Z [inf]            },
+2026-01-14T13:24:39.580885490Z [inf]            "field": "messages"
+2026-01-14T13:24:39.580885763Z [inf]          "event": "whatsapp:message:status",
+2026-01-14T13:24:39.580900209Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:39.580901652Z [inf]          }
+2026-01-14T13:24:39.580910397Z [inf]          "dataKeys": [
+2026-01-14T13:24:39.580913455Z [inf]        ]
+2026-01-14T13:24:39.580921595Z [inf]            "conversationId",
+2026-01-14T13:24:39.580923924Z [inf]      }
+2026-01-14T13:24:39.580932321Z [inf]    ]
+2026-01-14T13:24:39.580941352Z [inf]  }
+2026-01-14T13:24:39.580949265Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:24:39.580955523Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:24:39.581188833Z [inf]            "messageId",
+2026-01-14T13:24:39.581204064Z [inf]            "status",
+2026-01-14T13:24:39.581210563Z [inf]            "timestamp"
+2026-01-14T13:24:39.581216928Z [inf]          ],
+2026-01-14T13:24:39.581224821Z [inf]          "timestamp": "2026-01-14T13:24:35.845Z"
+2026-01-14T13:24:39.585065343Z [inf]    type: 'messages',
+2026-01-14T13:24:39.585070950Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA',
+2026-01-14T13:24:39.585075855Z [inf]    isNativeFormat: false,
+2026-01-14T13:24:39.585084709Z [inf]    isMetaFormat: true
+2026-01-14T13:24:39.585091140Z [inf]  }
+2026-01-14T13:24:39.585096881Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:24:39.585102020Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"statuses":[{"id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA","status":"delivered","timestamp":"1768397074","recipient_id":"94783269749","pricing":{"billable":false,"pricing_model":"PMP","category":"service","type":"free_customer_service"}}]},"field":"messages"}]}]}
+2026-01-14T13:24:39.585107108Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:24:39.585112346Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:24:39.585118260Z [inf]    "entry": [
+2026-01-14T13:24:39.585123324Z [inf]      {
+2026-01-14T13:24:39.585128232Z [inf]        "id": "910190741576091",
+2026-01-14T13:24:39.585133725Z [inf]        "changes": [
+2026-01-14T13:24:39.585139063Z [inf]          {
+2026-01-14T13:24:39.585144210Z [inf]            "value": {
+2026-01-14T13:24:39.585149574Z [inf]              "messaging_product": "whatsapp",
+2026-01-14T13:24:39.585154914Z [inf]              "metadata": {
+2026-01-14T13:24:39.585160455Z [inf]                "display_phone_number": "94778747690",
+2026-01-14T13:24:39.585166413Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:24:39.585171691Z [inf]              },
+2026-01-14T13:24:39.585178217Z [inf]              "statuses": [
+2026-01-14T13:24:39.585184396Z [inf]                {
+2026-01-14T13:24:39.590812887Z [inf]          "dataKeys": [
+2026-01-14T13:24:39.590824648Z [inf]            "conversationId",
+2026-01-14T13:24:39.590842397Z [inf]                  }
+2026-01-14T13:24:39.590855257Z [inf]                }
+2026-01-14T13:24:39.590863250Z [inf]  [2026-01-14T13:24:36.006Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:status" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:24:39.590867778Z [inf]              ]
+2026-01-14T13:24:39.590872764Z [inf]        ]
+2026-01-14T13:24:39.590875227Z [inf]     └─ Data: {
+2026-01-14T13:24:39.590882265Z [inf]            },
+2026-01-14T13:24:39.590886699Z [inf]          "event": "whatsapp:message:status",
+2026-01-14T13:24:39.590893384Z [inf]      }
+2026-01-14T13:24:39.590893672Z [inf]            "field": "messages"
+2026-01-14T13:24:39.590898831Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:39.590903894Z [inf]          }
+2026-01-14T13:24:39.590913998Z [inf]    ]
+2026-01-14T13:24:39.590923151Z [inf]  }
+2026-01-14T13:24:39.590927602Z [inf]                  "recipient_id": "94783269749",
+2026-01-14T13:24:39.590935291Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:24:39.590939196Z [inf]                  "pricing": {
+2026-01-14T13:24:39.590943295Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA",
+2026-01-14T13:24:39.590951054Z [inf]                    "billable": false,
+2026-01-14T13:24:39.590955042Z [inf]                  "status": "delivered",
+2026-01-14T13:24:39.590960246Z [inf]                    "pricing_model": "PMP",
+2026-01-14T13:24:39.590967041Z [inf]                  "timestamp": "1768397074",
+2026-01-14T13:24:39.590970402Z [inf]                    "category": "service",
+2026-01-14T13:24:39.590978054Z [inf]                    "type": "free_customer_service"
+2026-01-14T13:24:39.599964894Z [inf]            "messageId",
+2026-01-14T13:24:39.599970889Z [inf]            "status",
+2026-01-14T13:24:39.599977443Z [inf]            "timestamp"
+2026-01-14T13:24:39.599986091Z [inf]          ],
+2026-01-14T13:24:39.599992183Z [inf]          "timestamp": "2026-01-14T13:24:36.006Z"
+2026-01-14T13:24:39.599999948Z [inf]        }
+2026-01-14T13:24:39.600006022Z [inf]  [Summary] status-update:delivered: 4 occurrences in last 30s
+2026-01-14T13:24:39.600011200Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:24:39.600017113Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397076273-owoeqe4pp] {
+2026-01-14T13:24:39.600023000Z [inf]    timestamp: '2026-01-14T13:24:36.274Z',
+2026-01-14T13:24:39.600028631Z [inf]    type: 'messages',
+2026-01-14T13:24:39.600034038Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA',
+2026-01-14T13:24:39.600043113Z [inf]    isNativeFormat: false,
+2026-01-14T13:24:39.600049286Z [inf]    isMetaFormat: true
+2026-01-14T13:24:39.600055119Z [inf]  }
+2026-01-14T13:24:39.600061191Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:24:39.600067019Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"statuses":[{"id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA","status":"read","timestamp":"1768397074","recipient_id":"94783269749","pricing":{"billable":false,"pricing_model":"PMP","category":"service","type":"free_customer_service"}}]},"field":"messages"}]}]}
+2026-01-14T13:24:39.600072775Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:24:39.600080994Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:24:39.600088274Z [inf]    "entry": [
+2026-01-14T13:24:39.606378406Z [inf]              "messaging_product": "whatsapp",
+2026-01-14T13:24:39.606389357Z [inf]              "metadata": {
+2026-01-14T13:24:39.606396406Z [inf]                "display_phone_number": "94778747690",
+2026-01-14T13:24:39.606402468Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:24:39.606408376Z [inf]              },
+2026-01-14T13:24:39.606651201Z [inf]              "statuses": [
+2026-01-14T13:24:39.606659827Z [inf]                {
+2026-01-14T13:24:39.606666922Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBJCMUFDNkY0NERDN0ZFMjZBMkQA",
+2026-01-14T13:24:39.606674809Z [inf]                  "status": "read",
+2026-01-14T13:24:39.606681286Z [inf]                  "timestamp": "1768397074",
+2026-01-14T13:24:39.606688792Z [inf]                  "recipient_id": "94783269749",
+2026-01-14T13:24:39.606694600Z [inf]                  "pricing": {
+2026-01-14T13:24:39.606702985Z [inf]                    "billable": false,
+2026-01-14T13:24:39.606709868Z [inf]                  }
+2026-01-14T13:24:39.606712735Z [inf]                    "pricing_model": "PMP",
+2026-01-14T13:24:39.606720523Z [inf]                }
+2026-01-14T13:24:39.606722455Z [inf]                    "category": "service",
+2026-01-14T13:24:39.606727932Z [inf]              ]
+2026-01-14T13:24:39.606733734Z [inf]                    "type": "free_customer_service"
+2026-01-14T13:24:39.606737419Z [inf]            },
+2026-01-14T13:24:39.606745022Z [inf]            "field": "messages"
+2026-01-14T13:24:39.606753111Z [inf]          }
+2026-01-14T13:24:39.606760199Z [inf]        ]
+2026-01-14T13:24:39.606814662Z [inf]      {
+2026-01-14T13:24:39.606826714Z [inf]        "id": "910190741576091",
+2026-01-14T13:24:39.606835757Z [inf]        "changes": [
+2026-01-14T13:24:39.606846317Z [inf]          {
+2026-01-14T13:24:39.606854890Z [inf]            "value": {
+2026-01-14T13:24:39.610595275Z [inf]      }
+2026-01-14T13:24:39.610600832Z [inf]    ]
+2026-01-14T13:24:39.610610946Z [inf]  }
+2026-01-14T13:24:39.610617227Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:24:39.610623607Z [inf]  [2026-01-14T13:24:36.305Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:status" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:24:39.610629296Z [inf]     └─ Data: {
+2026-01-14T13:24:39.610636670Z [inf]          "event": "whatsapp:message:status",
+2026-01-14T13:24:39.610643130Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:39.610649280Z [inf]          "dataKeys": [
+2026-01-14T13:24:39.610655395Z [inf]            "conversationId",
+2026-01-14T13:24:39.610661602Z [inf]            "messageId",
+2026-01-14T13:24:39.610666888Z [inf]            "status",
+2026-01-14T13:24:39.610672253Z [inf]            "timestamp"
+2026-01-14T13:24:39.610677689Z [inf]          ],
+2026-01-14T13:24:39.610780980Z [inf]          "timestamp": "2026-01-14T13:24:36.305Z"
+2026-01-14T13:24:39.610788600Z [inf]        }
+2026-01-14T13:24:39.610796551Z [inf]  [Summary] status-update:read: 4 occurrences in last 30s
+2026-01-14T13:24:44.842827272Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397084703-0dswktspx] {
+2026-01-14T13:24:44.842832853Z [inf]    timestamp: '2026-01-14T13:24:44.706Z',
+2026-01-14T13:24:44.842839965Z [inf]    type: 'messages',
+2026-01-14T13:24:44.842847075Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgASGBQzQUQzN0ZBMDNEM0M2Njg1NzlEMwA=',
+2026-01-14T13:24:44.842854404Z [inf]    isNativeFormat: false,
+2026-01-14T13:24:44.842860722Z [inf]    isMetaFormat: true
+2026-01-14T13:24:44.842866783Z [inf]  }
+2026-01-14T13:24:44.842874135Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:24:44.842880750Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"contacts":[{"profile":{"name":"^"},"wa_id":"94783269749"}],"messages":[{"from":"94783269749","id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgASGBQzQUQzN0ZBMDNEM0M2Njg1NzlEMwA=","timestamp":"1768397082","text":{"body":"Can I speak with a agent please"},"type":"text"}]},"field":"messages"}]}]}
+2026-01-14T13:24:44.842887094Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:24:44.842893017Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:24:44.842898157Z [inf]    "entry": [
+2026-01-14T13:24:44.843768455Z [inf]      {
+2026-01-14T13:24:44.843780322Z [inf]        "id": "910190741576091",
+2026-01-14T13:24:44.843789570Z [inf]        "changes": [
+2026-01-14T13:24:44.843795956Z [inf]          {
+2026-01-14T13:24:44.843802898Z [inf]            "value": {
+2026-01-14T13:24:44.843810118Z [inf]              "messaging_product": "whatsapp",
+2026-01-14T13:24:44.843815556Z [inf]              "metadata": {
+2026-01-14T13:24:44.843820584Z [inf]                "display_phone_number": "94778747690",
+2026-01-14T13:24:44.843826611Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:24:46.069391854Z [inf]      }
+2026-01-14T13:24:46.069414012Z [inf]    ]
+2026-01-14T13:24:46.069423458Z [inf]  }
+2026-01-14T13:24:46.069431296Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:24:46.069439589Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:24:46.069466529Z [inf]              },
+2026-01-14T13:24:46.069471566Z [inf]              "contacts": [
+2026-01-14T13:24:46.069476277Z [inf]                {
+2026-01-14T13:24:46.069480823Z [inf]                  "profile": {
+2026-01-14T13:24:46.069485578Z [inf]                    "name": "^"
+2026-01-14T13:24:46.069490698Z [inf]                  },
+2026-01-14T13:24:46.069495613Z [inf]                  "wa_id": "94783269749"
+2026-01-14T13:24:46.069500627Z [inf]                }
+2026-01-14T13:24:46.069505107Z [inf]              ],
+2026-01-14T13:24:46.069509642Z [inf]              "messages": [
+2026-01-14T13:24:46.069514386Z [inf]                {
+2026-01-14T13:24:46.069519030Z [inf]                  "from": "94783269749",
+2026-01-14T13:24:46.069526116Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgASGBQzQUQzN0ZBMDNEM0M2Njg1NzlEMwA=",
+2026-01-14T13:24:46.069532157Z [inf]                  "timestamp": "1768397082",
+2026-01-14T13:24:46.069536911Z [inf]                  "text": {
+2026-01-14T13:24:46.069541666Z [inf]                    "body": "Can I speak with a agent please"
+2026-01-14T13:24:46.069545805Z [inf]                  },
+2026-01-14T13:24:46.069550392Z [inf]                  "type": "text"
+2026-01-14T13:24:46.069555053Z [inf]                }
+2026-01-14T13:24:46.069559722Z [inf]              ]
+2026-01-14T13:24:46.069563993Z [inf]            },
+2026-01-14T13:24:46.069567981Z [inf]            "field": "messages"
+2026-01-14T13:24:46.069573164Z [inf]          }
+2026-01-14T13:24:46.069577724Z [inf]        ]
+2026-01-14T13:24:47.310843194Z [inf]  [Summary] conversation-updated: 4 occurrences in last 30s
+2026-01-14T13:24:47.310850373Z [inf]  [ConfigService] Loaded config for account 6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501: {
+2026-01-14T13:24:47.310857041Z [inf]    "assignmentStrategy": "ROUND_ROBIN",
+2026-01-14T13:24:47.310863778Z [inf]    "fallbackToAdmin": true,
+2026-01-14T13:24:47.310870772Z [inf]    "enableSLA": true,
+2026-01-14T13:24:47.310877434Z [inf]    "slaInBusinessHours": 30,
+2026-01-14T13:24:47.310884788Z [inf]    "slaResolutionDeadline": 24,
+2026-01-14T13:24:47.310892386Z [inf]    "notifyOnAssignment": true,
+2026-01-14T13:24:47.310899039Z [inf]    "notifyOnNewMessage": true,
+2026-01-14T13:24:47.310905549Z [inf]    "notifyOnPriorityChange": true,
+2026-01-14T13:24:47.310912320Z [inf]    "notifyOnSLABreach": true,
+2026-01-14T13:24:47.310919768Z [inf]    "notificationChannels": {
+2026-01-14T13:24:47.310926468Z [inf]      "email": true,
+2026-01-14T13:24:47.310933086Z [inf]      "inApp": true,
+2026-01-14T13:24:47.310939530Z [inf]      "sms": false,
+2026-01-14T13:24:47.310946402Z [inf]      "socket": true
+2026-01-14T13:24:47.310953717Z [inf]    },
+2026-01-14T13:24:47.310961377Z [inf]    "enableAutoReply": true,
+2026-01-14T13:24:47.310967868Z [inf]    "autoReplyOnTicketCreate": false,
+2026-01-14T13:24:47.310973945Z [inf]    "autoReplyOnReassignment": false,
+2026-01-14T13:24:47.310980671Z [inf]    "autoReplyMessageOnCreate": "Hi {{contactName}}! 👋 Thank you for contacting us. Your message has been received and assigned to {{agentName}} (Ticket #{{ticketNumber}}). They will respond to you shortly.",
+2026-01-14T13:24:47.310987522Z [inf]    "autoReplyMessageOnReassign": "Hi {{contactName}}! Your request has been reassigned to {{agentName}} who will continue assisting you shortly.",
+2026-01-14T13:24:47.310994127Z [inf]    "autoReplyDelay": 2,
+2026-01-14T13:24:47.311000702Z [inf]    "enableButtons": false,
+2026-01-14T13:24:48.494744063Z [inf]        "value": "{{agentContactNumber}}"
+2026-01-14T13:24:48.494754757Z [inf]      },
+2026-01-14T13:24:48.494758291Z [inf]    "buttons": [
+2026-01-14T13:24:48.494765884Z [inf]      {
+2026-01-14T13:24:48.494767611Z [inf]      {
+2026-01-14T13:24:48.494774644Z [inf]        "type": "url",
+2026-01-14T13:24:48.494775447Z [inf]        "type": "phone_number",
+2026-01-14T13:24:48.494783250Z [inf]        "title": "💬 Message {{agentName}}",
+2026-01-14T13:24:48.494783370Z [inf]        "title": "📞 Call {{agentName}}",
+2026-01-14T13:24:48.494791299Z [inf]        "value": "https://wa.me/{{agentContactNumber}}?text=Hi%20{{agentName}},%20regarding%20Ticket%20{{ticketNumber}}"
+2026-01-14T13:24:48.494798279Z [inf]      }
+2026-01-14T13:24:48.494804983Z [inf]    ],
+2026-01-14T13:24:48.494811903Z [inf]    "enableAIMessaging": true,
+2026-01-14T13:24:48.494819544Z [inf]    "aiHandoverThreshold": 50,
+2026-01-14T13:24:48.494826069Z [inf]    "aiMaxResponsesBeforeHandover": 50,
+2026-01-14T13:24:48.494833416Z [inf]    "aiEnableLeadScoring": true,
+2026-01-14T13:24:48.494840501Z [inf]    "aiEnableQualification": true,
+2026-01-14T13:24:48.494845588Z [inf]    "aiPersona": "Friendly and professional education consultant who helps prospective students explore programs and courses.",
+2026-01-14T13:24:48.494849971Z [inf]    "aiHandoverFrequency": 0,
+2026-01-14T13:24:48.494855468Z [inf]    "aiHandoverConfidence": 0
+2026-01-14T13:24:48.494863155Z [inf]  }
+2026-01-14T13:24:48.494868513Z [inf]  [ConfigService] Loaded config for account 6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501: {
+2026-01-14T13:24:48.494872835Z [inf]    "assignmentStrategy": "ROUND_ROBIN",
+2026-01-14T13:24:48.494877051Z [inf]    "fallbackToAdmin": true,
+2026-01-14T13:24:48.494881174Z [inf]    "enableSLA": true,
+2026-01-14T13:24:48.494885767Z [inf]    "slaInBusinessHours": 30,
+2026-01-14T13:24:48.494890464Z [inf]    "slaResolutionDeadline": 24,
+2026-01-14T13:24:49.673802569Z [inf]    "notifyOnAssignment": true,
+2026-01-14T13:24:49.673808977Z [inf]    "notifyOnNewMessage": true,
+2026-01-14T13:24:49.673815453Z [inf]    "notifyOnPriorityChange": true,
+2026-01-14T13:24:49.673823391Z [inf]    "notifyOnSLABreach": true,
+2026-01-14T13:24:49.673829851Z [inf]    "notificationChannels": {
+2026-01-14T13:24:49.673835744Z [inf]      "email": true,
+2026-01-14T13:24:49.673841470Z [inf]      "inApp": true,
+2026-01-14T13:24:49.673847518Z [inf]      "sms": false,
+2026-01-14T13:24:49.673853414Z [inf]      "socket": true
+2026-01-14T13:24:49.673860099Z [inf]    },
+2026-01-14T13:24:49.673866178Z [inf]    "enableAutoReply": true,
+2026-01-14T13:24:49.673872579Z [inf]    "autoReplyOnTicketCreate": false,
+2026-01-14T13:24:49.673878846Z [inf]    "autoReplyOnReassignment": false,
+2026-01-14T13:24:49.674106070Z [inf]    "autoReplyMessageOnCreate": "Hi {{contactName}}! 👋 Thank you for contacting us. Your message has been received and assigned to {{agentName}} (Ticket #{{ticketNumber}}). They will respond to you shortly.",
+2026-01-14T13:24:49.674118549Z [inf]    "autoReplyMessageOnReassign": "Hi {{contactName}}! Your request has been reassigned to {{agentName}} who will continue assisting you shortly.",
+2026-01-14T13:24:49.674125923Z [inf]    "autoReplyDelay": 2,
+2026-01-14T13:24:49.674133306Z [inf]    "enableButtons": false,
+2026-01-14T13:24:49.674139955Z [inf]    "buttons": [
+2026-01-14T13:24:49.674146047Z [inf]      {
+2026-01-14T13:24:49.674152370Z [inf]        "type": "phone_number",
+2026-01-14T13:24:49.674159266Z [inf]        "title": "📞 Call {{agentName}}",
+2026-01-14T13:24:49.674165384Z [inf]        "value": "{{agentContactNumber}}"
+2026-01-14T13:24:49.674172643Z [inf]      },
+2026-01-14T13:24:49.674184499Z [inf]      {
+2026-01-14T13:24:49.674190954Z [inf]        "type": "url",
+2026-01-14T13:24:49.674197003Z [inf]        "title": "💬 Message {{agentName}}",
+2026-01-14T13:24:50.770005812Z [inf]      }
+2026-01-14T13:24:50.770023359Z [inf]    ],
+2026-01-14T13:24:50.770028400Z [inf]  }
+2026-01-14T13:24:50.770034602Z [inf]    "enableAIMessaging": true,
+2026-01-14T13:24:50.770041404Z [inf]  [AI-Chat-Model] RAG enabled: true
+2026-01-14T13:24:50.770044333Z [inf]    "aiHandoverThreshold": 50,
+2026-01-14T13:24:50.770051646Z [inf]    "aiMaxResponsesBeforeHandover": 50,
+2026-01-14T13:24:50.770060260Z [inf]    "aiEnableLeadScoring": true,
+2026-01-14T13:24:50.770067898Z [inf]    "aiEnableQualification": true,
+2026-01-14T13:24:50.770075510Z [inf]    "aiPersona": "Friendly and professional education consultant who helps prospective students explore programs and courses.",
+2026-01-14T13:24:50.770083284Z [inf]    "aiHandoverFrequency": 0,
+2026-01-14T13:24:50.770095035Z [inf]    "aiHandoverConfidence": 0
+2026-01-14T13:24:50.770220296Z [inf]        "value": "https://wa.me/{{agentContactNumber}}?text=Hi%20{{agentName}},%20regarding%20Ticket%20{{ticketNumber}}"
+2026-01-14T13:24:50.770583040Z [inf]  [AI-Chat-Model] ✅ CONVERSATION HISTORY LOADED: {
+2026-01-14T13:24:50.770593619Z [inf]    totalMessages: 8,
+2026-01-14T13:24:50.770596843Z [inf]    userId: '94783269749',
+2026-01-14T13:24:50.770604542Z [inf]    oldestMessage: 2026-01-14T13:23:53.551Z,
+2026-01-14T13:24:50.770616109Z [inf]    newestMessage: 2026-01-14T13:24:31.816Z
+2026-01-14T13:24:50.770627898Z [inf]  }
+2026-01-14T13:24:50.770658888Z [inf]    messagesLoaded: 4,
+2026-01-14T13:24:50.770666964Z [inf]    responsesLoaded: 4,
+2026-01-14T13:24:50.774696687Z [inf]  [AI-Chat-Model] RAG retrieval results: {
+2026-01-14T13:24:50.774709274Z [inf]    query: 'Can I speak with a agent please',
+2026-01-14T13:24:50.774716197Z [inf]    sectionsFound: 5,
+2026-01-14T13:24:50.774722939Z [inf]    confidence: 1,
+2026-01-14T13:24:50.774728684Z [inf]    sections: [
+2026-01-14T13:24:50.774734783Z [inf]      {
+2026-01-14T13:24:52.065457709Z [inf]        contentPreview: 'University Name: Northbridge Global University (NGU)\n' +
+2026-01-14T13:24:52.065466371Z [inf]          'Type: Private International University\n' +
+2026-01-14T13:24:52.065634833Z [inf]        category: 'GENERAL',
+2026-01-14T13:24:52.065642335Z [inf]        contentPreview: "I understand you'd like to speak with a human representative. Let me connect you with one of our tea..."
+2026-01-14T13:24:52.065659158Z [inf]        category: 'general',
+2026-01-14T13:24:52.065677528Z [inf]      },
+2026-01-14T13:24:52.065690812Z [inf]      {
+2026-01-14T13:24:52.065699303Z [inf]        title: 'About the University',
+2026-01-14T13:24:52.065704591Z [inf]        title: 'Human Handover Message',
+2026-01-14T13:24:52.066273196Z [inf]          'Founded:...'
+2026-01-14T13:24:52.066285157Z [inf]      },
+2026-01-14T13:24:52.066293414Z [inf]      {
+2026-01-14T13:24:52.066306042Z [inf]        title: 'About the university',
+2026-01-14T13:24:52.066312903Z [inf]        category: 'general',
+2026-01-14T13:24:52.066319982Z [inf]        contentPreview: 'University Name: Northbridge Global University (NGU)\n' +
+2026-01-14T13:24:52.066326727Z [inf]          'Type: Private International University\n' +
+2026-01-14T13:24:52.066333463Z [inf]          'Founded:...'
+2026-01-14T13:24:52.066344279Z [inf]      },
+2026-01-14T13:24:52.066354461Z [inf]      {
+2026-01-14T13:24:52.066362731Z [inf]        title: 'Default Greeting',
+2026-01-14T13:24:52.066369490Z [inf]        category: 'GENERAL',
+2026-01-14T13:24:52.066376229Z [inf]        contentPreview: "Hello! Welcome to our service. I'm your AI assistant and I'm here to help you with any questions you..."
+2026-01-14T13:24:52.066384572Z [inf]      },
+2026-01-14T13:24:52.066391333Z [inf]      {
+2026-01-14T13:24:52.066398167Z [inf]        title: 'Unknown Query Response',
+2026-01-14T13:24:52.066406108Z [inf]        category: 'FAQ',
+2026-01-14T13:24:53.259822672Z [inf]        contentPreview: "I don't have specific information about that at the moment, but I'd be happy to connect you with som..."
+2026-01-14T13:24:53.259830123Z [inf]      }
+2026-01-14T13:24:53.259837576Z [inf]    ]
+2026-01-14T13:24:53.259847899Z [inf]  }
+2026-01-14T13:24:53.259855761Z [inf]  [AI-Chat-Model] Building system prompt with config: {
+2026-01-14T13:24:53.259862449Z [inf]    organizationName: 'UniKey Global',
+2026-01-14T13:24:53.259869608Z [inf]    botName: 'AI Assistant',
+2026-01-14T13:24:53.259879469Z [inf]    hasCustomSystemPrompt: true,
+2026-01-14T13:24:53.259885858Z [inf]    systemPromptPreview: 'You are a helpful AI assistant for UniKey Global, an education consultancy.\n' +
+2026-01-14T13:24:53.264286726Z [inf]      '\n' +
+2026-01-14T13:24:53.264299660Z [inf]      'LANGUAGE DETECTION & RE'
+2026-01-14T13:24:53.264306606Z [inf]  }
+2026-01-14T13:24:53.264313831Z [inf]  [AI-Chat-Model] Using CUSTOM system prompt from config
+2026-01-14T13:24:53.264320442Z [inf]  [AI-Chat-Model] System prompt built: {
+2026-01-14T13:24:53.264326439Z [inf]    length: 10559,
+2026-01-14T13:24:53.264332624Z [inf]    hasRagContext: true,
+2026-01-14T13:24:53.264338730Z [inf]    ragSections: 5,
+2026-01-14T13:24:53.264344776Z [inf]    provider: 'groq',
+2026-01-14T13:24:53.264351850Z [inf]    model: 'llama-3.3-70b-versatile'
+2026-01-14T13:24:53.264357809Z [inf]  }
+2026-01-14T13:24:53.264363636Z [inf]  [AI-Chat-Model] 🔧 BUILDING LLM MESSAGES: {
+2026-01-14T13:24:53.264371006Z [inf]    userMessagesCount: 5,
+2026-01-14T13:24:53.264376447Z [inf]    aiResponsesCount: 4,
+2026-01-14T13:24:53.264382800Z [inf]    systemPromptLength: 10559
+2026-01-14T13:24:53.264388148Z [inf]  }
+2026-01-14T13:24:53.264393859Z [inf]  [AI-Chat-Model] 📨 LLM MESSAGES BUILT: {
+2026-01-14T13:24:53.264400372Z [inf]    totalMessages: 10,
+2026-01-14T13:24:53.264408491Z [inf]    userMessages: 5,
+2026-01-14T13:24:54.436150444Z [inf]    assistantMessages: 4,
+2026-01-14T13:24:54.436155934Z [inf]    messagePreview: [
+2026-01-14T13:24:54.436160574Z [inf]      { role: 'system', contentPreview: '[SYSTEM PROMPT]' },
+2026-01-14T13:24:54.436165030Z [inf]      { role: 'user', contentPreview: 'Hey...' },
+2026-01-14T13:24:54.436169717Z [inf]      {
+2026-01-14T13:24:54.436174549Z [inf]        role: 'assistant',
+2026-01-14T13:24:54.436180056Z [inf]        contentPreview: "Hi! 👋 Welcome to UniKey Global! I'm your AI assis..."
+2026-01-14T13:24:54.436185142Z [inf]      },
+2026-01-14T13:24:54.436191414Z [inf]      { role: 'user', contentPreview: 'I like to join you uni...' },
+2026-01-14T13:24:54.436195542Z [inf]      {
+2026-01-14T13:24:54.436201292Z [inf]        role: 'assistant',
+2026-01-14T13:24:54.436205651Z [inf]        contentPreview: "Welcome to UniKey Global! I'm excited to help you ..."
+2026-01-14T13:24:54.436210428Z [inf]      }
+2026-01-14T13:24:54.436214461Z [inf]    ]
+2026-01-14T13:24:54.436219203Z [inf]  }
+2026-01-14T13:24:54.436223265Z [inf]  [AI-Messaging] 🤖 AI RESPONSE GENERATED: {
+2026-01-14T13:24:54.436227152Z [inf]    provider: 'GROQ',
+2026-01-14T13:24:54.436231545Z [inf]    model: 'llama-3.3-70b-versatile',
+2026-01-14T13:24:54.436236215Z [inf]    detectedLanguage: 'ENGLISH',
+2026-01-14T13:24:54.436242329Z [inf]    responseLength: 166,
+2026-01-14T13:24:54.436246537Z [inf]    responsePreview: "I understand you'd like to speak with a human representative. Let me connect you with one of our team members who can assist you further. They'll be in touch shortly!",
+2026-01-14T13:24:54.436250918Z [inf]    confidence: 85,
+2026-01-14T13:24:54.436255100Z [inf]    ragSourced: true
+2026-01-14T13:24:54.436259124Z [inf]  }
+2026-01-14T13:24:54.436264063Z [inf]  WhatsApp sendMessage called: {
+2026-01-14T13:24:54.436268129Z [inf]    accountId: '6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501',
+2026-01-14T13:24:55.875888602Z [inf]    to: '94783269749',
+2026-01-14T13:24:55.875895716Z [inf]    messageLength: 166,
+2026-01-14T13:24:55.875902294Z [inf]    hasTemplate: false,
+2026-01-14T13:24:55.875909087Z [inf]    conversationId: 'bc724cf9-00e7-4b4e-b011-1f9c3cf8e365',
+2026-01-14T13:24:55.875916168Z [inf]    hasQuickReplies: true,
+2026-01-14T13:24:55.875922670Z [inf]    quickReplyCount: 3,
+2026-01-14T13:24:55.875934230Z [inf]    skipDbSave: false
+2026-01-14T13:24:55.875941295Z [inf]  }
+2026-01-14T13:24:55.875949465Z [inf]  WhatsApp account found: {
+2026-01-14T13:24:55.875958803Z [inf]    accountId: '6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501',
+2026-01-14T13:24:55.875965949Z [inf]    apiProvider: 'CHAKRA',
+2026-01-14T13:24:55.875972814Z [inf]    phoneNumber: '+94778747690',
+2026-01-14T13:24:55.875979231Z [inf]    status: 'ACTIVE'
+2026-01-14T13:24:55.875985763Z [inf]  }
+2026-01-14T13:24:55.875991829Z [inf]  [DEBUG] About to create message record: {
+2026-01-14T13:24:55.875997888Z [inf]    hasConversation: true,
+2026-01-14T13:24:55.876004650Z [inf]    conversationId: 'bc724cf9-00e7-4b4e-b011-1f9c3cf8e365',
+2026-01-14T13:24:55.876010881Z [inf]    tempMessageId: 'temp-1768397086540-d2052a98a',
+2026-01-14T13:24:55.876020356Z [inf]    messagePreview: "I understand you'd like to speak with a human repr",
+2026-01-14T13:24:55.876027252Z [inf]    metadata: '{"source":"ai_assistant"}',
+2026-01-14T13:24:55.876035010Z [inf]    skipDbSave: false
+2026-01-14T13:24:55.876042414Z [inf]  }
+2026-01-14T13:24:55.876049309Z [inf]  [DEBUG] ✅ Message record CREATED successfully: {
+2026-01-14T13:24:55.876055854Z [inf]    dbMessageId: '31aba577-40c3-4366-9a37-f4a35e0d5bda',
+2026-01-14T13:24:55.876062863Z [inf]    conversationId: 'bc724cf9-00e7-4b4e-b011-1f9c3cf8e365',
+2026-01-14T13:24:55.876069072Z [inf]    direction: 'OUTBOUND',
+2026-01-14T13:24:55.876076152Z [inf]    tempMessageId: 'temp-1768397086540-d2052a98a'
+2026-01-14T13:24:57.384674151Z [inf]  }
+2026-01-14T13:24:57.384678525Z [inf]  Sending via Chakra HQ...
+2026-01-14T13:24:57.384685057Z [inf]  Chakra send attempt: {
+2026-01-14T13:24:57.384689470Z [inf]    accountId: '6ce8fbbf-92bc-4e8e-abd6-dd5c17aec501',
+2026-01-14T13:24:57.384694040Z [inf]    to: '94783269749',
+2026-01-14T13:24:57.384698778Z [inf]    messageLength: 166,
+2026-01-14T13:24:57.384703243Z [inf]    hasAccessToken: true,
+2026-01-14T13:24:57.384708210Z [inf]    pluginId: '974733d0-8f2d-4811-b796-823d194c7127',
+2026-01-14T13:24:57.384712835Z [inf]    apiVersion: 'v19.0',
+2026-01-14T13:24:57.384718775Z [inf]    isTemplate: undefined,
+2026-01-14T13:24:57.384723794Z [inf]    templateName: undefined,
+2026-01-14T13:24:57.384728293Z [inf]    hasButtons: false,
+2026-01-14T13:24:57.384733227Z [inf]    buttonCount: 0
+2026-01-14T13:24:57.384737676Z [inf]  }
+2026-01-14T13:24:57.384741833Z [inf]  [QuickReplies] Processing 3 quick reply buttons
+2026-01-14T13:24:57.384746921Z [inf]  [QuickReplies] Created 3 quick reply buttons
+2026-01-14T13:24:57.384752804Z [inf]  Chakra API request: {
+2026-01-14T13:24:57.384757992Z [inf]    url: 'https://api.chakrahq.com/v1/ext/plugin/whatsapp/974733d0-8f2d-4811-b796-823d194c7127/api/v19.0/873090089229167/messages',
+2026-01-14T13:24:57.384763311Z [inf]    payload: {
+2026-01-14T13:24:57.384768338Z [inf]      messaging_product: 'whatsapp',
+2026-01-14T13:24:57.384773397Z [inf]      recipient_type: 'individual',
+2026-01-14T13:24:57.384778029Z [inf]      to: '94783269749',
+2026-01-14T13:24:57.384784421Z [inf]      type: 'interactive',
+2026-01-14T13:24:57.384791235Z [inf]      interactive: { type: 'button', body: [Object], action: [Object] },
+2026-01-14T13:24:57.384796118Z [inf]      text: { body: '[166 chars]' }
+2026-01-14T13:24:57.384801186Z [inf]    }
+2026-01-14T13:24:57.384805370Z [inf]  }
+2026-01-14T13:24:57.384815099Z [inf]  Chakra API Success Response: {
+2026-01-14T13:24:59.188642819Z [inf]      _data: {
+2026-01-14T13:24:59.188659537Z [inf]        whatsappMessageId: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA'
+2026-01-14T13:24:59.188671613Z [inf]      }
+2026-01-14T13:24:59.188673273Z [inf]      hasMessages: false,
+2026-01-14T13:24:59.188682251Z [inf]      messageId: undefined,
+2026-01-14T13:24:59.188689344Z [inf]      messagesLength: undefined,
+2026-01-14T13:24:59.188696911Z [inf]    }
+2026-01-14T13:24:59.188697463Z [inf]      whatsappMessageId: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA',
+2026-01-14T13:24:59.188702080Z [inf]      hasData: true,
+2026-01-14T13:24:59.188708175Z [inf]  }
+2026-01-14T13:24:59.188711636Z [inf]      externalId: undefined,
+2026-01-14T13:24:59.188718873Z [inf]  [DEBUG] WhatsApp API result: {
+2026-01-14T13:24:59.188722375Z [inf]      text: undefined
+2026-01-14T13:24:59.188731099Z [inf]    success: true,
+2026-01-14T13:24:59.188738314Z [inf]    },
+2026-01-14T13:24:59.188740760Z [inf]    messageId: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA',
+2026-01-14T13:24:59.188750576Z [inf]    error: undefined,
+2026-01-14T13:24:59.188750963Z [inf]    fullResponse: {
+2026-01-14T13:24:59.188757365Z [inf]    responseStructure: {
+2026-01-14T13:24:59.188761739Z [inf]    hasDbMessage: true
+2026-01-14T13:24:59.188773614Z [inf]  }
+2026-01-14T13:24:59.188777597Z [inf]  [DEBUG] ✅ Message updated to SENT with WhatsApp ID: wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA
+2026-01-14T13:24:59.188779271Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:24:59.188790023Z [inf]  [2026-01-14T13:24:47.883Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:24:59.188794785Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:24:59.188800759Z [inf]     └─ Data: {
+2026-01-14T13:25:01.160700180Z [inf]  [2026-01-14T13:24:47.885Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:25:01.160702718Z [inf]  [2026-01-14T13:24:47.883Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "admin:whatsapp"
+2026-01-14T13:25:01.160709427Z [inf]          "dataKeys": [
+2026-01-14T13:25:01.160713005Z [inf]     └─ Data: {
+2026-01-14T13:25:01.160715781Z [inf]     └─ Data: {
+2026-01-14T13:25:01.160723389Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:25:01.160725171Z [inf]            "conversationId",
+2026-01-14T13:25:01.160727566Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:25:01.160735135Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:25:01.160735926Z [inf]            "message",
+2026-01-14T13:25:01.160744155Z [inf]          "roomId": "admin:whatsapp",
+2026-01-14T13:25:01.160751485Z [inf]            "timestamp"
+2026-01-14T13:25:01.160755210Z [inf]          "dataKeys": [
+2026-01-14T13:25:01.160757734Z [inf]            "message",
+2026-01-14T13:25:01.160766887Z [inf]            "conversationId",
+2026-01-14T13:25:01.160768076Z [inf]            "timestamp"
+2026-01-14T13:25:01.160769217Z [inf]          ],
+2026-01-14T13:25:01.160778550Z [inf]          ],
+2026-01-14T13:25:01.160780486Z [inf]          "dataKeys": [
+2026-01-14T13:25:01.160781169Z [inf]          "timestamp": "2026-01-14T13:24:47.883Z"
+2026-01-14T13:25:01.160792168Z [inf]            "conversationId",
+2026-01-14T13:25:01.160792452Z [inf]          "timestamp": "2026-01-14T13:24:47.883Z"
+2026-01-14T13:25:01.160793656Z [inf]        }
+2026-01-14T13:25:01.160802786Z [inf]            "message",
+2026-01-14T13:25:01.160804826Z [inf]        }
+2026-01-14T13:25:01.160819195Z [inf]            "timestamp"
+2026-01-14T13:25:01.160828477Z [inf]          ],
+2026-01-14T13:25:03.820196377Z [inf]          "timestamp": "2026-01-14T13:24:47.885Z"
+2026-01-14T13:25:03.820202509Z [inf]        }
+2026-01-14T13:25:03.820208852Z [inf]  [2026-01-14T13:24:47.885Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "admin:whatsapp"
+2026-01-14T13:25:03.820215981Z [inf]     └─ Data: {
+2026-01-14T13:25:03.820221285Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:25:03.820228071Z [inf]          "roomId": "admin:whatsapp",
+2026-01-14T13:25:03.820234090Z [inf]          "dataKeys": [
+2026-01-14T13:25:03.820240007Z [inf]            "conversationId",
+2026-01-14T13:25:03.820246250Z [inf]            "message",
+2026-01-14T13:25:03.820252251Z [inf]            "timestamp"
+2026-01-14T13:25:03.820258549Z [inf]          ],
+2026-01-14T13:25:03.820265014Z [inf]          "timestamp": "2026-01-14T13:24:47.885Z"
+2026-01-14T13:25:03.820271637Z [inf]        }
+2026-01-14T13:25:03.820279775Z [inf]  [2026-01-14T13:24:47.885Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:conversation:updated" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:25:03.825879719Z [inf]     └─ Data: {
+2026-01-14T13:25:03.825913639Z [inf]          "event": "whatsapp:conversation:updated",
+2026-01-14T13:25:03.825921953Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:25:03.825930273Z [inf]          "dataKeys": [
+2026-01-14T13:25:03.825937631Z [inf]            "conversationId",
+2026-01-14T13:25:03.825944989Z [inf]            "updates",
+2026-01-14T13:25:03.825952238Z [inf]            "timestamp"
+2026-01-14T13:25:03.825959297Z [inf]          ],
+2026-01-14T13:25:03.825967180Z [inf]          "timestamp": "2026-01-14T13:24:47.885Z"
+2026-01-14T13:25:03.825974163Z [inf]        }
+2026-01-14T13:25:03.825980946Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:25:03.825987544Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397088499-usgmpakmg] {
+2026-01-14T13:25:05.151460588Z [inf]    timestamp: '2026-01-14T13:24:48.500Z',
+2026-01-14T13:25:05.151467629Z [inf]    type: 'message_echoes',
+2026-01-14T13:25:05.151474338Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA',
+2026-01-14T13:25:05.151481243Z [inf]    isNativeFormat: false,
+2026-01-14T13:25:05.151487146Z [inf]    isMetaFormat: true
+2026-01-14T13:25:05.151492899Z [inf]  }
+2026-01-14T13:25:05.151504357Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:25:05.151510623Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"field":"message_echoes","value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"message_echoes":[{"type":"interactive","interactive":{"interactive":{"body":{"text":"I understand you'd like to speak with a human representative. Let me connect you with one of our team members who can assist you further. They'll be in touch shortly!"},"type":"button","action":{"buttons":[{"type":"reply","reply":{"id":"qr_1768397086518_0","title":"How long?"}},{"type":"reply","reply":{"id":"qr_1768397086518_1","title":"Who is it?"}},{"type":"reply","reply":{"id":"qr_1768397086518_2","title":"Thanks"}}]}}},"to":"94783269749","from":"94778747690","id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA","timestamp":1768397087710}],"contacts":[{"wa_id":"94783269749","profile":{"name":"^"}}]}}]}]}
+2026-01-14T13:25:05.151516871Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:25:05.151522433Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:25:05.151527590Z [inf]    "entry": [
+2026-01-14T13:25:05.151537712Z [inf]      {
+2026-01-14T13:25:05.151543622Z [inf]        "id": "910190741576091",
+2026-01-14T13:25:05.151549278Z [inf]        "changes": [
+2026-01-14T13:25:05.151554959Z [inf]          {
+2026-01-14T13:25:05.151560632Z [inf]            "field": "message_echoes",
+2026-01-14T13:25:06.808993303Z [inf]            "value": {
+2026-01-14T13:25:06.809000531Z [inf]              "messaging_product": "whatsapp",
+2026-01-14T13:25:06.809007645Z [inf]              "metadata": {
+2026-01-14T13:25:06.809014450Z [inf]                "display_phone_number": "94778747690",
+2026-01-14T13:25:06.809020578Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:25:06.809028449Z [inf]              },
+2026-01-14T13:25:06.809034745Z [inf]              "message_echoes": [
+2026-01-14T13:25:06.809041622Z [inf]                {
+2026-01-14T13:25:06.810760356Z [inf]                  "type": "interactive",
+2026-01-14T13:25:06.810797456Z [inf]                  "interactive": {
+2026-01-14T13:25:06.810809969Z [inf]                    "interactive": {
+2026-01-14T13:25:06.810816901Z [inf]                      "body": {
+2026-01-14T13:25:06.810826999Z [inf]                        "text": "I understand you'd like to speak with a human representative. Let me connect you with one of our team members who can assist you further. They'll be in touch shortly!"
+2026-01-14T13:25:06.810834099Z [inf]                      },
+2026-01-14T13:25:06.810840427Z [inf]                      "type": "button",
+2026-01-14T13:25:06.810846613Z [inf]                      "action": {
+2026-01-14T13:25:06.810852586Z [inf]                        "buttons": [
+2026-01-14T13:25:06.810859510Z [inf]                          {
+2026-01-14T13:25:06.810866549Z [inf]                            "type": "reply",
+2026-01-14T13:25:06.810873758Z [inf]                            "reply": {
+2026-01-14T13:25:06.810883175Z [inf]                              "id": "qr_1768397086518_0",
+2026-01-14T13:25:06.810889143Z [inf]                              "title": "How long?"
+2026-01-14T13:25:06.810894917Z [inf]                            }
+2026-01-14T13:25:06.810901424Z [inf]                          },
+2026-01-14T13:25:06.810907599Z [inf]                          {
+2026-01-14T13:25:08.676313895Z [inf]                            "type": "reply",
+2026-01-14T13:25:08.676320558Z [inf]                            "reply": {
+2026-01-14T13:25:08.676327869Z [inf]                              "id": "qr_1768397086518_1",
+2026-01-14T13:25:08.676335411Z [inf]                              "title": "Who is it?"
+2026-01-14T13:25:08.676342932Z [inf]                            }
+2026-01-14T13:25:08.676350240Z [inf]                          },
+2026-01-14T13:25:08.676356964Z [inf]                          {
+2026-01-14T13:25:08.676363149Z [inf]                            "type": "reply",
+2026-01-14T13:25:08.676368615Z [inf]                            "reply": {
+2026-01-14T13:25:08.676373779Z [inf]                              "id": "qr_1768397086518_2",
+2026-01-14T13:25:08.676379240Z [inf]                              "title": "Thanks"
+2026-01-14T13:25:08.676384812Z [inf]                            }
+2026-01-14T13:25:08.676394633Z [inf]                          }
+2026-01-14T13:25:08.676410019Z [inf]                        ]
+2026-01-14T13:25:08.676422281Z [inf]                      }
+2026-01-14T13:25:08.676428684Z [inf]                    }
+2026-01-14T13:25:08.676435775Z [inf]                  },
+2026-01-14T13:25:08.676446913Z [inf]                  "to": "94783269749",
+2026-01-14T13:25:08.676453899Z [inf]                  "from": "94778747690",
+2026-01-14T13:25:08.676458947Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA",
+2026-01-14T13:25:08.676463124Z [inf]                  "timestamp": 1768397087710
+2026-01-14T13:25:08.676468849Z [inf]                }
+2026-01-14T13:25:08.676473616Z [inf]              ],
+2026-01-14T13:25:08.676478171Z [inf]              "contacts": [
+2026-01-14T13:25:08.676482681Z [inf]                {
+2026-01-14T13:25:08.676486858Z [inf]                  "wa_id": "94783269749",
+2026-01-14T13:25:08.676491633Z [inf]                  "profile": {
+2026-01-14T13:25:10.095081120Z [inf]                    "name": "^"
+2026-01-14T13:25:10.095087893Z [inf]                  }
+2026-01-14T13:25:10.095094529Z [inf]                }
+2026-01-14T13:25:10.095100990Z [inf]              ]
+2026-01-14T13:25:10.095108548Z [inf]            }
+2026-01-14T13:25:10.095115400Z [inf]          }
+2026-01-14T13:25:10.095121976Z [inf]        ]
+2026-01-14T13:25:10.095128020Z [inf]      }
+2026-01-14T13:25:10.095133927Z [inf]    ]
+2026-01-14T13:25:10.095140694Z [inf]  }
+2026-01-14T13:25:10.095147683Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:25:10.095155056Z [inf]  [2026-01-14T13:24:48.586Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:25:10.095162039Z [inf]     └─ Data: {
+2026-01-14T13:25:10.095172799Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:25:10.095182333Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:25:10.095193378Z [inf]          "dataKeys": [
+2026-01-14T13:25:10.095201254Z [inf]            "conversationId",
+2026-01-14T13:25:10.095209250Z [inf]            "message",
+2026-01-14T13:25:10.095216670Z [inf]            "timestamp"
+2026-01-14T13:25:10.095224239Z [inf]          ],
+2026-01-14T13:25:10.095230596Z [inf]          "timestamp": "2026-01-14T13:24:48.586Z"
+2026-01-14T13:25:10.095239483Z [inf]        }
+2026-01-14T13:25:10.095246756Z [inf]  [2026-01-14T13:24:48.588Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:new" to room "admin:whatsapp"
+2026-01-14T13:25:10.095255745Z [inf]     └─ Data: {
+2026-01-14T13:25:10.095262720Z [inf]          "event": "whatsapp:message:new",
+2026-01-14T13:25:10.095270410Z [inf]          "roomId": "admin:whatsapp",
+2026-01-14T13:25:10.095277413Z [inf]          "dataKeys": [
+2026-01-14T13:25:10.095284187Z [inf]            "conversationId",
+2026-01-14T13:25:11.344615644Z [inf]    isNativeFormat: false,
+2026-01-14T13:25:11.344662945Z [inf]            "message",
+2026-01-14T13:25:11.344669995Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397089746-49hxy39rr] {
+2026-01-14T13:25:11.344679413Z [inf]    timestamp: '2026-01-14T13:24:49.747Z',
+2026-01-14T13:25:11.344690308Z [inf]            "timestamp"
+2026-01-14T13:25:11.344696767Z [inf]    type: 'messages',
+2026-01-14T13:25:11.344703178Z [inf]          ],
+2026-01-14T13:25:11.344711808Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA',
+2026-01-14T13:25:11.344716834Z [inf]          "timestamp": "2026-01-14T13:24:48.588Z"
+2026-01-14T13:25:11.344728187Z [inf]        }
+2026-01-14T13:25:11.344735840Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:25:11.354375577Z [inf]    isMetaFormat: true
+2026-01-14T13:25:11.354396246Z [inf]  }
+2026-01-14T13:25:11.354404153Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:25:11.354411421Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"statuses":[{"id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA","status":"sent","timestamp":"1768397087","recipient_id":"94783269749","pricing":{"billable":false,"pricing_model":"PMP","category":"service","type":"free_customer_service"}}]},"field":"messages"}]}]}
+2026-01-14T13:25:11.354419194Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:25:11.354427380Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:25:11.354438435Z [inf]    "entry": [
+2026-01-14T13:25:11.354447286Z [inf]      {
+2026-01-14T13:25:11.354455595Z [inf]        "id": "910190741576091",
+2026-01-14T13:25:11.354468922Z [inf]        "changes": [
+2026-01-14T13:25:13.100930930Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:25:13.100937761Z [inf]              },
+2026-01-14T13:25:13.100956812Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA",
+2026-01-14T13:25:13.100963314Z [inf]                  "status": "sent",
+2026-01-14T13:25:13.100969494Z [inf]                  "timestamp": "1768397087",
+2026-01-14T13:25:13.100976115Z [inf]                  "recipient_id": "94783269749",
+2026-01-14T13:25:13.100997643Z [inf]                    "billable": false,
+2026-01-14T13:25:13.101011561Z [inf]                    "category": "service",
+2026-01-14T13:25:13.101018107Z [inf]                    "type": "free_customer_service"
+2026-01-14T13:25:13.101024701Z [inf]                  }
+2026-01-14T13:25:13.101037603Z [inf]              ]
+2026-01-14T13:25:13.101046191Z [inf]            },
+2026-01-14T13:25:13.101056676Z [inf]            "field": "messages"
+2026-01-14T13:25:13.101082274Z [inf]      }
+2026-01-14T13:25:13.101089995Z [inf]    ]
+2026-01-14T13:25:13.101098474Z [inf]  }
+2026-01-14T13:25:13.101105527Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:25:14.477225327Z [inf]    isMetaFormat: true
+2026-01-14T13:25:14.477225562Z [inf]    isNativeFormat: false,
+2026-01-14T13:25:14.477234843Z [inf]  }
+2026-01-14T13:25:14.477242946Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:25:14.477254369Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"statuses":[{"id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA","status":"delivered","timestamp":"1768397088","recipient_id":"94783269749","pricing":{"billable":false,"pricing_model":"PMP","category":"service","type":"free_customer_service"}}]},"field":"messages"}]}]}
+2026-01-14T13:25:14.477264829Z [inf]            "conversationId",
+2026-01-14T13:25:14.477271749Z [inf]            "messageId",
+2026-01-14T13:25:14.477279085Z [inf]            "status",
+2026-01-14T13:25:14.477281734Z [inf]          ],
+2026-01-14T13:25:14.477289984Z [inf]            "timestamp"
+2026-01-14T13:25:14.477291218Z [inf]          "timestamp": "2026-01-14T13:24:49.778Z"
+2026-01-14T13:25:14.477298626Z [inf]        }
+2026-01-14T13:25:14.477310232Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:25:14.477318472Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397090043-9w9kjgjwd] {
+2026-01-14T13:25:14.477326007Z [inf]  [2026-01-14T13:24:49.778Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:status" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:25:14.477327198Z [inf]    timestamp: '2026-01-14T13:24:50.044Z',
+2026-01-14T13:25:14.477334300Z [inf]     └─ Data: {
+2026-01-14T13:25:14.477339820Z [inf]    type: 'messages',
+2026-01-14T13:25:14.477343530Z [inf]          "event": "whatsapp:message:status",
+2026-01-14T13:25:14.477348888Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA',
+2026-01-14T13:25:14.477356734Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:25:14.477363707Z [inf]          "dataKeys": [
+2026-01-14T13:25:15.629219182Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:25:15.629227141Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:25:15.629237605Z [inf]    "entry": [
+2026-01-14T13:25:15.629247239Z [inf]      {
+2026-01-14T13:25:15.629256727Z [inf]        "id": "910190741576091",
+2026-01-14T13:25:15.629264953Z [inf]        "changes": [
+2026-01-14T13:25:15.629273499Z [inf]          {
+2026-01-14T13:25:15.629281999Z [inf]            "value": {
+2026-01-14T13:25:15.629292507Z [inf]              "messaging_product": "whatsapp",
+2026-01-14T13:25:15.629302020Z [inf]              "metadata": {
+2026-01-14T13:25:15.629312734Z [inf]                "display_phone_number": "94778747690",
+2026-01-14T13:25:15.629323166Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:25:15.629331246Z [inf]              },
+2026-01-14T13:25:15.629340075Z [inf]              "statuses": [
+2026-01-14T13:25:15.629348438Z [inf]                {
+2026-01-14T13:25:15.629356820Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA",
+2026-01-14T13:25:15.629364442Z [inf]                  "status": "delivered",
+2026-01-14T13:25:15.629373165Z [inf]                  "timestamp": "1768397088",
+2026-01-14T13:25:15.629382238Z [inf]                  "recipient_id": "94783269749",
+2026-01-14T13:25:15.629392386Z [inf]                  "pricing": {
+2026-01-14T13:25:15.629399966Z [inf]                    "billable": false,
+2026-01-14T13:25:15.629408190Z [inf]                    "pricing_model": "PMP",
+2026-01-14T13:25:15.629415883Z [inf]                    "category": "service",
+2026-01-14T13:25:15.629851266Z [inf]                    "type": "free_customer_service"
+2026-01-14T13:25:15.629874532Z [inf]                  }
+2026-01-14T13:25:15.629886795Z [inf]                }
+2026-01-14T13:25:15.629896040Z [inf]              ]
+2026-01-14T13:25:16.580241560Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:25:16.580253013Z [inf]  [2026-01-14T13:24:50.064Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:status" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:25:16.580259352Z [inf]     └─ Data: {
+2026-01-14T13:25:16.580265317Z [inf]          "event": "whatsapp:message:status",
+2026-01-14T13:25:16.580270203Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:25:16.580276257Z [inf]          "dataKeys": [
+2026-01-14T13:25:16.580282360Z [inf]            "conversationId",
+2026-01-14T13:25:16.580288326Z [inf]            "messageId",
+2026-01-14T13:25:16.580293512Z [inf]            "status",
+2026-01-14T13:25:16.580301447Z [inf]            "timestamp"
+2026-01-14T13:25:16.580309262Z [inf]          ],
+2026-01-14T13:25:16.580320518Z [inf]          "timestamp": "2026-01-14T13:24:50.064Z"
+2026-01-14T13:25:16.580328623Z [inf]        }
+2026-01-14T13:25:16.580333280Z [inf]    timestamp: '2026-01-14T13:24:50.241Z',
+2026-01-14T13:25:16.580341286Z [inf]    type: 'messages',
+2026-01-14T13:25:16.580351302Z [inf]    messageIds: 'wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA',
+2026-01-14T13:25:16.580351669Z [inf]  [Chakra DEBUG] 🔔 WEBHOOK RECEIVED [1768397090240-kl9xq5vca] {
+2026-01-14T13:25:16.580359799Z [inf]    isNativeFormat: false,
+2026-01-14T13:25:16.580367371Z [inf]    isMetaFormat: true
+2026-01-14T13:25:16.580376153Z [inf]  }
+2026-01-14T13:25:16.580383723Z [inf]  [Chakra DEBUG] ========== RAW WEBHOOK PAYLOAD ==========
+2026-01-14T13:25:16.580956372Z [inf]            },
+2026-01-14T13:25:16.580967067Z [inf]            "field": "messages"
+2026-01-14T13:25:16.580972388Z [inf]          }
+2026-01-14T13:25:16.580981745Z [inf]        ]
+2026-01-14T13:25:16.580986874Z [inf]      }
+2026-01-14T13:25:16.580991686Z [inf]    ]
+2026-01-14T13:25:16.581002726Z [inf]  }
+2026-01-14T13:25:16.585751038Z [inf]  [Chakra DEBUG] Raw body: {"object":"whatsapp_business_account","entry":[{"id":"910190741576091","changes":[{"value":{"messaging_product":"whatsapp","metadata":{"display_phone_number":"94778747690","phone_number_id":"873090089229167"},"statuses":[{"id":"wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA","status":"read","timestamp":"1768397088","recipient_id":"94783269749","pricing":{"billable":false,"pricing_model":"PMP","category":"service","type":"free_customer_service"}}]},"field":"messages"}]}]}
+2026-01-14T13:25:16.585757170Z [inf]  [Chakra DEBUG] Parsed payload: {
+2026-01-14T13:25:16.585763612Z [inf]    "object": "whatsapp_business_account",
+2026-01-14T13:25:16.585770845Z [inf]    "entry": [
+2026-01-14T13:25:16.585777360Z [inf]      {
+2026-01-14T13:25:16.585783993Z [inf]        "id": "910190741576091",
+2026-01-14T13:25:16.585791798Z [inf]        "changes": [
+2026-01-14T13:25:16.585801358Z [inf]          {
+2026-01-14T13:25:16.585808877Z [inf]            "value": {
+2026-01-14T13:25:16.585816588Z [inf]              "messaging_product": "whatsapp",
+2026-01-14T13:25:16.585825440Z [inf]              "metadata": {
+2026-01-14T13:25:16.585832442Z [inf]                "display_phone_number": "94778747690",
+2026-01-14T13:25:16.585839846Z [inf]                "phone_number_id": "873090089229167"
+2026-01-14T13:25:16.585847463Z [inf]              },
+2026-01-14T13:25:16.585854498Z [inf]              "statuses": [
+2026-01-14T13:25:16.585861488Z [inf]                {
+2026-01-14T13:25:16.585868871Z [inf]                  "id": "wamid.HBgLOTQ3ODMyNjk3NDkVAgARGBI5Mjg2MUJGREJBQkM1NjcwRDMA",
+2026-01-14T13:25:16.585876466Z [inf]                  "status": "read",
+2026-01-14T13:25:16.585882610Z [inf]                  "timestamp": "1768397088",
+2026-01-14T13:25:16.585890162Z [inf]                  "recipient_id": "94783269749",
+2026-01-14T13:25:16.585896962Z [inf]                  "pricing": {
+2026-01-14T13:25:16.589729376Z [inf]                    "billable": false,
+2026-01-14T13:25:16.589735774Z [inf]                    "pricing_model": "PMP",
+2026-01-14T13:25:16.589741716Z [inf]                    "category": "service",
+2026-01-14T13:25:16.589751321Z [inf]                    "type": "free_customer_service"
+2026-01-14T13:25:16.589757640Z [inf]                  }
+2026-01-14T13:25:16.589763544Z [inf]                }
+2026-01-14T13:25:16.589769688Z [inf]              ]
+2026-01-14T13:25:16.589775898Z [inf]            },
+2026-01-14T13:25:16.589782751Z [inf]            "field": "messages"
+2026-01-14T13:25:16.589789212Z [inf]          }
+2026-01-14T13:25:16.589794416Z [inf]        ]
+2026-01-14T13:25:16.589800136Z [inf]      }
+2026-01-14T13:25:16.589806411Z [inf]    ]
+2026-01-14T13:25:16.589812805Z [inf]  }
+2026-01-14T13:25:16.589818817Z [inf]  [Chakra DEBUG] ========================================
+2026-01-14T13:25:16.589825374Z [err]  [Chakra] Skipping webhook signature enforcement (missing signature header)
+2026-01-14T13:25:16.589831234Z [inf]  [2026-01-14T13:24:50.260Z] 🔔 [REALTIME:ROOM] Broadcasting "whatsapp:message:status" to room "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365"
+2026-01-14T13:25:16.589837449Z [inf]     └─ Data: {
+2026-01-14T13:25:16.589843154Z [inf]          "event": "whatsapp:message:status",
+2026-01-14T13:25:16.589848918Z [inf]          "roomId": "conversation:bc724cf9-00e7-4b4e-b011-1f9c3cf8e365",
+2026-01-14T13:25:16.589854603Z [inf]          "dataKeys": [
+2026-01-14T13:25:16.589861991Z [inf]            "conversationId",
+2026-01-14T13:25:16.589866929Z [inf]            "messageId",
+2026-01-14T13:25:16.589871428Z [inf]            "status",
+2026-01-14T13:25:16.589875893Z [inf]            "timestamp"
+2026-01-14T13:25:16.589880360Z [inf]          ],
+2026-01-14T13:25:16.589884575Z [inf]          "timestamp": "2026-01-14T13:24:50.260Z"
+2026-01-14T13:25:16.595552965Z [inf]        }
+2026-01-14T13:25:16.595560379Z [inf]  
+2026-01-14T13:25:16.595568790Z [inf]  ┌─────────────────────────────────────────────────────────────┐
+2026-01-14T13:25:16.595574693Z [inf]  │  📊 WEBHOOK STATISTICS (last 60s)                       │
+2026-01-14T13:25:16.595581674Z [inf]  ├─────────────────────────────────────────────────────────────┤
+2026-01-14T13:25:16.595588127Z [inf]  │  Total webhooks received:        24                    │
+2026-01-14T13:25:16.595594696Z [inf]  │  Total messages:                  0                    │
+2026-01-14T13:25:16.595602730Z [inf]  │  Largest batch size:              0                    │
+2026-01-14T13:25:16.595609404Z [inf]  │  Average messages/webhook:      0.0                    │
+2026-01-14T13:25:16.595616870Z [inf]  └─────────────────────────────────────────────────────────────┘
+2026-01-14T13:25:16.595626202Z [inf]  
+2026-01-14T13:25:16.595633793Z [inf]  [2026-01-14T13:25:09.846Z] 🔔 [REALTIME:ROOM] Broadcasting "user:disconnected" to room "admin:dashboard"
+2026-01-14T13:25:16.595650247Z [inf]     └─ Data: {
+2026-01-14T13:25:16.595657017Z [inf]          "event": "user:disconnected",
+2026-01-14T13:25:16.595663070Z [inf]          "roomId": "admin:dashboard",
+2026-01-14T13:25:16.595669732Z [inf]          "dataKeys": [
+2026-01-14T13:25:16.595675896Z [inf]            "userId",
+2026-01-14T13:25:16.595684255Z [inf]            "socketId",
+2026-01-14T13:25:16.595695975Z [inf]            "timestamp"
+2026-01-14T13:25:16.595705436Z [inf]          ],
+2026-01-14T13:25:16.596406613Z [inf]          "timestamp": "2026-01-14T13:25:09.846Z"
+2026-01-14T13:25:16.596410918Z [inf]        }
+2026-01-14T13:25:16.596415203Z [inf]  [Summary] socket-broadcast:user:disconnected: 3 occurrences in last 30s
+2026-01-14T13:25:16.596419727Z [inf]  ✅ Socket authenticated: 6b6f37cc-a795-4c8a-bc80-355c99fde3ff (system-admin)
+2026-01-14T13:25:16.596424542Z [inf]  [2026-01-14T13:25:11.537Z] 🔔 [REALTIME:ROOM] Broadcasting "user:connected" to room "admin:dashboard"
+2026-01-14T13:25:16.596429291Z [inf]     └─ Data: {
+2026-01-14T13:25:16.596433824Z [inf]          "event": "user:connected",
+2026-01-14T13:25:16.596438218Z [inf]          "roomId": "admin:dashboard",
+2026-01-14T13:25:16.596442808Z [inf]          "dataKeys": [
+2026-01-14T13:25:16.596447803Z [inf]            "userId",
+2026-01-14T13:25:16.596553609Z [inf]            "socketId",
+2026-01-14T13:25:16.596560989Z [inf]            "connectedAt"
+2026-01-14T13:25:16.596567197Z [inf]          ]
+2026-01-14T13:25:16.596574641Z [inf]        }
+2026-01-14T13:25:16.596579614Z [inf]  [Summary] socket-broadcast:user:connected: 4 occurrences in last 30s

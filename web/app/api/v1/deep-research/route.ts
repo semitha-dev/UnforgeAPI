@@ -135,8 +135,8 @@ const DOMAIN_PRESETS: Record<string, {
 // ============================================
 // DEEP RESEARCH RATE LIMITER (Upstash)
 // ============================================
-// We use our Gemini key for compression, so we must rate limit BYOK users
-// to prevent abuse. This is separate from the general API rate limit.
+// Managed plans have specific deep research limits (sandbox: 3/day, pro: 50/mo, etc.)
+// BYOK plans have unlimited deep research (-1) - the 50 req/day API limit is the guard
 
 function getDeepResearchRateLimiter(plan: ApiPlan): Ratelimit | null {
   const redis = getRedisClient()
@@ -213,8 +213,14 @@ interface DebugContext {
   startTime: number
 }
 
+// Auth errors are ALWAYS logged (even in production) for debugging
+const AUTH_DEBUG = true
+
 function debug(tag: string, data: any, context?: DebugContext) {
-  if (!DEBUG) return
+  // Always log auth-related tags
+  const isAuthTag = tag.startsWith('auth:') || tag.startsWith('verifyApiKey:')
+  if (!DEBUG && !isAuthTag) return
+
   const timestamp = new Date().toISOString()
   const elapsed = context?.startTime ? `+${Math.round(performance.now() - context.startTime)}ms` : ''
   const prefix = `[DeepResearch:${tag}]${context?.requestId ? ` [${context.requestId}]` : ''}${elapsed}`
@@ -229,9 +235,11 @@ function debugSuccess(tag: string, data: any, context?: DebugContext) {
 }
 
 function debugError(tag: string, error: any, context?: DebugContext) {
+  // Errors are ALWAYS logged
   const timestamp = new Date().toISOString()
-  const prefix = `❌ [DeepResearch:${tag}:ERROR]${context?.requestId ? ` [${context.requestId}]` : ''}`
-  console.error(`${timestamp} ${prefix}`, { message: error?.message, name: error?.name, stack: error?.stack?.split('\n')[0] })
+  const elapsed = context?.startTime ? `+${Math.round(performance.now() - context.startTime)}ms` : ''
+  const prefix = `❌ [DeepResearch:${tag}:ERROR]${context?.requestId ? ` [${context.requestId}]` : ''}${elapsed}`
+  console.error(`${timestamp} ${prefix}`, typeof error === 'object' ? JSON.stringify(error) : error)
 }
 
 // ============================================
@@ -417,31 +425,139 @@ interface UnkeyVerifyResult {
   keyId?: string
 }
 
-async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyVerifyResult> {
-  debug('verifyApiKey:start', { keyPrefix: key.substring(0, 10) + '...' }, context)
+// Single attempt to verify API key (internal)
+async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<UnkeyVerifyResult & { shouldRetry?: boolean }> {
+  const verifyStartTime = performance.now()
 
   try {
-    // Unkey API endpoint
     const response = await fetch('https://api.unkey.dev/v1/keys.verifyKey', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key })
     })
+
+    const verifyLatency = Math.round(performance.now() - verifyStartTime)
     const rawResult = await response.json()
-    // Unkey v2 wraps response in { meta, data } envelope
     const result = rawResult.data || rawResult
 
-    if (!response.ok) return { valid: false, code: 'API_ERROR' }
+    debug('verifyApiKey:response', {
+      httpStatus: response.status,
+      httpOk: response.ok,
+      verifyLatencyMs: verifyLatency,
+      valid: result.valid,
+      code: result.code,
+      hasMetadata: !!result.meta,
+      keyId: result.keyId || result.id,
+      ownerId: result.ownerId,
+      unkeyRequestId: rawResult.meta?.requestId,
+      rawError: result.error || rawResult.error,
+      rawCode: result.code || rawResult.code
+    }, context)
+
+    if (!response.ok) {
+      debugError('verifyApiKey:httpError', {
+        status: response.status,
+        statusText: response.statusText,
+        rawResult: JSON.stringify(rawResult).substring(0, 500),
+        unkeyError: result.error || rawResult.error,
+        unkeyCode: result.code || rawResult.code
+      }, context)
+
+      // Retry on 5xx errors or specific transient errors
+      const shouldRetry = response.status >= 500 || response.status === 429
+      return {
+        valid: false,
+        code: result.code || rawResult.code || 'API_ERROR',
+        shouldRetry
+      }
+    }
+
+    if (!result.valid) {
+      debug('verifyApiKey:invalidKey', {
+        code: result.code,
+        reason: result.code === 'NOT_FOUND' ? 'Key does not exist in Unkey' :
+                result.code === 'RATE_LIMITED' ? 'Key is rate limited' :
+                result.code === 'EXPIRED' ? 'Key has expired' :
+                result.code === 'DISABLED' ? 'Key is disabled' :
+                result.code === 'FORBIDDEN' ? 'Key lacks permissions' :
+                'Unknown reason',
+        remaining: result.remaining,
+        ratelimit: result.ratelimit
+      }, context)
+    }
 
     return {
       valid: result.valid || false,
       code: result.code,
       meta: result.meta,
-      keyId: result.keyId
+      keyId: result.keyId || result.id,
+      shouldRetry: false
     }
   } catch (error: any) {
-    debugError('verifyApiKey', error, context)
-    return { valid: false, code: 'NETWORK_ERROR' }
+    const verifyLatency = Math.round(performance.now() - verifyStartTime)
+    debugError('verifyApiKey:networkError', {
+      errorName: error.name,
+      errorMessage: error.message,
+      errorCause: error.cause,
+      verifyLatencyMs: verifyLatency,
+      isTimeout: error.name === 'AbortError' || error.message?.includes('timeout'),
+      isFetchError: error.name === 'TypeError' && error.message?.includes('fetch')
+    }, context)
+    // Network errors are always retryable
+    return { valid: false, code: 'NETWORK_ERROR', shouldRetry: true }
+  }
+}
+
+// Verify API key with automatic retry on transient errors
+const MAX_VERIFY_RETRIES = 2
+const RETRY_DELAY_MS = 150
+
+async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyVerifyResult> {
+  debug('verifyApiKey:start', { keyPrefix: key.substring(0, 10) + '...', keyLength: key.length, maxRetries: MAX_VERIFY_RETRIES }, context)
+
+  let lastResult: UnkeyVerifyResult = { valid: false, code: 'UNKNOWN' }
+
+  for (let attempt = 1; attempt <= MAX_VERIFY_RETRIES + 1; attempt++) {
+    const result = await verifyApiKeyOnce(key, context)
+
+    // Success - return immediately
+    if (result.valid) {
+      if (attempt > 1) {
+        debug('verifyApiKey:retrySuccess', { attempt, totalAttempts: attempt }, context)
+      }
+      return {
+        valid: result.valid,
+        code: result.code,
+        meta: result.meta,
+        keyId: result.keyId
+      }
+    }
+
+    lastResult = result
+
+    // Don't retry if it's a definitive failure (key not found, expired, etc.)
+    if (!result.shouldRetry) {
+      debug('verifyApiKey:noRetry', { attempt, code: result.code, reason: 'Definitive failure, not retryable' }, context)
+      break
+    }
+
+    // Don't retry if we've exhausted attempts
+    if (attempt > MAX_VERIFY_RETRIES) {
+      debug('verifyApiKey:exhaustedRetries', { attempt, code: result.code }, context)
+      break
+    }
+
+    // Wait before retrying (with exponential backoff)
+    const delay = RETRY_DELAY_MS * attempt
+    debug('verifyApiKey:retrying', { attempt, nextAttempt: attempt + 1, delayMs: delay, code: result.code }, context)
+    await new Promise(resolve => setTimeout(resolve, delay))
+  }
+
+  return {
+    valid: lastResult.valid,
+    code: lastResult.code,
+    meta: lastResult.meta,
+    keyId: lastResult.keyId
   }
 }
 
@@ -564,11 +680,18 @@ export async function POST(req: NextRequest) {
   const startTime = performance.now()
   const requestId = `dr-${Date.now()}-${Math.random().toString(36).substring(7)}`
   const ctx: DebugContext = { requestId, startTime }
-  
+
   // Initialize auto-cut timer
   const timer = createTimerContext()
 
-  debug('POST:start', { timestamp: new Date().toISOString(), timeLimitMs: TIME_LIMIT_MS }, ctx)
+  debug('POST:start', {
+    timestamp: new Date().toISOString(),
+    timeLimitMs: TIME_LIMIT_MS,
+    url: req.url,
+    hasAuth: !!req.headers.get('Authorization'),
+    hasGroqKey: !!req.headers.get('x-groq-key'),
+    hasTavilyKey: !!req.headers.get('x-tavily-key')
+  }, ctx)
 
   try {
     // ============================================
@@ -578,17 +701,55 @@ export async function POST(req: NextRequest) {
     const token = authHeader?.replace('Bearer ', '')
 
     if (!token) {
-      return Response.json({ error: 'Missing API Key', code: 'MISSING_API_KEY' }, { status: 401 })
+      debug('auth:missing', { hasAuthHeader: !!authHeader }, ctx)
+      return Response.json({
+        error: 'Missing API Key',
+        code: 'MISSING_API_KEY',
+        request_id: requestId
+      }, { status: 401 })
     }
 
+    debug('auth:verifying', { tokenPrefix: token.substring(0, 10) + '...', tokenLength: token.length }, ctx)
     const result = await verifyApiKey(token, ctx)
 
     if (!result.valid) {
+      debug('auth:failed', {
+        code: result.code,
+        hasKeyId: !!result.keyId
+      }, ctx)
+
       if (result.code === 'RATE_LIMITED') {
-        return Response.json({ error: 'Rate limit exceeded', code: 'RATE_LIMITED' }, { status: 429 })
+        return Response.json({
+          error: 'Rate limit exceeded. You have exceeded the allowed number of requests.',
+          code: 'RATE_LIMITED',
+          request_id: requestId,
+          hint: 'Wait a moment and try again, or upgrade your plan for higher limits.'
+        }, { status: 429 })
       }
-      return Response.json({ error: 'Invalid API Key', code: result.code || 'INVALID_API_KEY' }, { status: 401 })
+
+      // More detailed error messages based on Unkey error codes
+      const errorMessages: Record<string, string> = {
+        'NOT_FOUND': 'API key not found. Please check your API key is correct.',
+        'EXPIRED': 'API key has expired. Please generate a new key from the dashboard.',
+        'DISABLED': 'API key has been disabled. Please contact support.',
+        'FORBIDDEN': 'API key does not have permission to access this endpoint.',
+        'API_ERROR': 'Failed to verify API key with authentication service. This may be a temporary issue - please retry.',
+        'NETWORK_ERROR': 'Network error while verifying API key. Please check your connection and retry.'
+      }
+
+      return Response.json({
+        error: errorMessages[result.code || ''] || 'Invalid API Key',
+        code: result.code || 'INVALID_API_KEY',
+        request_id: requestId,
+        hint: result.code === 'API_ERROR' ? 'This is often a transient error. Please retry your request.' : undefined
+      }, { status: 401 })
     }
+
+    debug('auth:success', {
+      keyId: result.keyId,
+      plan: result.meta?.plan || result.meta?.tier,
+      hasMeta: !!result.meta
+    }, ctx)
 
     // ============================================
     // 2. TIER CHECK

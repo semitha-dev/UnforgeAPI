@@ -5,11 +5,15 @@ CREATE TABLE IF NOT EXISTS api_usage (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   workspace_id UUID NOT NULL,
   key_id TEXT NOT NULL,
-  intent TEXT NOT NULL CHECK (intent IN ('CHAT', 'CONTEXT', 'RESEARCH')),
+  intent TEXT NOT NULL CHECK (intent IN ('CHAT', 'CONTEXT', 'RESEARCH', 'DEEP_RESEARCH')),
   latency_ms INTEGER,
   query_preview TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- If table already exists, update the constraint to include DEEP_RESEARCH
+-- ALTER TABLE api_usage DROP CONSTRAINT IF EXISTS api_usage_intent_check;
+-- ALTER TABLE api_usage ADD CONSTRAINT api_usage_intent_check CHECK (intent IN ('CHAT', 'CONTEXT', 'RESEARCH', 'DEEP_RESEARCH'));
 
 -- Create indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_api_usage_workspace_id ON api_usage(workspace_id);

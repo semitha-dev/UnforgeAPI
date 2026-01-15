@@ -13,7 +13,7 @@ export function Loading({ message = 'Loading...', fullScreen = true }: LoadingPr
       {/* Logo Icon */}
       <div className="mb-6">
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center shadow-lg overflow-hidden">
-          <Image src="/new_logo.png" alt="UnforgeAPI" width={40} height={40} className="object-contain" />
+          <Image src="/reallogo.png" alt="UnforgeAPI" width={40} height={40} className="object-contain" />
         </div>
       </div>
       

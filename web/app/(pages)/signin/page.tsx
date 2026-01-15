@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/app/lib/supabaseClient'
-import { Eye, EyeOff, Zap } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 
 interface FormData {
   email: string
@@ -218,9 +219,9 @@ export default function SignInPage() {
 
       <div className="relative w-full max-w-md">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="p-2 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 rounded-xl border border-violet-500/30">
-            <Zap className="w-6 h-6 text-violet-400" />
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <div className="p-2 overflow-hidden flex items-center justify-center">
+            <Image src="/reallogo.png" alt="UnforgeAPI" width={40} height={40} className="object-contain" />
           </div>
           <span className="text-2xl font-bold text-white">UnforgeAPI</span>
         </div>

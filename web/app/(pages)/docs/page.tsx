@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { 
-  Zap, 
+import Image from 'next/image'
+import {
   ArrowRight,
   Copy,
   Check,
@@ -53,15 +53,16 @@ export default function DocsPage() {
   const [activeSection, setActiveSection] = useState('introduction')
   
   const sections = [
+    { id: 'deep-research', label: 'Deep Research' },
     { id: 'introduction', label: 'Quick Start' },
     { id: 'how-it-works', label: 'How It Works' },
     { id: 'authentication', label: 'Authentication' },
     { id: 'chat-endpoint', label: 'Chat API' },
-    { id: 'deep-research', label: 'Deep Research' },
     { id: 'advanced', label: 'Parameters' },
     { id: 'enterprise', label: 'Compliance' },
     { id: 'examples', label: 'Examples' },
     { id: 'pricing', label: 'Pricing' },
+    { id: 'rate-limits', label: 'Rate Limits' },
   ]
   
   return (
@@ -70,8 +71,8 @@ export default function DocsPage() {
       <header className="sticky top-0 z-50 w-full border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-[#050505]/80 backdrop-blur-md">
         <div className="max-w-[1600px] mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-violet-500 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/20">
-              <Zap className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 bg-violet-500 rounded-lg flex items-center justify-center shadow-lg shadow-violet-500/20 overflow-hidden">
+              <Image src="/reallogo.png" alt="UnforgeAPI" width={32} height={32} className="object-contain" />
             </div>
             <div className="flex items-baseline gap-2">
               <span className="font-bold text-lg tracking-tight">UnforgeAPI</span>
@@ -113,8 +114,8 @@ export default function DocsPage() {
         
         {/* Main Content */}
         <main className="flex-1 md:pl-72 py-10 px-6 max-w-5xl">
-          {/* Introduction - Optimized for First Success */}
-          <section id="introduction" className="mb-16">
+          {/* Deep Research - Main Feature */}
+          <section id="deep-research" className="mb-16">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight text-gray-900 dark:text-white">
               UnforgeAPI Documentation
             </h1>
@@ -1051,6 +1052,103 @@ print(f"Routed to: {data['meta']['routed_to']}")`}
               <p className="text-sm text-gray-700 dark:text-gray-300">
                 <strong className="text-violet-600 dark:text-violet-400">Recommendation:</strong> The BYOK tier is recommended for 
                 production applications to ensure zero markup on token usage and unlimited scaling.
+              </p>
+            </div>
+          </section>
+          
+          {/* Rate Limits */}
+          <section id="rate-limits" className="mb-16">
+            <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white flex items-center gap-3">
+              <Clock className="w-8 h-8 text-violet-500" />
+              Rate Limits
+            </h2>
+            
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Rate limits are applied per API key to ensure fair usage and service stability. These limits vary by plan.
+            </p>
+            
+            <div className="overflow-x-auto bg-gray-50 dark:bg-zinc-900/50 rounded-2xl border border-gray-200 dark:border-zinc-800 p-6 mb-6">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-zinc-700">
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Plan</th>
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Request Limit</th>
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Rate Limit</th>
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Web Search</th>
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Deep Research</th>
+                  </tr>
+                </thead>
+                <tbody className="text-gray-700 dark:text-gray-300">
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">Sandbox</td>
+                    <td className="py-3">50 / day</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">1 req/sec</td>
+                    <td className="py-3">3 / day</td>
+                    <td className="py-3">5 / day</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">Managed Pro</td>
+                    <td className="py-3">50,000 / month</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">5 req/sec</td>
+                    <td className="py-3">1,000 / month</td>
+                    <td className="py-3">50 / month</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">Managed Expert</td>
+                    <td className="py-3">200,000 / month</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">10 req/sec</td>
+                    <td className="py-3">5,000 / month</td>
+                    <td className="py-3">200 / month</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">BYOK Starter</td>
+                    <td className="py-3">100 / day</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">2 req/sec</td>
+                    <td className="py-3">Unlimited*</td>
+                    <td className="py-3">5 / day</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">BYOK Unlimited</td>
+                    <td className="py-3">Unlimited</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">10 req/sec</td>
+                    <td className="py-3">Unlimited*</td>
+                    <td className="py-3">Unlimited*</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+              * BYOK plans use your own Tavily API key for search and deep research. Usage is subject to Tavily's rate limits.
+            </p>
+            
+            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">Rate Limit Headers</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Every API response includes headers to help you track your usage:
+            </p>
+            <CodeBlock
+              language="http"
+              code={`X-RateLimit-Limit: 10
+X-RateLimit-Remaining: 9
+X-RateLimit-Reset: 1704067200`}
+            />
+            
+            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">Exceeding Rate Limits</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              When you exceed your rate limit, you'll receive a <code className="px-2 py-1 bg-gray-100 dark:bg-zinc-800 rounded text-sm">429 Too Many Requests</code> response:
+            </p>
+            <CodeBlock
+              language="json"
+              code={`{
+  "error": "Rate limit exceeded",
+  "message": "You have exceeded the rate limit. Please try again later.",
+  "retry_after": 1
+}`}
+            />
+            
+            <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl">
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <strong className="text-amber-600 dark:text-amber-400">Best Practice:</strong> Implement exponential backoff in your application to handle rate limit errors gracefully. Start with a 1-second delay and double it for each subsequent retry.
               </p>
             </div>
           </section>

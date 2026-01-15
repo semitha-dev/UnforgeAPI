@@ -23,30 +23,71 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// Helper to get user from session
+// Helper to get user from session cookie - Updated to handle chunked base64 cookies
 async function getUserFromSession() {
+  debug('getUserFromSession:start', {})
   const cookieStore = await cookies()
-  const supabaseCookies = cookieStore.getAll()
-  const authCookie = supabaseCookies.find(c => c.name.includes('auth-token'))
+  const accessToken = cookieStore.get('sb-access-token')?.value
+  const refreshToken = cookieStore.get('sb-refresh-token')?.value
   
-  if (authCookie) {
-    try {
-      const parsed = JSON.parse(authCookie.value)
-      if (parsed?.access_token) {
-        const { data: { user } } = await supabaseAdmin.auth.getUser(parsed.access_token)
-        return user
+  const allCookies = cookieStore.getAll()
+  debug('getUserFromSession:cookies', { 
+    hasAccessToken: !!accessToken, 
+    hasRefreshToken: !!refreshToken,
+    allCookies: allCookies.map(c => c.name)
+  })
+
+  if (!accessToken) {
+    // Try to get from Supabase chunked auth cookie format (auth-token.0, auth-token.1, etc.)
+    const authCookieBase = allCookies.find(c => c.name.includes('auth-token'))?.name.replace(/\.\d+$/, '')
+    
+    if (authCookieBase) {
+      // Collect all chunks
+      const chunks: string[] = []
+      let i = 0
+      while (true) {
+        const chunk = cookieStore.get(`${authCookieBase}.${i}`)?.value
+        if (!chunk) break
+        chunks.push(chunk)
+        i++
       }
-    } catch (e) {
-      // Continue
+      
+      if (chunks.length > 0) {
+        let combined = chunks.join('')
+        debug('getUserFromSession:chunkedCookie', { chunks: chunks.length, combinedLength: combined.length })
+        
+        // Handle base64 encoded cookies (prefixed with "base64-")
+        if (combined.startsWith('base64-')) {
+          try {
+            combined = Buffer.from(combined.slice(7), 'base64').toString('utf-8')
+            debug('getUserFromSession:decodedBase64', { decodedLength: combined.length })
+          } catch (e) {
+            debug('getUserFromSession:base64Error', { error: (e as Error).message })
+          }
+        }
+        
+        try {
+          const parsed = JSON.parse(combined)
+          if (parsed?.access_token) {
+            const { data: { user } } = await supabaseAdmin.auth.getUser(parsed.access_token)
+            debug('getUserFromSession:fromChunkedCookie', { userId: user?.id })
+            return user
+          }
+        } catch (e) {
+          debug('getUserFromSession:parseError', { error: (e as Error).message })
+        }
+      }
     }
   }
-  
-  const accessToken = cookieStore.get('sb-access-token')?.value
+
+  // Try direct token
   if (accessToken) {
     const { data: { user } } = await supabaseAdmin.auth.getUser(accessToken)
+    debug('getUserFromSession:fromAccessToken', { userId: user?.id })
     return user
   }
-  
+
+  debug('getUserFromSession:noUser', {})
   return null
 }
 
@@ -99,9 +140,15 @@ export async function GET(request: NextRequest) {
       debug('GET:memberError', { error: memberError.message })
     }
     
-    // Combine and deduplicate
+    // Combine and deduplicate by workspace id
     const memberWs = memberWorkspaces?.map(m => m.workspace).filter(Boolean) || []
-    const allWorkspaces = [...(ownedWorkspaces || []), ...memberWs]
+    const combinedWorkspaces = [...(ownedWorkspaces || []), ...memberWs]
+    const uniqueIds = new Set<string>()
+    const allWorkspaces = combinedWorkspaces.filter((ws: any) => {
+      if (uniqueIds.has(ws.id)) return false
+      uniqueIds.add(ws.id)
+      return true
+    })
     
     // Get current default workspace from profile
     const { data: profile } = await supabaseAdmin
@@ -112,6 +159,8 @@ export async function GET(request: NextRequest) {
     
     debug('GET:success', { 
       workspaceCount: allWorkspaces.length,
+      ownedCount: ownedWorkspaces?.length || 0,
+      memberCount: memberWs.length,
       defaultWorkspaceId: profile?.default_workspace_id 
     })
     

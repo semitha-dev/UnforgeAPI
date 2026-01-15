@@ -42,7 +42,7 @@ const openPositions = [
     location: 'Remote',
     type: 'Full-time',
     icon: Megaphone,
-    description: 'Drive user acquisition and engagement for UnforgeAPI. Help us reach students who can benefit from our AI study tools.',
+    description: 'Drive user acquisition and engagement for LeafLearning. Help us reach students who can benefit from our AI study tools.',
     requirements: [
       '3+ years in growth/digital marketing',
       'Experience with SEO, content marketing, paid ads',
@@ -91,9 +91,9 @@ export default function CareersPage() {
           </Link>
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/new_logo.png" alt="UnforgeAPI" width={24} height={24} className="object-contain" />
+              <Image src="/reallogo.png" alt="LeafLearning" width={32} height={32} className="object-contain" />
             </div>
-            <span className="font-bold font-headline text-text-primary">UnforgeAPI</span>
+            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
           </Link>
         </div>
       </header>
@@ -163,7 +163,7 @@ export default function CareersPage() {
                         </div>
                       </div>
                       <a 
-                        href={`mailto:careers@UnforgeAPI.app?subject=Application for ${position.title}`}
+                        href={`mailto:careers@leaflearning.app?subject=Application for ${position.title}`}
                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent text-accent-foreground rounded-xl font-bold font-cta hover:bg-accent/90 transition-colors shrink-0"
                       >
                         <Send className="w-4 h-4" />
@@ -195,10 +195,10 @@ export default function CareersPage() {
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-2xl font-bold font-headline text-primary mb-4">Don't See a Perfect Fit?</h2>
           <p className="text-text-secondary font-body mb-6 max-w-xl mx-auto">
-            We're always looking for talented people. Send us your resume and tell us how you can contribute to UnforgeAPI.
+            We're always looking for talented people. Send us your resume and tell us how you can contribute to LeafLearning.
           </p>
           <a 
-            href="mailto:careers@UnforgeAPI.app?subject=General Application"
+            href="mailto:careers@leaflearning.app?subject=General Application"
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold font-cta hover:bg-primary/90 transition-colors"
           >
             <Send className="w-5 h-5" />
@@ -211,7 +211,7 @@ export default function CareersPage() {
       <footer className="py-8 border-t border-border">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
+            © {new Date().getFullYear()} LeafLearning. All rights reserved.
           </p>
         </div>
       </footer>

@@ -7,12 +7,12 @@ import Image from 'next/image'
 import { createClient } from '@/app/lib/supabaseClient'
 import { 
   LayoutDashboard, Settings, Menu, LogOut, Key, FileText, CreditCard, BarChart3,
-  ChevronDown, Plus, Building2, Check, Loader2, Sparkles
+  ChevronDown, Plus, Building2, Check, Loader2, Sparkles, HelpCircle, ExternalLink
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 
-type SubscriptionTier = 'free' | 'managed_pro' | 'byok_pro' | 'pro' | 'sandbox'
+type SubscriptionTier = 'free' | 'managed_pro' | 'managed_expert' | 'byok_pro' | 'pro' | 'sandbox'
 
 interface Workspace {
   id: string
@@ -45,7 +45,9 @@ export default function DashboardLayout({
   const [newWorkspaceDescription, setNewWorkspaceDescription] = useState('')
   const [isCreatingWorkspace, setIsCreatingWorkspace] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const workspaceMenuRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
 
   // Debug helper
   const debug = (tag: string, data: any) => {
@@ -56,21 +58,36 @@ export default function DashboardLayout({
     if (!fetchedRef.current) {
       fetchedRef.current = true
       debug('mount', { timestamp: new Date().toISOString() })
-      loadUserData()
-      loadWorkspaces()
+      // Load user data first, then workspaces (workspaces API needs auth)
+      loadUserData().then(() => {
+        debug('mount:userDataLoaded', { loadingWorkspaces: true })
+        loadWorkspaces()
+      })
     }
   }, [])
 
-  // Close workspace menu when clicking outside
+  // Close workspace menu and user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (workspaceMenuRef.current && !workspaceMenuRef.current.contains(event.target as Node)) {
         setWorkspaceMenuOpen(false)
       }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false)
+      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  // Debug workspace state changes
+  useEffect(() => {
+    debug('workspaceState:changed', {
+      workspacesCount: workspaces.length,
+      workspaces: workspaces.map(w => ({ id: w.id, name: w.name })),
+      currentWorkspace: currentWorkspace ? { id: currentWorkspace.id, name: currentWorkspace.name } : null
+    })
+  }, [workspaces, currentWorkspace])
 
   const loadUserData = async () => {
     debug('loadUserData:start', {})
@@ -108,26 +125,40 @@ export default function DashboardLayout({
   }
 
   const loadWorkspaces = async () => {
+    debug('loadWorkspaces:start', {})
     try {
       const response = await fetch('/api/workspaces')
+      debug('loadWorkspaces:response', { status: response.status, ok: response.ok })
       const data = await response.json()
+      debug('loadWorkspaces:data', { 
+        workspaces: data.workspaces?.length || 0, 
+        defaultWorkspaceId: data.defaultWorkspaceId,
+        rawData: data 
+      })
       
       if (response.ok) {
-        setWorkspaces(data.workspaces || [])
+        const workspaceList = data.workspaces || []
+        debug('loadWorkspaces:setting', { workspaceCount: workspaceList.length })
+        setWorkspaces(workspaceList)
         
-        // Set current workspace
-        if (data.defaultWorkspaceId) {
-          const defaultWs = data.workspaces?.find((w: Workspace) => w.id === data.defaultWorkspaceId)
-          if (defaultWs) {
-            setCurrentWorkspace(defaultWs)
-          } else if (data.workspaces?.length > 0) {
-            setCurrentWorkspace(data.workspaces[0])
+        // Set current workspace - prioritize default, then first available
+        if (workspaceList.length > 0) {
+          if (data.defaultWorkspaceId) {
+            const defaultWs = workspaceList.find((w: Workspace) => w.id === data.defaultWorkspaceId)
+            debug('loadWorkspaces:defaultWs', { found: !!defaultWs, defaultId: data.defaultWorkspaceId })
+            setCurrentWorkspace(defaultWs || workspaceList[0])
+          } else {
+            debug('loadWorkspaces:noDefault', { usingFirst: workspaceList[0]?.name })
+            setCurrentWorkspace(workspaceList[0])
           }
-        } else if (data.workspaces?.length > 0) {
-          setCurrentWorkspace(data.workspaces[0])
+        } else {
+          debug('loadWorkspaces:noWorkspaces', { message: 'No workspaces found' })
         }
+      } else {
+        debug('loadWorkspaces:apiError', { error: data.error })
       }
     } catch (error) {
+      debug('loadWorkspaces:error', { error })
       console.error('Error loading workspaces:', error)
     }
   }
@@ -204,7 +235,6 @@ export default function DashboardLayout({
     { href: '/dashboard', icon: LayoutDashboard, label: 'Overview' },
     { href: '/dashboard/keys', icon: Key, label: 'API Keys' },
     { href: '/dashboard/usage', icon: BarChart3, label: 'Usage' },
-    { href: '/docs', icon: FileText, label: 'Documentation' },
     { href: '/dashboard/billing', icon: CreditCard, label: 'Billing' },
     { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
   ]
@@ -217,18 +247,17 @@ export default function DashboardLayout({
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-neutral-900 border-r border-neutral-800 transform transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#050505] border-r border-neutral-800 transform transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-neutral-800">
-            <Link href="/dashboard" className="flex items-center gap-3">
-              <Image src="/new_logo.png" alt="UnforgeAPI" width={32} height={32} className="object-contain" />
-              <span className="text-xl font-bold text-white">UnforgeAPI</span>
+          <div className="px-4 pt-5 pb-3 flex items-center justify-between border-b border-neutral-800">
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Image src="/reallogo.png" alt="UnforgeAPI" width={44} height={44} className="object-contain" />
             </Link>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 custom-scrollbar">
             {navItems.map((item) => {
               const isActive = pathname === item.href
               return (
@@ -236,35 +265,67 @@ export default function DashboardLayout({
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
                     isActive 
-                      ? 'bg-emerald-500/10 text-emerald-400' 
-                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                      ? 'bg-[#0f0f0f] text-white font-medium' 
+                      : 'text-neutral-400 hover:bg-[#1a1a1a] hover:text-gray-200'
                   }`}
                 >
                   <item.icon className="h-5 w-5" />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="text-sm font-medium">{item.label}</span>
                 </Link>
               )
             })}
           </nav>
 
-          {/* Workspace Switcher */}
-          <div className="p-4 border-t border-neutral-800" ref={workspaceMenuRef}>
-            <div className="relative">
+          {/* Support & Documentation Links */}
+          <div className="px-3 pb-4">
+            <div className="space-y-0.5 mb-2">
+              <a
+                href="mailto:support@unforgeapi.com"
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-neutral-400 hover:bg-[#1a1a1a] hover:text-gray-200 transition-colors group"
+              >
+                <HelpCircle className="h-5 w-5 group-hover:text-gray-300" />
+                <span className="text-sm font-medium">Support</span>
+              </a>
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-neutral-400 hover:bg-[#1a1a1a] hover:text-gray-200 transition-colors group"
+              >
+                <ExternalLink className="h-4 w-4 group-hover:text-gray-300" />
+                <span className="text-sm font-medium">Documentation</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Upgrade Button - Show for non-pro users */}
+          {(!profile?.subscription_tier || profile.subscription_tier === 'free' || profile.subscription_tier === 'sandbox') && (
+            <div className="px-3 pb-2">
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-md transition-all font-medium text-sm"
+              >
+                <Sparkles className="h-4 w-4" />
+                Upgrade to Pro
+              </button>
+            </div>
+          )}
+
+          {/* Workspace Selector (Bottom) */}
+          <div className="px-3 pb-4 border-t border-neutral-800">
+            <div className="relative pt-3" ref={workspaceMenuRef}>
               <button
                 onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-neutral-800/50 hover:bg-neutral-800 transition-colors"
+                className="w-full flex items-center gap-3 px-2 py-2 rounded-md hover:bg-[#1a1a1a] transition-colors group text-left"
               >
-                <div className="h-8 w-8 rounded-lg bg-violet-500/20 flex items-center justify-center text-violet-400">
-                  <Building2 className="h-4 w-4" />
+                <div className="w-8 h-8 rounded-full bg-[#1a1a1a] border border-neutral-800 flex items-center justify-center overflow-hidden">
+                  <Building2 className="h-4 w-4 text-gray-300" />
                 </div>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-medium text-white truncate">
-                    {currentWorkspace?.name || 'Select Workspace'}
-                  </p>
-                  <p className="text-xs text-neutral-500 truncate">
-                    {currentWorkspace?.slug || 'No workspace'}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-200 truncate">
+                    {currentWorkspace?.name || (workspaces.length > 0 ? workspaces[0].name : 'No Workspace')}
                   </p>
                 </div>
                 <ChevronDown className={`h-4 w-4 text-neutral-400 transition-transform ${workspaceMenuOpen ? 'rotate-180' : ''}`} />
@@ -277,7 +338,7 @@ export default function DashboardLayout({
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
-                    className="absolute bottom-full left-0 right-0 mb-2 bg-neutral-800 border border-neutral-700 rounded-xl shadow-xl overflow-hidden"
+                    className="absolute bottom-full left-0 right-0 mb-2 bg-[#0f0f0f] border border-neutral-800 rounded-xl shadow-xl overflow-hidden"
                   >
                     <div className="p-2 max-h-60 overflow-y-auto">
                       {workspaces.map((workspace) => (
@@ -286,8 +347,8 @@ export default function DashboardLayout({
                           onClick={() => switchWorkspace(workspace)}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                             currentWorkspace?.id === workspace.id
-                              ? 'bg-emerald-500/10 text-emerald-400'
-                              : 'text-neutral-300 hover:bg-neutral-700'
+                              ? 'bg-[#1a1a1a] text-white'
+                              : 'text-neutral-300 hover:bg-[#1a1a1a]'
                           }`}
                         >
                           <Building2 className="h-4 w-4 flex-shrink-0" />
@@ -298,13 +359,13 @@ export default function DashboardLayout({
                         </button>
                       ))}
                     </div>
-                    <div className="p-2 border-t border-neutral-700">
+                    <div className="p-2 border-t border-neutral-800">
                       <button
                         onClick={() => {
                           setWorkspaceMenuOpen(false)
                           setShowNewWorkspaceModal(true)
                         }}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-violet-400 hover:bg-violet-500/10 transition-colors"
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-blue-400 hover:bg-blue-500/10 transition-colors"
                       >
                         <Plus className="h-4 w-4" />
                         <span className="text-sm font-medium">New Workspace</span>
@@ -313,60 +374,6 @@ export default function DashboardLayout({
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Upgrade Button - Show for non-pro users */}
-          {(!profile?.subscription_tier || profile.subscription_tier === 'free' || profile.subscription_tier === 'sandbox') && (
-            <div className="px-4 pb-2">
-              <button
-                onClick={() => setShowUpgradeModal(true)}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white rounded-lg transition-all font-medium text-sm shadow-lg shadow-violet-500/20"
-              >
-                <Sparkles className="h-4 w-4" />
-                Upgrade to Pro
-              </button>
-            </div>
-          )}
-
-          {/* User section */}
-          <div className="p-4 border-t border-neutral-800">
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="relative">
-                <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold ${
-                  profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'pro'
-                    ? 'bg-violet-500/20 text-violet-400 ring-2 ring-violet-500'
-                    : profile?.subscription_tier === 'byok_pro'
-                    ? 'bg-orange-500/20 text-orange-400 ring-2 ring-orange-500'
-                    : 'bg-emerald-500/20 text-emerald-400'
-                }`}>
-                  {profile?.name?.[0] || 'U'}
-                </div>
-                {(profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'byok_pro' || profile?.subscription_tier === 'pro') && (
-                  <div className={`absolute -bottom-1 -right-1 px-1 py-0.5 rounded text-[8px] font-bold uppercase ${
-                    profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'pro'
-                      ? 'bg-violet-500 text-white'
-                      : 'bg-orange-500 text-white'
-                  }`}>
-                    Pro
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{profile?.name || 'Developer'}</p>
-                {(profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'byok_pro' || profile?.subscription_tier === 'pro') && (
-                  <p className={`text-xs truncate ${
-                    profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'pro'
-                      ? 'text-violet-400'
-                      : 'text-orange-400'
-                  }`}>
-                    {profile?.subscription_tier === 'byok_pro' ? 'BYOK Pro' : 'Managed Pro'}
-                  </p>
-                )}
-              </div>
-              <button onClick={handleSignOut} className="p-2 text-neutral-400 hover:text-white transition-colors">
-                <LogOut className="h-4 w-4" />
-              </button>
             </div>
           </div>
         </div>
@@ -387,7 +394,7 @@ export default function DashboardLayout({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 w-full max-w-md"
+              className="bg-[#0f0f0f] border border-neutral-800 rounded-xl p-6 w-full max-w-md"
             >
               <h2 className="text-xl font-bold text-white mb-4">Create New Workspace</h2>
               <p className="text-neutral-400 text-sm mb-6">
@@ -404,7 +411,7 @@ export default function DashboardLayout({
                     value={newWorkspaceName}
                     onChange={(e) => setNewWorkspaceName(e.target.value)}
                     placeholder="e.g., Production, Staging, My App"
-                    className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-violet-500"
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-neutral-800 rounded-md text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
                     autoFocus
                   />
                 </div>
@@ -418,7 +425,7 @@ export default function DashboardLayout({
                     onChange={(e) => setNewWorkspaceDescription(e.target.value)}
                     placeholder="Brief description of this workspace..."
                     rows={3}
-                    className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-violet-500 resize-none"
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-neutral-800 rounded-md text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500 resize-none"
                   />
                 </div>
               </div>
@@ -426,14 +433,14 @@ export default function DashboardLayout({
               <div className="flex gap-3 mt-6">
                 <button
                   onClick={() => setShowNewWorkspaceModal(false)}
-                  className="flex-1 px-4 py-3 bg-neutral-800 text-neutral-300 rounded-lg hover:bg-neutral-700 transition-colors"
+                  className="flex-1 px-4 py-3 bg-[#1a1a1a] text-neutral-300 rounded-md hover:bg-neutral-800 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={createWorkspace}
                   disabled={!newWorkspaceName.trim() || isCreatingWorkspace}
-                  className="flex-1 px-4 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isCreatingWorkspace ? (
                     <>
@@ -461,9 +468,53 @@ export default function DashboardLayout({
             <button onClick={() => setMobileMenuOpen(true)} className="p-2 -ml-2 text-neutral-400 lg:hidden">
               <Menu className="h-6 w-6" />
             </button>
-            <h1 className="text-lg font-semibold text-white">
-              {navItems.find(item => pathname === item.href)?.label || 'Dashboard'}
-            </h1>
+          </div>
+          
+          {/* User Avatar & Name with Dropdown - Right Side */}
+          <div className="relative" ref={userMenuRef}>
+            <button 
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-neutral-800/50 transition-colors"
+            >
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-medium text-white">{profile?.name || 'Developer'}</p>
+              </div>
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                profile?.subscription_tier === 'managed_pro' || profile?.subscription_tier === 'managed_expert' || profile?.subscription_tier === 'pro'
+                  ? 'bg-blue-500/20 text-blue-400 ring-2 ring-blue-500'
+                  : profile?.subscription_tier === 'byok_pro'
+                  ? 'bg-orange-500/20 text-orange-400 ring-2 ring-orange-500'
+                  : 'bg-neutral-800 text-gray-300'
+              }`}>
+                {profile?.name?.[0] || 'U'}
+              </div>
+              <ChevronDown className={`h-4 w-4 text-neutral-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {/* User Dropdown Menu */}
+            <AnimatePresence>
+              {userMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="absolute right-0 top-full mt-2 w-48 bg-[#0f0f0f] border border-neutral-800 rounded-xl shadow-xl overflow-hidden"
+                >
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        handleSignOut()
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </header>
 

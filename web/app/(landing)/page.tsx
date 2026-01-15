@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Zap, 
-  Shield, 
-  DollarSign, 
-  Code, 
-  ArrowRight, 
-  Check, 
+import {
+  Shield,
+  DollarSign,
+  Code,
+  ArrowRight,
+  Check,
   ChevronDown,
   Cpu,
   Globe,
@@ -23,7 +23,9 @@ import {
   X,
   Sparkles,
   Bot,
-  Gauge
+  Gauge,
+  Zap,
+  CheckCircle
 } from 'lucide-react';
 
 // Navigation Component
@@ -37,7 +39,6 @@ const Navigation = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Smooth scroll to section without changing URL hash
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, sectionId: string) => {
     e.preventDefault();
     const element = document.getElementById(sectionId);
@@ -48,48 +49,41 @@ const Navigation = () => {
   };
 
   return (
-    <motion.header
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-black/90 backdrop-blur-xl border-b border-white/10' : 'bg-transparent'
-      }`}
-    >
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-center justify-between h-16 md:h-20">
+    <header className="fixed top-0 w-full z-50 border-b border-white/10 bg-[#050505]/80 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-lg shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+              <Cpu className="w-4 h-4" />
             </div>
-            <span className="font-bold text-lg text-white">UnforgeAPI</span>
+            <span className="font-bold text-lg tracking-tight text-white">UnforgeAPI</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">How It Works</a>
-            <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Features</a>
-            <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Router</a>
-            <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="text-sm font-medium text-gray-400 hover:text-white transition-colors cursor-pointer">Pricing</a>
-            <Link href="/docs" className="text-sm font-medium text-gray-400 hover:text-white transition-colors">Docs</Link>
+          <nav className="hidden md:flex gap-8 text-sm font-medium text-gray-400">
+            <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="hover:text-white transition-colors cursor-pointer">How It Works</a>
+            <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hover:text-white transition-colors cursor-pointer">Features</a>
+            <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="hover:text-white transition-colors cursor-pointer">Router</a>
+            <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="hover:text-white transition-colors cursor-pointer">Pricing</a>
+            <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
           </nav>
 
-          <div className="hidden md:flex items-center gap-3">
-            <Link href="/signin" className="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+          <div className="flex items-center gap-4">
+            <Link href="/signin" className="text-sm font-medium text-gray-300 hover:text-white transition-colors hidden sm:block">
               Sign In
             </Link>
             <Link
               href="/signup"
-              className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-lg hover:opacity-90 transition-opacity"
+              className="bg-white hover:bg-gray-100 text-black text-sm font-bold px-4 py-2 rounded-lg transition-all shadow-[0_0_15px_rgba(255,255,255,0.15)]"
             >
               Get Started Free
             </Link>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 text-gray-400 hover:text-white"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
-
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-gray-400 hover:text-white"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
         </div>
       </div>
 
@@ -100,121 +94,194 @@ const Navigation = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-black/95 border-t border-white/10"
+            className="md:hidden bg-[#050505]/95 border-t border-white/10"
           >
             <div className="px-6 py-4 space-y-4">
               <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="block text-gray-400 hover:text-white cursor-pointer">How It Works</a>
               <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="block text-gray-400 hover:text-white cursor-pointer">Features</a>
               <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="block text-gray-400 hover:text-white cursor-pointer">Router</a>
               <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="block text-gray-400 hover:text-white cursor-pointer">Pricing</a>
+              <Link href="/docs" className="block text-gray-400 hover:text-white">Docs</Link>
               <Link href="/signin" className="block text-gray-400 hover:text-white">Sign In</Link>
-              <Link href="/signup" className="block py-2 text-center bg-gradient-to-r from-violet-600 to-fuchsia-600 rounded-lg text-white">
+              <Link href="/signup" className="block py-2 text-center bg-white text-black rounded-lg font-bold">
                 Get Started Free
               </Link>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.header>
+    </header>
   );
 };
 
-// Hero Section
+// Hero Section - New Two-Column Design
 const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute inset-0">
-        <div className="absolute top-1/4 -left-1/4 w-96 h-96 bg-violet-500/20 rounded-full blur-[128px]" />
-        <div className="absolute bottom-1/4 -right-1/4 w-96 h-96 bg-fuchsia-500/20 rounded-full blur-[128px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-violet-500/5 to-transparent rounded-full" />
-      </div>
+    <section className="relative flex items-center pt-20 overflow-hidden min-h-screen">
+      {/* Background Grid */}
+      <div 
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          backgroundSize: '40px 40px',
+          backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
+        }}
+      />
+      
+      {/* Gradient Blurs */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center"
-        >
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full mb-8"
-          >
-            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-            <span className="text-sm text-gray-300">The Research Layer for AI Agents</span>
-          </motion.div>
-
-          {/* Headline */}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            Deep Research API{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
-              Built for Machines
-            </span>
-          </h1>
-
-          <p className="text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-10">
-            Real-time web grounding. 30-40 second deep analysis. 
-            <span className="text-white font-semibold"> Perfectly structured JSON.</span>{' '}
-            The research endpoint your AI agents deserve.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <Link
-              href="/signup"
-              className="group flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white font-semibold rounded-xl hover:opacity-90 transition-all"
-            >
-              Get Your API Key
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <button
-              onClick={() => document.getElementById('deep-research')?.scrollIntoView({ behavior: 'smooth' })}
-              className="flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <Code className="w-5 h-5" />
-              See How It Works
-            </button>
-          </div>
-
-          {/* Code Preview - Deep Research focused */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-0 w-full py-16 lg:py-24 relative z-10">
+        <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 lg:gap-12 items-center">
+          {/* Left Column - Text */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="max-w-3xl mx-auto"
+            transition={{ duration: 0.6 }}
+            className="space-y-8 text-center lg:text-left lg:pl-4"
           >
-            <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5 text-xs font-medium text-gray-300 mx-auto lg:mx-0 shadow-lg shadow-black/50">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+              The Research Layer for AI Agents
+            </div>
+
+            {/* Headline */}
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-[1.1] tracking-tight text-white">
+              Deep Research API <br className="hidden lg:block" />
+              <span className="bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+                Built for Machines
+              </span>
+            </h1>
+
+            {/* Subtitle */}
+            <p className="text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+              Real-time web grounding. 30-40 second deep analysis.{' '}
+              <strong className="text-white">Perfectly structured JSON.</strong>{' '}
+              The research endpoint your AI agents deserve.
+            </p>
+
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+              <Link
+                href="/signup"
+                className="group inline-flex justify-center items-center gap-2 bg-white hover:bg-gray-200 text-black px-8 py-3.5 rounded-lg font-bold transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+              >
+                Get Your API Key
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <button
+                onClick={() => document.getElementById('deep-research')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex justify-center items-center gap-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white px-8 py-3.5 rounded-lg font-medium transition-all backdrop-blur-sm cursor-pointer"
+              >
+                <Code className="w-4 h-4 text-gray-400" />
+                See How It Works
+              </button>
+            </div>
+
+            {/* Built For */}
+            <div className="pt-10 border-t border-white/5">
+              <p className="text-xs font-mono uppercase text-gray-500 mb-5 tracking-wider">Built for</p>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-6">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
+                  <Bot className="w-4 h-4 text-purple-400" />
+                  <span className="text-sm text-gray-300">AI Agents</span>
                 </div>
-                <span className="text-xs text-gray-500 ml-2">POST /v1/deep-research</span>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
+                  <Code className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm text-gray-300">Developers</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
+                  <Cpu className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm text-gray-300">Startups</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-lg">
+                  <Gauge className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm text-gray-300">Production Apps</span>
+                </div>
               </div>
-              <pre className="p-6 text-left overflow-x-auto">
-                <code className="text-sm">
-                  <span className="text-gray-500">{'// Extract exactly what you need. Not essays.'}</span>{'\n'}
-                  <span className="text-fuchsia-400">const</span> <span className="text-white">response</span> <span className="text-gray-400">=</span> <span className="text-fuchsia-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">'/api/v1/deep-research'</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
-                  <span className="text-white">  method</span><span className="text-gray-400">:</span> <span className="text-green-400">'POST'</span><span className="text-gray-400">,</span>{'\n'}
-                  <span className="text-white">  headers</span><span className="text-gray-400">:</span> <span className="text-gray-400">{'{'}</span> <span className="text-green-400">'Authorization'</span><span className="text-gray-400">:</span> <span className="text-green-400">`Bearer ${'${'}API_KEY{'}'}`</span> <span className="text-gray-400">{'}'},</span>{'\n'}
-                  <span className="text-white">  body</span><span className="text-gray-400">:</span> <span className="text-violet-400">JSON</span><span className="text-gray-400">.</span><span className="text-violet-400">stringify</span><span className="text-gray-400">(</span><span className="text-gray-400">{'{'}</span>{'\n'}
-                  <span className="text-white">    query</span><span className="text-gray-400">:</span> <span className="text-green-400">"Tesla vs Rivian 2026"</span><span className="text-gray-400">,</span>{'\n'}
-                  <span className="text-white">    mode</span><span className="text-gray-400">:</span> <span className="text-green-400">"extract"</span><span className="text-gray-400">,</span>{'\n'}
-                  <span className="text-white">    extract</span><span className="text-gray-400">:</span> <span className="text-gray-400">[</span><span className="text-green-400">"market_cap"</span><span className="text-gray-400">,</span> <span className="text-green-400">"revenue"</span><span className="text-gray-400">,</span> <span className="text-green-400">"growth_rate"</span><span className="text-gray-400">]</span>{'\n'}
-                  <span className="text-gray-400">  {'})'}</span>{'\n'}
-                  <span className="text-gray-400">{'})'}</span>{'\n\n'}
-                  <span className="text-gray-500">{'// Returns structured JSON, not prose:'}</span>{'\n'}
-                  <span className="text-gray-500">{'// { "market_cap": "$800B", "revenue": "$96B", "growth_rate": "23%" }'}</span>
-                </code>
-              </pre>
             </div>
           </motion.div>
-        </motion.div>
+
+          {/* Right Column - Code Preview */}
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="mt-8 lg:mt-0 lg:pl-8 lg:pr-4"
+          >
+            <div className="relative group">
+              {/* Gradient Border Effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
+              
+              <div className="relative rounded-xl overflow-hidden border border-white/10 bg-[#0A0A0A] shadow-2xl">
+              {/* Terminal Header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-[#111111] border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                </div>
+                <div className="text-xs font-mono text-gray-500 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-green-500/80 animate-pulse" />
+                  POST /v1/deep-research
+                </div>
+              </div>
+
+              {/* Code Content */}
+              <div className="p-6 overflow-x-auto font-mono text-sm leading-relaxed bg-[#0A0A0A]">
+                <pre className="text-gray-400">
+                  <span className="text-gray-600">{'// Extract exactly what you need. Not essays.'}</span>{'\n'}
+                  <span className="text-purple-400">const</span> <span className="text-blue-400">response</span> = <span className="text-purple-400">await</span> <span className="text-yellow-300">fetch</span>(<span className="text-green-400">&apos;/api/v1/deep-research&apos;</span>, {'{\n'}
+                  {'  '}<span className="text-blue-300">method</span>: <span className="text-green-400">&apos;POST&apos;</span>,{'\n'}
+                  {'  '}<span className="text-blue-300">headers</span>: {'{ \n'}
+                  {'    '}<span className="text-green-400">&apos;Authorization&apos;</span>: <span className="text-green-400">`Bearer <span className="text-yellow-300">{'${API_KEY}'}</span>`</span>{' \n'}
+                  {'  }'},{'{\n'}
+                  {'  '}<span className="text-blue-300">body</span>: <span className="text-yellow-300">JSON</span>.<span className="text-yellow-300">stringify</span>({'{\n'}
+                  {'    '}<span className="text-blue-300">query</span>: <span className="text-green-400">&quot;Tesla vs Rivian 2026&quot;</span>,{'\n'}
+                  {'    '}<span className="text-blue-300">mode</span>: <span className="text-green-400">&quot;extract&quot;</span>,{'\n'}
+                  {'    '}<span className="text-blue-300">extract</span>: [{'\n'}
+                  {'      '}<span className="text-green-400">&quot;market_cap&quot;</span>,{' \n'}
+                  {'      '}<span className="text-green-400">&quot;revenue&quot;</span>,{' \n'}
+                  {'      '}<span className="text-green-400">&quot;growth_rate&quot;</span>{'\n'}
+                  {'    '}]{'\n'}
+                  {'  }'}){'\n'}
+                  {'}'});{'\n'}
+                  <span className="text-gray-600">{'// Response Time: 340ms'}</span>{'\n'}
+                  <span className="text-purple-400">console</span>.<span className="text-yellow-300">log</span>(<span className="text-purple-400">await</span> <span className="text-blue-400">response</span>.<span className="text-yellow-300">json</span>());
+                </pre>
+
+                {/* Output Preview */}
+                <div className="mt-6 pt-4 border-t border-white/5">
+                  <div className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-wider">Output Preview</div>
+                  <pre className="text-green-400/90">
+{`{
+  "market_cap": {
+    "Tesla": "850B",
+    "Rivian": "14B"
+  },
+  "status": "success"
+}`}
+                  </pre>
+                </div>
+              </div>
+            </div>
+
+              {/* Floating Badge */}
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8, duration: 0.4 }}
+                className="absolute -right-4 top-20 bg-[#151515] border border-white/10 rounded-lg p-3 shadow-xl hidden lg:block shadow-black/50"
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-xs text-gray-200 font-mono">Valid JSON</span>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -242,7 +309,7 @@ const StatsSection = () => {
               transition={{ delay: index * 0.1 }}
               className="text-center"
             >
-              <stat.icon className="w-8 h-8 text-violet-400 mx-auto mb-3" />
+              <stat.icon className="w-8 h-8 text-purple-400 mx-auto mb-3" />
               <div className="text-3xl md:text-4xl font-bold text-white mb-1">{stat.value}</div>
               <div className="text-sm text-gray-400">{stat.label}</div>
             </motion.div>
@@ -260,7 +327,7 @@ const FeaturesSection = () => {
       icon: FileText,
       title: 'Custom Schemas',
       description: 'Define your own JSON schema. Get exactly the structure you need — prices, dates, comparisons, whatever.',
-      gradient: 'from-violet-500 to-purple-500',
+      gradient: 'from-purple-500 to-violet-500',
     },
     {
       icon: Search,
@@ -305,7 +372,7 @@ const FeaturesSection = () => {
         >
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
             Research API.{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
+            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Your Schema.
             </span>
           </h2>
@@ -322,7 +389,7 @@ const FeaturesSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="group p-6 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 transition-colors"
+              className="group p-6 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition-colors"
             >
               <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4`}>
                 <feature.icon className="w-6 h-6 text-white" />
@@ -343,7 +410,7 @@ const DeepResearchSection = () => {
     <section id="deep-research" className="relative py-32 overflow-hidden">
       {/* Background gradient */}
       <div className="absolute inset-0">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-gradient-to-br from-violet-600/20 via-fuchsia-500/10 to-cyan-500/20 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-gradient-to-br from-purple-600/20 via-pink-500/10 to-cyan-500/20 rounded-full blur-[120px]" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
@@ -354,14 +421,14 @@ const DeepResearchSection = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 border border-violet-500/30 rounded-full mb-6">
-            <Sparkles className="w-4 h-4 text-violet-400" />
-            <span className="text-sm font-medium text-violet-300">v4: Custom Schemas + Extraction</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-full mb-6">
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-sm font-medium text-purple-300">v4: Custom Schemas + Extraction</span>
           </div>
           
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
             How{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
+            <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Deep Research
             </span>
             {' '}Works
@@ -379,7 +446,7 @@ const DeepResearchSection = () => {
           viewport={{ once: true }}
           className="mb-16"
         >
-          <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+          <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
             {/* Architecture Header */}
             <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -398,7 +465,7 @@ const DeepResearchSection = () => {
               <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
                 {/* Step 1: Query */}
                 <div className="flex-1 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
                     <Search className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">1. Search</div>
@@ -412,7 +479,7 @@ const DeepResearchSection = () => {
 
                 {/* Step 2: Extract */}
                 <div className="flex-1 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-purple-500 to-violet-500 flex items-center justify-center">
                     <Cpu className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">2. Reason</div>
@@ -426,7 +493,7 @@ const DeepResearchSection = () => {
 
                 {/* Step 3: Write */}
                 <div className="flex-1 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
                     <Zap className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">3. Render</div>
@@ -440,7 +507,7 @@ const DeepResearchSection = () => {
 
                 {/* Step 4: Output */}
                 <div className="flex-1 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-br from-emerald-500 to-green-500 flex items-center justify-center">
                     <FileText className="w-8 h-8 text-white" />
                   </div>
                   <div className="text-sm font-medium text-white mb-1">4. Report</div>
@@ -449,9 +516,9 @@ const DeepResearchSection = () => {
               </div>
 
               {/* Key Insight */}
-              <div className="mt-8 p-4 bg-violet-500/10 border border-violet-500/20 rounded-xl">
+              <div className="mt-8 p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
                 <p className="text-center text-sm text-gray-300">
-                  <span className="text-violet-400 font-medium">Built for developers, not end users.</span>{' '}
+                  <span className="text-purple-400 font-medium">Built for developers, not end users.</span>{' '}
                   <span className="text-white font-medium">Custom schemas. Extraction mode. Webhook delivery. JSON, not Markdown.</span>
                 </p>
               </div>
@@ -459,14 +526,14 @@ const DeepResearchSection = () => {
           </div>
         </motion.div>
 
-        {/* Feature Cards - Updated */}
+        {/* Feature Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="p-6 bg-white/5 border border-white/10 rounded-2xl"
+            className="p-6 bg-white/5 border border-white/10 rounded-xl"
           >
             <Gauge className="w-10 h-10 text-cyan-400 mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">Lightning Fast Research</h3>
@@ -480,9 +547,9 @@ const DeepResearchSection = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="p-6 bg-white/5 border border-white/10 rounded-2xl"
+            className="p-6 bg-white/5 border border-white/10 rounded-xl"
           >
-            <Bot className="w-10 h-10 text-violet-400 mb-4" />
+            <Bot className="w-10 h-10 text-purple-400 mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">Built for Machines</h3>
             <p className="text-gray-400 text-sm">
               Deterministic JSON output with typed fields. No parsing Markdown. Slots directly into your agent pipeline.
@@ -494,7 +561,7 @@ const DeepResearchSection = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.3 }}
-            className="p-6 bg-white/5 border border-white/10 rounded-2xl"
+            className="p-6 bg-white/5 border border-white/10 rounded-xl"
           >
             <Key className="w-10 h-10 text-amber-400 mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">BYOK = No Limits</h3>
@@ -504,14 +571,14 @@ const DeepResearchSection = () => {
           </motion.div>
         </div>
 
-        {/* Code Example - Updated for v4 */}
+        {/* Code Example */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="max-w-3xl mx-auto"
         >
-          <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden">
+          <div className="bg-[#0A0A0A]/80 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-500" />
@@ -523,17 +590,17 @@ const DeepResearchSection = () => {
             <pre className="p-6 text-left overflow-x-auto">
               <code className="text-sm">
                 <span className="text-gray-500">{'// Define exactly the structure you need'}</span>{'\n'}
-                <span className="text-fuchsia-400">const</span> <span className="text-white">result</span> <span className="text-gray-400">=</span> <span className="text-fuchsia-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">'/api/v1/deep-research'</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
-                <span className="text-white">  method</span><span className="text-gray-400">:</span> <span className="text-green-400">'POST'</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-purple-400">const</span> <span className="text-white">result</span> <span className="text-gray-400">=</span> <span className="text-purple-400">await</span> <span className="text-violet-400">fetch</span><span className="text-gray-400">(</span><span className="text-green-400">&apos;/api/v1/deep-research&apos;</span><span className="text-gray-400">,</span> <span className="text-gray-400">{'{'}</span>{'\n'}
+                <span className="text-white">  method</span><span className="text-gray-400">:</span> <span className="text-green-400">&apos;POST&apos;</span><span className="text-gray-400">,</span>{'\n'}
                 <span className="text-white">  body</span><span className="text-gray-400">:</span> <span className="text-violet-400">JSON</span><span className="text-gray-400">.</span><span className="text-violet-400">stringify</span><span className="text-gray-400">(</span><span className="text-gray-400">{'{'}</span>{'\n'}
-                <span className="text-white">    query</span><span className="text-gray-400">:</span> <span className="text-green-400">"Bitcoin price analysis"</span><span className="text-gray-400">,</span>{'\n'}
-                <span className="text-white">    mode</span><span className="text-gray-400">:</span> <span className="text-green-400">"schema"</span><span className="text-gray-400">,</span>{'\n'}
-                <span className="text-white">    preset</span><span className="text-gray-400">:</span> <span className="text-green-400">"crypto"</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">    query</span><span className="text-gray-400">:</span> <span className="text-green-400">&quot;Bitcoin price analysis&quot;</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">    mode</span><span className="text-gray-400">:</span> <span className="text-green-400">&quot;schema&quot;</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">    preset</span><span className="text-gray-400">:</span> <span className="text-green-400">&quot;crypto&quot;</span><span className="text-gray-400">,</span>{'\n'}
                 <span className="text-white">    schema</span><span className="text-gray-400">:</span> <span className="text-gray-400">{'{'}</span>{'\n'}
-                <span className="text-white">      current_price</span><span className="text-gray-400">:</span> <span className="text-green-400">"number"</span><span className="text-gray-400">,</span>{'\n'}
-                <span className="text-white">      weekly_change</span><span className="text-gray-400">:</span> <span className="text-green-400">"string"</span><span className="text-gray-400">,</span>{'\n'}
-                <span className="text-white">      sentiment</span><span className="text-gray-400">:</span> <span className="text-green-400">"bullish | bearish | neutral"</span><span className="text-gray-400">,</span>{'\n'}
-                <span className="text-white">      key_events</span><span className="text-gray-400">:</span> <span className="text-green-400">"string[]"</span>{'\n'}
+                <span className="text-white">      current_price</span><span className="text-gray-400">:</span> <span className="text-green-400">&quot;number&quot;</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">      weekly_change</span><span className="text-gray-400">:</span> <span className="text-green-400">&quot;string&quot;</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">      sentiment</span><span className="text-gray-400">:</span> <span className="text-green-400">&quot;bullish | bearish | neutral&quot;</span><span className="text-gray-400">,</span>{'\n'}
+                <span className="text-white">      key_events</span><span className="text-gray-400">:</span> <span className="text-green-400">&quot;string[]&quot;</span>{'\n'}
                 <span className="text-gray-400">    {'}'}</span>{'\n'}
                 <span className="text-gray-400">  {'})'}</span>{'\n'}
                 <span className="text-gray-400">{'})'}</span>{'\n\n'}
@@ -588,7 +655,7 @@ const HowItWorksSection = () => {
   ];
 
   return (
-    <section id="how-it-works" className="relative py-32 bg-gradient-to-b from-transparent via-violet-950/20 to-transparent">
+    <section id="how-it-works" className="relative py-32 bg-gradient-to-b from-transparent via-purple-950/20 to-transparent">
       <div className="max-w-7xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -618,12 +685,12 @@ const HowItWorksSection = () => {
               className={`flex flex-col ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} items-center gap-8`}
             >
               <div className="flex-1">
-                <div className="text-violet-400 font-mono text-sm mb-2">Step {item.step}</div>
+                <div className="text-purple-400 font-mono text-sm mb-2">Step {item.step}</div>
                 <h3 className="text-2xl font-bold text-white mb-3">{item.title}</h3>
                 <p className="text-gray-400">{item.description}</p>
               </div>
               <div className="flex-1 w-full">
-                <div className="bg-gray-900/80 border border-white/10 rounded-xl overflow-hidden">
+                <div className="bg-[#0A0A0A]/80 border border-white/10 rounded-xl overflow-hidden">
                   <div className="px-4 py-2 border-b border-white/10">
                     <div className="flex gap-1.5">
                       <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -656,9 +723,8 @@ const PricingSection = () => {
       description: 'Perfect for testing the API',
       features: [
         '50 requests / day',
-        'Chat & Context paths only',
-        '❌ Search disabled',
-        'System API keys',
+        '3 Web Search / day',
+        '5 Deep Research / day',
         'Community support',
       ],
       cta: 'Start Free',
@@ -674,10 +740,9 @@ const PricingSection = () => {
         'Unlimited Chat & Context',
         '1,000 Web Search / month',
         '50 Deep Research / month',
-        'System API keys',
         'Priority support',
       ],
-      cta: 'Start Trial',
+      cta: 'Get Started',
       popular: true,
       badge: 'Most Popular',
     },
@@ -690,7 +755,6 @@ const PricingSection = () => {
         'Unlimited Chat & Context',
         '5,000 Web Search / month',
         '200 Deep Research / month',
-        'System API keys',
         'Priority support',
         'Dedicated account manager',
       ],
@@ -709,7 +773,7 @@ const PricingSection = () => {
       features: [
         '100 requests / day',
         '5 Deep Research / day',
-        '✅ Search enabled',
+        'Web Search enabled',
         'Your Groq & Tavily keys required',
         'Community support',
       ],
@@ -723,15 +787,16 @@ const PricingSection = () => {
       period: '/month',
       description: 'Production scale. Fair use limits.',
       features: [
-        'Unlimited requests',
-        '25 Deep Research / day',
-        '10 req/sec rate limit',
+        'Unlimited requests*',
+        'Unlimited Web Search',
+        'Unlimited Deep Research',
         'Your Groq & Tavily keys',
         'Premium support',
       ],
       cta: 'Go Unlimited',
       popular: true,
       badge: 'Best Value',
+      footnote: '*Subject to platform fair use policy to prevent abuse.',
     },
   ];
 
@@ -756,12 +821,12 @@ const PricingSection = () => {
 
         {/* Tab Switcher */}
         <div className="flex justify-center mb-12">
-          <div className="inline-flex items-center bg-white/5 border border-white/10 rounded-2xl p-1.5">
+          <div className="inline-flex items-center bg-white/5 border border-white/10 rounded-xl p-1.5">
             <button
               onClick={() => setActiveTab('managed')}
-              className={`px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'managed'
-                  ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg'
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -776,7 +841,7 @@ const PricingSection = () => {
             
             <button
               onClick={() => setActiveTab('byok')}
-              className={`px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
                 activeTab === 'byok'
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
                   : 'text-gray-400 hover:text-white'
@@ -800,7 +865,7 @@ const PricingSection = () => {
         >
           {activeTab === 'managed' ? (
             <p className="text-gray-400 max-w-xl mx-auto">
-              <span className="text-violet-400 font-medium">Zero configuration required.</span>{' '}
+              <span className="text-purple-400 font-medium">Zero configuration required.</span>{' '}
               We handle the LLM infrastructure. You just call the API.
             </p>
           ) : (
@@ -812,17 +877,19 @@ const PricingSection = () => {
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className={`grid gap-8 mx-auto ${
+          activeTab === 'managed' ? 'md:grid-cols-3 max-w-7xl' : 'md:grid-cols-2 max-w-4xl'
+        }`}>
           {activePlans.map((plan, index) => (
             <motion.div
               key={`${activeTab}-${plan.name}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`relative p-8 rounded-2xl border ${
+              className={`relative p-8 rounded-xl border flex flex-col ${
                 plan.popular
                   ? activeTab === 'managed'
-                    ? 'bg-gradient-to-b from-violet-500/20 to-fuchsia-500/20 border-violet-500/50'
+                    ? 'bg-gradient-to-b from-purple-500/20 to-pink-500/20 border-purple-500/50'
                     : 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
                   : 'bg-white/5 border-white/10'
               }`}
@@ -831,7 +898,7 @@ const PricingSection = () => {
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                   <span className={`px-4 py-1 text-white text-sm font-medium rounded-full ${
                     activeTab === 'managed'
-                      ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500'
+                      ? 'bg-gradient-to-r from-purple-500 to-pink-500'
                       : 'bg-gradient-to-r from-amber-500 to-orange-500'
                   }`}>
                     {plan.badge}
@@ -846,23 +913,36 @@ const PricingSection = () => {
               </div>
               <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
               
-              <ul className="space-y-3 mb-8">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
-                    <Check className={`w-5 h-5 flex-shrink-0 ${
-                      activeTab === 'managed' ? 'text-violet-400' : 'text-amber-400'
-                    }`} />
-                    {feature}
-                  </li>
-                ))}
+              <ul className="space-y-3 mb-8 flex-grow">
+                {plan.features.map((feature) => {
+                  const isDisabled = feature.startsWith('❌');
+                  const displayText = isDisabled ? feature.replace('❌ ', '') : feature;
+                  return (
+                    <li key={feature} className={`flex items-start gap-2 text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-300'}`}>
+                      {!isDisabled && (
+                        <Check className={`w-5 h-5 flex-shrink-0 ${
+                          activeTab === 'managed' ? 'text-purple-400' : 'text-amber-400'
+                        }`} />
+                      )}
+                      {isDisabled && (
+                        <span className="w-5 h-5 flex-shrink-0 text-gray-500">✕</span>
+                      )}
+                      {displayText}
+                    </li>
+                  );
+                })}
               </ul>
-              
+
+              {'footnote' in plan && (plan as { footnote?: string }).footnote && (
+                <p className="text-[10px] text-gray-500 mb-4 -mt-4">{(plan as { footnote?: string }).footnote}</p>
+              )}
+
               <Link
                 href="/signup"
-                className={`block w-full py-3 text-center font-medium rounded-xl transition-colors ${
+                className={`block w-full py-3 text-center font-medium rounded-lg transition-colors mt-auto ${
                   plan.popular
                     ? activeTab === 'managed'
-                      ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90'
                       : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90'
                     : 'bg-white/10 text-white hover:bg-white/20'
                 }`}
@@ -977,7 +1057,7 @@ const CTASection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="p-12 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 border border-violet-500/30 rounded-3xl"
+          className="p-12 bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-2xl"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Ready to Stop Overpaying?
@@ -988,7 +1068,7 @@ const CTASection = () => {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/signup"
-              className="group flex items-center gap-2 px-8 py-4 bg-white text-black font-semibold rounded-xl hover:bg-gray-100 transition-colors"
+              className="group flex items-center gap-2 px-8 py-4 bg-white text-black font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             >
               Get Your API Key
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -1013,8 +1093,8 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-lg">
+              <Cpu className="w-4 h-4" />
             </div>
             <span className="font-bold text-white">UnforgeAPI</span>
           </div>
@@ -1038,7 +1118,7 @@ const Footer = () => {
 // Main Landing Page
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-[#050505] text-white">
       <Navigation />
       <HeroSection />
       <StatsSection />
@@ -1052,4 +1132,3 @@ export default function LandingPage() {
     </main>
   );
 }
-

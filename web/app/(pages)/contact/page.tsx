@@ -19,9 +19,9 @@ export default function ContactPage() {
           </Link>
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/new_logo.png" alt="UnforgeAPI" width={24} height={24} className="object-contain" />
+              <Image src="/reallogo.png" alt="LeafLearning" width={32} height={32} className="object-contain" />
             </div>
-            <span className="font-bold font-headline text-text-primary">UnforgeAPI</span>
+            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
           </Link>
         </div>
       </header>
@@ -52,8 +52,8 @@ export default function ContactPage() {
               </div>
               <h3 className="text-lg font-bold font-headline text-primary mb-2">Email Us</h3>
               <p className="text-sm text-text-secondary font-body mb-4">For general inquiries and support</p>
-              <a href="mailto:support@UnforgeAPI.app" className="text-accent font-medium hover:underline">
-                support@UnforgeAPI.app
+              <a href="mailto:support@leaflearning.app" className="text-accent font-medium hover:underline">
+                support@leaflearning.app
               </a>
             </div>
             <div className="bg-card rounded-2xl p-8 border border-border text-center hover:shadow-card transition-shadow">
@@ -149,7 +149,7 @@ export default function ContactPage() {
       <footer className="py-8 border-t border-border">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
+            © {new Date().getFullYear()} LeafLearning. All rights reserved.
           </p>
         </div>
       </footer>

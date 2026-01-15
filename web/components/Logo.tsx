@@ -10,7 +10,7 @@ interface LogoProps {
 export function Logo({ className = '', size = 24 }: LogoProps) {
   return (
     <Image
-      src="/new_logo.png"
+      src="/reallogo.png"
       alt="UnforgeAPI"
       width={size}
       height={size}

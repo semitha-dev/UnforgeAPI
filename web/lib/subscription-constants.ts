@@ -5,12 +5,12 @@
 // 5-TIER PRICING STRUCTURE
 // ============================================
 // Group A: Managed (We pay for LLM keys)
-//   - sandbox: Free, 50 req/day, 3 search/day, 3 Deep Research/day
+//   - sandbox: Free, 50 req/day, 5 search/day, 3 Deep Research/day
 //   - managed_pro: $20/mo, 1000 search/mo, 50 Deep Research/mo
 //   - managed_expert: $79/mo, 5000 search/mo, 200 Deep Research/mo
-// 
+//
 // Group B: BYOK (They pay for their keys)
-//   - byok_starter: Free, 100 req/day, Must provide x-groq-key & x-tavily-key
+//   - byok_starter: Free, 50 req/day, Unlimited search & deep research (within 50 req/day)
 //   - byok_pro: $4.99/mo, Unlimited (10 req/sec rate limit)
 // ============================================
 
@@ -22,6 +22,8 @@ export const API_PLANS = {
   // BYOK tiers (user provides keys)
   BYOK_STARTER: 'byok_starter',
   BYOK_PRO: 'byok_pro',
+  PRO: 'pro',
+  FREE: 'free',
 } as const;
 
 export type ApiPlan = typeof API_PLANS[keyof typeof API_PLANS];
@@ -66,6 +68,16 @@ export const DEEP_RESEARCH_LIMITS: Record<ApiPlan, {
     period: 'daily',
     description: 'Unlimited (your Tavily key)',
   },
+  pro: {
+    limit: 50,
+    period: 'monthly',
+    description: '50 deep research requests per month',
+  },
+  free: {
+    limit: 3,
+    period: 'daily',
+    description: '3 deep research requests per day',
+  }
 };
 
 // Web Search limits per plan (for /api/v1/chat RESEARCH intent)
@@ -75,9 +87,9 @@ export const WEB_SEARCH_LIMITS: Record<ApiPlan, {
   description: string;
 }> = {
   sandbox: {
-    limit: 3,
+    limit: 5,
     period: 'daily',
-    description: '3 web searches per day',
+    description: '5 web searches per day',
   },
   managed_pro: {
     limit: 1000,
@@ -90,15 +102,25 @@ export const WEB_SEARCH_LIMITS: Record<ApiPlan, {
     description: '5,000 web searches per month',
   },
   byok_starter: {
-    limit: -1,  // Unlimited (they pay Tavily directly)
+    limit: -1,  // Unlimited (they pay Tavily directly, 50 req/day API limit is the guard)
     period: 'daily',
-    description: 'Unlimited (your Tavily key)',
+    description: 'Unlimited (within 50 req/day API limit)',
   },
   byok_pro: {
     limit: -1,  // Unlimited (they pay Tavily directly)
     period: 'daily',
     description: 'Unlimited (your Tavily key)',
   },
+  pro: {
+    limit: 1000,
+    period: 'monthly',
+    description: '1,000 web searches per month',
+  },
+  free: {
+    limit: 5,
+    period: 'daily',
+    description: '5 web searches per day',
+  }
 };
 
 // Plan configuration
@@ -127,17 +149,17 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     description: 'Perfect for testing the API',
     limitType: 'daily',
     limit: 50,
-    deepResearchLimit: 0,
+    searchLimit: 5,
+    deepResearchLimit: 3,
     deepResearchPeriod: 'daily',
     duration: 86400000, // 24 hours
-    searchEnabled: false,
+    searchEnabled: true,
     requiresUserKeys: false,
     isPriority: false,
     features: [
       '50 requests / day',
-      'Chat & Context paths only',
-      'Search disabled',
-      'System API keys',
+      '5 Web Search / day',
+      '3 Deep Research / day',
       'Community support',
     ],
   },
@@ -193,18 +215,19 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     price: 0,
     priceLabel: 'Free',
     period: '',
-    description: 'Test the engine with your own keys',
+    description: 'Use your own API keys with our routing',
     limitType: 'daily',
-    limit: 100,
-    deepResearchLimit: 5,
+    limit: 50,
+    deepResearchLimit: -1, // Unlimited (50 req/day API limit is the guard)
     deepResearchPeriod: 'daily',
     duration: 86400000, // 24 hours
     searchEnabled: true,
     requiresUserKeys: true,
     isPriority: false,
     features: [
-      '100 requests / day',
-      '5 Deep Research / day',
+      '50 requests / day',
+      'Unlimited Web Search',
+      'Unlimited Deep Research',
       'All three routing paths',
       'Your Groq & Tavily keys',
       'Community support',
@@ -218,7 +241,7 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     description: 'Production scale with fair use limits.',
     limitType: 'rate',
     limit: 10,
-    deepResearchLimit: 25,
+    deepResearchLimit: -1, // Unlimited
     deepResearchPeriod: 'daily',
     duration: 1000, // 1 second (10 req/sec)
     searchEnabled: true,
@@ -226,11 +249,58 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     isPriority: true,
     features: [
       'Unlimited requests',
-      '25 Deep Research / day',
+      'Unlimited Deep Research',
       '10 req/sec rate limit',
       'All three routing paths',
       'Your Groq & Tavily keys',
       'Premium support',
+    ],
+  },
+  pro: {
+    // Legacy mapping for 'pro' -> managed_pro
+    name: 'Managed Pro',
+    price: 19.99,
+    priceLabel: '$20',
+    period: '/month',
+    description: 'For production applications',
+    limitType: 'monthly',
+    limit: 50000,
+    searchLimit: 1000,
+    deepResearchLimit: 50,
+    deepResearchPeriod: 'monthly',
+    duration: 2592000000,
+    searchEnabled: true,
+    requiresUserKeys: false,
+    isPriority: true,
+    features: [
+      'Unlimited Chat & Context',
+      '1,000 Web Search / month',
+      '50 Deep Research / month',
+      'System API keys',
+      'Priority support',
+    ],
+  },
+  free: {
+    // Legacy mapping for 'free' -> sandbox
+    name: 'Sandbox',
+    price: 0,
+    priceLabel: 'Free',
+    period: '',
+    description: 'Perfect for testing the API',
+    limitType: 'daily',
+    limit: 50,
+    searchLimit: 5,
+    deepResearchLimit: 3,
+    deepResearchPeriod: 'daily',
+    duration: 86400000,
+    searchEnabled: true,
+    requiresUserKeys: false,
+    isPriority: false,
+    features: [
+      '50 requests / day',
+      '5 Web Search / day',
+      '3 Deep Research / day',
+      'Community support',
     ],
   },
 };

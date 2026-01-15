@@ -4,7 +4,7 @@
  * Database tracks key metadata for dashboard display
  * 
  * 4-Tier Pricing Structure:
- * - sandbox: 50/day (Managed, Search disabled)
+ * - sandbox: 50/day (Managed, 3 search/day, 5 deep research/day)
  * - managed_pro: 1000/month (Managed, Search enabled)
  * - byok_starter: 100/day (BYOK, Search enabled, requires user keys)
  * - byok_pro: 10/sec rate limit (BYOK, Unlimited, requires user keys)
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
           workspaceId: workspaceId,
           plan, // Use 'plan' instead of 'tier' for clarity
           tier: plan, // Keep 'tier' for backward compatibility
-          searchEnabled: plan !== 'sandbox', // Search disabled only for sandbox
+          searchEnabled: true, // All plans have search enabled
           requiresUserKeys: plan === 'byok_starter' || plan === 'byok_pro'
         },
         ratelimit: limitConfig,

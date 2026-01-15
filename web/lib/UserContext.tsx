@@ -19,6 +19,7 @@ interface UserProfile {
   subscriptionStatus: string | null
   subscriptionEndsAt: string | null
   createdAt: string | null
+  defaultWorkspaceId: string | null
 }
 
 interface UserContextType {
@@ -39,7 +40,8 @@ const defaultUser: UserProfile = {
   subscriptionTier: 'free',
   subscriptionStatus: null,
   subscriptionEndsAt: null,
-  createdAt: null
+  createdAt: null,
+  defaultWorkspaceId: null
 }
 
 const UserContext = createContext<UserContextType>({
@@ -114,7 +116,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       debug('fetchUser:queryProfile', { userId: authUser.id })
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, name, full_name, email, avatar_url, education_level, subscription_tier, subscription_status, subscription_ends_at, created_at')
+        .select('id, name, full_name, email, avatar_url, education_level, subscription_tier, subscription_status, subscription_ends_at, created_at, default_workspace_id')
         .eq('id', authUser.id)
         .single()
       
@@ -122,7 +124,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         hasProfile: !!profile,
         error: profileError?.message,
         subscription_tier: profile?.subscription_tier,
-        subscription_status: profile?.subscription_status
+        subscription_status: profile?.subscription_status,
+        default_workspace_id: profile?.default_workspace_id
       })
 
       const userData: UserProfile = {
@@ -134,7 +137,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         subscriptionTier: profile?.subscription_tier || 'free',
         subscriptionStatus: profile?.subscription_status || null,
         subscriptionEndsAt: profile?.subscription_ends_at || null,
-        createdAt: profile?.created_at || null
+        createdAt: profile?.created_at || null,
+        defaultWorkspaceId: profile?.default_workspace_id || null
       }
 
       debug('fetchUser:success', { 

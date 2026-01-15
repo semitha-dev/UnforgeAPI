@@ -9,102 +9,102 @@ export default function TermsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link 
             href="/"
-            className="flex items-center gap-1.5 sm:gap-2 text-text-secondary hover:text-text-primary transition-colors"
+            className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="font-medium font-body text-sm sm:text-base">Back</span>
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium font-body">Back to Home</span>
           </Link>
-          <Link href="/" className="flex items-center gap-1.5 sm:gap-2">
-            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/new_logo.png" alt="UnforgeAPI" width={20} height={20} className="object-contain" />
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
+              <Image src="/reallogo.png" alt="LeafLearning" width={32} height={32} className="object-contain" />
             </div>
-            <span className="font-bold font-headline text-text-primary text-sm sm:text-base">UnforgeAPI</span>
+            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
           </Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="py-10 sm:py-16 bg-gradient-to-br from-accent/5 via-background to-secondary/5">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-accent/10 rounded-full border border-accent/20 mb-4 sm:mb-6">
-            <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-accent" />
-            <span className="text-xs sm:text-sm font-semibold font-cta text-accent">Legal</span>
+      <section className="py-16 bg-gradient-to-br from-accent/5 via-background to-secondary/5">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full border border-accent/20 mb-6">
+            <FileText className="w-4 h-4 text-accent" />
+            <span className="text-sm font-semibold font-cta text-accent">Legal</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold font-headline text-primary mb-3 sm:mb-4">
+          <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-4">
             Legal Policies
           </h1>
-          <p className="text-base sm:text-lg text-text-secondary font-body">
+          <p className="text-lg text-text-secondary font-body">
             Last Updated: January 15, 2025
           </p>
         </div>
       </section>
 
       {/* Quick Navigation */}
-      <section className="py-6 sm:py-8 border-b border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-            <a href="#terms" className="flex flex-col items-center p-2.5 sm:p-4 bg-card rounded-lg sm:rounded-xl border border-border hover:border-accent hover:shadow-card transition-all">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-accent/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-1.5 sm:mb-2">
-                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
+      <section className="py-8 border-b border-border">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <a href="#terms" className="flex flex-col items-center p-4 bg-card rounded-xl border border-border hover:border-accent hover:shadow-card transition-all">
+              <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center mb-2">
+                <FileText className="w-5 h-5 text-accent" />
               </div>
-              <span className="text-xs sm:text-sm font-medium font-body text-text-primary text-center">Terms of Service</span>
+              <span className="text-sm font-medium font-body text-text-primary">Terms of Service</span>
             </a>
-            <a href="#privacy" className="flex flex-col items-center p-2.5 sm:p-4 bg-card rounded-lg sm:rounded-xl border border-border hover:border-success hover:shadow-card transition-all">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-success/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-1.5 sm:mb-2">
-                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
+            <a href="#privacy" className="flex flex-col items-center p-4 bg-card rounded-xl border border-border hover:border-success hover:shadow-card transition-all">
+              <div className="w-10 h-10 bg-success/10 rounded-xl flex items-center justify-center mb-2">
+                <Shield className="w-5 h-5 text-success" />
               </div>
-              <span className="text-xs sm:text-sm font-medium font-body text-text-primary text-center">Privacy Policy</span>
+              <span className="text-sm font-medium font-body text-text-primary">Privacy Policy</span>
             </a>
-            <a href="#refund" className="flex flex-col items-center p-2.5 sm:p-4 bg-card rounded-lg sm:rounded-xl border border-border hover:border-secondary hover:shadow-card transition-all">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-secondary/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-1.5 sm:mb-2">
-                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-secondary" />
+            <a href="#refund" className="flex flex-col items-center p-4 bg-card rounded-xl border border-border hover:border-secondary hover:shadow-card transition-all">
+              <div className="w-10 h-10 bg-secondary/10 rounded-xl flex items-center justify-center mb-2">
+                <CreditCard className="w-5 h-5 text-secondary" />
               </div>
-              <span className="text-xs sm:text-sm font-medium font-body text-text-primary text-center">Refund Policy</span>
+              <span className="text-sm font-medium font-body text-text-primary">Refund Policy</span>
             </a>
-            <a href="#contact" className="flex flex-col items-center p-2.5 sm:p-4 bg-card rounded-lg sm:rounded-xl border border-border hover:border-primary hover:shadow-card transition-all">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center mb-1.5 sm:mb-2">
-                <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+            <a href="#contact" className="flex flex-col items-center p-4 bg-card rounded-xl border border-border hover:border-primary hover:shadow-card transition-all">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mb-2">
+                <Mail className="w-5 h-5 text-primary" />
               </div>
-              <span className="text-xs sm:text-sm font-medium font-body text-text-primary text-center">Contact</span>
+              <span className="text-sm font-medium font-body text-text-primary">Contact</span>
             </a>
           </div>
         </div>
       </section>
 
       {/* Content */}
-      <section className="py-8 sm:py-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-8 sm:space-y-12">
+      <section className="py-12">
+        <div className="max-w-4xl mx-auto px-6 space-y-12">
           
           {/* Terms of Service */}
           <div id="terms" className="scroll-mt-24">
-            <div className="bg-card rounded-xl sm:rounded-2xl border border-border p-4 sm:p-8 shadow-sm">
-              <div className="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-6">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent/10 rounded-lg sm:rounded-xl flex items-center justify-center">
-                  <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-accent" />
+            <div className="bg-card rounded-2xl border border-border p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-accent" />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold font-headline text-primary">1. Terms of Service</h2>
+                <h2 className="text-2xl font-bold font-headline text-primary">1. Terms of Service</h2>
               </div>
 
               <div className="space-y-6 text-text-secondary font-body leading-relaxed">
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Acceptance of Terms</h3>
-                  <p>By creating an account or using UnforgeAPI, you agree to these Terms of Service and our Privacy Policy. If you do not agree, you must stop using the platform immediately.</p>
+                  <p>By creating an account or using LeafLearning, you agree to these Terms of Service and our Privacy Policy. If you do not agree, you must stop using the platform immediately.</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Eligibility</h3>
-                  <p>You must be at least <strong className="text-text-primary">18 years old</strong> to create an account and use UnforgeAPI. By creating an account, you confirm that you are at least 18 years of age. Minors are not permitted to use this service.</p>
+                  <p>You must be at least <strong className="text-text-primary">18 years old</strong> to create an account and use LeafLearning. By creating an account, you confirm that you are at least 18 years of age. Minors are not permitted to use this service.</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Service Description</h3>
-                  <p>UnforgeAPI is an AI-powered AI API platform.</p>
+                  <p>LeafLearning is an AI-powered study companion.</p>
                   <ul className="list-disc list-inside mt-2 space-y-1 ml-4">
                     <li><strong className="text-text-primary">AI Provider:</strong> Our AI features are powered by Groq (Llama models). Your input data will be processed by these AI APIs.</li>
-                    <li><strong className="text-text-primary">Nature of AI:</strong> AI is probabilistic. UnforgeAPI does not guarantee that summaries, citations, or answers are 100% accurate, complete, or unbiased.</li>
+                    <li><strong className="text-text-primary">Nature of AI:</strong> AI is probabilistic. LeafLearning does not guarantee that summaries, citations, or answers are 100% accurate, complete, or unbiased.</li>
                   </ul>
                 </div>
 
@@ -112,7 +112,7 @@ export default function TermsPage() {
                   <h3 className="font-semibold text-text-primary mb-2">Data Handling & User Content</h3>
                   <ul className="list-disc list-inside space-y-2 ml-4">
                     <li><strong className="text-text-primary">Your Ownership:</strong> You retain ownership of all notes and files you upload.</li>
-                    <li><strong className="text-text-primary">PDF Processing:</strong> UnforgeAPI does not store the PDF files you upload. They are processed temporarily and immediately discarded.</li>
+                    <li><strong className="text-text-primary">PDF Processing:</strong> LeafLearning does not store the PDF files you upload. They are processed temporarily and immediately discarded.</li>
                     <li><strong className="text-text-primary">Stored Content:</strong> We store only the text input you manually enter and the output generated by the AI (flashcards, quizzes, etc.).</li>
                   </ul>
                 </div>
@@ -120,7 +120,7 @@ export default function TermsPage() {
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Token System</h3>
                   <ul className="list-disc list-inside space-y-2 ml-4">
-                    <li><strong className="text-text-primary">Token Validity:</strong> Tokens are valid for the period specified at the time of purchase. UnforgeAPI reserves the right to modify token expiration policies at its discretion.</li>
+                    <li><strong className="text-text-primary">Token Validity:</strong> Tokens are valid for the period specified at the time of purchase. LeafLearning reserves the right to modify token expiration policies at its discretion.</li>
                     <li><strong className="text-text-primary">Non-Transferable:</strong> Tokens cannot be transferred to other accounts or exchanged for cash.</li>
                     <li><strong className="text-text-primary">Free Tier:</strong> New users receive 500 complimentary tokens upon registration.</li>
                   </ul>
@@ -128,12 +128,12 @@ export default function TermsPage() {
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Academic Integrity</h3>
-                  <p>UnforgeAPI is for learning assistance. You agree NOT to use AI-generated text to commit plagiarism or submit AI-generated citations without verifying them against primary sources.</p>
+                  <p>LeafLearning is for learning assistance. You agree NOT to use AI-generated text to commit plagiarism or submit AI-generated citations without verifying them against primary sources.</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Limitation of Liability</h3>
-                  <p>The Service is provided "AS IS." UnforgeAPI is not liable for academic consequences (failing grades), loss of data, or AI "hallucinations." You are solely responsible for verifying the accuracy of all materials.</p>
+                  <p>The Service is provided "AS IS." LeafLearning is not liable for academic consequences (failing grades), loss of data, or AI "hallucinations." You are solely responsible for verifying the accuracy of all materials.</p>
                 </div>
 
                 <div>
@@ -241,11 +241,11 @@ export default function TermsPage() {
                 <p className="mb-6">For legal inquiries or support, please contact us:</p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <a 
-                    href="mailto:support@UnforgeAPI.app" 
+                    href="mailto:support@leaflearning.app" 
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl transition-colors"
                   >
                     <Mail className="w-4 h-4 text-text-primary" />
-                    <span className="font-medium text-text-primary">support@UnforgeAPI.app</span>
+                    <span className="font-medium text-text-primary">support@leaflearning.app</span>
                   </a>
                   <Link 
                     href="/contact"
@@ -290,7 +290,7 @@ export default function TermsPage() {
       <footer className="py-8 border-t border-border">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
+            © {new Date().getFullYear()} LeafLearning. All rights reserved.
           </p>
         </div>
       </footer>

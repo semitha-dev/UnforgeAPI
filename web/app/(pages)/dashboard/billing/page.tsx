@@ -5,15 +5,18 @@ import { useSearchParams } from 'next/navigation'
 import { 
   CreditCard, 
   Check, 
+  X,
   ArrowRight,
   Shield,
   Key,
-  AlertCircle,
   ExternalLink,
   Loader2,
   Crown,
-  Settings,
-  Sparkles
+  Sparkles,
+  Receipt,
+  Clock,
+  Lock,
+  Download
 } from 'lucide-react'
 import { PLAN_CONFIG, type ApiPlan } from '@/lib/subscription-constants'
 import { useUser } from '@/lib/UserContext'
@@ -24,6 +27,44 @@ type SubscriptionInfo = {
   status: string | null
   endsAt: string | null
   polarCustomerId: string | null
+}
+
+// Usage Ring Chart Component
+function UsageRingChart({ percentage }: { percentage: number }) {
+  const radius = 32
+  const circumference = 2 * Math.PI * radius
+  const strokeDashoffset = circumference - (percentage / 100) * circumference
+  
+  return (
+    <div className="relative w-20 h-20 flex items-center justify-center">
+      <svg className="w-full h-full transform -rotate-90">
+        <circle
+          cx="40"
+          cy="40"
+          r={radius}
+          fill="transparent"
+          stroke="currentColor"
+          strokeWidth="6"
+          className="text-slate-800/50"
+        />
+        <circle
+          cx="40"
+          cy="40"
+          r={radius}
+          fill="transparent"
+          stroke="currentColor"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          className="text-indigo-500 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)] transition-all duration-500"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xs font-bold text-white">{Math.round(percentage)}%</span>
+      </div>
+    </div>
+  )
 }
 
 // Wrapper component to handle Suspense boundary for useSearchParams
@@ -41,59 +82,80 @@ function BillingPageContent() {
   const [isLoadingPortal, setIsLoadingPortal] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isRefetching, setIsRefetching] = useState(true)
+  
+  // Usage data
+  const [usage, setUsage] = useState({ used: 0, total: 50, period: 'day' as 'day' | 'month' })
+  const [isFetchingUsage, setIsFetchingUsage] = useState(false)
 
-  // Debug helper
-  const debug = (tag: string, data: any) => {
-    console.log(`%c[Billing:${tag}]`, 'color: #10B981; font-weight: bold', data)
-  }
-
-  // Always force refetch on billing page mount to ensure fresh subscription data
+  // Always force refetch on billing page mount
   useEffect(() => {
     const doRefetch = async () => {
-      debug('mount:refetch', { timestamp: new Date().toISOString() })
       await refetchUser()
-      debug('mount:refetchDone', { user: user?.subscriptionTier })
       setIsRefetching(false)
     }
     doRefetch()
-  }, []) // Empty deps - only run once on mount
+  }, [])
 
   // Fetch subscription data from user context
   useEffect(() => {
-    debug('userEffect', { 
-      hasUser: !!user, 
-      subscriptionTier: user?.subscriptionTier,
-      subscriptionStatus: user?.subscriptionStatus,
-      isRefetching 
-    })
-    
     if (user) {
       const tier = (user.subscriptionTier || 'sandbox') as ApiPlan
-      const isValidTier = !!PLAN_CONFIG[tier]
-      
-      debug('setSubscription', { 
-        rawTier: user.subscriptionTier, 
-        mappedTier: tier,
-        isValidTier,
-        finalTier: isValidTier ? tier : 'sandbox'
-      })
       
       setSubscription({
         tier: PLAN_CONFIG[tier] ? tier : 'sandbox',
         status: user.subscriptionStatus,
         endsAt: user.subscriptionEndsAt,
-        polarCustomerId: null, // We'll get this from API if needed
+        polarCustomerId: null,
+      })
+      
+      // Set usage based on plan - use actual limits from config
+      const config = PLAN_CONFIG[tier] || PLAN_CONFIG.sandbox
+      const isMonthly = config.limitType === 'monthly'
+      setUsage({
+        used: 0, // Will be fetched from API
+        total: config.limit || 50,
+        period: isMonthly ? 'month' : 'day'
       })
     }
   }, [user])
 
+  // Fetch usage data from API
+  useEffect(() => {
+    const fetchUsage = async () => {
+      if (user?.defaultWorkspaceId && !isFetchingUsage) {
+        setIsFetchingUsage(true)
+        try {
+          const response = await fetch(`/api/usage?workspaceId=${user.defaultWorkspaceId}`)
+          if (response.ok) {
+            const data = await response.json()
+            const tier = (user.subscriptionTier || 'sandbox') as ApiPlan
+            const config = PLAN_CONFIG[tier] || PLAN_CONFIG.sandbox
+            const isMonthly = config.limitType === 'monthly'
+            
+            // Use requestsThisMonth for monthly plans, requestsToday for daily plans
+            const used = isMonthly ? (data.requestsThisMonth || 0) : (data.requestsToday || 0)
+            
+            setUsage({
+              used,
+              total: config.limit || 50,
+              period: isMonthly ? 'month' : 'day'
+            })
+          }
+        } catch (error) {
+          console.error('Failed to fetch usage:', error)
+        } finally {
+          setIsFetchingUsage(false)
+        }
+      }
+    }
+    
+    fetchUsage()
+  }, [user?.defaultWorkspaceId, user?.subscriptionTier])
+
   // Refetch user data when returning from checkout success
   useEffect(() => {
     if (subscriptionSuccess) {
-      debug('checkoutSuccess', { timestamp: new Date().toISOString() })
-      // Wait a bit for webhook to process, then refetch
       const timer = setTimeout(() => {
-        debug('checkoutSuccess:refetch', {})
         refetchUser()
       }, 2000)
       return () => clearTimeout(timer)
@@ -101,10 +163,7 @@ function BillingPageContent() {
   }, [subscriptionSuccess, refetchUser])
 
   const planConfig = PLAN_CONFIG[subscription.tier] || PLAN_CONFIG.sandbox
-  const isByokPlan = subscription.tier === 'byok_starter' || subscription.tier === 'byok_pro'
-  const isManagedPlan = subscription.tier === 'sandbox' || subscription.tier === 'managed_pro'
-  const isPaidPlan = subscription.tier === 'managed_pro' || subscription.tier === 'byok_pro'
-  const isFreeTier = subscription.tier === 'sandbox' || subscription.tier === 'byok_starter'
+  const isPaidPlan = subscription.tier === 'managed_pro' || subscription.tier === 'managed_expert' || subscription.tier === 'byok_pro'
 
   // Handle opening customer portal
   const handleManageSubscription = async () => {
@@ -116,7 +175,6 @@ function BillingPageContent() {
       if (data.portalUrl) {
         window.open(data.portalUrl, '_blank')
       } else {
-        // Fallback to Polar billing page
         window.open('https://polar.sh/settings/billing', '_blank')
       }
     } catch (error) {
@@ -126,212 +184,430 @@ function BillingPageContent() {
     }
   }
 
+  // Calculate days until reset (end of month)
+  const getDaysUntilReset = () => {
+    const now = new Date()
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    const diff = Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    return diff
+  }
+
+  // Get price for current plan
+  const getPlanPrice = () => {
+    switch (subscription.tier) {
+      case 'managed_pro': return '$20'
+      case 'managed_expert': return '$79'
+      case 'byok_pro': return '$5'
+      default: return '$0.00'
+    }
+  }
+
+  const usagePercentage = usage.total > 0 ? Math.min((usage.used / usage.total) * 100, 100) : 0
+
   if (userLoading || isRefetching) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
       </div>
     )
   }
 
   return (
-    <>
+    <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white mb-1">Billing</h1>
-        <p className="text-neutral-400">Manage your subscription and billing settings</p>
-        
-        {/* Success from checkout redirect */}
-        {subscriptionSuccess && (
-          <div className="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-sm">
-            🎉 Payment successful! Your subscription has been activated.
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Billing & Subscription</h1>
+          <p className="text-slate-500 max-w-2xl text-sm leading-relaxed">
+            Manage your workspace plan, usage limits, and billing methods.
+          </p>
+        </div>
+        {user?.defaultWorkspaceId && (
+          <div className="flex items-center gap-3">
+            <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-slate-400">
+              Workspace ID: <span className="text-slate-200 font-mono">{user.defaultWorkspaceId.slice(0, 8)}</span>
+            </span>
           </div>
         )}
       </div>
 
-      {/* Current Plan */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Current Plan</h2>
-            <p className="text-neutral-400">
-              {isPaidPlan 
-                ? `You're on the ${planConfig.name} plan`
-                : `You are currently on the ${planConfig.name} tier`
-              }
-            </p>
-          </div>
-          <div className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 ${
-            isPaidPlan
-              ? isByokPlan 
-                ? 'bg-amber-500/20 text-amber-400'
-                : 'bg-violet-500/20 text-violet-400'
-              : 'bg-neutral-700 text-neutral-300'
-          }`}>
-            {isPaidPlan && <Crown className="w-4 h-4" />}
-            {planConfig.name}
-          </div>
-        </div>
-
-        <div className={`p-4 rounded-xl ${
-          isPaidPlan
-            ? isByokPlan
-              ? 'bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20'
-              : 'bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20'
-            : 'bg-neutral-800'
-        }`}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-              isPaidPlan
-                ? isByokPlan ? 'bg-amber-500/20' : 'bg-violet-500/20'
-                : 'bg-neutral-700'
-            }`}>
-              {isByokPlan ? (
-                <Key className={`w-5 h-5 ${isPaidPlan ? 'text-amber-400' : 'text-neutral-400'}`} />
-              ) : (
-                <Shield className={`w-5 h-5 ${isPaidPlan ? 'text-violet-400' : 'text-neutral-400'}`} />
-              )}
-            </div>
-            <div className="flex-1">
-              <div className="font-medium text-white">{planConfig.name}</div>
-              <div className="text-sm text-neutral-400">{planConfig.description}</div>
-            </div>
-            {isPaidPlan && (
-              <div className="text-right">
-                <div className="text-xl font-bold text-white">
-                  {subscription.tier === 'managed_pro' ? '$19.99' : '$4.99'}
-                </div>
-                <div className="text-sm text-neutral-400">per month</div>
-              </div>
-            )}
-          </div>
-
-          {/* Features */}
-          <ul className="space-y-2 text-sm text-neutral-300 mb-4">
-            {planConfig.features.map((feature, index) => (
-              <li key={index} className="flex items-center gap-2">
-                <Check className={`w-4 h-4 ${
-                  isPaidPlan
-                    ? isByokPlan ? 'text-amber-400' : 'text-violet-400'
-                    : 'text-emerald-400'
-                }`} />
-                {feature}
-              </li>
-            ))}
-          </ul>
-
-          {/* Subscription details for paid plans */}
-          {isPaidPlan && subscription.endsAt && (
-            <div className="pt-4 border-t border-neutral-700/50">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-neutral-400">
-                  {subscription.status === 'canceled' ? 'Access until' : 'Next billing date'}
-                </span>
-                <span className="text-white">
-                  {new Date(subscription.endsAt).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric'
-                  })}
-                </span>
-              </div>
-              {subscription.status === 'canceled' && (
-                <div className="mt-2 text-amber-400 text-sm flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  Subscription canceled - you'll keep access until the end of your billing period
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Manage Subscription Button for paid plans */}
-        {isPaidPlan && (
-          <button
-            onClick={handleManageSubscription}
-            disabled={isLoadingPortal}
-            className="mt-4 w-full py-3 bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 text-white rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
-          >
-            {isLoadingPortal ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Settings className="w-4 h-4" />
-            )}
-            Manage Subscription
-            <ExternalLink className="w-4 h-4 ml-1" />
-          </button>
-        )}
-      </div>
-
-      {/* Upgrade Options - Only show for free tiers */}
-      {isFreeTier && (
-        <div className="mb-8">
-          <div className="bg-gradient-to-br from-violet-500/5 to-fuchsia-500/5 border border-violet-500/20 rounded-2xl p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold text-white mb-2">Ready to upgrade?</h2>
-                <p className="text-neutral-400">
-                  Unlock unlimited potential with our Pro tiers. Choose between Managed Pro or BYOK Unlimited.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowUpgradeModal(true)}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl font-semibold transition-all whitespace-nowrap"
-              >
-                <Sparkles className="w-5 h-5" />
-                View Plans
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Enterprise */}
-          <div className="mt-6 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-semibold text-white mb-1">Enterprise</h3>
-                <p className="text-neutral-400 text-sm">For teams and organizations with custom needs</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-white">Custom</div>
-                  <div className="text-neutral-400 text-sm">contact for pricing</div>
-                </div>
-                <a
-                  href="mailto:enterprise@leaflearning.com"
-                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium flex items-center gap-2 transition-colors whitespace-nowrap"
-                >
-                  Contact Sales
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          </div>
+      {/* Success from checkout redirect */}
+      {subscriptionSuccess && (
+        <div className="mb-6 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 text-sm">
+          🎉 Payment successful! Your subscription has been activated.
         </div>
       )}
 
-      {/* Payment Method */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center">
-            <CreditCard className="w-5 h-5 text-neutral-400" />
+      {/* Top 3 Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        {/* Current Plan Card */}
+        <div className="bg-[#0e0e11]/60 backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 relative overflow-hidden group">
+          <div className="absolute top-8 right-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Shield className="w-16 h-16" />
           </div>
-          <div>
-            <h2 className="text-lg font-semibold text-white">Payment Method</h2>
-            <p className="text-neutral-400 text-sm">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Current Plan</p>
+              <h3 className="text-2xl font-bold text-white">{planConfig.name}</h3>
+            </div>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+              subscription.status === 'active' || !isPaidPlan
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_-3px_rgba(52,211,153,0.3)]'
+                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+            }`}>
+              {subscription.status === 'canceled' ? 'CANCELED' : 'ACTIVE'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-1 w-12 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 w-full rounded-full"></div>
+            </div>
+            <span className="text-xs text-slate-400">
+              {isPaidPlan && subscription.endsAt 
+                ? `Renews ${new Date(subscription.endsAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                : 'Free forever'
+              }
+            </span>
+          </div>
+          <p className="text-sm text-slate-400 font-light">{planConfig.description}</p>
+        </div>
+
+        {/* Period Usage Card */}
+        <div className="bg-[#0e0e11]/60 backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Period Usage</p>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-bold text-white tracking-tight font-mono">
+                  {usage.used.toLocaleString()}
+                </span>
+                <span className="text-sm text-slate-500 font-medium">
+                  / {usage.total >= 1000 ? `${(usage.total / 1000).toFixed(0)}k` : usage.total}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                API Requests this {usage.period === 'month' ? 'month' : 'day'}
+              </p>
+            </div>
+            <UsageRingChart percentage={usagePercentage} />
+          </div>
+          <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
+            <Clock className="w-4 h-4 text-slate-500" />
+            <span className="text-xs text-slate-400">
+              {usage.period === 'month' ? `Resets in ${getDaysUntilReset()} days` : 'Resets daily at midnight UTC'}
+            </span>
+          </div>
+        </div>
+
+        {/* Next Invoice Card */}
+        <div className="bg-[#0e0e11]/60 backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 flex flex-col">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Next Invoice</p>
+              <h3 className="text-2xl font-bold text-white">{getPlanPrice()}</h3>
+            </div>
+            <div className="p-2 bg-slate-800/50 rounded-lg border border-white/5">
+              <Receipt className="w-5 h-5 text-slate-400" />
+            </div>
+          </div>
+          <div className="flex-grow">
+            <p className="text-sm text-slate-500 mt-2">
               {isPaidPlan 
-                ? 'Manage your payment method via Polar'
-                : 'No payment method required for free tiers'
+                ? `Next billing on ${subscription.endsAt ? new Date(subscription.endsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'renewal date'}`
+                : 'Sandbox Tier is free forever.'
               }
             </p>
           </div>
+          <div className="mt-auto pt-4 border-t border-white/5">
+            <button 
+              onClick={handleManageSubscription}
+              disabled={isLoadingPortal}
+              className="text-sm text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 group transition-colors"
+            >
+              {isLoadingPortal ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  View billing history
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+          </div>
         </div>
-        <p className="text-neutral-500 text-sm">
-          {isPaidPlan
-            ? 'Your subscription is managed through Polar. Click "Manage Subscription" above to update your payment method or view invoices.'
-            : `You're on the ${planConfig.name} tier. Add a payment method when you upgrade to a paid plan.`
-          }
-        </p>
+      </div>
+
+      {/* Available Plans Section */}
+      <div className="mb-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-white">Available Plans</h2>
+          <a 
+            href="mailto:enterprise@leaflearning.com" 
+            className="text-sm text-slate-400 hover:text-indigo-400 transition-colors flex items-center gap-1"
+          >
+            Contact Sales for Enterprise
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Managed Pro Plan */}
+          <div className={`relative bg-[#0e0e11] border border-white/5 rounded-2xl p-6 flex flex-col ${
+            subscription.tier === 'managed_pro' ? 'opacity-75 hover:opacity-100' : ''
+          } transition-opacity`}>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-medium text-slate-300">Managed Pro</h3>
+                {subscription.tier === 'managed_pro' && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-slate-800 text-slate-400 rounded">
+                    Current
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-white">$20</span>
+                <span className="text-sm text-slate-500">/mo</span>
+              </div>
+            </div>
+            <div className="text-sm text-slate-400 mb-6 border-b border-white/5 pb-6">
+              For growing teams and production apps.
+            </div>
+            <ul className="flex-grow space-y-3">
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-slate-600" />
+                <span><span className="text-white font-medium">50,000</span> requests/mo</span>
+              </li>
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-slate-600" />
+                Priority Email Support
+              </li>
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-slate-600" />
+                1,000 Search / 50 Deep Research
+              </li>
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-slate-600" />
+                Full Context Paths
+              </li>
+            </ul>
+            <button 
+              onClick={() => subscription.tier !== 'managed_pro' && setShowUpgradeModal(true)}
+              disabled={subscription.tier === 'managed_pro'}
+              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${
+                subscription.tier === 'managed_pro'
+                  ? 'border border-slate-700 text-slate-400 cursor-not-allowed bg-slate-900/50'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+              }`}
+            >
+              {subscription.tier === 'managed_pro' ? 'Current Plan' : 'Upgrade to Pro'}
+            </button>
+          </div>
+
+          {/* Managed Expert Plan - Highlighted */}
+          <div className="relative bg-[#0F1115] border border-indigo-500/50 rounded-2xl p-6 flex flex-col shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] z-10 scale-[1.02] transform">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
+              Most Popular
+            </div>
+            <div className="mb-4 mt-2">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-medium text-indigo-200">Managed Expert</h3>
+                {subscription.tier === 'managed_expert' && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-indigo-500/20 text-indigo-400 rounded">
+                    Current
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-1 mt-2">
+                <span className="text-4xl font-bold text-white">$79</span>
+                <span className="text-sm text-slate-400">/mo</span>
+              </div>
+            </div>
+            <div className="text-sm text-indigo-200/60 mb-6 border-b border-indigo-500/10 pb-6">
+              For high-volume production apps.
+            </div>
+            <ul className="flex-grow space-y-3">
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-indigo-400" />
+                <span><span className="text-white font-medium">200,000</span> requests/mo</span>
+              </li>
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-indigo-400" />
+                Dedicated Account Manager
+              </li>
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-indigo-400" />
+                5,000 Search / 200 Deep Research
+              </li>
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-indigo-400" />
+                Priority Queue Access
+              </li>
+            </ul>
+            <button 
+              onClick={() => subscription.tier !== 'managed_expert' && setShowUpgradeModal(true)}
+              disabled={subscription.tier === 'managed_expert'}
+              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${
+                subscription.tier === 'managed_expert'
+                  ? 'bg-indigo-600/50 text-indigo-200 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+              }`}
+            >
+              {subscription.tier === 'managed_expert' ? 'Current Plan' : 'Upgrade to Expert'}
+            </button>
+          </div>
+
+          {/* BYOK Unlimited Plan */}
+          <div className="relative bg-[#0e0e11] border border-purple-500/30 rounded-2xl p-6 flex flex-col hover:border-purple-500/60 transition-colors shadow-[0_0_25px_-5px_rgba(139,92,246,0.15)]">
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-medium text-purple-200">BYOK Unlimited</h3>
+                {subscription.tier === 'byok_pro' && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-purple-500/20 text-purple-400 rounded">
+                    Current
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-1 mt-2">
+                <span className="text-3xl font-bold text-white">$5</span>
+                <span className="text-sm text-slate-500">/mo</span>
+              </div>
+            </div>
+            <div className="text-sm text-slate-400 mb-6 border-b border-white/5 pb-6">
+              Scale without limits using your own keys.
+            </div>
+            <ul className="flex-grow space-y-3">
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-purple-400" />
+                <span><span className="text-white font-medium">Unlimited</span> requests*</span>
+              </li>
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-purple-400" />
+                Premium Support
+              </li>
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-purple-400" />
+                Unlimited Search (Your Keys)
+              </li>
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-purple-400" />
+                <span><span className="text-white font-medium">Unlimited</span> Deep Research</span>
+              </li>
+            </ul>
+            <p className="text-[10px] text-slate-500 mt-3">*Subject to platform fair use policy to prevent abuse.</p>
+            <button
+              onClick={() => subscription.tier !== 'byok_pro' && setShowUpgradeModal(true)}
+              disabled={subscription.tier === 'byok_pro'}
+              className={`mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${
+                subscription.tier === 'byok_pro'
+                  ? 'border border-purple-500/30 text-purple-300/50 cursor-not-allowed'
+                  : 'border border-purple-500/50 text-purple-300 hover:bg-purple-500/10'
+              }`}
+            >
+              {subscription.tier === 'byok_pro' ? 'Current Plan' : 'Get Unlimited'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Section - Payment Method & Transactions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Payment Method */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Payment Method</h2>
+          </div>
+          <div className="bg-[#0e0e11] rounded-xl border border-white/5 p-6 pb-8 h-[320px] flex flex-col justify-between">
+            <div 
+              onClick={() => isPaidPlan && handleManageSubscription()}
+              className={`flex-grow rounded-lg border-2 border-dashed border-slate-800 bg-[#18181b]/30 hover:bg-[#18181b]/50 hover:border-slate-700 transition-all flex flex-col items-center justify-center p-8 group ${isPaidPlan ? 'cursor-pointer' : 'cursor-default'}`}
+            >
+              <div className="h-12 w-12 rounded-full bg-slate-900 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <CreditCard className="w-5 h-5 text-slate-500 group-hover:text-slate-300 transition-colors" />
+              </div>
+              <p className="text-sm font-medium text-slate-300 mb-1">
+                {isPaidPlan ? 'Manage Payment Method' : 'No Payment Method'}
+              </p>
+              <p className="text-xs text-slate-500 mb-6 text-center max-w-[220px]">
+                {isPaidPlan 
+                  ? 'Update your payment method or view invoices via Polar.'
+                  : 'Upgrade to a paid plan to add a payment method.'
+                }
+              </p>
+              {isPaidPlan ? (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleManageSubscription(); }}
+                  disabled={isLoadingPortal}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-xs font-medium text-white transition-all disabled:opacity-50"
+                >
+                  {isLoadingPortal ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <ExternalLink className="w-4 h-4" />
+                      Open Billing Portal
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-white transition-all"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  View Plans
+                </button>
+              )}
+            </div>
+            <div className="mt-6 flex items-center justify-between text-xs pt-4 border-t border-white/5">
+              <div className="flex items-center gap-2 text-slate-500">
+                <Lock className="w-4 h-4" />
+                Secured by Polar
+              </div>
+              {isPaidPlan && (
+                <button 
+                  onClick={handleManageSubscription}
+                  className="text-slate-400 hover:text-white transition-colors flex items-center gap-1"
+                >
+                  Billing Settings
+                  <ExternalLink className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Transactions */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-white">Recent Transactions</h2>
+            <button 
+              onClick={handleManageSubscription}
+              className="text-sm text-slate-400 hover:text-indigo-400 transition-colors flex items-center gap-1"
+            >
+              Download All
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="bg-[#0e0e11] rounded-xl border border-white/5 overflow-hidden h-[320px] flex flex-col">
+            <div className="bg-[#18181b] px-6 py-3 border-b border-white/5 flex text-xs font-medium text-slate-500 uppercase tracking-wider">
+              <div className="w-1/2">Invoice Details</div>
+              <div className="w-1/4 text-right">Date</div>
+              <div className="w-1/4 text-right">Amount</div>
+            </div>
+            <div className="flex-grow flex flex-col items-center justify-center text-center p-6">
+              <div className="h-12 w-12 rounded-full bg-slate-900/50 flex items-center justify-center mb-3">
+                <Receipt className="w-5 h-5 text-slate-600" />
+              </div>
+              <p className="text-sm text-slate-400 font-medium">No transactions yet</p>
+              <p className="text-xs text-slate-600 mt-1">Your billing history will appear here.</p>
+            </div>
+            <div className="p-3 bg-[#18181b]/30 border-t border-white/5 text-center">
+              <span className="text-[10px] text-slate-600 uppercase tracking-widest font-semibold">
+                Showing last 30 days
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Upgrade Modal */}
@@ -339,7 +615,7 @@ function BillingPageContent() {
         isOpen={showUpgradeModal} 
         onClose={() => setShowUpgradeModal(false)} 
       />
-    </>
+    </div>
   )
 }
 
@@ -348,7 +624,7 @@ export default function BillingPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-violet-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
       </div>
     }>
       <BillingPageContent />

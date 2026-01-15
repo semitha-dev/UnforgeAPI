@@ -194,15 +194,12 @@ async function logUsage(data: {
 }
 
 /**
- * Verify API key with Unkey (stateless)
+ * Single attempt to verify API key with Unkey (internal)
  */
-async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyVerifyResult> {
-  debug('verifyApiKey:start', { keyPrefix: key.substring(0, 10) + '...', keyLength: key.length }, context)
-  
+async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<UnkeyVerifyResult & { shouldRetry?: boolean }> {
   const verifyStartTime = performance.now()
-  
+
   try {
-    // Unkey API endpoint
     const response = await fetch('https://api.unkey.dev/v1/keys.verifyKey', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -210,35 +207,107 @@ async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyV
     })
 
     const verifyLatency = Math.round(performance.now() - verifyStartTime)
-    
     const rawResult = await response.json()
-    // Unkey v2 wraps response in { meta, data } envelope
     const result = rawResult.data || rawResult
-    
-    debug('verifyApiKey:response', { 
+
+    debug('verifyApiKey:response', {
       ok: response.ok,
       status: response.status,
       verifyLatencyMs: verifyLatency,
       valid: result.valid,
       code: result.code,
       hasMetadata: !!result.meta,
-      requestId: rawResult.meta?.requestId
+      keyId: result.keyId || result.id,
+      ownerId: result.ownerId,
+      requestId: rawResult.meta?.requestId,
+      rawError: result.error || rawResult.error
     }, context)
-    
+
     if (!response.ok) {
-      debugError('verifyApiKey:httpError', { status: response.status, body: rawResult }, context)
-      return { valid: false, code: 'API_ERROR' }
+      debugError('verifyApiKey:httpError', {
+        status: response.status,
+        statusText: response.statusText,
+        body: JSON.stringify(rawResult).substring(0, 500)
+      }, context)
+      // Retry on 5xx errors or 429 (rate limited at Unkey level)
+      const shouldRetry = response.status >= 500 || response.status === 429
+      return {
+        valid: false,
+        code: result.code || rawResult.code || 'API_ERROR',
+        shouldRetry
+      }
     }
 
     return {
       valid: result.valid || false,
       code: result.code,
       meta: result.meta,
-      keyId: result.keyId
+      keyId: result.keyId || result.id,
+      shouldRetry: false
     }
   } catch (error: any) {
-    debugError('verifyApiKey', error, context)
-    return { valid: false, code: 'NETWORK_ERROR' }
+    debugError('verifyApiKey:networkError', {
+      errorName: error.name,
+      errorMessage: error.message,
+      verifyLatencyMs: Math.round(performance.now() - verifyStartTime)
+    }, context)
+    // Network errors are always retryable
+    return { valid: false, code: 'NETWORK_ERROR', shouldRetry: true }
+  }
+}
+
+/**
+ * Verify API key with Unkey (stateless) - with automatic retry on transient errors
+ */
+const MAX_VERIFY_RETRIES = 2
+const RETRY_DELAY_MS = 150
+
+async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyVerifyResult> {
+  debug('verifyApiKey:start', { keyPrefix: key.substring(0, 10) + '...', keyLength: key.length, maxRetries: MAX_VERIFY_RETRIES }, context)
+
+  let lastResult: UnkeyVerifyResult = { valid: false, code: 'UNKNOWN' }
+
+  for (let attempt = 1; attempt <= MAX_VERIFY_RETRIES + 1; attempt++) {
+    const result = await verifyApiKeyOnce(key, context)
+
+    // Success - return immediately
+    if (result.valid) {
+      if (attempt > 1) {
+        debug('verifyApiKey:retrySuccess', { attempt, totalAttempts: attempt }, context)
+      }
+      return {
+        valid: result.valid,
+        code: result.code,
+        meta: result.meta,
+        keyId: result.keyId
+      }
+    }
+
+    lastResult = result
+
+    // Don't retry if it's a definitive failure (key not found, expired, etc.)
+    if (!result.shouldRetry) {
+      debug('verifyApiKey:noRetry', { attempt, code: result.code }, context)
+      break
+    }
+
+    // Don't retry if we've exhausted attempts
+    if (attempt > MAX_VERIFY_RETRIES) {
+      debug('verifyApiKey:exhaustedRetries', { attempt, code: result.code }, context)
+      break
+    }
+
+    // Wait before retrying (with exponential backoff)
+    const delay = RETRY_DELAY_MS * attempt
+    debug('verifyApiKey:retrying', { attempt, nextAttempt: attempt + 1, delayMs: delay, code: result.code }, context)
+    await new Promise(resolve => setTimeout(resolve, delay))
+  }
+
+  return {
+    valid: lastResult.valid,
+    code: lastResult.code,
+    meta: lastResult.meta,
+    keyId: lastResult.keyId
   }
 }
 
@@ -430,7 +499,8 @@ export async function POST(req: NextRequest) {
     const plan = result.meta?.plan || result.meta?.tier || 'sandbox'
     const validPlanType = plan as ApiPlan
     const isByokPlan = plan === 'byok_starter' || plan === 'byok_pro'
-    const searchEnabled = result.meta?.searchEnabled !== false && plan !== 'sandbox'
+    // Search is enabled for all plans - rate limits enforce fair usage
+    const searchEnabled = result.meta?.searchEnabled !== false
     const requiresUserKeys = result.meta?.requiresUserKeys || isByokPlan
     const isPriority = isPriorityPlan(validPlanType)
     
@@ -686,14 +756,14 @@ export async function POST(req: NextRequest) {
       }, ctx)
       const pathStartTime = performance.now()
       
-      // Check if search is enabled for this plan
+      // Check if search is enabled for this plan (via metadata override)
       if (!searchEnabled) {
         debug('path:research:rejected', { reason: 'SEARCH_DISABLED', plan }, ctx)
         return Response.json(
-          { 
-            error: 'Search is not available on the Sandbox plan. Upgrade to enable research capabilities.',
+          {
+            error: 'Search has been disabled for this API key.',
             code: 'SEARCH_DISABLED',
-            upgrade_hint: 'Upgrade to Managed Pro ($19.99/mo) or BYOK Starter (Free with your keys)'
+            hint: 'Contact support if you believe this is an error.'
           },
           { status: 402 }
         )

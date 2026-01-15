@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/app/lib/supabaseClient'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, ArrowLeft, RefreshCw, AlertTriangle, CheckCircle, HelpCircle, Sparkles } from 'lucide-react'
+import Image from 'next/image'
+import { Mail, ArrowLeft, RefreshCw, AlertTriangle, CheckCircle, HelpCircle } from 'lucide-react'
 
 export default function VerifyEmailPage() {
   const [isResending, setIsResending] = useState(false)
@@ -96,8 +97,8 @@ export default function VerifyEmailPage() {
         {/* Logo */}
         <div className="flex items-center justify-center mb-8">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center overflow-hidden">
+              <Image src="/reallogo.png" alt="UnforgeAPI" width={40} height={40} className="object-contain" />
             </div>
             <span className="text-2xl font-bold text-white">UnforgeAPI</span>
           </Link>
