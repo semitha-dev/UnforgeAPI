@@ -291,7 +291,6 @@ const HeroSection = () => {
 const StatsSection = () => {
   const stats = [
     { value: '30-40s', label: 'Deep Analysis', icon: Clock },
-    { value: '12+', label: 'Sources Searched', icon: Search },
     { value: 'JSON', label: 'Structured Output', icon: FileText },
     { value: 'BYOK', label: 'Bring Your Keys', icon: Key },
   ];
