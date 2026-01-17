@@ -17,25 +17,27 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL('https://unforge.ai'),
   title: {
-    default: "UnforgeAPI - Full AI Agent API | Intelligent RAG Router",
+    default: "UnforgeAPI - Deep Research API for Machines & AI Agents",
     template: "%s | UnforgeAPI"
   },
-  description: "UnforgeAPI is a Full AI Agent API with intelligent routing. Save 60-80% on AI costs with our Router Brain technology. Enterprise features: strict_mode, grounded_only, citation_mode.",
+  description: "UnforgeAPI provides Deep Research API built for machines and AI agents. Real-time web grounding, 30-40 second deep analysis, and perfectly structured JSON output.",
   keywords: [
-    "AI API",
-    "RAG API",
-    "AI agent",
+    "Deep Research API",
+    "AI agent API",
     "LLM API",
-    "hybrid RAG",
-    "intelligent routing",
-    "AI cost optimization",
+    "machine learning API",
+    "AI research API",
+    "structured data extraction",
+    "web grounding",
+    "AI agent tools",
     "enterprise AI",
     "grounded AI",
     "citation mode",
-    "jailbreak protection",
+    "JSON schema API",
     "AI chatbot API",
     "Groq API",
-    "Tavily API"
+    "Tavily API",
+    "AI automation"
   ],
   authors: [{ name: "UnforgeAPI" }],
   creator: "UnforgeAPI",
@@ -68,21 +70,21 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://unforge.ai",
     siteName: "UnforgeAPI",
-    title: "UnforgeAPI - Full AI Agent API",
-    description: "Save 60-80% on AI costs with intelligent routing. Enterprise-ready with strict_mode, grounded_only, and citation_mode.",
+    title: "UnforgeAPI - Deep Research API for Machines & AI Agents",
+    description: "Deep Research API built for machines and AI agents. Real-time web grounding, 30-40 second deep analysis, and perfectly structured JSON output.",
     images: [
       {
         url: "/landingpage.png",
         width: 1200,
         height: 630,
-        alt: "UnforgeAPI - Full AI Agent API",
+        alt: "UnforgeAPI - Deep Research API for Machines & AI Agents",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "UnforgeAPI - Full AI Agent API",
-    description: "Save 60-80% on AI costs with intelligent routing. Enterprise-ready features included!",
+    title: "UnforgeAPI - Deep Research API for Machines & AI Agents",
+    description: "Deep Research API built for machines and AI agents. Real-time web grounding and structured JSON output.",
     images: ["/landingpage.png"],
   },
   verification: {
@@ -100,7 +102,7 @@ const jsonLd = {
   name: 'UnforgeAPI',
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Web',
-  description: 'Full AI Agent API with intelligent routing. Save 60-80% on AI costs with Router Brain technology.',
+  description: 'Deep Research API built for machines and AI agents. Real-time web grounding, 30-40 second deep analysis, and perfectly structured JSON output.',
   offers: {
     '@type': 'Offer',
     price: '0',
@@ -113,11 +115,13 @@ const jsonLd = {
     ratingCount: '50',
   },
   featureList: [
-    'Intelligent query routing',
-    'Enterprise features: strict_mode, grounded_only, citation_mode',
-    '60-80% cost savings',
-    'Sub-100ms latency',
-    'Full AI Agent - plug and play',
+    'Deep Research API for machines',
+    'Real-time web grounding',
+    '30-40 second deep analysis',
+    'Structured JSON output',
+    'Custom schema support',
+    'BYOK support',
+    'AI agent integration',
   ],
 };
 

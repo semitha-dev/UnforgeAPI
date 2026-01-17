@@ -65,6 +65,7 @@ const Navigation = () => {
             <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="hover:text-white transition-colors cursor-pointer">Router</a>
             <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="hover:text-white transition-colors cursor-pointer">Pricing</a>
             <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
+            <Link href="/hub/blog" className="hover:text-white transition-colors">Blog</Link>
           </nav>
 
           <div className="flex items-center gap-4">
@@ -102,6 +103,7 @@ const Navigation = () => {
               <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="block text-gray-400 hover:text-white cursor-pointer">Router</a>
               <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="block text-gray-400 hover:text-white cursor-pointer">Pricing</a>
               <Link href="/docs" className="block text-gray-400 hover:text-white">Docs</Link>
+              <Link href="/hub/blog" className="block text-gray-400 hover:text-white">Blog</Link>
               <Link href="/signin" className="block text-gray-400 hover:text-white">Sign In</Link>
               <Link href="/signup" className="block py-2 text-center bg-white text-black rounded-lg font-bold">
                 Get Started Free
@@ -1100,6 +1102,7 @@ const Footer = () => {
           
           <div className="flex items-center gap-8">
             <Link href="/docs" className="text-sm text-gray-400 hover:text-white transition-colors">Documentation</Link>
+            <Link href="/hub/blog" className="text-sm text-gray-400 hover:text-white transition-colors">Blog</Link>
             <Link href="/privacy" className="text-sm text-gray-400 hover:text-white transition-colors">Privacy</Link>
             <Link href="/terms" className="text-sm text-gray-400 hover:text-white transition-colors">Terms</Link>
             <Link href="/contact" className="text-sm text-gray-400 hover:text-white transition-colors">Contact</Link>

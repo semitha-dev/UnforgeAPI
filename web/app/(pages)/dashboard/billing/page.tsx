@@ -84,7 +84,7 @@ function BillingPageContent() {
   const [isRefetching, setIsRefetching] = useState(true)
   
   // Usage data
-  const [usage, setUsage] = useState({ used: 0, total: 50, period: 'day' as 'day' | 'month' })
+  const [usage, setUsage] = useState({ used: 0, total: 50, period: 'day' as 'day' | 'month', limitType: 'daily' as 'daily' | 'monthly' | 'rate' })
   const [isFetchingUsage, setIsFetchingUsage] = useState(false)
 
   // Always force refetch on billing page mount
@@ -114,7 +114,8 @@ function BillingPageContent() {
       setUsage({
         used: 0, // Will be fetched from API
         total: config.limit || 50,
-        period: isMonthly ? 'month' : 'day'
+        period: isMonthly ? 'month' : 'day',
+        limitType: config.limitType
       })
     }
   }, [user])
@@ -138,7 +139,8 @@ function BillingPageContent() {
             setUsage({
               used,
               total: config.limit || 50,
-              period: isMonthly ? 'month' : 'day'
+              period: isMonthly ? 'month' : 'day',
+              limitType: config.limitType
             })
           }
         } catch (error) {
@@ -202,7 +204,9 @@ function BillingPageContent() {
     }
   }
 
-  const usagePercentage = usage.total > 0 ? Math.min((usage.used / usage.total) * 100, 100) : 0
+  const usagePercentage = usage.limitType === 'rate' || usage.total === -1 
+    ? 0 
+    : usage.total > 0 ? Math.min((usage.used / usage.total) * 100, 100) : 0
 
   if (userLoading || isRefetching) {
     return (
@@ -282,11 +286,15 @@ function BillingPageContent() {
                   {usage.used.toLocaleString()}
                 </span>
                 <span className="text-sm text-slate-500 font-medium">
-                  / {usage.total >= 1000 ? `${(usage.total / 1000).toFixed(0)}k` : usage.total}
+                  / {usage.limitType === 'rate' ? 'Unlimited' : (usage.total >= 1000 ? `${(usage.total / 1000).toFixed(0)}k` : usage.total)} requests
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-2">
-                API Requests this {usage.period === 'month' ? 'month' : 'day'}
+                {usage.limitType === 'daily' 
+                  ? 'Daily API requests' 
+                  : usage.limitType === 'rate'
+                    ? 'Unlimited requests (rate limited)'
+                    : 'Monthly API requests this billing period'}
               </p>
             </div>
             <UsageRingChart percentage={usagePercentage} />
@@ -294,7 +302,11 @@ function BillingPageContent() {
           <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
             <Clock className="w-4 h-4 text-slate-500" />
             <span className="text-xs text-slate-400">
-              {usage.period === 'month' ? `Resets in ${getDaysUntilReset()} days` : 'Resets daily at midnight UTC'}
+              {usage.limitType === 'daily'
+                ? 'Resets daily at midnight UTC'
+                : usage.limitType === 'rate'
+                  ? 'Rate limit: 10 requests/second'
+                  : `Resets in ${getDaysUntilReset()} days`}
             </span>
           </div>
         </div>

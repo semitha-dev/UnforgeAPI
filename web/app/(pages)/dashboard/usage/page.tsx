@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
+import { PLAN_CONFIG } from '@/lib/subscription-constants'
 import {
   BarChart3,
   TrendingUp,
@@ -111,6 +112,8 @@ export default function UsagePage() {
   const [apiKeys, setApiKeys] = useState<Array<{ id: string; name: string; tier: string }>>([])
   const [deepResearchQuota, setDeepResearchQuota] = useState<DeepResearchQuota | null>(null)
   const [keyDropdownOpen, setKeyDropdownOpen] = useState(false)
+  const [monthlyLimit, setMonthlyLimit] = useState<number>(50000)
+  const [planConfig, setPlanConfig] = useState(PLAN_CONFIG.sandbox)
   const keyDropdownRef = useRef<HTMLDivElement>(null)
 
   const router = useRouter()
@@ -196,6 +199,22 @@ export default function UsagePage() {
       const userPlan = keysData.keys?.[0]?.tier || keysData.keys?.[0]?.metadata?.plan || 'sandbox'
       const deepResearchUsed = usageData?.deepResearchUsage || 0
       const planLimits = DEEP_RESEARCH_LIMITS[userPlan] ?? { limit: 0, period: 'daily' as const }
+      
+      // Calculate monthly limit based on plan config
+      const currentPlanConfig = PLAN_CONFIG[userPlan as keyof typeof PLAN_CONFIG] || PLAN_CONFIG.sandbox
+      setPlanConfig(currentPlanConfig)
+      
+      let calculatedMonthlyLimit: number
+      if (currentPlanConfig.limitType === 'rate') {
+        calculatedMonthlyLimit = -1 // Unlimited
+      } else if (currentPlanConfig.limitType === 'daily') {
+        // For daily limits, we show the daily limit
+        calculatedMonthlyLimit = currentPlanConfig.limit
+      } else {
+        // Monthly limits
+        calculatedMonthlyLimit = currentPlanConfig.limit
+      }
+      setMonthlyLimit(calculatedMonthlyLimit)
 
       const now = new Date()
       let resetsAt: string
@@ -238,7 +257,9 @@ export default function UsagePage() {
   }
 
   const totalIntents = (stats?.intentBreakdown.chat || 0) + (stats?.intentBreakdown.context || 0) + (stats?.intentBreakdown.research || 0)
-  const requestsUsedPercentage = stats?.requestsThisMonth ? Math.min((stats.requestsThisMonth / 50000) * 100, 100) : 0
+  const requestsUsedPercentage = monthlyLimit > 0 
+    ? Math.min(((stats?.requestsThisMonth || 0) / monthlyLimit) * 100, 100) 
+    : 0
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -387,10 +408,16 @@ export default function UsagePage() {
                 <span className="text-3xl font-bold text-white tracking-tight font-mono">
                   {formatNumber(stats?.requestsThisMonth || 0)}
                 </span>
-                <span className="text-sm text-slate-500 font-medium">requests</span>
+                <span className="text-sm text-slate-500 font-medium">
+                  / {monthlyLimit === -1 ? 'Unlimited' : formatNumber(monthlyLimit)} requests
+                </span>
               </div>
               <p className="text-xs text-slate-500 mt-2">
-                API Requests this billing period
+                {planConfig.limitType === 'daily' 
+                  ? 'Daily API requests' 
+                  : planConfig.limitType === 'rate'
+                    ? 'Unlimited requests (rate limited)'
+                    : 'Monthly API requests this billing period'}
               </p>
             </div>
             <UsageRingChart percentage={requestsUsedPercentage} />
@@ -398,7 +425,11 @@ export default function UsagePage() {
           <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
             <Clock className="w-4 h-4 text-slate-500" />
             <span className="text-xs text-slate-400">
-              Resets at end of billing period
+              {planConfig.limitType === 'daily'
+                ? 'Resets at midnight'
+                : planConfig.limitType === 'rate'
+                  ? 'Rate limit: 10 requests/second'
+                  : 'Resets at end of billing period'}
             </span>
           </div>
         </div>
