@@ -22,6 +22,10 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
     console.log(`%c[UpgradeModal:${tag}]`, 'color: #EC4899; font-weight: bold', data)
   }
 
+  const handleTabChange = (tab: 'managed' | 'byok') => {
+    setActiveTab(tab)
+  }
+
   if (!isOpen) return null
 
   const handleCheckout = async (productType: 'managed_pro' | 'managed_expert' | 'byok') => {
@@ -129,10 +133,10 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
         </div>
 
         {/* Tab selector */}
-        <div className="flex items-center gap-1 bg-white/5 rounded-full p-1 mb-10">
+        <div className="flex items-center gap-1 bg-white/5 rounded-full p-1 mb-10 relative z-20">
           <button 
-            onClick={() => setActiveTab('managed')}
-            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
+            onClick={() => handleTabChange('managed')}
+            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
               activeTab === 'managed' 
                 ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25' 
                 : 'text-gray-400 hover:text-white'
@@ -141,8 +145,8 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
             Managed
           </button>
           <button 
-            onClick={() => setActiveTab('byok')}
-            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
+            onClick={() => handleTabChange('byok')}
+            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
               activeTab === 'byok' 
                 ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25' 
                 : 'text-gray-400 hover:text-white'
@@ -158,125 +162,145 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
           </div>
         )}
 
-        {/* Managed Plans */}
-        {activeTab === 'managed' && (
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl w-full">
-            {managedPlans.map((plan) => (
+        {/* Content Stacking Container 
+            This grid-cols-1 trick makes both children occupy the same space.
+            The container height will always be determined by the TALLEST child (Managed),
+            preventing layout jumps when switching to the shorter BYOK tab. 
+        */}
+        <div className="grid grid-cols-1 w-full max-w-4xl relative">
+          
+          {/* Managed Plans (Stacked Item 1) */}
+          <div 
+            className={`col-start-1 row-start-1 w-full transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${
+              activeTab === 'managed' 
+                ? 'opacity-100 translate-y-0 visible scale-100 z-10' 
+                : 'opacity-0 translate-y-4 invisible scale-95 z-0'
+            }`}
+          >
+            <div className="grid md:grid-cols-2 gap-8">
+              {managedPlans.map((plan) => (
+                <div
+                  key={plan.id}
+                  className={`relative p-8 rounded-2xl border flex flex-col ${
+                    plan.popular
+                      ? 'bg-gradient-to-b from-violet-500/20 to-fuchsia-500/20 border-violet-500/50'
+                      : 'bg-white/5 border-white/10'
+                  }`}
+                >
+                  {plan.badge && (
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                      <span className="px-4 py-1 text-white text-sm font-medium rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500">
+                        {plan.badge}
+                      </span>
+                    </div>
+                  )}
+
+                  <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
+                  <div className="flex items-baseline gap-1 mb-2">
+                    <span className="text-4xl font-bold text-white">{plan.price}</span>
+                    <span className="text-gray-400">{plan.period}</span>
+                  </div>
+                  <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
+
+                  <ul className="space-y-3 mb-8 flex-grow">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
+                        <Check className="w-5 h-5 flex-shrink-0 text-violet-400" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={() => handleCheckout(plan.id)}
+                    disabled={isCheckingOut !== null}
+                    className={`w-full py-3 text-center font-medium rounded-xl transition-all mt-auto flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      plan.popular
+                        ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                    }`}
+                  >
+                    {isCheckingOut === plan.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      `Get ${plan.name}`
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* BYOK Plan (Stacked Item 2) */}
+          <div 
+            className={`col-start-1 row-start-1 w-full flex justify-center transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${
+              activeTab === 'byok' 
+                ? 'opacity-100 translate-y-0 visible scale-100 z-10' 
+                : 'opacity-0 translate-y-4 invisible scale-95 z-0'
+            }`}
+          >
+            <div className="max-w-md w-full">
               <div
-                key={plan.id}
                 className={`relative p-8 rounded-2xl border flex flex-col ${
-                  plan.popular
-                    ? 'bg-gradient-to-b from-violet-500/20 to-fuchsia-500/20 border-violet-500/50'
+                  byokPlan.popular
+                    ? 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
                     : 'bg-white/5 border-white/10'
                 }`}
               >
-                {plan.badge && (
+                {byokPlan.badge && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                    <span className="px-4 py-1 text-white text-sm font-medium rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500">
-                      {plan.badge}
+                    <span className="px-4 py-1 text-white text-sm font-medium rounded-full bg-gradient-to-r from-amber-500 to-orange-500">
+                      {byokPlan.badge}
                     </span>
                   </div>
                 )}
 
-                <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
+                <h3 className="text-xl font-semibold text-white mb-2">{byokPlan.name}</h3>
                 <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-4xl font-bold text-white">{plan.price}</span>
-                  <span className="text-gray-400">{plan.period}</span>
+                  <span className="text-4xl font-bold text-white">{byokPlan.price}</span>
+                  <span className="text-gray-400">{byokPlan.period}</span>
                 </div>
-                <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
+                <p className="text-gray-400 text-sm mb-6">{byokPlan.description}</p>
 
                 <ul className="space-y-3 mb-8 flex-grow">
-                  {plan.features.map((feature) => (
+                  {byokPlan.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
-                      <Check className="w-5 h-5 flex-shrink-0 text-violet-400" />
+                      <Check className="w-5 h-5 flex-shrink-0 text-amber-400" />
                       {feature}
                     </li>
                   ))}
                 </ul>
 
                 <button
-                  onClick={() => handleCheckout(plan.id)}
+                  onClick={() => handleCheckout(byokPlan.id)}
                   disabled={isCheckingOut !== null}
-                  className={`w-full py-3 text-center font-medium rounded-xl transition-all mt-auto flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                    plan.popular
-                      ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90'
-                      : 'bg-white/10 text-white hover:bg-white/20'
-                  }`}
+                  className="w-full py-3 text-center font-medium rounded-xl transition-all mt-auto flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90"
                 >
-                  {isCheckingOut === plan.id ? (
+                  {isCheckingOut === byokPlan.id ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Processing...
                     </>
                   ) : (
-                    `Get ${plan.name}`
+                    `Get ${byokPlan.name}`
                   )}
                 </button>
-              </div>
-            ))}
-          </div>
-        )}
 
-        {/* BYOK Plan */}
-        {activeTab === 'byok' && (
-          <div className="max-w-md w-full">
-            <div
-              className={`relative p-8 rounded-2xl border flex flex-col ${
-                byokPlan.popular
-                  ? 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
-                  : 'bg-white/5 border-white/10'
-              }`}
-            >
-              {byokPlan.badge && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1 text-white text-sm font-medium rounded-full bg-gradient-to-r from-amber-500 to-orange-500">
-                    {byokPlan.badge}
-                  </span>
+                <div className="mt-6 pt-6 border-t border-white/10 space-y-2">
+                  <p className="text-gray-500 text-xs text-center">
+                    Requires your own Groq and Tavily API keys.
+                  </p>
+                  <p className="text-gray-600 text-[10px] text-center">
+                    {byokPlan.footnote}
+                  </p>
                 </div>
-              )}
-
-              <h3 className="text-xl font-semibold text-white mb-2">{byokPlan.name}</h3>
-              <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl font-bold text-white">{byokPlan.price}</span>
-                <span className="text-gray-400">{byokPlan.period}</span>
-              </div>
-              <p className="text-gray-400 text-sm mb-6">{byokPlan.description}</p>
-
-              <ul className="space-y-3 mb-8 flex-grow">
-                {byokPlan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
-                    <Check className="w-5 h-5 flex-shrink-0 text-amber-400" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => handleCheckout(byokPlan.id)}
-                disabled={isCheckingOut !== null}
-                className="w-full py-3 text-center font-medium rounded-xl transition-all mt-auto flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90"
-              >
-                {isCheckingOut === byokPlan.id ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  `Get ${byokPlan.name}`
-                )}
-              </button>
-
-              <div className="mt-6 pt-6 border-t border-white/10 space-y-2">
-                <p className="text-gray-500 text-xs text-center">
-                  Requires your own Groq and Tavily API keys.
-                </p>
-                <p className="text-gray-600 text-[10px] text-center">
-                  {byokPlan.footnote}
-                </p>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Footer */}
         <p className="text-gray-500 text-sm mt-12 text-center">

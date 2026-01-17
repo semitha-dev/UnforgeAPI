@@ -82,7 +82,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const value: SubscriptionContextType = {
     tier,
-    isPro: tier === 'pro',
+    isPro: tier === 'pro' || tier === 'managed_pro' || tier === 'managed_expert' || tier === 'byok_pro',
     isAnonymous: tier === 'anonymous',
     isLoading,
     refetch: () => fetchSubscription(true)
@@ -99,7 +99,19 @@ export function useSubscriptionContext() {
   return useContext(SubscriptionContext)
 }
 
+// Alias for useSubscriptionContext for convenience
+export function useSubscription() {
+  return useContext(SubscriptionContext)
+}
+
 // Utility to clear cache (call after subscription change)
 export function clearSubscriptionCache() {
   globalCache = null
+}
+
+// Export tier and isPro for convenience
+export function useSubscriptionTier() {
+  const { tier } = useSubscriptionContext()
+  const isPro = tier === 'pro' || tier === 'managed_pro' || tier === 'managed_expert' || tier === 'byok_pro'
+  return { tier, isPro }
 }

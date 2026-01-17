@@ -12,6 +12,63 @@ function debug(tag: string, data: any) {
   }
 }
 
+// Detailed debug for webhook payload inspection
+function debugPayload(tag: string, payload: any, maxDepth: number = 3) {
+  if (DEBUG) {
+    const timestamp = new Date().toISOString()
+    const simplified = simplifyObject(payload, maxDepth)
+    console.log(`${timestamp} [Polar/Webhook:${tag}]`, JSON.stringify(simplified, null, 2))
+  }
+}
+
+// Helper to simplify large objects for logging
+function simplifyObject(obj: any, depth: number, currentDepth: number = 0): any {
+  if (currentDepth >= depth) {
+    return '[truncated]'
+  }
+  
+  if (obj === null || obj === undefined) {
+    return obj
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.slice(0, 5).map(item => simplifyObject(item, depth, currentDepth + 1))
+  }
+  
+  if (typeof obj === 'object') {
+    const result: any = {}
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = simplifyObject(value, depth, currentDepth + 1)
+    }
+    return result
+  }
+  
+  return obj
+}
+
+// Log webhook event to database for debugging
+async function logWebhookEvent(
+  supabase: ReturnType<typeof createAdminClient>,
+  eventType: string,
+  payload: any,
+  status: 'received' | 'processing' | 'success' | 'error',
+  details?: any
+) {
+  try {
+    await supabase
+      .from('webhook_logs')
+      .insert({
+        event_type: eventType,
+        payload: payload,
+        status: status,
+        details: details,
+        created_at: new Date().toISOString()
+      })
+  } catch (err) {
+    console.error('Failed to log webhook event:', err)
+  }
+}
+
 // Product IDs for different tiers (from environment variables)
 const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID!;
 const MANAGED_EXPERT_PRODUCT_ID = process.env.POLAR_MANAGED_EXPERT_PRODUCT_ID!;
@@ -336,7 +393,8 @@ export async function POST(request: NextRequest) {
     debug('POST:headers', { 
       webhookId, 
       webhookTimestamp, 
-      hasSignature: !!webhookSignature 
+      hasSignature: !!webhookSignature,
+      signatureLength: webhookSignature?.length || 0
     })
     
     // Always verify signature when configured (security critical)
@@ -346,10 +404,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: signatureCheck.reason }, { status: 401 });
     }
     
+    debug('POST:signature:success', { reason: signatureCheck.reason })
+    
     const body = JSON.parse(rawBody);
     const { type, data } = body;
     
     debug('POST:event', { type, dataId: data?.id })
+    debugPayload('POST:payload:full', body, 4)
+    
+    // Use admin client for webhooks - no user session available
+    const supabase = createAdminClient();
+    
+    // Log webhook event received
+    await logWebhookEvent(supabase, type, data, 'received', { webhookId, webhookTimestamp })
     
     // Extract event ID for idempotency
     // Use webhook-id header (unique per delivery) if available, otherwise construct from data
@@ -362,9 +429,6 @@ export async function POST(request: NextRequest) {
     const eventId = webhookDeliveryId 
       ? `delivery:${webhookDeliveryId}`
       : `${type}:${entityId}:${data.modified_at || data.created_at || Date.now()}`;
-
-    // Use admin client for webhooks - no user session available
-    const supabase = createAdminClient();
 
     // Idempotency check: See if we've already processed this event
     const { data: existingEvent } = await supabase
@@ -502,17 +566,37 @@ export async function POST(request: NextRequest) {
       case 'subscription.created':
       case 'subscription.updated':
       case 'subscription.active': {
+        debug('subscription:start', { eventType: type })
+        
         const customerEmail = data.customer?.email || data.user?.email || data.email;
         const subscriptionId = data.id;
         const status = data.status || 'active';
         const productId = data.product_id || data.product?.id;
         const metadataUserId = data.metadata?.user_id;
         
+        debug('subscription:extracted', {
+          customerEmail,
+          subscriptionId,
+          status,
+          productId,
+          metadataUserId,
+          hasCustomer: !!data.customer,
+          hasProduct: !!data.product
+        })
+        
         // Extract billing dates from Polar webhook - these are authoritative
         const currentPeriodStart = data.current_period_start || data.started_at || new Date().toISOString();
         const currentPeriodEnd = data.current_period_end || data.ends_at;
         const cancelAt = data.cancel_at_period_end ? currentPeriodEnd : null;
         const trialEnd = data.trial_end || data.trial_ends_at;
+        
+        debug('subscription:dates', {
+          currentPeriodStart,
+          currentPeriodEnd,
+          cancelAt,
+          trialEnd,
+          cancelAtPeriodEnd: data.cancel_at_period_end
+        })
         
         console.log('Processing subscription event:');
         console.log('- Customer email:', customerEmail);
@@ -535,33 +619,39 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        debug('subscription:tier', { productId, determinedTier: tier, productName: data.product?.name })
         console.log('Tier:', tier);
 
         // Find user by email first, then fall back to metadata user_id
         let profile: { id: string; email: string; subscription_started_at: string | null; current_period_start: string | null } | null = null;
         
         if (customerEmail) {
+          debug('subscription:lookup:email', { email: customerEmail })
           const { data: profileByEmail } = await supabase
             .from('profiles')
             .select('id, email, subscription_started_at, current_period_start')
             .eq('email', customerEmail)
             .single();
           profile = profileByEmail;
+          debug('subscription:lookup:email:result', { found: !!profile, profileId: profile?.id })
         }
         
         // Fallback: try to find by user_id from metadata (Supabase user ID)
         if (!profile && metadataUserId) {
           console.log('Email lookup failed, trying metadata user_id:', metadataUserId);
+          debug('subscription:lookup:userId', { userId: metadataUserId })
           const { data: profileById } = await supabase
             .from('profiles')
             .select('id, email, subscription_started_at, current_period_start')
             .eq('id', metadataUserId)
             .single();
           profile = profileById;
+          debug('subscription:lookup:userId:result', { found: !!profile, profileId: profile?.id })
         }
 
         if (!profile) {
           console.error('User not found for email:', customerEmail, 'or user_id:', metadataUserId);
+          debug('subscription:lookup:failed', { customerEmail, metadataUserId })
           return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
@@ -603,6 +693,11 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        debug('subscription:update', { 
+          profileId: profile.id, 
+          updateData,
+          isNewSubscription: !profile.subscription_started_at 
+        })
         console.log('Updating profile with:', updateData);
 
         const { error: updateError } = await supabase
@@ -612,17 +707,35 @@ export async function POST(request: NextRequest) {
 
         if (updateError) {
           console.error('Error updating profile:', updateError);
+          debug('subscription:update:error', { error: updateError })
           return NextResponse.json({ error: 'Failed to update subscription' }, { status: 500 });
         }
 
         console.log(`✅ Updated subscription for ${customerEmail}: tier=${tier}, status=${status}, ends_at=${periodEnd.toISOString()}`);
+        debug('subscription:success', { 
+          customerEmail, 
+          tier, 
+          status, 
+          periodEnd: periodEnd.toISOString() 
+        })
+        
+        // Log success to webhook logs
+        await logWebhookEvent(supabase, type, data, 'success', { 
+          profileId: profile.id,
+          tier,
+          status,
+          periodEnd: periodEnd.toISOString()
+        })
         
         // Upgrade existing API keys when subscription is activated
         if (status === 'active' && (tier === 'managed_pro' || tier === 'managed_expert' || tier === 'byok_pro' || tier === 'pro')) {
           try {
+            debug('subscription:keys:upgrade:start', { profileId: profile.id, tier })
             await upgradeUserApiKeys(supabase, profile.id, tier);
+            debug('subscription:keys:upgrade:success', { profileId: profile.id, tier })
           } catch (keyErr) {
             console.error('Error upgrading API keys:', keyErr);
+            debug('subscription:keys:upgrade:error', { error: keyErr })
             // Don't fail the webhook - key upgrade is non-critical
           }
         }
@@ -747,16 +860,38 @@ export async function POST(request: NextRequest) {
       case 'order.created':
       case 'order.updated':
       case 'order.paid': {
+        debug('order:start', { eventType: type })
+        
         // Handle order events - subscription purchases
         const billingReason = data.billing_reason;
         const orderStatus = data.status;
         const productId = data.product_id;
         
+        debug('order:extracted', {
+          billingReason,
+          orderStatus,
+          productId,
+          hasSubscription: !!data.subscription,
+          hasCustomer: !!data.customer
+        })
+        
         // Handle subscription creation
         if (orderStatus === 'paid' && billingReason === 'subscription_create' && data.subscription) {
+          debug('order:subscription:create', { orderId: data.id })
+          
           const subscription = data.subscription;
           const customerEmail = data.customer?.email || data.user?.email;
           const metadataUserId = data.metadata?.user_id || subscription.metadata?.user_id;
+          
+          debug('order:subscription:data', {
+            subscriptionId: subscription.id,
+            customerEmail,
+            metadataUserId,
+            subscriptionStatus: subscription.status,
+            currentPeriodStart: subscription.current_period_start,
+            currentPeriodEnd: subscription.current_period_end
+          })
+          
           console.log('Metadata user_id:', metadataUserId);
           
           // Determine tier from product
@@ -770,38 +905,52 @@ export async function POST(request: NextRequest) {
             }
           }
           
+          debug('order:tier', { productId, determinedTier: tier, productName: data.product?.name })
+          
           // Find user by email first, then fall back to metadata user_id
           let profile: { id: string; email: string } | null = null;
           
           if (customerEmail) {
+            debug('order:lookup:email', { email: customerEmail })
             const { data: profileByEmail } = await supabase
               .from('profiles')
               .select('id, email')
               .eq('email', customerEmail)
               .single();
             profile = profileByEmail;
+            debug('order:lookup:email:result', { found: !!profile, profileId: profile?.id })
           }
           
           // Fallback: try to find by user_id from metadata (Supabase user ID)
           if (!profile && metadataUserId) {
             console.log('Email lookup failed, trying metadata user_id:', metadataUserId);
+            debug('order:lookup:userId', { userId: metadataUserId })
             const { data: profileById } = await supabase
               .from('profiles')
               .select('id, email')
               .eq('id', metadataUserId)
               .single();
             profile = profileById;
+            debug('order:lookup:userId:result', { found: !!profile, profileId: profile?.id })
           }
             
           if (!profile) {
             console.error('User not found for email:', customerEmail, 'or user_id:', metadataUserId);
             console.log('⚠️ Subscription payment received but user profile not found.');
+            debug('order:lookup:failed', { customerEmail, metadataUserId })
             break;
           }
           
           const periodEnd = subscription.current_period_end 
             ? new Date(subscription.current_period_end)
             : calculatePeriodEnd(new Date(subscription.current_period_start || subscription.started_at));
+          
+          debug('order:update', {
+            profileId: profile.id,
+            tier,
+            periodEnd: periodEnd.toISOString(),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end
+          })
           
           // Update user subscription
           const { error: updateError } = await supabase
@@ -825,8 +974,17 @@ export async function POST(request: NextRequest) {
             
           if (updateError) {
             console.error('Error updating profile from order:', updateError);
+            debug('order:update:error', { error: updateError })
           } else {
             console.log(`✅ Subscription activated from order for ${customerEmail}: tier=${tier}`);
+            debug('order:success', { customerEmail, tier, periodEnd: periodEnd.toISOString() })
+            
+            // Log success to webhook logs
+            await logWebhookEvent(supabase, type, data, 'success', { 
+              profileId: profile.id,
+              tier,
+              periodEnd: periodEnd.toISOString()
+            })
           }
         }
         break;

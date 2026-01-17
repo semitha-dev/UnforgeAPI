@@ -82,6 +82,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(globalUserCache.user)
       setIsLoading(false)
       return
+    } else if (!force && globalUserCache) {
+      debug('fetchUser:cacheExpired', { 
+        subscriptionTier: globalUserCache.user.subscriptionTier,
+        cacheAge: Math.round((Date.now() - globalUserCache.timestamp) / 1000) + 's',
+        cacheDuration: Math.round(CACHE_DURATION / 1000) + 's'
+      })
     }
 
     // Prevent concurrent fetches

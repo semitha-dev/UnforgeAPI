@@ -25,6 +25,7 @@ export default function DashboardOverviewPage() {
     workspace: '',
     workspaceId: ''
   })
+  const [isLoadingStats, setIsLoadingStats] = useState(true)
 
   const router = useRouter()
   const supabase = createClient()
@@ -70,8 +71,21 @@ export default function DashboardOverviewPage() {
         .eq('workspace_id', profile.default_workspace_id)
         .eq('is_active', true)
 
+      // Fetch usage data from API
+      let totalRequests = 0
+      try {
+        const usageResponse = await fetch(`/api/usage?workspaceId=${profile.default_workspace_id}`)
+        if (usageResponse.ok) {
+          const usageData = await usageResponse.json()
+          // Use requestsThisMonth for total requests in current period
+          totalRequests = usageData.requestsThisMonth || usageData.totalRequests || 0
+        }
+      } catch (usageError) {
+        console.error('Error fetching usage data:', usageError)
+      }
+
       setStats({
-        totalRequests: 0, // Would come from api_usage table
+        totalRequests,
         activeKeys: keysCount || 0,
         workspace: workspace?.name || 'Workspace',
         workspaceId: profile.default_workspace_id

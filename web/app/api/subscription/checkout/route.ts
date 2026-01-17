@@ -11,6 +11,40 @@ function debug(tag: string, data: any) {
   }
 }
 
+// Detailed debug for checkout payload inspection
+function debugPayload(tag: string, payload: any, maxDepth: number = 3) {
+  if (DEBUG) {
+    const timestamp = new Date().toISOString()
+    const simplified = simplifyObject(payload, maxDepth)
+    console.log(`${timestamp} [Checkout:${tag}]`, JSON.stringify(simplified, null, 2))
+  }
+}
+
+// Helper to simplify large objects for logging
+function simplifyObject(obj: any, depth: number, currentDepth: number = 0): any {
+  if (currentDepth >= depth) {
+    return '[truncated]'
+  }
+  
+  if (obj === null || obj === undefined) {
+    return obj
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.slice(0, 5).map(item => simplifyObject(item, depth, currentDepth + 1))
+  }
+  
+  if (typeof obj === 'object') {
+    const result: any = {}
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = simplifyObject(value, depth, currentDepth + 1)
+    }
+    return result
+  }
+  
+  return obj
+}
+
 // Use sandbox API for testing, production API for live
 const POLAR_API_URL = process.env.POLAR_SANDBOX === 'true' 
   ? 'https://sandbox-api.polar.sh/v1' 
@@ -36,6 +70,8 @@ export async function POST(request: NextRequest) {
     debug('body:raw', body);
     const { productId, productType } = body;
 
+    debug('body:parsed', { productId, productType, hasProductId: !!productId, hasProductType: !!productType })
+
     // Determine product ID from type or use provided ID
     let finalProductId = productId;
     
@@ -59,6 +95,16 @@ export async function POST(request: NextRequest) {
       debug('productId:fallback', { productId: finalProductId })
     }
     
+    debug('productId:final', { 
+      finalProductId, 
+      source: productId ? 'provided' : productType ? 'mapped' : 'fallback',
+      environment: {
+        POLAR_MANAGED_PRO_PRODUCT_ID: process.env.POLAR_MANAGED_PRO_PRODUCT_ID,
+        POLAR_MANAGED_EXPERT_PRODUCT_ID: process.env.POLAR_MANAGED_EXPERT_PRODUCT_ID,
+        POLAR_BYOK_PRO_PRODUCT_ID: process.env.POLAR_BYOK_PRO_PRODUCT_ID,
+      }
+    })
+    
     if (!finalProductId) {
       debug('validation:fail', { reason: 'No product ID provided or configured' })
       return NextResponse.json({ error: 'Product ID required' }, { status: 400 });
@@ -78,9 +124,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User email not found' }, { status: 400 });
     }
 
+    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing?subscription=success`;
     const checkoutPayload = {
       products: [finalProductId],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing?subscription=success`,
+      success_url: successUrl,
       customer_email: customerEmail,
       metadata: {
         user_id: user.id,
@@ -88,9 +135,11 @@ export async function POST(request: NextRequest) {
       },
     };
     
-    debug('polar:request', { 
+    debug('polar:request:prepared', { 
       url: `${POLAR_API_URL}/checkouts/`,
-      payload: checkoutPayload 
+      payload: checkoutPayload,
+      sandboxMode: process.env.POLAR_SANDBOX === 'true',
+      polarApiUrl: POLAR_API_URL
     });
 
     // Create checkout session with Polar (new API format)
@@ -104,7 +153,8 @@ export async function POST(request: NextRequest) {
     });
 
     const responseText = await response.text();
-    debug('polar:response', { status: response.status, body: responseText.substring(0, 500) });
+    debug('polar:response:raw', { status: response.status, statusText: response.statusText, bodyLength: responseText.length })
+    debugPayload('polar:response:body', { status: response.status, body: responseText }, 3)
 
     if (!response.ok) {
       let errorData;
@@ -122,14 +172,23 @@ export async function POST(request: NextRequest) {
     }
 
     const checkoutData = JSON.parse(responseText);
-    debug('polar:success', { checkoutId: checkoutData.id, url: checkoutData.url });
+    debug('polar:success', { 
+      checkoutId: checkoutData.id, 
+      url: checkoutData.url,
+      checkoutUrl: checkoutData.checkout_url,
+      hasUrl: !!checkoutData.url || !!checkoutData.checkout_url
+    });
 
     return NextResponse.json({
-      url: checkoutData.url,
+      url: checkoutData.url || checkoutData.checkout_url,
       checkoutId: checkoutData.id,
     });
   } catch (error: any) {
-    debug('error', { name: error.name, message: error.message, stack: error.stack });
+    debug('error:caught', { 
+      name: error.name, 
+      message: error.message, 
+      stack: error.stack?.substring(0, 500) 
+    })
     return NextResponse.json(
       { error: 'Failed to create checkout session', details: error.message },
       { status: 500 }

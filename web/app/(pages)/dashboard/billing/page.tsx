@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { createClient } from '@/app/lib/supabaseClient'
 import { 
   CreditCard, 
   Check, 
@@ -16,10 +17,12 @@ import {
   Receipt,
   Clock,
   Lock,
-  Download
+  Download,
+  RefreshCw
 } from 'lucide-react'
 import { PLAN_CONFIG, type ApiPlan } from '@/lib/subscription-constants'
 import { useUser } from '@/lib/UserContext'
+import { useSubscription } from '@/lib/SubscriptionContext'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
 
 type SubscriptionInfo = {
@@ -71,7 +74,8 @@ function UsageRingChart({ percentage }: { percentage: number }) {
 function BillingPageContent() {
   const searchParams = useSearchParams()
   const subscriptionSuccess = searchParams.get('subscription') === 'success'
-  const { user, isLoading: userLoading, refetch: refetchUser } = useUser()
+  const { tier, isPro: isSubscriptionPro, isLoading: subscriptionLoading, refetch: refetchSubscription } = useSubscription()
+  const { user, refetch: refetchUser } = useUser()
   
   const [subscription, setSubscription] = useState<SubscriptionInfo>({
     tier: 'sandbox',
@@ -82,6 +86,7 @@ function BillingPageContent() {
   const [isLoadingPortal, setIsLoadingPortal] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isRefetching, setIsRefetching] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   
   // Usage data
   const [usage, setUsage] = useState({ used: 0, total: 50, period: 'day' as 'day' | 'month', limitType: 'daily' as 'daily' | 'monthly' | 'rate' })
@@ -90,79 +95,106 @@ function BillingPageContent() {
   // Always force refetch on billing page mount
   useEffect(() => {
     const doRefetch = async () => {
-      await refetchUser()
+      console.log('[Billing Page] Force refetching user and subscription data on mount')
+      await Promise.all([refetchUser(), refetchSubscription()])
       setIsRefetching(false)
     }
     doRefetch()
   }, [])
 
-  // Fetch subscription data from user context
+  // Log subscription state for debugging
   useEffect(() => {
-    if (user) {
-      const tier = (user.subscriptionTier || 'sandbox') as ApiPlan
-      
-      setSubscription({
-        tier: PLAN_CONFIG[tier] ? tier : 'sandbox',
-        status: user.subscriptionStatus,
-        endsAt: user.subscriptionEndsAt,
-        polarCustomerId: null,
-      })
-      
-      // Set usage based on plan - use actual limits from config
-      const config = PLAN_CONFIG[tier] || PLAN_CONFIG.sandbox
-      const isMonthly = config.limitType === 'monthly'
-      setUsage({
-        used: 0, // Will be fetched from API
-        total: config.limit || 50,
-        period: isMonthly ? 'month' : 'day',
-        limitType: config.limitType
-      })
-    }
-  }, [user])
+    console.log('[Billing Page] Current subscription state:', {
+      tier,
+      isSubscriptionPro,
+      subscriptionLoading
+    })
+  }, [tier, isSubscriptionPro, subscriptionLoading])
+
+  // Fetch subscription data from subscription context
+  useEffect(() => {
+    const tierValue = (tier || 'sandbox') as ApiPlan
+    
+    setSubscription({
+      tier: PLAN_CONFIG[tierValue as ApiPlan] ? tierValue : 'sandbox',
+      status: user?.subscriptionStatus || null,
+      endsAt: user?.subscriptionEndsAt || null,
+      polarCustomerId: null,
+    })
+    
+    // Set usage limits based on plan config (actual usage will be fetched separately)
+    const config = PLAN_CONFIG[tierValue as ApiPlan] || PLAN_CONFIG.sandbox
+    const isMonthly = config.limitType === 'monthly'
+    setUsage(prev => ({
+      ...prev,
+      total: config.limit || 50,
+      period: isMonthly ? 'month' : 'day',
+      limitType: config.limitType
+    }))
+  }, [tier, user])
 
   // Fetch usage data from API
   useEffect(() => {
     const fetchUsage = async () => {
-      if (user?.defaultWorkspaceId && !isFetchingUsage) {
-        setIsFetchingUsage(true)
-        try {
-          const response = await fetch(`/api/usage?workspaceId=${user.defaultWorkspaceId}`)
-          if (response.ok) {
-            const data = await response.json()
-            const tier = (user.subscriptionTier || 'sandbox') as ApiPlan
-            const config = PLAN_CONFIG[tier] || PLAN_CONFIG.sandbox
-            const isMonthly = config.limitType === 'monthly'
-            
-            // Use requestsThisMonth for monthly plans, requestsToday for daily plans
-            const used = isMonthly ? (data.requestsThisMonth || 0) : (data.requestsToday || 0)
-            
-            setUsage({
-              used,
-              total: config.limit || 50,
-              period: isMonthly ? 'month' : 'day',
-              limitType: config.limitType
-            })
-          }
-        } catch (error) {
-          console.error('Failed to fetch usage:', error)
-        } finally {
+      if (!user || !user.id || isFetchingUsage) {
+        setIsFetchingUsage(false)
+        return
+      }
+      
+      setIsFetchingUsage(true)
+      try {
+        // Fetch workspace ID directly from Supabase to ensure it's available
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('default_workspace_id')
+          .eq('id', user.id)
+          .single()
+
+        const workspaceId = profile?.default_workspace_id
+        if (!workspaceId) {
+          console.warn('No workspace ID found')
           setIsFetchingUsage(false)
+          return
         }
+
+        const response = await fetch(`/api/usage?workspaceId=${workspaceId}`)
+        if (response.ok) {
+          const data = await response.json()
+          const tierValue = (tier || 'sandbox') as ApiPlan
+          const config = PLAN_CONFIG[tierValue] || PLAN_CONFIG.sandbox
+          const isMonthly = config.limitType === 'monthly'
+          
+          // Use requestsThisMonth for monthly plans, requestsToday for daily plans
+          const used = isMonthly ? (data.requestsThisMonth || 0) : (data.requestsToday || 0)
+          
+          setUsage({
+            used,
+            total: config.limit || 50,
+            period: isMonthly ? 'month' : 'day',
+            limitType: config.limitType
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch usage:', error)
+      } finally {
+        setIsFetchingUsage(false)
       }
     }
     
     fetchUsage()
-  }, [user?.defaultWorkspaceId, user?.subscriptionTier])
+  }, [user?.id, tier])
 
   // Refetch user data when returning from checkout success
   useEffect(() => {
     if (subscriptionSuccess) {
       const timer = setTimeout(() => {
         refetchUser()
+        refetchSubscription()
       }, 2000)
       return () => clearTimeout(timer)
     }
-  }, [subscriptionSuccess, refetchUser])
+  }, [subscriptionSuccess, refetchUser, refetchSubscription])
 
   const planConfig = PLAN_CONFIG[subscription.tier] || PLAN_CONFIG.sandbox
   const isPaidPlan = subscription.tier === 'managed_pro' || subscription.tier === 'managed_expert' || subscription.tier === 'byok_pro'
@@ -183,6 +215,20 @@ function BillingPageContent() {
       window.open('https://polar.sh/settings/billing', '_blank')
     } finally {
       setIsLoadingPortal(false)
+    }
+  }
+
+  // Handle refresh subscription data
+  const handleRefreshSubscription = async () => {
+    setIsRefreshing(true)
+    try {
+      console.log('[Billing Page] Manual refresh triggered')
+      await refetchSubscription()
+      console.log('[Billing Page] Refresh complete, new tier:', tier)
+    } catch (error) {
+      console.error('[Billing Page] Refresh failed:', error)
+    } finally {
+      setIsRefreshing(false)
     }
   }
 
@@ -208,7 +254,7 @@ function BillingPageContent() {
     ? 0 
     : usage.total > 0 ? Math.min((usage.used / usage.total) * 100, 100) : 0
 
-  if (userLoading || isRefetching) {
+  if (subscriptionLoading || isRefetching) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
@@ -226,13 +272,30 @@ function BillingPageContent() {
             Manage your workspace plan, usage limits, and billing methods.
           </p>
         </div>
-        {user?.defaultWorkspaceId && (
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
+          {user?.defaultWorkspaceId && (
             <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-slate-400">
               Workspace ID: <span className="text-slate-200 font-mono">{user.defaultWorkspaceId.slice(0, 8)}</span>
             </span>
-          </div>
-        )}
+          )}
+          <button
+            onClick={handleRefreshSubscription}
+            disabled={isRefreshing}
+            className="px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-medium text-slate-400 hover:text-indigo-400 hover:border-indigo-500/50 transition-all disabled:opacity-50 flex items-center gap-2"
+          >
+            {isRefreshing ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-3 h-3" />
+                Refresh
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Success from checkout redirect */}
@@ -267,8 +330,10 @@ function BillingPageContent() {
               <div className="h-full bg-emerald-500 w-full rounded-full"></div>
             </div>
             <span className="text-xs text-slate-400">
-              {isPaidPlan && subscription.endsAt 
-                ? `Renews ${new Date(subscription.endsAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+              {isPaidPlan
+                ? subscription.endsAt
+                  ? `Renews ${new Date(subscription.endsAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                  : 'Renews monthly'
                 : 'Free forever'
               }
             </span>
@@ -403,15 +468,14 @@ function BillingPageContent() {
               </li>
             </ul>
             <button 
-              onClick={() => subscription.tier !== 'managed_pro' && setShowUpgradeModal(true)}
-              disabled={subscription.tier === 'managed_pro'}
+              onClick={handleManageSubscription}
               className={`mt-6 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${
                 subscription.tier === 'managed_pro'
-                  ? 'border border-slate-700 text-slate-400 cursor-not-allowed bg-slate-900/50'
+                  ? 'border border-slate-700 text-slate-400 bg-slate-900/50'
                   : 'bg-indigo-600 hover:bg-indigo-500 text-white'
               }`}
             >
-              {subscription.tier === 'managed_pro' ? 'Current Plan' : 'Upgrade to Pro'}
+              {subscription.tier === 'managed_pro' ? 'Manage Plan' : 'Upgrade to Pro'}
             </button>
           </div>
 
@@ -456,15 +520,14 @@ function BillingPageContent() {
               </li>
             </ul>
             <button 
-              onClick={() => subscription.tier !== 'managed_expert' && setShowUpgradeModal(true)}
-              disabled={subscription.tier === 'managed_expert'}
+              onClick={handleManageSubscription}
               className={`mt-6 w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 subscription.tier === 'managed_expert'
                   ? 'bg-indigo-600/50 text-indigo-200 cursor-not-allowed'
                   : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
               }`}
             >
-              {subscription.tier === 'managed_expert' ? 'Current Plan' : 'Upgrade to Expert'}
+              {subscription.tier === 'managed_expert' ? 'Manage Plan' : 'Upgrade to Expert'}
             </button>
           </div>
 
@@ -507,15 +570,14 @@ function BillingPageContent() {
             </ul>
             <p className="text-[10px] text-slate-500 mt-3">*Subject to platform fair use policy to prevent abuse.</p>
             <button
-              onClick={() => subscription.tier !== 'byok_pro' && setShowUpgradeModal(true)}
-              disabled={subscription.tier === 'byok_pro'}
+              onClick={handleManageSubscription}
               className={`mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${
                 subscription.tier === 'byok_pro'
                   ? 'border border-purple-500/30 text-purple-300/50 cursor-not-allowed'
                   : 'border border-purple-500/50 text-purple-300 hover:bg-purple-500/10'
               }`}
             >
-              {subscription.tier === 'byok_pro' ? 'Current Plan' : 'Get Unlimited'}
+              {subscription.tier === 'byok_pro' ? 'Manage Plan' : 'Get Unlimited'}
             </button>
           </div>
         </div>
@@ -570,10 +632,10 @@ function BillingPageContent() {
                 </button>
               )}
             </div>
-            <div className="mt-6 flex items-center justify-between text-xs pt-4 border-t border-white/5">
+            <div className="mt-1 flex items-center justify-between text-xs pt-4 border-t border-white/5">
               <div className="flex items-center gap-2 text-slate-500 whitespace-nowrap">
                 <Lock className="w-4 h-4 flex-shrink-0" />
-                <span>Secured by Polar</span>
+                <span >Secured by Polar</span>
               </div>
               {isPaidPlan && (
                 <button 

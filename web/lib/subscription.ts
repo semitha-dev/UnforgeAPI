@@ -21,7 +21,18 @@ export type { SubscriptionTier, SubscriptionProfile } from './subscription-const
 import type { SubscriptionProfile, SubscriptionTier } from './subscription-constants';
 import { LIMITS, getEffectiveTier } from './subscription-constants';
 
+// Debug helper
+const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'
+function debug(tag: string, data: any) {
+  if (DEBUG) {
+    const timestamp = new Date().toISOString()
+    console.log(`${timestamp} [Subscription:${tag}]`, JSON.stringify(data, null, 2))
+  }
+}
+
 export async function getUserSubscription(userId: string): Promise<SubscriptionProfile> {
+  debug('getUserSubscription:start', { userId })
+  
   const supabase = await createClient();
   const { data: profile, error } = await supabase
     .from('profiles')
@@ -43,6 +54,12 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionP
     .eq('id', userId)
     .single();
 
+  debug('getUserSubscription:query', { 
+    userId, 
+    error: error?.message,
+    profileFound: !!profile 
+  })
+
   const defaultProfile: SubscriptionProfile = {
     subscription_tier: 'free',
     subscription_status: 'inactive',
@@ -60,8 +77,22 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionP
   };
 
   if (error || !profile) {
+    debug('getUserSubscription:notFound', { 
+      userId, 
+      error: error?.message,
+      returningDefault: true 
+    })
     return defaultProfile;
   }
+
+  debug('getUserSubscription:profile', {
+    userId,
+    subscription_tier: profile.subscription_tier,
+    subscription_status: profile.subscription_status,
+    polar_subscription_id: profile.polar_subscription_id,
+    subscription_ends_at: profile.subscription_ends_at,
+    next_billing_date: profile.next_billing_date
+  })
 
   // Check if subscription has expired (for canceled subscriptions)
   const now = new Date();
@@ -70,8 +101,15 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionP
     profile.subscription_ends_at && 
     new Date(profile.subscription_ends_at) <= now
   ) {
+    debug('getUserSubscription:expired', {
+      userId,
+      status: profile.subscription_status,
+      endsAt: profile.subscription_ends_at,
+      now: now.toISOString()
+    })
+    
     // Subscription period has ended, downgrade to free
-    await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({
         subscription_tier: 'free',
@@ -83,6 +121,11 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionP
       })
       .eq('id', userId);
     
+    if (updateError) {
+      debug('getUserSubscription:updateError', { error: updateError })
+    }
+    
+    debug('getUserSubscription:downgraded', { userId, newTier: 'free' })
     return {
       ...defaultProfile,
       subscription_tier: 'free',
@@ -96,8 +139,15 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionP
     profile.grace_period_ends_at && 
     new Date(profile.grace_period_ends_at) <= now
   ) {
+    debug('getUserSubscription:graceExpired', {
+      userId,
+      status: profile.subscription_status,
+      gracePeriodEndsAt: profile.grace_period_ends_at,
+      now: now.toISOString()
+    })
+    
     // Grace period has ended, downgrade to free
-    await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({
         subscription_tier: 'free',
@@ -110,6 +160,11 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionP
       })
       .eq('id', userId);
     
+    if (updateError) {
+      debug('getUserSubscription:updateError', { error: updateError })
+    }
+    
+    debug('getUserSubscription:graceExpiredDowngraded', { userId, newTier: 'free' })
     return {
       ...defaultProfile,
       subscription_tier: 'free',
@@ -117,6 +172,11 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionP
     };
   }
 
+  debug('getUserSubscription:active', { 
+    userId, 
+    tier: profile.subscription_tier,
+    status: profile.subscription_status 
+  })
   return profile as SubscriptionProfile;
 }
 
@@ -124,13 +184,31 @@ export async function checkSubscriptionLimit(
   userId: string, 
   feature: 'spaces' | 'notes' | 'qa_pairs' | 'flashcard_sets' | 'schedule'
 ): Promise<boolean> {
+  debug('checkSubscriptionLimit:start', { userId, feature })
+  
   const subscription = await getUserSubscription(userId);
   const effectiveTier = getEffectiveTier(subscription);
   const tierLimits = LIMITS[effectiveTier];
   const limit = tierLimits[feature as keyof typeof tierLimits];
 
-  if (limit === Infinity || limit === true) return true;
-  if (limit === false) return false;
+  debug('checkSubscriptionLimit:limits', {
+    userId,
+    feature,
+    subscription_tier: subscription.subscription_tier,
+    subscription_status: subscription.subscription_status,
+    effectiveTier,
+    limit,
+    limitType: typeof limit
+  })
+
+  if (limit === Infinity || limit === true) {
+    debug('checkSubscriptionLimit:unlimited', { userId, feature })
+    return true;
+  }
+  if (limit === false) {
+    debug('checkSubscriptionLimit:denied', { userId, feature, reason: 'feature not available' })
+    return false;
+  }
 
   const supabase = await createClient();
   let count = 0;
@@ -142,6 +220,7 @@ export async function checkSubscriptionLimit(
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       count = projectCount || 0;
+      debug('checkSubscriptionLimit:count:spaces', { userId, count })
       break;
     case 'notes':
       const { count: noteCount } = await supabase
@@ -149,6 +228,7 @@ export async function checkSubscriptionLimit(
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       count = noteCount || 0;
+      debug('checkSubscriptionLimit:count:notes', { userId, count })
       break;
     case 'qa_pairs':
       const { count: qaCount } = await supabase
@@ -156,6 +236,7 @@ export async function checkSubscriptionLimit(
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       count = qaCount || 0;
+      debug('checkSubscriptionLimit:count:qa_pairs', { userId, count })
       break;
     case 'flashcard_sets':
       const { count: flashcardCount } = await supabase
@@ -163,8 +244,19 @@ export async function checkSubscriptionLimit(
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
       count = flashcardCount || 0;
+      debug('checkSubscriptionLimit:count:flashcard_sets', { userId, count })
       break;
   }
 
-  return count < (limit as number);
+  const result = count < (limit as number);
+  debug('checkSubscriptionLimit:result', {
+    userId,
+    feature,
+    count,
+    limit,
+    result,
+    remaining: (limit as number) - count
+  })
+  
+  return result;
 }

@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Subscription is not canceled' }, { status: 400 });
     }
 
-    // Check if still within the subscription period
+    // Check if still within subscription period
     if (profile.subscription_ends_at && new Date(profile.subscription_ends_at) <= new Date()) {
       debug('POST:fail', { reason: 'Subscription period has ended', endsAt: profile.subscription_ends_at })
       return NextResponse.json({ 
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
 
     debug('POST:polar:request', { subscriptionId: profile.polar_subscription_id })
 
-    // Call Polar API to uncancel/reactivate the subscription
+    // Call Polar API to uncancel/reactivate subscription
     // Polar uses PATCH to update subscription properties
     const polarResponse = await fetch(`${POLAR_API_URL}/subscriptions/${profile.polar_subscription_id}`, {
       method: 'PATCH',
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
       }
       
       // If Polar doesn't support uncanceling, we can still update locally
-      // and the webhook will correct the state on next event
+      // and the webhook will correct the state on the next event
       debug('POST:polar:warning', { message: 'Polar API reactivation failed, updating local state', error: errorData })
     }
 
@@ -281,36 +281,74 @@ export async function GET(request: NextRequest) {
 
     const isSandbox = process.env.POLAR_SANDBOX === 'true';
     const polarBase = isSandbox ? 'https://sandbox.polar.sh' : 'https://polar.sh';
-    const orgSlug = process.env.POLAR_ORG_SLUG || 'unforgeapi';
+    const orgSlug = process.env.POLAR_ORG_SLUG || 'leaflearning2';
 
-    // Use the email from user auth (more reliable) or profile
+    // Use email from user auth (more reliable) or profile
     const userEmail = user.email || profile?.email;
 
-    // If user has a Polar customer ID, use the portal request URL with email verification
-    if (profile?.polar_customer_id && userEmail) {
-      const encodedEmail = encodeURIComponent(userEmail);
-      const portalUrl = `${polarBase}/${orgSlug}/portal/request?id=${profile.polar_customer_id}&email=${encodedEmail}`;
+    let portalUrl: string;
+
+    // If user has a Polar customer ID, try to create a customer session
+    if (profile?.polar_customer_id && userEmail && POLAR_ACCESS_TOKEN) {
+      debug('GET:create_session:start', { customerId: profile.polar_customer_id, email: userEmail })
       
-      debug('GET:success', { hasCustomerId: true, portalUrl })
-      
-      return NextResponse.json({ 
-        portalUrl,
-        subscription: {
-          tier: profile?.subscription_tier || 'free',
-          status: profile?.subscription_status || 'inactive',
-          ends_at: profile?.subscription_ends_at,
-          next_billing: profile?.next_billing_date,
-          canceled_at: profile?.canceled_at,
-          auto_renew: profile?.auto_renew ?? true,
-          tokens_balance: profile?.tokens_balance || 0,
+      try {
+        // Create customer session via Polar API
+        const sessionResponse = await fetch(`${POLAR_API_URL}/customers/${profile.polar_customer_id}/portal_session`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${POLAR_ACCESS_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            return_url: `${request.nextUrl.origin}/dashboard/billing`,
+          }),
+        });
+
+        debug('GET:create_session:response', { status: sessionResponse.status })
+
+        if (sessionResponse.ok) {
+          const sessionData = await sessionResponse.json();
+          const customerSessionToken = sessionData.customer_session_token;
+          
+          // Build portal URL with customer session token
+          const encodedEmail = encodeURIComponent(userEmail);
+          portalUrl = `${polarBase}/${orgSlug}/portal?customer_session_token=${customerSessionToken}&id=${profile.polar_customer_id}&email=${encodedEmail}`;
+          
+          debug('GET:success', { hasCustomerId: true, portalUrl })
+          
+          return NextResponse.json({ 
+            portalUrl,
+            subscription: {
+              tier: profile?.subscription_tier || 'free',
+              status: profile?.subscription_status || 'inactive',
+              ends_at: profile?.subscription_ends_at,
+              next_billing: profile?.next_billing_date,
+              canceled_at: profile?.canceled_at,
+              auto_renew: profile?.auto_renew ?? true,
+              tokens_balance: profile?.tokens_balance || 0,
+            }
+          });
+        } else {
+          const errorText = await sessionResponse.text();
+          debug('GET:create_session:fail', { status: sessionResponse.status, error: errorText.substring(0, 200) })
+          // Fall through to fallback URL
         }
-      });
+      } catch (error) {
+        debug('GET:create_session:error', { error: (error as Error).message })
+        // Fall through to fallback URL
+      }
     }
 
-    // Fallback: return the org's portal page (user may need to log in)
-    const portalUrl = `${polarBase}/${orgSlug}/portal`;
+    // Fallback: return portal request URL or org's portal page
+    if (profile?.polar_customer_id && userEmail) {
+      const encodedEmail = encodeURIComponent(userEmail);
+      portalUrl = `${polarBase}/${orgSlug}/portal/request?id=${profile.polar_customer_id}&email=${encodedEmail}`;
+    } else {
+      portalUrl = `${polarBase}/${orgSlug}/portal`;
+    }
     
-    debug('GET:success', { hasCustomerId: false, portalUrl })
+    debug('GET:success', { hasCustomerId: !!profile?.polar_customer_id, portalUrl })
     
     return NextResponse.json({ 
       portalUrl,
