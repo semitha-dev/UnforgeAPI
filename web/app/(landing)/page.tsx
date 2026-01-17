@@ -723,8 +723,8 @@ const PricingSection = () => {
       description: 'Perfect for testing the API',
       features: [
         '50 requests / day',
-        '3 Web Search / day',
-        '5 Deep Research / day',
+        '5 Web Search / day',
+        '3 Deep Research / day',
         'Community support',
       ],
       cta: 'Start Free',

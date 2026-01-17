@@ -3,7 +3,9 @@
     "allow": [
       "Bash(find:*)",
       "Bash(npm install:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx next lint)",
+      "Bash(npm run lint:*)"
     ]
   }
 }

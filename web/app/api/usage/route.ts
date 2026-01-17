@@ -175,30 +175,21 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Log a new API usage event (called from /api/v1/chat and /api/v1/deep-research)
+// POST - Log a new API usage event (called from /api/v1/chat)
 export async function POST(request: NextRequest) {
   debug('POST:start', { timestamp: new Date().toISOString() })
-
+  
   try {
     const body = await request.json()
-    const { workspaceId, keyId, intent, latencyMs, query, cached } = body
+    const { workspaceId, keyId, intent, latencyMs, query } = body
+    
+    debug('POST:body', { workspaceId, keyId, intent, latencyMs })
 
-    debug('POST:body', { workspaceId, keyId, intent, latencyMs, cached })
-
-    // Validate required fields
-    if (!keyId || !intent) {
-      console.log(`[USAGE_LOG] Workspace: ${workspaceId || 'unknown'} | Intent: ${intent || 'unknown'} | Latency: ${latencyMs || 0}ms | Saved to DB: ❌ (missing keyId or intent)`)
+    if (!workspaceId || !keyId || !intent) {
       return NextResponse.json(
-        { error: 'keyId and intent are required' },
+        { error: 'workspaceId, keyId, and intent are required' }, 
         { status: 400 }
       )
-    }
-
-    // If workspaceId is missing, we can still log but won't be able to query by workspace
-    if (!workspaceId) {
-      console.log(`[USAGE_LOG] Workspace: unknown | Intent: ${intent} | Latency: ${latencyMs || 0}ms | Saved to DB: ❌ (missing workspaceId)`)
-      // Still return success - the API routes should continue working
-      return NextResponse.json({ success: false, reason: 'missing workspaceId' })
     }
 
     // Insert usage log
@@ -214,9 +205,8 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       debug('POST:supabase:error', { error: error.message })
-      console.log(`[USAGE_LOG] Workspace: ${workspaceId} | Intent: ${intent} | Latency: ${latencyMs || 0}ms | Saved to DB: ❌ (${error.message})`)
       // Don't fail the request if logging fails
-      return NextResponse.json({ success: false, reason: error.message })
+      console.warn('[API/usage:POST] Failed to log usage:', error.message)
     }
 
     // Also update the api_keys last_used_at timestamp
@@ -230,14 +220,12 @@ export async function POST(request: NextRequest) {
       console.warn('[API/usage:POST] Failed to update key last_used_at:', updateError.message)
     }
 
-    // Success log in the requested format
-    console.log(`[USAGE_LOG] Workspace: ${workspaceId} | Intent: ${intent} | Latency: ${latencyMs || 0}ms | Saved to DB: ✅`)
+    debug('POST:success', {})
 
     return NextResponse.json({ success: true })
 
   } catch (error: any) {
     console.error('[API/usage:POST:ERROR]', error)
-    console.log(`[USAGE_LOG] Workspace: unknown | Intent: unknown | Latency: 0ms | Saved to DB: ❌ (${error.message})`)
     // Don't fail - usage logging should be non-blocking
     return NextResponse.json({ success: false })
   }

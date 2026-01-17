@@ -4,7 +4,7 @@
  * Database tracks key metadata for dashboard display
  * 
  * 4-Tier Pricing Structure:
- * - sandbox: 50/day (Managed, 3 search/day, 5 deep research/day)
+ * - sandbox: 50/day (Managed, 5 search/day, 3 deep research/day)
  * - managed_pro: 1000/month (Managed, Search enabled)
  * - byok_starter: 100/day (BYOK, Search enabled, requires user keys)
  * - byok_pro: 10/sec rate limit (BYOK, Unlimited, requires user keys)

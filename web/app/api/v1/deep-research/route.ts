@@ -37,9 +37,9 @@ import { createGroq } from '@ai-sdk/groq'
 import { generateObject, generateText, streamText } from 'ai'
 import { z } from 'zod'
 import { Redis } from '@upstash/redis'
-import { Ratelimit } from '@upstash/ratelimit'
 import { createHash } from 'crypto'
-import { DEEP_RESEARCH_LIMITS, WEB_SEARCH_LIMITS, isByokPlan, type ApiPlan } from '@/lib/subscription-constants'
+import { type ApiPlan } from '@/lib/subscription-constants'
+import { checkFeatureRateLimit, isByokExempt, getRateLimitErrorResponse, UNKEY_NAMESPACES, NAMESPACE_LIMITS } from '@/lib/unkey'
 
 // ============================================
 // CONFIGURATION
@@ -133,60 +133,11 @@ const DOMAIN_PRESETS: Record<string, {
 }
 
 // ============================================
-// DEEP RESEARCH RATE LIMITER (Upstash)
+// DEEP RESEARCH RATE LIMITING
 // ============================================
-// Managed plans have specific deep research limits (sandbox: 3/day, pro: 50/mo, etc.)
-// BYOK plans have unlimited deep research (-1) - the 50 req/day API limit is the guard
-
-function getDeepResearchRateLimiter(plan: ApiPlan): Ratelimit | null {
-  const redis = getRedisClient()
-  if (!redis) return null
-
-  const planLimits = DEEP_RESEARCH_LIMITS[plan]
-  if (!planLimits || planLimits.limit <= 0) return null
-
-  // Create rate limiter based on plan's period
-  if (planLimits.period === 'daily') {
-    return new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(planLimits.limit, '1 d'),
-      prefix: `deep_research:${plan}`,
-      analytics: true,
-    })
-  } else {
-    // Monthly
-    return new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(planLimits.limit, '30 d'),
-      prefix: `deep_research:${plan}`,
-      analytics: true,
-    })
-  }
-}
-
-// Web Search rate limiter for Deep Research (counts against monthly search quota)
-// This is separate from Deep Research quota - each Tavily call counts as 1 search
-function getWebSearchRateLimiterForDeepResearch(plan: ApiPlan): Ratelimit | null {
-  const redis = getRedisClient()
-  if (!redis) return null
-
-  const searchLimits = WEB_SEARCH_LIMITS[plan]
-  if (!searchLimits || searchLimits.limit <= 0) return null
-
-  if (searchLimits.period === 'daily') {
-    return new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(searchLimits.limit, '1 d'),
-      prefix: 'websearch:daily:',
-    })
-  } else {
-    return new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(searchLimits.limit, '30 d'),
-      prefix: 'websearch:monthly:',
-    })
-  }
-}
+// Uses Unkey namespace 'deep_research' for DECOUPLED rate limiting
+// Rule A: Deep research limit is INDEPENDENT of web_search limit
+// Rule B: BYOK users are exempt (they use their own keys)
 
 // ============================================
 // SCHEMAS
@@ -423,6 +374,11 @@ interface UnkeyVerifyResult {
   code?: string
   meta?: Record<string, any>
   keyId?: string
+  ratelimit?: {
+    limit: number
+    remaining: number
+    reset: number
+  }
 }
 
 // Single attempt to verify API key (internal)
@@ -451,7 +407,8 @@ async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<Un
       ownerId: result.ownerId,
       unkeyRequestId: rawResult.meta?.requestId,
       rawError: result.error || rawResult.error,
-      rawCode: result.code || rawResult.code
+      rawCode: result.code || rawResult.code,
+      ratelimit: result.ratelimit
     }, context)
 
     if (!response.ok) {
@@ -491,6 +448,7 @@ async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<Un
       code: result.code,
       meta: result.meta,
       keyId: result.keyId || result.id,
+      ratelimit: result.ratelimit,
       shouldRetry: false
     }
   } catch (error: any) {
@@ -557,7 +515,8 @@ async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyV
     valid: lastResult.valid,
     code: lastResult.code,
     meta: lastResult.meta,
-    keyId: lastResult.keyId
+    keyId: lastResult.keyId,
+    ratelimit: lastResult.ratelimit
   }
 }
 
@@ -640,11 +599,19 @@ function logUsage(data: {
   query: string
   cached?: boolean
 }) {
-  fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/usage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  }).catch(() => {})
+  if (!data.workspaceId || !data.keyId) return
+
+  // Use the shared logger which writes directly to Supabase
+  // This replaces the internal fetch call to avoid 504 timeouts and improve performance
+  import('@/lib/logger').then(({ logUsage: logToSupabase }) => {
+    logToSupabase({
+      workspaceId: data.workspaceId!,
+      keyId: data.keyId!,
+      intent: data.intent,
+      latencyMs: data.latencyMs,
+      query: data.query
+    }).catch(() => {})
+  })
 }
 
 // ============================================
@@ -773,50 +740,36 @@ export async function POST(req: NextRequest) {
     }
 
     // ============================================
-    // 2.5 DEEP RESEARCH RATE LIMIT CHECK
+    // 2.5 DEEP RESEARCH RATE LIMIT CHECK (Unkey Namespace: deep_research)
     // ============================================
-    // Check plan-specific deep research limits using Upstash rate limiter
+    // Rule A: ONLY check deep_research namespace here - NEVER check web_search
+    //         Deep Research is "all-inclusive" - does NOT deduct from web search quota
+    // Rule B: BYOK users are exempt (they use their own keys)
+    // NOTE: Rate limits are per-account (workspaceId), not per-key
     const validPlan = plan as ApiPlan
-    const planConfig = DEEP_RESEARCH_LIMITS[validPlan]
-
-    if (!planConfig || planConfig.limit === 0) {
-      return Response.json({
-        error: 'Deep Research is not available on your plan',
-        code: 'DEEP_RESEARCH_NOT_AVAILABLE',
-        hint: 'Upgrade to BYOK Starter or Managed Pro to access Deep Research',
-        upgrade_url: 'https://unforge.ai/pricing'
-      }, { status: 403 })
-    }
-
-    // Use Upstash rate limiter for fair use enforcement
-    const rateLimiter = getDeepResearchRateLimiter(validPlan)
     let rateLimitRemaining: number | undefined
+    const workspaceId = result.meta?.workspaceId
 
-    if (rateLimiter && result.keyId) {
-      try {
-        const rateLimitResult = await rateLimiter.limit(result.keyId)
-        rateLimitRemaining = rateLimitResult.remaining
-        debug('rateLimit:check', {
-          success: rateLimitResult.success,
-          remaining: rateLimitResult.remaining,
-          limit: rateLimitResult.limit,
-          plan: validPlan
-        }, ctx)
+    if (!isByokExempt(plan) && workspaceId) {
+      debug('rateLimit:check', {
+        plan,
+        workspaceId,
+        namespace: UNKEY_NAMESPACES.DEEP_RESEARCH
+      }, ctx)
 
-        if (!rateLimitResult.success) {
-          const resetDate = new Date(rateLimitResult.reset)
-          return Response.json({
-            error: `Deep Research fair use limit reached (${planConfig.limit}/${planConfig.period}). Resets ${resetDate.toLocaleString()}.`,
-            code: 'DEEP_RESEARCH_LIMIT_EXCEEDED',
-            limit: rateLimitResult.limit,
-            remaining: 0,
-            reset: rateLimitResult.reset,
-            upgrade_url: 'https://unforge.ai/pricing'
-          }, { status: 429 })
-        }
-      } catch (rateLimitError) {
-        // Rate limit errors shouldn't break the request - log and continue
-        debugError('rateLimit:error', rateLimitError, ctx)
+      const rateLimitResult = await checkFeatureRateLimit(workspaceId, UNKEY_NAMESPACES.DEEP_RESEARCH)
+      rateLimitRemaining = rateLimitResult.remaining
+
+      debug('rateLimit:result', {
+        success: rateLimitResult.success,
+        remaining: rateLimitResult.remaining,
+        limit: rateLimitResult.limit,
+        reset: rateLimitResult.reset
+      }, ctx)
+
+      if (!rateLimitResult.success) {
+        const errorResponse = getRateLimitErrorResponse(UNKEY_NAMESPACES.DEEP_RESEARCH, rateLimitResult)
+        return Response.json(errorResponse, { status: 429 })
       }
     }
 
@@ -1087,61 +1040,10 @@ export async function POST(req: NextRequest) {
     // ============================================
     // 6. SEARCH (Tavily with Raw Content)
     // ============================================
+    // NOTE: Deep Research does NOT check web_search rate limit (Rule A: Independence)
+    // The deep_research namespace limit (checked above) is the ONLY constraint
+    // This makes deep research "all-inclusive" - it does not deduct from web search quota
     debug('pipeline:search:start', { mode, preset }, ctx)
-
-    // Calculate number of searches this request will use
-    const searchCount = (mode === 'compare' && queries) ? queries.length : 1
-
-    // ============================================
-    // 6.1 WEB SEARCH CREDIT CHECK (Managed Plans Only)
-    // ============================================
-    // Each Tavily search counts against the user's monthly search quota
-    // BYOK users are exempt since they use their own Tavily key
-    const isUserByok = isByokPlan(validPlan)
-    const searchLimits = WEB_SEARCH_LIMITS[validPlan]
-
-    if (!isUserByok && searchLimits && searchLimits.limit > 0 && result.keyId) {
-      const searchRateLimiter = getWebSearchRateLimiterForDeepResearch(validPlan)
-      
-      if (searchRateLimiter) {
-        // For compare mode, we need to check if we have enough credits for ALL queries
-        // We'll consume credits one at a time to get accurate remaining count
-        for (let i = 0; i < searchCount; i++) {
-          const { success, remaining, reset, limit } = await searchRateLimiter.limit(result.keyId)
-          
-          debug('pipeline:search:creditCheck', {
-            queryIndex: i + 1,
-            totalQueries: searchCount,
-            success,
-            remaining,
-            limit,
-            plan: validPlan
-          }, ctx)
-
-          if (!success) {
-            const resetDate = new Date(reset)
-            const periodLabel = searchLimits.period === 'monthly' ? 'month' : 'day'
-            
-            return Response.json({
-              error: `You've reached your web search limit (${searchLimits.limit}/${periodLabel}). Your limit resets ${resetDate.toLocaleDateString()}.`,
-              code: 'SEARCH_LIMIT_EXCEEDED',
-              limit: searchLimits.limit,
-              period: searchLimits.period,
-              reset_at: reset,
-              searches_attempted: searchCount,
-              searches_used: i,
-              upgrade_hint: validPlan === 'sandbox'
-                ? 'Upgrade to Managed Pro ($20/mo) for 1,000 searches/month'
-                : validPlan === 'managed_pro' 
-                ? 'Upgrade to Managed Expert ($79/mo) for 5,000 searches/month'
-                : validPlan === 'managed_expert'
-                ? 'Contact us for Enterprise pricing with higher limits'
-                : 'Upgrade to increase your search limit'
-            }, { status: 429 })
-          }
-        }
-      }
-    }
 
     let searchResults: TavilySearchResponse
     let allSources: Array<{ title: string; url: string }> = []
@@ -1368,6 +1270,7 @@ RULES:
 - If a field is not found, return "Not found"
 - Be precise and concise
 - ${presetConfig.prompt_hint}
+- IMPORTANT: When extracting numerical data like "revenue" or "income", look for tables, financial summaries, or sentence mentions. If the data exists in the text, EXTRACT IT. Do not return "Not found" unless it is truly absent.
 
 Return a JSON object with these exact fields: ${extract.join(', ')}`
 
@@ -2010,10 +1913,39 @@ RULES:
         request_id: requestId,
         preset,
         quota: {
-          limit: planConfig.limit,
+          limit: NAMESPACE_LIMITS.deep_research.limit,
           remaining: rateLimitRemaining,
-          period: planConfig.period
+          period: 'daily'
         }
+      }
+    }
+
+    // Add rate limit headers to Response
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    }
+
+    if (rateLimitRemaining !== undefined) {
+      // Feature Limit (Deep Research)
+      headers['X-RateLimit-Limit'] = String(NAMESPACE_LIMITS.deep_research.limit)
+      headers['X-RateLimit-Remaining'] = String(rateLimitRemaining)
+      // Note: We don't have exact reset from feature check here easily without refactoring, 
+      // but we can infer or skip reset for now. Or better, update checkFeatureRateLimit to return it.
+      // For now, let's use the result from verifyApiKey if available for GLOBAL limit fallback
+    } 
+    
+    // Add global rate limit headers if available (from Unkey verification)
+    if (result.ratelimit) {
+      // If we didn't set feature specific headers, or just to provide global status
+      // Standard practice: if specific feature limit is stricter/used, show that. 
+      // But here deep_research is independent.
+      // Let's allow overriding if we want to show Global API limit too, but standard headers usually show the one that constrained the request.
+      
+      // If we haven't set headers yet (BYOK or no feature limit applied)
+      if (!headers['X-RateLimit-Limit']) {
+        headers['X-RateLimit-Limit'] = String(result.ratelimit.limit)
+        headers['X-RateLimit-Remaining'] = String(result.ratelimit.remaining)
+        headers['X-RateLimit-Reset'] = String(Math.floor(result.ratelimit.reset / 1000))
       }
     }
 
@@ -2026,7 +1958,7 @@ RULES:
       response.queries = queries
     }
 
-    return Response.json(response)
+    return Response.json(response, { headers })
 
   } catch (error: any) {
     debugError('unhandled', error, ctx)

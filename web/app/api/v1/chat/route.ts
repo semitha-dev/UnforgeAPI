@@ -20,8 +20,8 @@ import {
   type GenerationResult
 } from '@/lib/router'
 import { Redis } from '@upstash/redis'
-import { Ratelimit } from '@upstash/ratelimit'
-import { WEB_SEARCH_LIMITS, PLAN_CONFIG, isPriorityPlan, type ApiPlan } from '@/lib/subscription-constants'
+import { isPriorityPlan, type ApiPlan } from '@/lib/subscription-constants'
+import { checkFeatureRateLimit, isByokExempt, getRateLimitErrorResponse, UNKEY_NAMESPACES } from '@/lib/unkey'
 
 // ============================================
 // ENHANCED DEBUG SYSTEM
@@ -37,13 +37,13 @@ interface DebugContext {
 
 function debug(tag: string, data: any, context?: DebugContext) {
   if (!DEBUG) return
-  
+
   const timestamp = new Date().toISOString()
   const elapsed = context?.startTime ? `+${Math.round(performance.now() - context.startTime)}ms` : ''
   const reqId = context?.requestId || ''
-  
+
   const prefix = `[UnforgeAPI:${tag}]${reqId ? ` [${reqId}]` : ''}${elapsed ? ` ${elapsed}` : ''}`
-  
+
   if (DEBUG_VERBOSE) {
     console.log(`${timestamp} ${prefix}`, JSON.stringify(data, null, 2))
   } else {
@@ -52,7 +52,7 @@ function debug(tag: string, data: any, context?: DebugContext) {
 }
 
 // ============================================
-// UPSTASH REDIS FOR SEARCH RATE LIMITING
+// UPSTASH REDIS FOR PRIORITY QUEUE
 // ============================================
 
 function getRedisClient(): Redis | null {
@@ -63,30 +63,6 @@ function getRedisClient(): Redis | null {
     url: process.env.UPSTASH_REDIS_REST_URL,
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
   })
-}
-
-// Web Search rate limiter per plan
-function getWebSearchRateLimiter(plan: ApiPlan): Ratelimit | null {
-  const redis = getRedisClient()
-  if (!redis) return null
-
-  const planLimits = WEB_SEARCH_LIMITS[plan]
-  if (!planLimits || planLimits.limit <= 0) return null
-
-  // Create rate limiter based on plan's period
-  if (planLimits.period === 'daily') {
-    return new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(planLimits.limit, '1 d'),
-      prefix: 'websearch:daily:',
-    })
-  } else {
-    return new Ratelimit({
-      redis,
-      limiter: Ratelimit.slidingWindow(planLimits.limit, '30 d'),
-      prefix: 'websearch:monthly:',
-    })
-  }
 }
 
 function debugSuccess(tag: string, data: any, context?: DebugContext) {
@@ -152,6 +128,11 @@ interface UnkeyVerifyResult {
   code?: string
   meta?: Record<string, any>
   keyId?: string
+  ratelimit?: {
+    limit: number
+    remaining: number
+    reset: number
+  }
 }
 
 /**
@@ -171,25 +152,23 @@ async function logUsage(data: {
     latencyMs: data.latencyMs
   }, context)
   
-  // Fire and forget - don't await
-  fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/usage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      workspaceId: data.workspaceId,
-      keyId: data.keyId,
+  if (!data.workspaceId || !data.keyId) {
+    debug('logUsage:skipped', { reason: 'missing workspaceId or keyId' }, context)
+    return
+  }
+
+  // Use the shared logger which writes directly to Supabase
+  // This replaces the internal fetch call to avoid 504 timeouts and improve performance
+  import('@/lib/logger').then(({ logUsage: logToSupabase }) => {
+    logToSupabase({
+      workspaceId: data.workspaceId!,
+      keyId: data.keyId!,
       intent: data.intent,
       latencyMs: data.latencyMs,
       query: data.query
+    }).catch(err => {
+      debugError('logUsage', err, context)
     })
-  }).then(response => {
-    debug('logUsage:complete', { 
-      status: response.status,
-      ok: response.ok
-    }, context)
-  }).catch(err => {
-    // Silent fail - usage logging shouldn't break the API
-    debugError('logUsage', err, context)
   })
 }
 
@@ -220,7 +199,8 @@ async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<Un
       keyId: result.keyId || result.id,
       ownerId: result.ownerId,
       requestId: rawResult.meta?.requestId,
-      rawError: result.error || rawResult.error
+      rawError: result.error || rawResult.error,
+      ratelimit: result.ratelimit
     }, context)
 
     if (!response.ok) {
@@ -243,6 +223,7 @@ async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<Un
       code: result.code,
       meta: result.meta,
       keyId: result.keyId || result.id,
+      ratelimit: result.ratelimit,
       shouldRetry: false
     }
   } catch (error: any) {
@@ -307,7 +288,8 @@ async function verifyApiKey(key: string, context?: DebugContext): Promise<UnkeyV
     valid: lastResult.valid,
     code: lastResult.code,
     meta: lastResult.meta,
-    keyId: lastResult.keyId
+    keyId: lastResult.keyId,
+    ratelimit: lastResult.ratelimit
   }
 }
 
@@ -659,6 +641,9 @@ export async function POST(req: NextRequest) {
     let meta_citations: string[] | undefined
     let meta_refusal: { reason: string; violated_instruction: string } | undefined
 
+    // Rate limit tracking for headers (only set if rate limit was checked)
+    let rateLimitInfo: { limit: number; remaining: number; reset: number } | undefined
+
     if (intent === 'CHAT') {
       // Path A: Simple chat (only when NO context provided)
       debug('path:chat:start', { hasContext: !!context }, ctx)
@@ -770,46 +755,41 @@ export async function POST(req: NextRequest) {
       }
 
       // ============================================
-      // WEB SEARCH RATE LIMIT CHECK (Managed Plans Only)
+      // WEB SEARCH RATE LIMIT CHECK (Unkey Namespace: web_search)
       // ============================================
-      // BYOK users use their own Tavily key, so no limit needed from us
-      const validPlan = (plan as ApiPlan) || 'sandbox'
-      const searchLimits = WEB_SEARCH_LIMITS[validPlan]
-      
-      if (!isByokPlan && searchLimits && searchLimits.limit > 0) {
-        const searchRateLimiter = getWebSearchRateLimiter(validPlan)
-        
-        if (searchRateLimiter && result.keyId) {
-          const { success, remaining, reset } = await searchRateLimiter.limit(result.keyId)
-          
-          debug('path:research:searchLimit', { 
-            success, 
-            remaining, 
-            limit: searchLimits.limit,
-            period: searchLimits.period,
-            resetAt: reset 
-          }, ctx)
-          
-          if (!success) {
-            const resetDate = new Date(reset)
-            const periodLabel = searchLimits.period === 'monthly' ? 'month' : 'day'
-            
-            return Response.json({
-              error: `You've reached your web search limit (${searchLimits.limit}/${periodLabel}). Your limit resets ${resetDate.toLocaleDateString()}.`,
-              code: 'SEARCH_LIMIT_EXCEEDED',
-              limit: searchLimits.limit,
-              period: searchLimits.period,
-              reset_at: reset,
-              upgrade_hint: validPlan === 'sandbox'
-                ? 'Upgrade to Managed Pro ($20/mo) for 1,000 searches/month'
-                : validPlan === 'managed_pro' 
-                ? 'Upgrade to Managed Expert ($79/mo) for 5,000 searches/month'
-                : 'Upgrade to increase your search limit'
-            }, { status: 429 })
-          }
+      // Rule A: ONLY check web_search namespace here - independent of deep_research
+      // Rule B: BYOK users are exempt (they use their own Tavily key)
+      // NOTE: Rate limits are per-account (workspaceId), not per-key
+      const workspaceId = result.meta?.workspaceId
+      if (!isByokExempt(plan) && workspaceId) {
+        debug('path:research:rateLimitCheck', {
+          plan,
+          workspaceId,
+          namespace: UNKEY_NAMESPACES.WEB_SEARCH
+        }, ctx)
+
+        const rateLimitResult = await checkFeatureRateLimit(workspaceId, UNKEY_NAMESPACES.WEB_SEARCH)
+
+        debug('path:research:rateLimitResult', {
+          success: rateLimitResult.success,
+          remaining: rateLimitResult.remaining,
+          limit: rateLimitResult.limit,
+          reset: rateLimitResult.reset
+        }, ctx)
+
+        // Store rate limit info for response headers
+        rateLimitInfo = {
+          limit: rateLimitResult.limit,
+          remaining: rateLimitResult.remaining,
+          reset: rateLimitResult.reset
+        }
+
+        if (!rateLimitResult.success) {
+          const errorResponse = getRateLimitErrorResponse(UNKEY_NAMESPACES.WEB_SEARCH, rateLimitResult)
+          return Response.json(errorResponse, { status: 429 })
         }
       }
-      
+
       // Safety Check: If BYOK plan and no Tavily key, reject
       // Do not burn OUR Tavily credits for BYOK users
       if (isByokPlan && !userTavilyKey) {
@@ -921,10 +901,26 @@ export async function POST(req: NextRequest) {
       query
     }, ctx)
 
-    return Response.json({
-      answer,
-      meta
-    })
+    // Build response with optional rate limit headers
+    const responseBody = { answer, meta }
+    const headers: Record<string, string> = {}
+
+    // Add rate limit headers (Unkey Global Limit OR Feature Limit)
+    // Priority: Feature Limit (if used) > Global Limit (from key verification)
+    
+    if (rateLimitInfo) {
+      // Feature Limit (Web Search)
+      headers['X-RateLimit-Limit'] = String(rateLimitInfo.limit)
+      headers['X-RateLimit-Remaining'] = String(rateLimitInfo.remaining)
+      headers['X-RateLimit-Reset'] = String(Math.floor(rateLimitInfo.reset / 1000))
+    } else if (result.ratelimit) {
+      // Global Limit (API Key)
+      headers['X-RateLimit-Limit'] = String(result.ratelimit.limit)
+      headers['X-RateLimit-Remaining'] = String(result.ratelimit.remaining)
+      headers['X-RateLimit-Reset'] = String(Math.floor(result.ratelimit.reset / 1000))
+    }
+
+    return Response.json(responseBody, { headers })
 
   } catch (error: any) {
     const latencyMs = Math.round(performance.now() - startTime)
@@ -945,18 +941,4 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-// ============================================
-// HEALTH CHECK
-// ============================================
-export async function GET() {
-  return Response.json({
-    status: 'ok',
-    service: 'UnforgeAPI',
-    version: '1.0.0',
-    endpoints: {
-      chat: 'POST /api/v1/chat'
-    }
-  })
 }

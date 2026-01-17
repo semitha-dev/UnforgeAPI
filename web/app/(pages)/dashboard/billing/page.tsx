@@ -559,9 +559,9 @@ function BillingPageContent() {
               )}
             </div>
             <div className="mt-6 flex items-center justify-between text-xs pt-4 border-t border-white/5">
-              <div className="flex items-center gap-2 text-slate-500">
-                <Lock className="w-4 h-4" />
-                Secured by Polar
+              <div className="flex items-center gap-2 text-slate-500 whitespace-nowrap">
+                <Lock className="w-4 h-4 flex-shrink-0" />
+                <span>Secured by Polar</span>
               </div>
               {isPaidPlan && (
                 <button 
