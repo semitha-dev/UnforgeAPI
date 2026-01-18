@@ -21,6 +21,7 @@ import {
   Clock
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSubscription } from '@/lib/SubscriptionContext'
 
 interface ApiKey {
   id: string
@@ -33,13 +34,6 @@ interface ApiKey {
   unkey_id: string
 }
 
-interface UserSubscription {
-  tier: string
-  status: string
-  hasManagedPro: boolean
-  hasByokPro: boolean
-}
-
 export default function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -50,51 +44,23 @@ export default function ApiKeysPage() {
   const [newApiKey, setNewApiKey] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [subscription, setSubscription] = useState<UserSubscription>({
-    tier: 'free',
-    status: 'inactive',
-    hasManagedPro: false,
-    hasByokPro: false
-  })
 
   const router = useRouter()
   const supabase = createClient()
+  const { tier: subscriptionTier, isPro } = useSubscription()
   const MAX_KEYS = 5
+
+  // Derive subscription state from context
+  const subscription = {
+    tier: subscriptionTier || 'free',
+    status: 'active',
+    hasManagedPro: subscriptionTier === 'managed_pro' || subscriptionTier === 'managed_expert',
+    hasByokPro: subscriptionTier === 'byok_pro'
+  }
 
   useEffect(() => {
     loadApiKeys()
-    loadSubscription()
   }, [])
-
-  const loadSubscription = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('subscription_tier, subscription_status')
-        .eq('id', user.id)
-        .single()
-
-      if (profile) {
-        const tier = profile.subscription_tier || 'free'
-        console.log('[Keys] Loaded subscription tier:', tier, 'status:', profile.subscription_status)
-
-        const isManagedPro = tier === 'managed_pro'
-        const isByokPro = tier === 'byok_pro'
-
-        setSubscription({
-          tier,
-          status: profile.subscription_status || 'inactive',
-          hasManagedPro: isManagedPro,
-          hasByokPro: isByokPro
-        })
-      }
-    } catch (err) {
-      console.error('Error loading subscription:', err)
-    }
-  }
 
   const loadApiKeys = async () => {
     console.log('[Keys:load:start]')

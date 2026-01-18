@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { UpgradeModal } from '@/components/ui/upgrade-modal'
+import { useSubscription } from '@/lib/SubscriptionContext'
 
 type SubscriptionTier = 'free' | 'managed_pro' | 'managed_expert' | 'byok_pro' | 'pro' | 'sandbox'
 
@@ -30,6 +31,7 @@ export default function DashboardLayout({
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
+  const { tier: subscriptionTier } = useSubscription()
   
   const [profile, setProfile] = useState<{ name: string; subscription_tier?: SubscriptionTier } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -103,18 +105,23 @@ export default function DashboardLayout({
       
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('name, subscription_tier')
+        .select('name')
         .eq('id', user.id)
         .single()
       
       debug('loadUserData:profile', { 
         hasProfile: !!profileData, 
-        subscription_tier: profileData?.subscription_tier,
+        name: profileData?.name,
+        subscription_tier: subscriptionTier,
         error: profileError?.message 
       })
       
       if (profileData) {
-        setProfile(profileData)
+        // Use subscription tier from context instead of database
+        setProfile({ 
+          name: profileData.name, 
+          subscription_tier: subscriptionTier as SubscriptionTier 
+        })
       }
     } catch (error) {
       debug('loadUserData:error', { error })

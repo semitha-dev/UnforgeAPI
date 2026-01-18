@@ -467,15 +467,20 @@ function BillingPageContent() {
                 Full Context Paths
               </li>
             </ul>
-            <button 
+            <button
               onClick={handleManageSubscription}
+              disabled={isLoadingPortal}
               className={`mt-6 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${
                 subscription.tier === 'managed_pro'
-                  ? 'border border-slate-700 text-slate-400 bg-slate-900/50'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-              }`}
+                  ? 'border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white bg-slate-900/50 hover:bg-slate-800/50 cursor-pointer'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {subscription.tier === 'managed_pro' ? 'Manage Plan' : 'Upgrade to Pro'}
+              {isLoadingPortal && subscription.tier === 'managed_pro' ? (
+                <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+              ) : (
+                subscription.tier === 'managed_pro' ? 'Manage Plan' : 'Upgrade to Pro'
+              )}
             </button>
           </div>
 
@@ -519,15 +524,20 @@ function BillingPageContent() {
                 Priority Queue Access
               </li>
             </ul>
-            <button 
+            <button
               onClick={handleManageSubscription}
+              disabled={isLoadingPortal}
               className={`mt-6 w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 subscription.tier === 'managed_expert'
-                  ? 'bg-indigo-600/50 text-indigo-200 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
-              }`}
+                  ? 'border border-indigo-500/50 hover:border-indigo-400 text-indigo-200 hover:text-white bg-indigo-600/30 hover:bg-indigo-600/50 cursor-pointer'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 cursor-pointer'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {subscription.tier === 'managed_expert' ? 'Manage Plan' : 'Upgrade to Expert'}
+              {isLoadingPortal && subscription.tier === 'managed_expert' ? (
+                <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+              ) : (
+                subscription.tier === 'managed_expert' ? 'Manage Plan' : 'Upgrade to Expert'
+              )}
             </button>
           </div>
 
@@ -571,13 +581,18 @@ function BillingPageContent() {
             <p className="text-[10px] text-slate-500 mt-3">*Subject to platform fair use policy to prevent abuse.</p>
             <button
               onClick={handleManageSubscription}
+              disabled={isLoadingPortal}
               className={`mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${
                 subscription.tier === 'byok_pro'
-                  ? 'border border-purple-500/30 text-purple-300/50 cursor-not-allowed'
-                  : 'border border-purple-500/50 text-purple-300 hover:bg-purple-500/10'
-              }`}
+                  ? 'border border-purple-500/50 hover:border-purple-400 text-purple-300 hover:text-white bg-purple-600/20 hover:bg-purple-600/30 cursor-pointer'
+                  : 'border border-purple-500/50 text-purple-300 hover:bg-purple-500/10 cursor-pointer'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {subscription.tier === 'byok_pro' ? 'Manage Plan' : 'Get Unlimited'}
+              {isLoadingPortal && subscription.tier === 'byok_pro' ? (
+                <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+              ) : (
+                subscription.tier === 'byok_pro' ? 'Manage Plan' : 'Get Unlimited'
+              )}
             </button>
           </div>
         </div>

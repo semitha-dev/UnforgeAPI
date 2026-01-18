@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
-import { 
-  BarChart3, 
-  Key, 
-  Zap, 
+import {
+  BarChart3,
+  Key,
+  Zap,
   ArrowUpRight,
   Loader2,
   Shield,
@@ -15,7 +15,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useUser } from '@/lib/UserContext'
+import { useSubscription } from '@/lib/SubscriptionContext'
 import { PLAN_CONFIG } from '@/lib/subscription-constants'
+import type { ApiPlan } from '@/lib/subscription-constants'
 
 export default function DashboardOverviewPage() {
   const [isLoading, setIsLoading] = useState(true)
@@ -26,12 +28,20 @@ export default function DashboardOverviewPage() {
     workspaceId: ''
   })
   const [isLoadingStats, setIsLoadingStats] = useState(true)
+  const [planConfig, setPlanConfig] = useState(PLAN_CONFIG.sandbox)
 
   const router = useRouter()
   const supabase = createClient()
   const { user } = useUser()
-  // @ts-ignore
-  const planConfig = PLAN_CONFIG[(user?.subscriptionTier) || 'sandbox'] || PLAN_CONFIG.sandbox
+  const { tier: subscriptionTier } = useSubscription()
+
+  // Update plan config when subscription tier changes
+  useEffect(() => {
+    if (subscriptionTier) {
+      const tier = subscriptionTier as ApiPlan
+      setPlanConfig(PLAN_CONFIG[tier] || PLAN_CONFIG.sandbox)
+    }
+  }, [subscriptionTier])
 
   useEffect(() => {
     loadDashboard()

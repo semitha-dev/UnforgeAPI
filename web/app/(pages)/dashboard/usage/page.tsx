@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
-import { PLAN_CONFIG } from '@/lib/subscription-constants'
+import { PLAN_CONFIG, DEEP_RESEARCH_LIMITS, WEB_SEARCH_LIMITS } from '@/lib/subscription-constants'
+import { useUser } from '@/lib/UserContext'
+import { useSubscription } from '@/lib/SubscriptionContext'
 import {
   BarChart3,
   TrendingUp,
@@ -26,18 +28,6 @@ const debug = (tag: string, data: any) => {
   console.log(`%c[UsagePage:${tag}]`, 'color: #8B5CF6; font-weight: bold', data)
 }
 
-// Deep Research limits per API plan (must match subscription-constants.ts PLAN_CONFIG)
-const DEEP_RESEARCH_LIMITS: Record<string, { limit: number; period: 'daily' | 'monthly' }> = {
-  'sandbox': { limit: 5, period: 'daily' },
-  'free': { limit: 5, period: 'daily' },
-  'managed_pro': { limit: 50, period: 'monthly' },
-  'pro': { limit: 50, period: 'monthly' },
-  'managed_expert': { limit: 200, period: 'monthly' },
-  'managed_ultra': { limit: 200, period: 'monthly' },
-  'enterprise': { limit: 1000, period: 'monthly' },
-  'byok_starter': { limit: 5, period: 'daily' },
-  'byok_pro': { limit: -1, period: 'daily' },
-}
 
 interface DeepResearchQuota {
   plan: string
@@ -114,10 +104,13 @@ export default function UsagePage() {
   const [keyDropdownOpen, setKeyDropdownOpen] = useState(false)
   const [monthlyLimit, setMonthlyLimit] = useState<number>(50000)
   const [planConfig, setPlanConfig] = useState(PLAN_CONFIG.sandbox)
+  const [userPlan, setUserPlan] = useState<string>('sandbox')
   const keyDropdownRef = useRef<HTMLDivElement>(null)
 
   const router = useRouter()
   const supabase = createClient()
+  const { user } = useUser()
+  const { tier: subscriptionTier } = useSubscription()
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -131,9 +124,9 @@ export default function UsagePage() {
   }, [])
 
   useEffect(() => {
-    debug('mount', { timeRange, selectedKeyId })
+    debug('mount', { timeRange, selectedKeyId, subscriptionTier })
     loadUsageData()
-  }, [timeRange, selectedKeyId])
+  }, [timeRange, selectedKeyId, subscriptionTier])
 
   const loadUsageData = async () => {
     debug('loadUsageData:start', { timeRange, selectedKeyId })
@@ -196,12 +189,15 @@ export default function UsagePage() {
         })
       }
 
-      const userPlan = keysData.keys?.[0]?.tier || keysData.keys?.[0]?.metadata?.plan || 'sandbox'
+      // Use subscription tier from context (fresher data with 5-min cache)
+      const currentUserPlan = subscriptionTier || 'sandbox'
+      setUserPlan(currentUserPlan)
+
       const deepResearchUsed = usageData?.deepResearchUsage || 0
-      const planLimits = DEEP_RESEARCH_LIMITS[userPlan] ?? { limit: 0, period: 'daily' as const }
+      const planLimits = DEEP_RESEARCH_LIMITS[currentUserPlan as keyof typeof DEEP_RESEARCH_LIMITS] ?? { limit: 0, period: 'daily' as const }
       
       // Calculate monthly limit based on plan config
-      const currentPlanConfig = PLAN_CONFIG[userPlan as keyof typeof PLAN_CONFIG] || PLAN_CONFIG.sandbox
+      const currentPlanConfig = PLAN_CONFIG[currentUserPlan as keyof typeof PLAN_CONFIG] || PLAN_CONFIG.sandbox
       setPlanConfig(currentPlanConfig)
       
       let calculatedMonthlyLimit: number
@@ -228,7 +224,7 @@ export default function UsagePage() {
       }
 
       setDeepResearchQuota({
-        plan: userPlan,
+        plan: currentUserPlan,
         used: deepResearchUsed,
         limit: planLimits.limit,
         period: planLimits.period,

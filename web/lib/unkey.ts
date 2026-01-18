@@ -2,14 +2,18 @@
  * Unkey.dev Feature Rate Limiting Utilities
  *
  * Implements DECOUPLED rate limits using Unkey Namespaces:
- * - web_search: 5 requests per 24 hours (RESEARCH intent)
- * - deep_research: 3 reports per 24 hours (DEEP_RESEARCH intent)
+ * - web_search: Dynamic limit based on subscription tier (RESEARCH intent)
+ * - deep_research: Dynamic limit based on subscription tier (DEEP_RESEARCH intent)
  *
  * CRITICAL RULES:
  * - Rule A (Independence): Each namespace is checked independently.
  *   Hitting one limit does NOT affect the other.
  * - Rule B (BYOK Exemption): BYOK users (byok_starter, byok_pro) skip these limits.
+ * - Rule C (Tier-Based Limits): Limits are now dynamic based on subscription tier from PLAN_CONFIG
  */
+
+import { PLAN_CONFIG, WEB_SEARCH_LIMITS, DEEP_RESEARCH_LIMITS } from './subscription-constants'
+import type { ApiPlan } from './subscription-constants'
 
 interface UnkeyRateLimitResponse {
   success: boolean
@@ -37,21 +41,43 @@ export const UNKEY_NAMESPACES = {
 export type UnkeyNamespace = typeof UNKEY_NAMESPACES[keyof typeof UNKEY_NAMESPACES]
 
 // Limits configuration (source of truth)
+// These are DEFAULT limits for sandbox/free tier
+// Actual limits are determined dynamically based on user's subscription tier
 export const NAMESPACE_LIMITS: Record<UnkeyNamespace, {
   limit: number
   duration: string  // Human-readable for documentation
   durationMs: number
 }> = {
   web_search: {
-    limit: 5,
+    limit: 5,  // Default for sandbox - will be overridden by tier-based limits
     duration: '24 hours',
     durationMs: 86400000  // 24 * 60 * 60 * 1000
   },
   deep_research: {
-    limit: 3,
+    limit: 3,  // Default for sandbox - will be overridden by tier-based limits
     duration: '24 hours',
     durationMs: 86400000
   }
+}
+
+/**
+ * Get tier-based limit for a feature namespace
+ * 
+ * @param plan - The user's subscription tier
+ * @param namespace - The feature namespace ('web_search' or 'deep_research')
+ * @returns The limit for this feature based on user's tier
+ */
+function getTierBasedLimit(plan: string, namespace: UnkeyNamespace): number {
+  if (namespace === 'web_search') {
+    const limitConfig = WEB_SEARCH_LIMITS[plan as keyof typeof WEB_SEARCH_LIMITS]
+    return limitConfig?.limit !== undefined ? limitConfig.limit : NAMESPACE_LIMITS.web_search.limit
+  } else if (namespace === 'deep_research') {
+    const limitConfig = DEEP_RESEARCH_LIMITS[plan as keyof typeof DEEP_RESEARCH_LIMITS]
+    return limitConfig?.limit !== undefined ? limitConfig.limit : NAMESPACE_LIMITS.deep_research.limit
+  }
+  
+  // Fallback to default limits
+  return namespace === 'web_search' ? NAMESPACE_LIMITS.web_search.limit : NAMESPACE_LIMITS.deep_research.limit
 }
 
 /**
@@ -59,6 +85,7 @@ export const NAMESPACE_LIMITS: Record<UnkeyNamespace, {
  *
  * @param identifier - The identifier for rate limiting (workspaceId for account-level limits)
  * @param namespace - The feature namespace to check ('web_search' or 'deep_research')
+ * @param plan - The user's subscription tier (optional, defaults to sandbox)
  * @returns Rate limit result with success status and remaining quota
  *
  * NOTE: This function uses Unkey's standalone ratelimit API, not the key verification API.
@@ -66,13 +93,22 @@ export const NAMESPACE_LIMITS: Record<UnkeyNamespace, {
  *
  * IMPORTANT: Rate limits are per-account (workspaceId), not per-key.
  * This prevents users from bypassing limits by creating new API keys.
+ * 
+ * DYNAMIC LIMITS: Limits are now determined based on user's subscription tier
  */
 export async function checkFeatureRateLimit(
   identifier: string,
-  namespace: UnkeyNamespace
+  namespace: UnkeyNamespace,
+  plan?: string
 ): Promise<FeatureRateLimitResult> {
-  const namespaceConfig = NAMESPACE_LIMITS[namespace]
-
+  // Determine limit based on tier
+  const tierBasedLimit = getTierBasedLimit(plan || 'sandbox', namespace)
+  const namespaceConfig = {
+    limit: tierBasedLimit,
+    duration: NAMESPACE_LIMITS[namespace].duration,
+    durationMs: NAMESPACE_LIMITS[namespace].durationMs
+  }
+  
   if (!namespaceConfig) {
     return {
       success: false,
@@ -107,7 +143,7 @@ export async function checkFeatureRateLimit(
       body: JSON.stringify({
         namespace: namespace,
         identifier: identifier,  // workspaceId for account-level limits
-        limit: namespaceConfig.limit,
+        limit: namespaceConfig.limit,  // Use tier-based limit
         duration: namespaceConfig.durationMs,
         async: false  // Sync mode for accurate count
       })
@@ -116,7 +152,7 @@ export async function checkFeatureRateLimit(
     if (!response.ok) {
       const errorText = await response.text()
       console.error(`[Unkey:${namespace}] Rate limit API error:`, response.status, errorText)
-
+      
       // Fail open on API errors - don't block users due to our infrastructure issues
       return {
         success: true,
@@ -128,7 +164,7 @@ export async function checkFeatureRateLimit(
     }
 
     const result: UnkeyRateLimitResponse = await response.json()
-
+    
     return {
       success: result.success,
       remaining: result.remaining,
@@ -138,7 +174,7 @@ export async function checkFeatureRateLimit(
 
   } catch (error: any) {
     console.error(`[Unkey:${namespace}] Rate limit check failed:`, error.message)
-
+    
     // Fail open on network errors
     return {
       success: true,
@@ -162,11 +198,12 @@ export function isByokExempt(plan: string): boolean {
 }
 
 /**
- * Get the error response for a rate limit exceeded scenario
+ * Get error response for a rate limit exceeded scenario
  */
 export function getRateLimitErrorResponse(
   namespace: UnkeyNamespace,
-  result: FeatureRateLimitResult
+  result: FeatureRateLimitResult,
+  plan?: string
 ): {
   error: string
   code: string
@@ -178,27 +215,36 @@ export function getRateLimitErrorResponse(
 } {
   const config = NAMESPACE_LIMITS[namespace]
   const resetDate = new Date(result.reset)
-
+  
   if (namespace === 'web_search') {
+    // Determine period based on tier
+    const limitConfig = WEB_SEARCH_LIMITS[plan as keyof typeof WEB_SEARCH_LIMITS]
+    const period = limitConfig?.period || 'daily'
+    const periodText = period === 'daily' ? 'day' : 'month'
+    
     return {
-      error: `Daily web search limit reached (${config.limit}/day). Resets ${resetDate.toLocaleString()}.`,
+      error: `${period === 'daily' ? 'Daily' : 'Monthly'} web search limit reached (${config.limit}/${periodText}). Resets ${resetDate.toLocaleString()}.`,
       code: 'RESEARCH_LIMIT_EXCEEDED',
       limit: config.limit,
       remaining: 0,
       reset_at: result.reset,
-      period: 'daily',
+      period: period,
       upgrade_hint: 'Upgrade to Managed Pro ($20/mo) for 1,000 searches/month, or use BYOK for unlimited searches with your own Tavily key.'
     }
   }
 
   // deep_research
+  const limitConfig = DEEP_RESEARCH_LIMITS[plan as keyof typeof DEEP_RESEARCH_LIMITS]
+  const period = limitConfig?.period || 'daily'
+  const periodText = period === 'daily' ? 'day' : 'month'
+  
   return {
-    error: `Daily deep research limit reached (${config.limit}/day). Resets ${resetDate.toLocaleString()}.`,
+    error: `${period === 'daily' ? 'Daily' : 'Monthly'} deep research limit reached (${config.limit}/${periodText}). Resets ${resetDate.toLocaleString()}.`,
     code: 'DEEP_RESEARCH_LIMIT_EXCEEDED',
     limit: config.limit,
     remaining: 0,
     reset_at: result.reset,
-    period: 'daily',
+    period: period,
     upgrade_hint: 'Upgrade to Managed Pro ($20/mo) for 50 reports/month, or use BYOK for unlimited reports with your own keys.'
   }
 }
