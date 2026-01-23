@@ -368,7 +368,7 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
   const [showLeafAI, setShowLeafAI] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-  const { isPro } = useSubscriptionContext()
+  const { isPro, tier } = useSubscriptionContext()
   const fetchedRef = useRef(false)
 
   useEffect(() => {
@@ -456,7 +456,15 @@ export default function TopNav({ title = 'Dashboard' }: TopNavProps) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-10 px-3 rounded-xl hover:bg-gray-100 gap-3">
-                <div className={`relative ${isPro ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50' : ''}`}>
+                <div className={`relative ${
+                  tier === 'managed_pro' || tier === 'managed_expert'
+                    ? 'p-0.5 rounded-full ring-2 ring-blue-500 shadow-lg shadow-blue-500/50'
+                    : tier === 'byok_pro'
+                    ? 'p-0.5 rounded-full ring-2 ring-orange-500 shadow-lg shadow-orange-500/50'
+                    : isPro
+                    ? 'p-0.5 rounded-full bg-gradient-to-r from-purple-500 to-violet-500 shadow-lg shadow-purple-500/50'
+                    : ''
+                }`}>
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="" />
                     <AvatarFallback className={`${isPro ? 'bg-gray-900 text-white' : 'bg-gradient-to-br from-orange-400 to-orange-500 text-white'} text-xs`}>

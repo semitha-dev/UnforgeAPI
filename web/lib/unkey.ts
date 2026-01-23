@@ -4,12 +4,16 @@
  * Implements DECOUPLED rate limits using Unkey Namespaces:
  * - web_search: Dynamic limit based on subscription tier (RESEARCH intent)
  * - deep_research: Dynamic limit based on subscription tier (DEEP_RESEARCH intent)
+ * - byok_pro_agentic: BYOK Pro agentic hard cap (100/month - Vercel protection)
  *
  * CRITICAL RULES:
  * - Rule A (Independence): Each namespace is checked independently.
  *   Hitting one limit does NOT affect the other.
- * - Rule B (BYOK Exemption): BYOK users (byok_starter, byok_pro) skip these limits.
+ * - Rule B (BYOK Exemption): BYOK users skip deep_research limits (they use their own keys)
  * - Rule C (Tier-Based Limits): Limits are now dynamic based on subscription tier from PLAN_CONFIG
+ * - Rule D (No Unlimited Defaults): If tier is missing, default to sandbox limits
+ * - Rule E (BYOK Pro Rate Limit): BYOK Pro users have 10 req/sec rate limit enforced
+ * - Rule F (BYOK Pro Agentic Cap): BYOK Pro agentic requests capped at 100/month
  */
 
 import { PLAN_CONFIG, WEB_SEARCH_LIMITS, DEEP_RESEARCH_LIMITS } from './subscription-constants'
@@ -33,9 +37,12 @@ interface FeatureRateLimitResult {
 }
 
 // Namespace configuration
+// SHARED CREDIT SYSTEM: Standard and Agentic share the same pool (deep_research)
+// BYOK Pro agentic has a separate hard cap (100/month) for Vercel protection
 export const UNKEY_NAMESPACES = {
-  WEB_SEARCH: 'web_search',      // For RESEARCH intent (chat route)
-  DEEP_RESEARCH: 'deep_research' // For DEEP_RESEARCH intent (deep-research route)
+  WEB_SEARCH: 'web_search',           // For RESEARCH intent (chat route)
+  DEEP_RESEARCH: 'deep_research',     // For DEEP_RESEARCH intent (shared pool)
+  BYOK_PRO_AGENTIC: 'byok_pro_agentic' // Hard cap for BYOK Pro agentic (100/month)
 } as const
 
 export type UnkeyNamespace = typeof UNKEY_NAMESPACES[keyof typeof UNKEY_NAMESPACES]
@@ -54,9 +61,76 @@ export const NAMESPACE_LIMITS: Record<UnkeyNamespace, {
     durationMs: 86400000  // 24 * 60 * 60 * 1000
   },
   deep_research: {
-    limit: 3,  // Default for sandbox - will be overridden by tier-based limits
+    limit: 3,  // Default for sandbox - shared pool for standard + agentic
     duration: '24 hours',
     durationMs: 86400000
+  },
+  byok_pro_agentic: {
+    limit: 100,  // BYOK Pro agentic hard cap (Vercel protection)
+    duration: '30 days',
+    durationMs: 2592000000  // 30 * 24 * 60 * 60 * 1000
+  }
+}
+
+// BYOK Pro Agentic Cap: 100 agentic requests per month
+// This protects Vercel execution time on the $5 plan
+export const BYOK_PRO_AGENTIC_CAP = 100
+
+// BYOK Pro rate limiting: 10 req/sec
+// This is enforced at the API level using a sliding window
+const BYOK_PRO_RATE_LIMIT = 10  // requests per second
+const BYOK_PRO_RATE_WINDOW_MS = 1000  // 1 second window
+
+// In-memory rate limit tracking for BYOK Pro
+// In production, this should be replaced with Redis or similar
+const byokProRateLimitCache = new Map<string, {
+  count: number
+  resetTime: number
+}>()
+
+/**
+ * Check BYOK Pro rate limit (10 req/sec)
+ * 
+ * @param workspaceId - The workspace ID for rate limiting
+ * @returns Object indicating if request is allowed
+ */
+export function checkByokProRateLimit(workspaceId: string): {
+  allowed: boolean
+  remaining: number
+  resetTime: number
+} {
+  const now = Date.now()
+  const cached = byokProRateLimitCache.get(workspaceId)
+
+  if (!cached || now >= cached.resetTime) {
+    // Reset or initialize
+    byokProRateLimitCache.set(workspaceId, {
+      count: 1,
+      resetTime: now + BYOK_PRO_RATE_WINDOW_MS
+    })
+    return {
+      allowed: true,
+      remaining: BYOK_PRO_RATE_LIMIT - 1,
+      resetTime: now + BYOK_PRO_RATE_WINDOW_MS
+    }
+  }
+
+  if (cached.count < BYOK_PRO_RATE_LIMIT) {
+    // Increment count
+    cached.count += 1
+    byokProRateLimitCache.set(workspaceId, cached)
+    return {
+      allowed: true,
+      remaining: BYOK_PRO_RATE_LIMIT - cached.count,
+      resetTime: cached.resetTime
+    }
+  }
+
+  // Rate limit exceeded
+  return {
+    allowed: false,
+    remaining: 0,
+    resetTime: cached.resetTime
   }
 }
 
@@ -64,20 +138,27 @@ export const NAMESPACE_LIMITS: Record<UnkeyNamespace, {
  * Get tier-based limit for a feature namespace
  * 
  * @param plan - The user's subscription tier
- * @param namespace - The feature namespace ('web_search' or 'deep_research')
+ * @param namespace - The feature namespace ('web_search', 'deep_research', or 'byok_pro_agentic')
  * @returns The limit for this feature based on user's tier
  */
 function getTierBasedLimit(plan: string, namespace: UnkeyNamespace): number {
+  // Default to sandbox if tier is missing (Rule D: No Unlimited Defaults)
+  const safePlan = plan || 'sandbox'
+
   if (namespace === 'web_search') {
-    const limitConfig = WEB_SEARCH_LIMITS[plan as keyof typeof WEB_SEARCH_LIMITS]
+    const limitConfig = WEB_SEARCH_LIMITS[safePlan as keyof typeof WEB_SEARCH_LIMITS]
     return limitConfig?.limit !== undefined ? limitConfig.limit : NAMESPACE_LIMITS.web_search.limit
   } else if (namespace === 'deep_research') {
-    const limitConfig = DEEP_RESEARCH_LIMITS[plan as keyof typeof DEEP_RESEARCH_LIMITS]
+    // Shared credit pool for standard + agentic
+    const limitConfig = DEEP_RESEARCH_LIMITS[safePlan as keyof typeof DEEP_RESEARCH_LIMITS]
     return limitConfig?.limit !== undefined ? limitConfig.limit : NAMESPACE_LIMITS.deep_research.limit
+  } else if (namespace === 'byok_pro_agentic') {
+    // BYOK Pro agentic hard cap - always 100/month
+    return BYOK_PRO_AGENTIC_CAP
   }
-  
+
   // Fallback to default limits
-  return namespace === 'web_search' ? NAMESPACE_LIMITS.web_search.limit : NAMESPACE_LIMITS.deep_research.limit
+  return (NAMESPACE_LIMITS[namespace] as any)?.limit ?? 3
 }
 
 /**
@@ -88,7 +169,7 @@ function getTierBasedLimit(plan: string, namespace: UnkeyNamespace): number {
  * @param plan - The user's subscription tier (optional, defaults to sandbox)
  * @returns Rate limit result with success status and remaining quota
  *
- * NOTE: This function uses Unkey's standalone ratelimit API, not the key verification API.
+ * NOTE: This function uses Unkey's standalone ratelimit API, not key verification API.
  * The namespace ensures complete isolation between different feature limits.
  *
  * IMPORTANT: Rate limits are per-account (workspaceId), not per-key.
@@ -108,7 +189,7 @@ export async function checkFeatureRateLimit(
     duration: NAMESPACE_LIMITS[namespace].duration,
     durationMs: NAMESPACE_LIMITS[namespace].durationMs
   }
-  
+
   if (!namespaceConfig) {
     return {
       success: false,
@@ -152,7 +233,7 @@ export async function checkFeatureRateLimit(
     if (!response.ok) {
       const errorText = await response.text()
       console.error(`[Unkey:${namespace}] Rate limit API error:`, response.status, errorText)
-      
+
       // Fail open on API errors - don't block users due to our infrastructure issues
       return {
         success: true,
@@ -164,7 +245,7 @@ export async function checkFeatureRateLimit(
     }
 
     const result: UnkeyRateLimitResponse = await response.json()
-    
+
     return {
       success: result.success,
       remaining: result.remaining,
@@ -174,7 +255,7 @@ export async function checkFeatureRateLimit(
 
   } catch (error: any) {
     console.error(`[Unkey:${namespace}] Rate limit check failed:`, error.message)
-    
+
     // Fail open on network errors
     return {
       success: true,
@@ -198,6 +279,13 @@ export function isByokExempt(plan: string): boolean {
 }
 
 /**
+ * Check if a plan requires BYOK Pro rate limiting (10 req/sec)
+ */
+export function requiresByokProRateLimit(plan: string): boolean {
+  return plan === 'byok_pro'
+}
+
+/**
  * Get error response for a rate limit exceeded scenario
  */
 export function getRateLimitErrorResponse(
@@ -215,13 +303,13 @@ export function getRateLimitErrorResponse(
 } {
   const config = NAMESPACE_LIMITS[namespace]
   const resetDate = new Date(result.reset)
-  
+
   if (namespace === 'web_search') {
     // Determine period based on tier
     const limitConfig = WEB_SEARCH_LIMITS[plan as keyof typeof WEB_SEARCH_LIMITS]
     const period = limitConfig?.period || 'daily'
     const periodText = period === 'daily' ? 'day' : 'month'
-    
+
     return {
       error: `${period === 'daily' ? 'Daily' : 'Monthly'} web search limit reached (${config.limit}/${periodText}). Resets ${resetDate.toLocaleString()}.`,
       code: 'RESEARCH_LIMIT_EXCEEDED',
@@ -233,18 +321,18 @@ export function getRateLimitErrorResponse(
     }
   }
 
-  // deep_research
+  // deep_research (all deep research is now agentic by default)
   const limitConfig = DEEP_RESEARCH_LIMITS[plan as keyof typeof DEEP_RESEARCH_LIMITS]
   const period = limitConfig?.period || 'daily'
   const periodText = period === 'daily' ? 'day' : 'month'
-  
+
   return {
-    error: `${period === 'daily' ? 'Daily' : 'Monthly'} deep research limit reached (${config.limit}/${periodText}). Resets ${resetDate.toLocaleString()}.`,
+    error: `${period === 'daily' ? 'Daily' : 'Monthly'} deep research limit reached (${config.limit}/${periodText}). All deep research is now agentic. Resets ${resetDate.toLocaleString()}.`,
     code: 'DEEP_RESEARCH_LIMIT_EXCEEDED',
     limit: config.limit,
     remaining: 0,
     reset_at: result.reset,
     period: period,
-    upgrade_hint: 'Upgrade to Managed Pro ($20/mo) for 50 reports/month, or use BYOK for unlimited reports with your own keys.'
+    upgrade_hint: 'Upgrade to Managed Pro ($20/mo) for 50 deep research/month, or Managed Expert ($79/mo) for 200/month.'
   }
 }

@@ -28,6 +28,8 @@ import {
   CheckCircle
 } from 'lucide-react';
 
+import { DeepResearchSection as NewDeepResearchSection } from './components/DeepResearchSection';
+
 // Navigation Component
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -121,14 +123,14 @@ const HeroSection = () => {
   return (
     <section className="relative flex items-center pt-20 overflow-hidden min-h-screen">
       {/* Background Grid */}
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none opacity-30"
         style={{
           backgroundSize: '40px 40px',
           backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
         }}
       />
-      
+
       {/* Gradient Blurs */}
       <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-purple-900/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none" />
@@ -136,7 +138,7 @@ const HeroSection = () => {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-0 w-full py-16 lg:py-24 relative z-10">
         <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 lg:gap-12 items-center">
           {/* Left Column - Text */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -206,7 +208,7 @@ const HeroSection = () => {
           </motion.div>
 
           {/* Right Column - Code Preview */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.6 }}
@@ -215,62 +217,62 @@ const HeroSection = () => {
             <div className="relative group">
               {/* Gradient Border Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-              
+
               <div className="relative rounded-xl overflow-hidden border border-white/10 bg-[#0A0A0A] shadow-2xl">
-              {/* Terminal Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-[#111111] border-b border-white/5">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                {/* Terminal Header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-[#111111] border-b border-white/5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                    <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                  </div>
+                  <div className="text-xs font-mono text-gray-500 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500/80 animate-pulse" />
+                    POST /v1/deep-research
+                  </div>
                 </div>
-                <div className="text-xs font-mono text-gray-500 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-green-500/80 animate-pulse" />
-                  POST /v1/deep-research
-                </div>
-              </div>
 
-              {/* Code Content */}
-              <div className="p-6 overflow-x-auto font-mono text-sm leading-relaxed bg-[#0A0A0A]">
-                <pre className="text-gray-400">
-                  <span className="text-gray-600">{'// Extract exactly what you need. Not essays.'}</span>{'\n'}
-                  <span className="text-purple-400">const</span> <span className="text-blue-400">response</span> = <span className="text-purple-400">await</span> <span className="text-yellow-300">fetch</span>(<span className="text-green-400">&apos;/api/v1/deep-research&apos;</span>, {'{\n'}
-                  {'  '}<span className="text-blue-300">method</span>: <span className="text-green-400">&apos;POST&apos;</span>,{'\n'}
-                  {'  '}<span className="text-blue-300">headers</span>: {'{ \n'}
-                  {'    '}<span className="text-green-400">&apos;Authorization&apos;</span>: <span className="text-green-400">`Bearer <span className="text-yellow-300">{'${API_KEY}'}</span>`</span>{' \n'}
-                  {'  }'},{'{\n'}
-                  {'  '}<span className="text-blue-300">body</span>: <span className="text-yellow-300">JSON</span>.<span className="text-yellow-300">stringify</span>({'{\n'}
-                  {'    '}<span className="text-blue-300">query</span>: <span className="text-green-400">&quot;Tesla vs Rivian 2026&quot;</span>,{'\n'}
-                  {'    '}<span className="text-blue-300">mode</span>: <span className="text-green-400">&quot;extract&quot;</span>,{'\n'}
-                  {'    '}<span className="text-blue-300">extract</span>: [{'\n'}
-                  {'      '}<span className="text-green-400">&quot;market_cap&quot;</span>,{' \n'}
-                  {'      '}<span className="text-green-400">&quot;revenue&quot;</span>,{' \n'}
-                  {'      '}<span className="text-green-400">&quot;growth_rate&quot;</span>{'\n'}
-                  {'    '}]{'\n'}
-                  {'  }'}){'\n'}
-                  {'}'});{'\n'}
-                  <span className="text-gray-600">{'// Response Time: 340ms'}</span>{'\n'}
-                  <span className="text-purple-400">console</span>.<span className="text-yellow-300">log</span>(<span className="text-purple-400">await</span> <span className="text-blue-400">response</span>.<span className="text-yellow-300">json</span>());
-                </pre>
+                {/* Code Content */}
+                <div className="p-6 overflow-x-auto font-mono text-sm leading-relaxed bg-[#0A0A0A]">
+                  <pre className="text-gray-400">
+                    <span className="text-gray-600">{'// Extract exactly what you need. Not essays.'}</span>{'\n'}
+                    <span className="text-purple-400">const</span> <span className="text-blue-400">response</span> = <span className="text-purple-400">await</span> <span className="text-yellow-300">fetch</span>(<span className="text-green-400">&apos;/api/v1/deep-research&apos;</span>, {'{\n'}
+                    {'  '}<span className="text-blue-300">method</span>: <span className="text-green-400">&apos;POST&apos;</span>,{'\n'}
+                    {'  '}<span className="text-blue-300">headers</span>: {'{ \n'}
+                    {'    '}<span className="text-green-400">&apos;Authorization&apos;</span>: <span className="text-green-400">`Bearer <span className="text-yellow-300">{'${API_KEY}'}</span>`</span>{' \n'}
+                    {'  }'},{'{\n'}
+                    {'  '}<span className="text-blue-300">body</span>: <span className="text-yellow-300">JSON</span>.<span className="text-yellow-300">stringify</span>({'{\n'}
+                    {'    '}<span className="text-blue-300">query</span>: <span className="text-green-400">&quot;Tesla vs Rivian 2026&quot;</span>,{'\n'}
+                    {'    '}<span className="text-blue-300">mode</span>: <span className="text-green-400">&quot;extract&quot;</span>,{'\n'}
+                    {'    '}<span className="text-blue-300">extract</span>: [{'\n'}
+                    {'      '}<span className="text-green-400">&quot;market_cap&quot;</span>,{' \n'}
+                    {'      '}<span className="text-green-400">&quot;revenue&quot;</span>,{' \n'}
+                    {'      '}<span className="text-green-400">&quot;growth_rate&quot;</span>{'\n'}
+                    {'    '}]{'\n'}
+                    {'  }'}){'\n'}
+                    {'}'});{'\n'}
+                    <span className="text-gray-600">{'// Response Time: 340ms'}</span>{'\n'}
+                    <span className="text-purple-400">console</span>.<span className="text-yellow-300">log</span>(<span className="text-purple-400">await</span> <span className="text-blue-400">response</span>.<span className="text-yellow-300">json</span>());
+                  </pre>
 
-                {/* Output Preview */}
-                <div className="mt-6 pt-4 border-t border-white/5">
-                  <div className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-wider">Output Preview</div>
-                  <pre className="text-green-400/90">
-{`{
+                  {/* Output Preview */}
+                  <div className="mt-6 pt-4 border-t border-white/5">
+                    <div className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-wider">Output Preview</div>
+                    <pre className="text-green-400/90">
+                      {`{
   "market_cap": {
     "Tesla": "850B",
     "Rivian": "14B"
   },
   "status": "success"
 }`}
-                  </pre>
+                    </pre>
+                  </div>
                 </div>
               </div>
-            </div>
 
               {/* Floating Badge */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.8, duration: 0.4 }}
@@ -426,7 +428,7 @@ const DeepResearchSection = () => {
             <Sparkles className="w-4 h-4 text-purple-400" />
             <span className="text-sm font-medium text-purple-300">v4: Custom Schemas + Extraction</span>
           </div>
-          
+
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
             How{' '}
             <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
@@ -783,21 +785,22 @@ const PricingSection = () => {
       badge: 'New',
     },
     {
-      name: 'BYOK Unlimited',
+      name: 'BYOK Pro',
       price: '$5',
       period: '/month',
-      description: 'Production scale. Fair use limits.',
+      description: 'Production scale with agentic cap.',
       features: [
-        'Unlimited requests*',
+        'Unlimited standard requests',
         'Unlimited Web Search',
-        'Unlimited Deep Research',
+        '∞ Standard Deep Research',
+        '100 Agentic / month',
         'Your Groq & Tavily keys',
         'Premium support',
       ],
-      cta: 'Go Unlimited',
+      cta: 'Go Pro',
       popular: true,
       badge: 'Best Value',
-      footnote: '*Subject to platform fair use policy to prevent abuse.',
+      footnote: 'Agentic mode capped at 100/month for Vercel protection.',
     },
   ];
 
@@ -825,11 +828,10 @@ const PricingSection = () => {
           <div className="inline-flex items-center bg-white/5 border border-white/10 rounded-xl p-1.5">
             <button
               onClick={() => setActiveTab('managed')}
-              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'managed'
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'managed'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                : 'text-gray-400 hover:text-white'
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
@@ -837,16 +839,15 @@ const PricingSection = () => {
               </div>
               <div className="text-xs opacity-70 mt-0.5">We provide the keys</div>
             </button>
-            
+
             <div className="px-4 text-gray-600 font-medium">— OR —</div>
-            
+
             <button
               onClick={() => setActiveTab('byok')}
-              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'byok'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'byok'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                : 'text-gray-400 hover:text-white'
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Key className="w-4 h-4" />
@@ -878,42 +879,39 @@ const PricingSection = () => {
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className={`grid gap-8 mx-auto ${
-          activeTab === 'managed' ? 'md:grid-cols-3 max-w-7xl' : 'md:grid-cols-2 max-w-4xl'
-        }`}>
+        <div className={`grid gap-8 mx-auto ${activeTab === 'managed' ? 'md:grid-cols-3 max-w-7xl' : 'md:grid-cols-2 max-w-4xl'
+          }`}>
           {activePlans.map((plan, index) => (
             <motion.div
               key={`${activeTab}-${plan.name}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className={`relative p-8 rounded-xl border flex flex-col ${
-                plan.popular
-                  ? activeTab === 'managed'
-                    ? 'bg-gradient-to-b from-purple-500/20 to-pink-500/20 border-purple-500/50'
-                    : 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
-                  : 'bg-white/5 border-white/10'
-              }`}
+              className={`relative p-8 rounded-xl border flex flex-col ${plan.popular
+                ? activeTab === 'managed'
+                  ? 'bg-gradient-to-b from-purple-500/20 to-pink-500/20 border-purple-500/50'
+                  : 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
+                : 'bg-white/5 border-white/10'
+                }`}
             >
               {plan.badge && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className={`px-4 py-1 text-white text-sm font-medium rounded-full ${
-                    activeTab === 'managed'
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500'
-                      : 'bg-gradient-to-r from-amber-500 to-orange-500'
-                  }`}>
+                  <span className={`px-4 py-1 text-white text-sm font-medium rounded-full ${activeTab === 'managed'
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                    }`}>
                     {plan.badge}
                   </span>
                 </div>
               )}
-              
+
               <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
               <div className="flex items-baseline gap-1 mb-2">
                 <span className="text-4xl font-bold text-white">{plan.price}</span>
                 <span className="text-gray-400">{plan.period}</span>
               </div>
               <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
-              
+
               <ul className="space-y-3 mb-8 flex-grow">
                 {plan.features.map((feature) => {
                   const isDisabled = feature.startsWith('❌');
@@ -921,9 +919,8 @@ const PricingSection = () => {
                   return (
                     <li key={feature} className={`flex items-start gap-2 text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-300'}`}>
                       {!isDisabled && (
-                        <Check className={`w-5 h-5 flex-shrink-0 ${
-                          activeTab === 'managed' ? 'text-purple-400' : 'text-amber-400'
-                        }`} />
+                        <Check className={`w-5 h-5 flex-shrink-0 ${activeTab === 'managed' ? 'text-purple-400' : 'text-amber-400'
+                          }`} />
                       )}
                       {isDisabled && (
                         <span className="w-5 h-5 flex-shrink-0 text-gray-500">✕</span>
@@ -940,13 +937,12 @@ const PricingSection = () => {
 
               <Link
                 href="/signup"
-                className={`block w-full py-3 text-center font-medium rounded-lg transition-colors mt-auto ${
-                  plan.popular
-                    ? activeTab === 'managed'
-                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90'
-                      : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90'
-                    : 'bg-white/10 text-white hover:bg-white/20'
-                }`}
+                className={`block w-full py-3 text-center font-medium rounded-lg transition-colors mt-auto ${plan.popular
+                  ? activeTab === 'managed'
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90'
+                    : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90'
+                  : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
               >
                 {plan.cta}
               </Link>
@@ -974,7 +970,7 @@ const PricingSection = () => {
 // FAQ Section
 const FAQSection = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
-  
+
   const faqs = [
     {
       question: 'How does the routing actually work?',
@@ -1099,7 +1095,7 @@ const Footer = () => {
             </div>
             <span className="font-bold text-white">UnforgeAPI</span>
           </div>
-          
+
           <div className="flex items-center gap-8">
             <Link href="/docs" className="text-sm text-gray-400 hover:text-white transition-colors">Documentation</Link>
             <Link href="/hub/blog" className="text-sm text-gray-400 hover:text-white transition-colors">Blog</Link>
@@ -1107,7 +1103,7 @@ const Footer = () => {
             <Link href="/terms" className="text-sm text-gray-400 hover:text-white transition-colors">Terms</Link>
             <Link href="/contact" className="text-sm text-gray-400 hover:text-white transition-colors">Contact</Link>
           </div>
-          
+
           <div className="text-sm text-gray-500">
             © 2026 UnforgeAPI. All rights reserved.
           </div>
@@ -1124,7 +1120,7 @@ export default function LandingPage() {
       <Navigation />
       <HeroSection />
       <StatsSection />
-      <DeepResearchSection />
+      <NewDeepResearchSection />
       <FeaturesSection />
       <HowItWorksSection />
       <PricingSection />

@@ -38,8 +38,9 @@ import { generateObject, generateText, streamText } from 'ai'
 import { z } from 'zod'
 import { Redis } from '@upstash/redis'
 import { createHash } from 'crypto'
+import { jsonrepair } from 'jsonrepair'
 import { type ApiPlan } from '@/lib/subscription-constants'
-import { checkFeatureRateLimit, isByokExempt, getRateLimitErrorResponse, UNKEY_NAMESPACES, NAMESPACE_LIMITS } from '@/lib/unkey'
+import { checkFeatureRateLimit, isByokExempt, getRateLimitErrorResponse, UNKEY_NAMESPACES, NAMESPACE_LIMITS, checkByokProRateLimit, requiresByokProRateLimit } from '@/lib/unkey'
 
 // ============================================
 // CONFIGURATION
@@ -75,31 +76,36 @@ interface RequestBody {
   // Basic
   query: string
   stream?: boolean
-  
+
   // Mode selection
   mode?: OutputMode  // Default: 'report'
-  
+
   // For 'extract' mode - extract specific fields
   extract?: string[]  // e.g., ["price", "release_date", "features"]
-  
+
   // For 'schema' mode - custom output structure
   schema?: Record<string, any>  // User-defined JSON schema
-  
+
   // For 'compare' mode - compare multiple queries
   queries?: string[]  // e.g., ["Tesla stock", "Rivian stock", "Lucid stock"]
-  
+
   // Domain preset for optimized searching
   preset?: 'general' | 'crypto' | 'stocks' | 'tech' | 'academic' | 'news'
-  
+
   // Webhook for async delivery
   webhook?: string  // URL to POST results to
+
+  // Agentic Loop - optional parameter for iterative reasoning
+  // false (default): Single-shot search (faster)
+  // true: Agentic reasoning loop (iterative, cross-source verification)
+  agentic_loop?: boolean
 }
 
 // Domain presets with optimized search parameters
-const DOMAIN_PRESETS: Record<string, { 
+const DOMAIN_PRESETS: Record<string, {
   search_depth: string
   include_domains?: string[]
-  prompt_hint: string 
+  prompt_hint: string
 }> = {
   general: {
     search_depth: 'advanced',
@@ -133,6 +139,65 @@ const DOMAIN_PRESETS: Record<string, {
 }
 
 // ============================================
+// AGENTIC LOOP - EVALUATOR PROMPT
+// ============================================
+// This prompt instructs the LLM to detect date-mismatch hallucinations
+const EVALUATOR_PROMPT = `You are a Research Quality Evaluator. Your job is to analyze search results and determine if they actually answer the user's query with CURRENT, RELEVANT data.
+
+USER QUERY: "{query}"
+
+SEARCH RESULTS (with metadata):
+{search_results}
+
+ANALYSIS TASK:
+1. Extract publication dates from titles, snippets, and content
+2. Identify if the query asks about CURRENT or FUTURE information
+3. Check if the search results contain:
+   - Actual current data (not predictions about the future)
+   - Recent publications (within last 6-12 months for current topics)
+   - Factual information that directly answers the query
+
+DATE-MISMATCH HALLUCINATION PATTERNS TO DETECT:
+- Query asks about "2026 trends" but results are from 2021-2023 making predictions
+- Query asks for "current price" but results are from years ago
+- Query asks about "latest version" but results discuss old versions
+- Query asks for "recent news" but results are outdated
+- Query asks for "actual data" but results contain only predictions/speculation
+
+EVALUATION CRITERIA:
+- VALID: Results contain current, factual data that directly answers the query
+- INVALID: Results are outdated, contain predictions instead of actuals, or don't address the query's temporal requirements
+
+RESPONSE FORMAT (JSON):
+{
+  "is_valid": boolean,
+  "confidence": number (0-1),
+  "reasoning": string,
+  "date_analysis": {
+    "query_temporal_intent": "current|future|historical",
+    "result_dates": ["2024-01-15", "2023-11-20", ...],
+    "date_range": "2023-11-20 to 2024-01-15",
+    "most_recent": "2024-01-15",
+    "is_outdated": boolean
+  },
+  "refined_query": string (if invalid, provide a better search query)
+}
+
+REFINED QUERY GENERATION RULES (when is_valid = false):
+- Add temporal filters: "after:2025", "2026 actual data", "current 2026"
+- Specify "vs predictions" to distinguish actuals from forecasts
+- Add "latest", "recent", "updated" for current information
+- Include specific timeframes: "January 2026", "Q1 2026"
+- Focus on "official data", "actual results", "confirmed information"
+
+Return ONLY valid JSON.`
+
+// ============================================
+// AGENTIC LOOP - MAX ITERATIONS
+// ============================================
+const MAX_AGENTIC_ITERATIONS = 3
+
+// ============================================
 // DEEP RESEARCH RATE LIMITING
 // ============================================
 // Uses Unkey namespace 'deep_research' for DECOUPLED rate limiting
@@ -143,7 +208,7 @@ const DOMAIN_PRESETS: Record<string, {
 // SCHEMAS
 // ============================================
 
-// Compressed facts schema - tiny output from Gemini
+// Compressed facts schema with reasoning layer for contradiction detection
 const factsSchema = z.object({
   key_stats: z.array(z.string()).describe("Important numbers, percentages, metrics"),
   dates: z.array(z.string()).describe("Relevant dates and timelines"),
@@ -152,7 +217,19 @@ const factsSchema = z.object({
   sources: z.array(z.object({
     title: z.string(),
     url: z.string()
-  })).describe("Source URLs for citations")
+  })).describe("Source URLs for citations"),
+  // Reasoning layer: contradiction detection and source agreement analysis
+  source_agreement: z.object({
+    consensus: z.enum(["high", "medium", "low"]).describe("How much sources agree: high=all agree, medium=minor conflicts, low=major contradictions"),
+    conflicting_claims: z.array(z.object({
+      claim_a: z.string().describe("First conflicting claim"),
+      source_a: z.string().describe("Source of first claim"),
+      claim_b: z.string().describe("Second conflicting claim"),
+      source_b: z.string().describe("Source of second claim"),
+      resolution: z.string().describe("Which claim is more likely true and why")
+    })).describe("Contradictions found between sources with resolutions"),
+    confidence_score: z.number().min(0).max(1).describe("Overall confidence in extracted facts: 0=unreliable, 1=highly reliable")
+  }).describe("Analysis of source agreement and contradiction resolution")
 })
 
 // ============================================
@@ -235,8 +312,8 @@ function checkAndAbort(timer: TimerContext, stage: string, context?: DebugContex
   if (isTimeExpired(timer)) {
     timer.isTimedOut = true
     timer.abortController.abort()
-    debug('timer:TIMEOUT', { 
-      stage, 
+    debug('timer:TIMEOUT', {
+      stage,
       elapsedMs: Math.round(getElapsedMs(timer)),
       limitMs: TIME_LIMIT_MS,
       partialDataCollected: Object.keys(timer.partialData)
@@ -248,25 +325,25 @@ function checkAndAbort(timer: TimerContext, stage: string, context?: DebugContex
 
 // Emergency finalizer - generates a report from whatever data we have
 async function emergencyFinalize(
-  timer: TimerContext, 
+  timer: TimerContext,
   query: string,
   groqKey: string,
   context?: DebugContext
 ): Promise<string> {
-  debug('emergency:start', { 
+  debug('emergency:start', {
     elapsedMs: Math.round(getElapsedMs(timer)),
     partialData: Object.keys(timer.partialData)
   }, context)
 
   const groq = createGroq({ apiKey: groqKey })
-  
+
   // Build context from whatever partial data we have
   let availableData = ''
-  
+
   if (timer.partialData.facts) {
     availableData += `\nEXTRACTED FACTS:\n${JSON.stringify(timer.partialData.facts, null, 2)}`
   }
-  
+
   if (timer.partialData.searchResults?.results) {
     const snippets = timer.partialData.searchResults.results
       .slice(0, 5)  // Take first 5 results
@@ -274,7 +351,7 @@ async function emergencyFinalize(
       .join('\n')
     availableData += `\nSEARCH RESULTS SNIPPETS:\n${snippets}`
   }
-  
+
   if (timer.partialData.sources?.length) {
     const sourceList = timer.partialData.sources
       .slice(0, 8)
@@ -330,7 +407,7 @@ Keep it under 500 words. Focus on what we found, not what we couldn't find.`
       model: groq('llama-3.1-8b-instant'),
       prompt: emergencyPrompt
     })
-    
+
     debug('emergency:complete', { reportLength: result.text.length }, context)
     return result.text
   } catch (error: any) {
@@ -433,11 +510,11 @@ async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<Un
       debug('verifyApiKey:invalidKey', {
         code: result.code,
         reason: result.code === 'NOT_FOUND' ? 'Key does not exist in Unkey' :
-                result.code === 'RATE_LIMITED' ? 'Key is rate limited' :
-                result.code === 'EXPIRED' ? 'Key has expired' :
-                result.code === 'DISABLED' ? 'Key is disabled' :
+          result.code === 'RATE_LIMITED' ? 'Key is rate limited' :
+            result.code === 'EXPIRED' ? 'Key has expired' :
+              result.code === 'DISABLED' ? 'Key is disabled' :
                 result.code === 'FORBIDDEN' ? 'Key lacks permissions' :
-                'Unknown reason',
+                  'Unknown reason',
         remaining: result.remaining,
         ratelimit: result.ratelimit
       }, context)
@@ -542,15 +619,15 @@ interface TavilySearchOptions {
 }
 
 async function tavilySearchRaw(
-  query: string, 
-  tavilyKey: string, 
+  query: string,
+  tavilyKey: string,
   context?: DebugContext,
   options?: TavilySearchOptions
 ): Promise<TavilySearchResponse> {
   debug('tavily:search:start', { query: query.substring(0, 50), preset: options?.preset }, context)
 
   const presetConfig = options?.preset ? DOMAIN_PRESETS[options.preset] : DOMAIN_PRESETS.general
-  
+
   const requestBody: Record<string, any> = {
     api_key: tavilyKey,
     query,
@@ -559,12 +636,12 @@ async function tavilySearchRaw(
     include_answer: false,
     max_results: 12
   }
-  
+
   // Add domain filtering if preset specifies it
   if (presetConfig.include_domains && presetConfig.include_domains.length > 0) {
     requestBody.include_domains = presetConfig.include_domains
   }
-  
+
   // Allow custom domain override
   if (options?.include_domains && options.include_domains.length > 0) {
     requestBody.include_domains = options.include_domains
@@ -585,6 +662,258 @@ async function tavilySearchRaw(
   const data = await response.json()
   debug('tavily:search:complete', { resultCount: data.results?.length }, context)
   return data
+}
+
+// ============================================
+// AGENTIC LOOP - EVALUATOR FUNCTION
+// ============================================
+
+interface EvaluationResult {
+  is_valid: boolean
+  confidence: number
+  reasoning: string
+  date_analysis: {
+    query_temporal_intent: 'current' | 'future' | 'historical'
+    result_dates: string[]
+    date_range: string
+    most_recent: string
+    is_outdated: boolean
+  }
+  refined_query: string
+}
+
+interface AgenticLoopContext {
+  iteration: number
+  total_iterations: number
+  current_query: string
+  all_search_results: TavilySearchResponse[]
+  evaluations: EvaluationResult[]
+  status: string
+}
+
+async function evaluateSearchResults(
+  query: string,
+  searchResults: TavilySearchResponse,
+  groqKey: string,
+  context?: DebugContext
+): Promise<EvaluationResult> {
+  debug('agentic:evaluator:start', {
+    query: query.substring(0, 50),
+    resultCount: searchResults.results?.length
+  }, context)
+
+  // Prepare search results for evaluation
+  const searchResultsText = searchResults.results
+    .map((r, i) => {
+      const dateStr = r.content?.match(/\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{4}|January|February|March|April|May|June|July|August|September|October|November|December/i)?.[0] || 'No date detected'
+      return `[${i + 1}] ${r.title}\nURL: ${r.url}\nDate: ${dateStr}\nSnippet: ${(r.content || '').substring(0, 200)}...`
+    })
+    .join('\n\n')
+
+  const evaluatorPrompt = EVALUATOR_PROMPT
+    .replace('{query}', query)
+    .replace('{search_results}', searchResultsText)
+
+  const groq = createGroq({ apiKey: groqKey })
+
+  try {
+    const result = await generateText({
+      model: groq('llama-3.1-8b-instant'),
+      prompt: evaluatorPrompt,
+      temperature: 0.1
+    })
+
+    // Parse JSON response
+    let jsonStr = result.text.trim()
+    if (jsonStr.startsWith('```json')) {
+      jsonStr = jsonStr.slice(7)
+    } else if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.slice(3)
+    }
+    if (jsonStr.endsWith('```')) {
+      jsonStr = jsonStr.slice(0, -3)
+    }
+
+    const evaluation: EvaluationResult = JSON.parse(jsonStr.trim())
+
+    debug('agentic:evaluator:result', {
+      isValid: evaluation.is_valid,
+      confidence: evaluation.confidence,
+      isOutdated: evaluation.date_analysis?.is_outdated,
+      refinedQuery: evaluation.refined_query?.substring(0, 100)
+    }, context)
+
+    return evaluation
+  } catch (error: any) {
+    debugError('agentic:evaluator:error', error, context)
+    // Fallback: assume valid if evaluation fails
+    return {
+      is_valid: true,
+      confidence: 0.5,
+      reasoning: 'Evaluation failed, proceeding with original results',
+      date_analysis: {
+        query_temporal_intent: 'current',
+        result_dates: [],
+        date_range: 'unknown',
+        most_recent: 'unknown',
+        is_outdated: false
+      },
+      refined_query: query
+    }
+  }
+}
+
+// ============================================
+// AGENTIC LOOP - MAIN LOOP FUNCTION
+// ============================================
+
+async function agenticSearchLoop(
+  initialQuery: string,
+  tavilyKey: string,
+  groqKey: string,
+  preset: string,
+  timer: TimerContext,
+  context?: DebugContext,
+  onStatusUpdate?: (status: string, iteration?: number) => void
+): Promise<{
+  finalResults: TavilySearchResponse
+  loopContext: AgenticLoopContext
+}> {
+  debug('agentic:loop:start', {
+    initialQuery: initialQuery.substring(0, 50),
+    maxIterations: MAX_AGENTIC_ITERATIONS
+  }, context)
+
+  const loopContext: AgenticLoopContext = {
+    iteration: 0,
+    total_iterations: MAX_AGENTIC_ITERATIONS,
+    current_query: initialQuery,
+    all_search_results: [],
+    evaluations: [],
+    status: 'starting'
+  }
+
+  let currentQuery = initialQuery
+  let finalResults: TavilySearchResponse = { results: [] }
+
+  for (let i = 0; i < MAX_AGENTIC_ITERATIONS; i++) {
+    loopContext.iteration = i + 1
+    loopContext.current_query = currentQuery
+
+    // Check timeout before each iteration
+    if (checkAndAbort(timer, `agentic-iteration-${i + 1}`, context)) {
+      debug('agentic:loop:timeout', { iteration: i + 1 }, context)
+      break
+    }
+
+    // Status update
+    const statusMessage = i === 0
+      ? 'Searching for relevant sources...'
+      : `Refining search (iteration ${i + 1}/${MAX_AGENTIC_ITERATIONS})...`
+
+    loopContext.status = statusMessage
+    onStatusUpdate?.(statusMessage, i + 1)
+
+    debug('agentic:loop:iteration', {
+      iteration: i + 1,
+      query: currentQuery.substring(0, 50)
+    }, context)
+
+    // Perform search
+    const searchResults = await tavilySearchRaw(
+      currentQuery,
+      tavilyKey,
+      context,
+      {
+        preset,
+        signal: timer.abortController.signal
+      }
+    )
+
+    loopContext.all_search_results.push(searchResults)
+
+    // Evaluate results
+    onStatusUpdate?.('Evaluating source relevance and recency...', i + 1)
+
+    const evaluation = await evaluateSearchResults(
+      currentQuery,
+      searchResults,
+      groqKey,
+      context
+    )
+
+    loopContext.evaluations.push(evaluation)
+
+    debug('agentic:loop:evaluation', {
+      iteration: i + 1,
+      isValid: evaluation.is_valid,
+      confidence: evaluation.confidence,
+      isOutdated: evaluation.date_analysis?.is_outdated,
+      refinedQuery: evaluation.refined_query?.substring(0, 100)
+    }, context)
+
+    // If results are valid, we're done
+    if (evaluation.is_valid && evaluation.confidence >= 0.7) {
+      debug('agentic:loop:success', {
+        iteration: i + 1,
+        confidence: evaluation.confidence,
+        reasoning: evaluation.reasoning?.substring(0, 100)
+      }, context)
+
+      finalResults = searchResults
+      loopContext.status = 'completed'
+      break
+    }
+
+    // If this was the last iteration, use the best results we have
+    if (i === MAX_AGENTIC_ITERATIONS - 1) {
+      debug('agentic:loop:max_iterations', {
+        iteration: i + 1,
+        usingBestResults: true
+      }, context)
+
+      // Merge all search results
+      finalResults = {
+        results: loopContext.all_search_results.flatMap(r => r.results)
+      }
+      loopContext.status = 'completed_with_best_effort'
+      break
+    }
+
+    // Refine query for next iteration
+    if (evaluation.refined_query && evaluation.refined_query !== currentQuery) {
+      currentQuery = evaluation.refined_query
+      onStatusUpdate?.(`Refining search query: "${currentQuery.substring(0, 50)}..."`, i + 1)
+
+      debug('agentic:loop:refining', {
+        iteration: i + 1,
+        oldQuery: loopContext.current_query.substring(0, 50),
+        newQuery: currentQuery.substring(0, 50),
+        reason: evaluation.reasoning?.substring(0, 100)
+      }, context)
+    } else {
+      // If no refined query, generate one based on evaluation
+      currentQuery = `${initialQuery} after:2024 current actual data`
+      onStatusUpdate?.(`Auto-refining search query: "${currentQuery.substring(0, 50)}..."`, i + 1)
+
+      debug('agentic:loop:auto_refining', {
+        iteration: i + 1,
+        autoRefinedQuery: currentQuery.substring(0, 50)
+      }, context)
+    }
+  }
+
+  debug('agentic:loop:complete', {
+    totalIterations: loopContext.iteration,
+    finalStatus: loopContext.status,
+    totalResults: finalResults.results?.length,
+    allResultsCount: loopContext.all_search_results.reduce((sum, r) => sum + r.results.length, 0)
+  }, context)
+
+  return {
+    finalResults,
+    loopContext
+  }
 }
 
 // ============================================
@@ -610,7 +939,7 @@ function logUsage(data: {
       intent: data.intent,
       latencyMs: data.latencyMs,
       query: data.query
-    }).catch(() => {})
+    }).catch(() => { })
   })
 }
 
@@ -622,7 +951,7 @@ async function sendWebhook(url: string, data: Record<string, any>): Promise<void
   try {
     await fetch(url, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'X-Unforge-Signature': createHash('sha256')
           .update(JSON.stringify(data) + (process.env.WEBHOOK_SECRET || ''))
@@ -784,20 +1113,60 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'Invalid JSON body', code: 'INVALID_JSON' }, { status: 400 })
     }
 
-    const { 
-      query, 
+    const {
+      query,
       queries,
       stream = false,
       mode = 'report',
       extract,
       schema,
       preset = 'general',
-      webhook
+      webhook,
+      agentic_loop = false  // Default: standard single-shot search
     } = body
+
+    // ============================================
+    // 3.1 BYOK PRO AGENTIC CAP CHECK (100/month hard limit)
+    // ============================================
+    // Vercel protection: BYOK Pro users get unlimited standard requests
+    // but agentic is capped at 100/month to prevent execution time abuse
+    let byokAgenticRemaining: number | undefined
+
+    if (plan === 'byok_pro' && agentic_loop && workspaceId) {
+      debug('byokProAgentic:check', {
+        workspaceId,
+        namespace: UNKEY_NAMESPACES.BYOK_PRO_AGENTIC
+      }, ctx)
+
+      const byokAgenticResult = await checkFeatureRateLimit(
+        workspaceId,
+        UNKEY_NAMESPACES.BYOK_PRO_AGENTIC,
+        plan
+      )
+      byokAgenticRemaining = byokAgenticResult.remaining
+
+      debug('byokProAgentic:result', {
+        success: byokAgenticResult.success,
+        remaining: byokAgenticResult.remaining,
+        limit: byokAgenticResult.limit,
+        reset: byokAgenticResult.reset
+      }, ctx)
+
+      if (!byokAgenticResult.success) {
+        return Response.json({
+          error: 'BYOK Pro agentic limit exceeded (100/month). Use agentic_loop: false for unlimited standard requests.',
+          code: 'BYOK_PRO_AGENTIC_LIMIT_EXCEEDED',
+          limit: 100,
+          remaining: 0,
+          period: 'monthly',
+          hint: 'Set agentic_loop: false for unlimited standard deep research requests.'
+        }, { status: 429 })
+      }
+    }
 
     // Validate mode-specific requirements
     if (mode === 'compare' && (!queries || queries.length < 2)) {
-      return Response.json({ 
+      return Response.json({
         error: 'Compare mode requires "queries" array with at least 2 items',
         code: 'INVALID_REQUEST',
         example: { mode: 'compare', queries: ['Tesla stock', 'Rivian stock'] }
@@ -811,7 +1180,7 @@ export async function POST(req: NextRequest) {
     // Each query = 1 Tavily search = 1 credit against user's limit
     const MAX_COMPARE_QUERIES = 3
     if (mode === 'compare' && queries && queries.length > MAX_COMPARE_QUERIES) {
-      return Response.json({ 
+      return Response.json({
         error: `Compare mode is limited to ${MAX_COMPARE_QUERIES} queries per request to ensure quality results.`,
         code: 'TOO_MANY_COMPARE_QUERIES',
         max_queries: MAX_COMPARE_QUERIES,
@@ -821,7 +1190,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === 'extract' && (!extract || extract.length === 0)) {
-      return Response.json({ 
+      return Response.json({
         error: 'Extract mode requires "extract" array with fields to extract',
         code: 'INVALID_REQUEST',
         example: { mode: 'extract', query: 'iPhone 16', extract: ['price', 'release_date', 'features'] }
@@ -829,11 +1198,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (mode === 'schema' && !schema) {
-      return Response.json({ 
+      return Response.json({
         error: 'Schema mode requires "schema" object defining output structure',
         code: 'INVALID_REQUEST',
-        example: { 
-          mode: 'schema', 
+        example: {
+          mode: 'schema',
           query: 'Compare Tesla vs Rivian',
           schema: {
             companies: [{ name: '', market_cap: '', revenue: '' }],
@@ -849,14 +1218,14 @@ export async function POST(req: NextRequest) {
     }
 
     const effectiveQuery = mode === 'compare' ? queries!.join(' vs ') : query
-    
+
     if (effectiveQuery.length > 2000) {
       return Response.json({ error: 'Query too long (max 2000 characters)', code: 'QUERY_TOO_LONG' }, { status: 400 })
     }
 
     // Validate preset
     if (preset && !DOMAIN_PRESETS[preset]) {
-      return Response.json({ 
+      return Response.json({
         error: `Invalid preset: ${preset}`,
         code: 'INVALID_PRESET',
         valid_presets: Object.keys(DOMAIN_PRESETS)
@@ -871,7 +1240,7 @@ export async function POST(req: NextRequest) {
           throw new Error('Invalid protocol')
         }
       } catch {
-        return Response.json({ 
+        return Response.json({
           error: 'Invalid webhook URL',
           code: 'INVALID_WEBHOOK',
           hint: 'Webhook must be a valid HTTP/HTTPS URL'
@@ -879,9 +1248,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    debug('request:parsed', { 
-      queryLength: effectiveQuery.length, 
-      isUserOnByokPlan, 
+    debug('request:parsed', {
+      queryLength: effectiveQuery.length,
+      isUserOnByokPlan,
       stream,
       mode,
       preset,
@@ -1043,11 +1412,11 @@ export async function POST(req: NextRequest) {
     // NOTE: Deep Research does NOT check web_search rate limit (Rule A: Independence)
     // The deep_research namespace limit (checked above) is the ONLY constraint
     // This makes deep research "all-inclusive" - it does not deduct from web search quota
-    debug('pipeline:search:start', { mode, preset }, ctx)
+    debug('pipeline:search:start', { mode, preset, isAgentic: true }, ctx)
 
     let searchResults: TavilySearchResponse
     let allSources: Array<{ title: string; url: string }> = []
-    
+
     // ============================================
     // AUTO-CUT CHECK: Before search
     // ============================================
@@ -1058,24 +1427,30 @@ export async function POST(req: NextRequest) {
         partial: false
       }, { status: 504 })
     }
-    
-    // For compare mode, run multiple searches
-    if (mode === 'compare' && queries) {
-      const searchPromises = queries.map(q => 
-        tavilySearchRaw(q, activeTavilyKey, ctx, { preset, signal: timer.abortController.signal })
-      )
-      
+
+    // Use agentic search loop if agentic_loop=true, otherwise standard search
+    if (agentic_loop) {
+      debug('pipeline:agentic:enabled', { agentic_loop }, ctx)
+
       try {
-        const results = await Promise.all(searchPromises)
-        // Combine results
-        searchResults = {
-          results: results.flatMap(r => r.results)
-        }
+        const agenticResult = await agenticSearchLoop(
+          effectiveQuery,
+          activeTavilyKey,
+          activeGroqKey,
+          preset,
+          timer,
+          ctx,
+          (status, iteration) => {
+            debug('agentic:status', { status, iteration }, ctx)
+          }
+        )
+
+        searchResults = agenticResult.finalResults
         allSources = searchResults.results.map(r => ({ title: r.title, url: r.url }))
-      } catch (searchError: any) {
+      } catch (agenticError: any) {
         // If aborted due to timeout, trigger emergency finalization
-        if (searchError.name === 'AbortError' || timer.isTimedOut) {
-          debug('pipeline:search:aborted', { reason: 'timeout' }, ctx)
+        if (agenticError.name === 'AbortError' || timer.isTimedOut) {
+          debug('pipeline:agentic:aborted', { reason: 'timeout' }, ctx)
           timer.partialData.sources = allSources
           const emergencyReport = await emergencyFinalize(timer, effectiveQuery, activeGroqKey, ctx)
           return Response.json({
@@ -1084,24 +1459,29 @@ export async function POST(req: NextRequest) {
               source: 'emergency',
               partial: true,
               latency_ms: Math.round(performance.now() - startTime),
-              reason: 'timeout_during_search',
+              reason: 'timeout_during_agentic_search',
               request_id: requestId
             }
           })
         }
-        throw searchError
+        throw agenticError
       }
     } else {
+      // Standard single-shot search (faster, no iteration)
+      debug('pipeline:standard:enabled', { agentic_loop }, ctx)
+
       try {
-        searchResults = await tavilySearchRaw(effectiveQuery, activeTavilyKey, ctx, { 
-          preset, 
-          signal: timer.abortController.signal 
-        })
+        searchResults = await tavilySearchRaw(
+          effectiveQuery,
+          activeTavilyKey,
+          ctx,
+          { preset, signal: timer.abortController.signal }
+        )
         allSources = searchResults.results.map(r => ({ title: r.title, url: r.url }))
       } catch (searchError: any) {
-        // If aborted due to timeout, return minimal response
+        // If aborted due to timeout, trigger emergency finalization
         if (searchError.name === 'AbortError' || timer.isTimedOut) {
-          debug('pipeline:search:aborted', { reason: 'timeout' }, ctx)
+          debug('pipeline:standard:aborted', { reason: 'timeout' }, ctx)
           const emergencyReport = await emergencyFinalize(timer, effectiveQuery, activeGroqKey, ctx)
           return Response.json({
             report: emergencyReport,
@@ -1122,7 +1502,7 @@ export async function POST(req: NextRequest) {
         }, { status: 500 })
       }
     }
-    
+
     // Store partial data for potential emergency finalization
     timer.partialData.searchResults = searchResults
     timer.partialData.sources = allSources
@@ -1156,7 +1536,7 @@ export async function POST(req: NextRequest) {
     // ============================================
     // Cerebras: Smart extraction, handles massive context (100k+ chars) → outputs small facts JSON (~2KB)
     // Gemini Flash: Fallback if Cerebras fails
-    
+
     // ============================================
     // AUTO-CUT CHECK: Before extraction
     // ============================================
@@ -1176,9 +1556,10 @@ export async function POST(req: NextRequest) {
         }
       })
     }
-    
-    debug('pipeline:extract:start', { 
-      mode, 
+
+    debug('pipeline:extract:start', {
+      mode,
+      isAgentic: true,
       useCerebras: !!activeCerebrasKey,
       remainingMs: Math.round(getRemainingMs(timer))
     }, ctx)
@@ -1216,7 +1597,7 @@ export async function POST(req: NextRequest) {
 
       const result = await response.json()
       const content = result.choices?.[0]?.message?.content || ''
-      
+
       // Parse JSON from response (handle markdown code blocks)
       let jsonStr = content.trim()
       if (jsonStr.startsWith('```json')) {
@@ -1227,13 +1608,15 @@ export async function POST(req: NextRequest) {
       if (jsonStr.endsWith('```')) {
         jsonStr = jsonStr.slice(0, -3)
       }
-      
-      return JSON.parse(jsonStr.trim())
+
+      // Use jsonrepair to fix malformed JSON (missing brackets, trailing commas, etc.)
+      const repairedJson = jsonrepair(jsonStr.trim())
+      return JSON.parse(repairedJson)
     }
 
     // Gemini Flash fallback for extraction (if Cerebras fails)
     const google = createGoogleGenerativeAI({ apiKey: activeGoogleKey })
-    
+
     // Groq for report writing (hardware speed)
     const groq = createGroq({ apiKey: activeGroqKey })
 
@@ -1290,7 +1673,7 @@ Return a JSON object with these exact fields: ${extract.join(', ')}`
             throw cerebrasError
           }
         }
-        
+
         debug('pipeline:extract:complete', { fields: Object.keys(extractedData || {}), model: extractionModel }, ctx)
 
       } else if (mode === 'schema' && schema) {
@@ -1335,7 +1718,7 @@ Return valid JSON matching the schema.`
             throw cerebrasError
           }
         }
-        
+
         debug('pipeline:schema:complete', { keys: Object.keys(schemaData || {}), model: extractionModel }, ctx)
 
       } else if (mode === 'compare' && queries) {
@@ -1386,21 +1769,27 @@ Return a JSON object with: comparison_table (array of {item, key_facts, pros, co
         }
 
         comparisonData = compareResult.comparison_table
-        
+
         // Also fill facts for the full response
         facts = {
           key_stats: [],
           dates: [],
           entities: queries,
           summary_points: compareResult.key_differences,
-          sources
+          sources,
+          // Compare mode doesn't do contradiction detection, use defaults
+          source_agreement: {
+            consensus: 'medium' as const,
+            conflicting_claims: [],
+            confidence_score: 0.7
+          }
         }
-        
+
         debug('pipeline:compare:complete', { itemsCompared: comparisonData?.length, model: extractionModel }, ctx)
 
       } else {
-        // REPORT MODE (default): Standard facts extraction with Cerebras/Groq
-        const factsPrompt = `You are a research analyst. Analyze this raw web content and extract ONLY hard facts.
+        // REPORT MODE (default): Standard facts extraction with Cerebras/Groq + Reasoning Layer
+        const factsPrompt = `You are a research analyst with CRITICAL THINKING skills. Analyze this raw web content, extract hard facts, AND identify contradictions between sources.
 
 QUERY: "${effectiveQuery}"
 
@@ -1410,6 +1799,7 @@ ${hugeContext}
 SOURCES:
 ${sources.map((s, i) => `[${i + 1}] ${s.title}: ${s.url}`).join('\n')}
 
+=== EXTRACTION TASK ===
 Extract and return JSON with:
 1. key_stats: Array of important numbers, percentages, metrics (with source reference)
 2. dates: Array of relevant dates and timelines
@@ -1417,10 +1807,28 @@ Extract and return JSON with:
 4. summary_points: Array of 5-10 key findings as bullet points
 5. sources: Array of {title, url} for each source used
 
+=== REASONING TASK (source_agreement) ===
+6. Identify CONTRADICTIONS: When Source A says X but Source B says Y, note both claims
+7. RESOLVE contradictions: Pick the most likely truth based on:
+   - Recency (newer data is usually more accurate)
+   - Source authority (official sources > blogs)
+   - Specificity (concrete numbers > vague claims)
+   - Corroboration (3 sources agree > 1 source disagrees)
+8. Rate CONSENSUS: "high" (all sources agree), "medium" (minor conflicts), "low" (major contradictions)
+9. Assign CONFIDENCE: 0.0-1.0 based on source quality and agreement
+
+source_agreement format:
+{
+  "consensus": "high" | "medium" | "low",
+  "conflicting_claims": [{"claim_a": "...", "source_a": "...", "claim_b": "...", "source_b": "...", "resolution": "..."}],
+  "confidence_score": 0.0-1.0
+}
+
 RULES:
 - Extract ONLY facts from the provided content
 - Do NOT make up information
-- Include source URLs for citations
+- When resolving conflicts, explain your reasoning briefly
+- If no contradictions found, use empty array for conflicting_claims and "high" consensus
 - Be concise - compress knowledge into minimal JSON
 - ${presetConfig.prompt_hint}`
 
@@ -1440,19 +1848,19 @@ RULES:
             throw cerebrasError
           }
         }
-        
+
         debug('pipeline:facts:complete', {
           statsCount: facts?.key_stats?.length || 0,
           pointsCount: facts?.summary_points?.length || 0,
           model: extractionModel
         }, ctx)
       }
-      
+
       // Store extracted data for potential emergency use
       if (facts) timer.partialData.facts = facts
       if (extractedData) timer.partialData.extractedData = extractedData
       if (comparisonData) timer.partialData.comparisonData = comparisonData
-      
+
     } catch (extractError: any) {
       // Check if error is due to timeout/abort
       if (extractError.name === 'AbortError' || timer.isTimedOut) {
@@ -1471,7 +1879,7 @@ RULES:
           }
         })
       }
-      
+
       debugError('pipeline:extract', extractError, ctx)
       return Response.json({
         error: 'Failed to analyze search results',
@@ -1483,26 +1891,26 @@ RULES:
     // ============================================
     // 8. GENERATE OUTPUT (Groq - The Writer)
     // ============================================
-    
+
     // For extract and schema modes, we're done - no need for Groq
     if (mode === 'extract' && extractedData) {
       const latencyMs = Math.round(performance.now() - startTime)
-      
+
       // Cache the extracted data
       if (redis) {
         const cacheData = JSON.stringify(extractedData)
-        redis.set(cacheKey, cacheData, { ex: CACHE_TTL_SECONDS }).catch(() => {})
+        redis.set(cacheKey, cacheData, { ex: CACHE_TTL_SECONDS }).catch(() => { })
       }
 
       // Send webhook if configured
       if (webhook) {
-        sendWebhook(webhook, { 
-          mode: 'extract', 
-          query: effectiveQuery, 
-          data: extractedData, 
+        sendWebhook(webhook, {
+          mode: 'extract',
+          query: effectiveQuery,
+          data: extractedData,
           sources,
-          request_id: requestId 
-        }).catch(() => {})
+          request_id: requestId
+        }).catch(() => { })
       }
 
       logUsage({
@@ -1532,20 +1940,20 @@ RULES:
 
     if (mode === 'schema' && schemaData) {
       const latencyMs = Math.round(performance.now() - startTime)
-      
+
       if (redis) {
         const cacheData = JSON.stringify(schemaData)
-        redis.set(cacheKey, cacheData, { ex: CACHE_TTL_SECONDS }).catch(() => {})
+        redis.set(cacheKey, cacheData, { ex: CACHE_TTL_SECONDS }).catch(() => { })
       }
 
       if (webhook) {
-        sendWebhook(webhook, { 
-          mode: 'schema', 
-          query: effectiveQuery, 
-          data: schemaData, 
+        sendWebhook(webhook, {
+          mode: 'schema',
+          query: effectiveQuery,
+          data: schemaData,
           sources,
-          request_id: requestId 
-        }).catch(() => {})
+          request_id: requestId
+        }).catch(() => { })
       }
 
       logUsage({
@@ -1575,7 +1983,7 @@ RULES:
 
     // For report and compare modes, generate prose with Groq (hardware speed writer)
     // Facts JSON is ~2KB, so Groq's TPM is not a constraint
-    
+
     // ============================================
     // AUTO-CUT CHECK: Before report generation
     // ============================================
@@ -1595,9 +2003,9 @@ RULES:
         }
       })
     }
-    
-    debug('pipeline:write:start', { 
-      mode, 
+
+    debug('pipeline:write:start', {
+      mode,
       stream,
       remainingMs: Math.round(getRemainingMs(timer))
     }, ctx)
@@ -1609,7 +2017,7 @@ RULES:
     // the function for being "idle". User sees progress in real-time.
     if (stream) {
       debug('pipeline:write:streaming', { mode }, ctx)
-      
+
       const writePrompt = mode === 'compare' && comparisonData
         ? `You are an expert analyst writing a Comparison Report.
 
@@ -1707,7 +2115,7 @@ RULES:
 
         debug('pipeline:write:stream:started', { requestId }, ctx)
         return response
-        
+
       } catch (streamError: any) {
         // If streaming fails due to timeout, try emergency finalization
         if (streamError.name === 'AbortError' || timer.isTimedOut) {
@@ -1819,7 +2227,7 @@ RULES:
         })
         report = writeResult.text
       }
-      
+
       debug('pipeline:write:complete', { reportLength: report.length }, ctx)
     } catch (writeError: any) {
       // Handle timeout during write
@@ -1839,7 +2247,7 @@ RULES:
           }
         })
       }
-      
+
       debugError('pipeline:write', writeError, ctx)
       return Response.json({
         error: 'Failed to generate report',
@@ -1853,12 +2261,15 @@ RULES:
     // ============================================
     const latencyMs = Math.round(performance.now() - startTime)
 
+    // NOTE: Credit deduction removed - deep_research rate limit (checked at start) covers all
+    // All deep research is now agentic by default
+
     // Save to cache (fire-and-forget with success logging)
     if (redis) {
       redis.set(cacheKey, report, { ex: CACHE_TTL_SECONDS })
         .then(() => {
-          debugSuccess('cache:SET', { 
-            cacheKey: cacheKey.substring(0, 30) + '...', 
+          debugSuccess('cache:SET', {
+            cacheKey: cacheKey.substring(0, 30) + '...',
             reportLength: report.length,
             ttlSeconds: CACHE_TTL_SECONDS,
             ttlHuman: `${CACHE_TTL_SECONDS / 3600} hours`
@@ -1871,15 +2282,15 @@ RULES:
 
     // Send webhook if configured
     if (webhook) {
-      sendWebhook(webhook, { 
-        mode, 
-        query: effectiveQuery, 
+      sendWebhook(webhook, {
+        mode,
+        query: effectiveQuery,
         report,
         facts: (mode === 'report' && facts) ? facts : undefined,
         comparison: mode === 'compare' ? comparisonData : undefined,
         sources,
-        request_id: requestId 
-      }).catch(() => {})
+        request_id: requestId
+      }).catch(() => { })
     }
 
     // Log usage
@@ -1892,8 +2303,8 @@ RULES:
       cached: false
     })
 
-    debugSuccess('pipeline:complete', { 
-      latencyMs, 
+    debugSuccess('pipeline:complete', {
+      latencyMs,
       mode,
       sourcesCount: sources.length,
       reportLength: report.length,
@@ -1912,6 +2323,13 @@ RULES:
         sources_count: sources.length,
         request_id: requestId,
         preset,
+        agentic: true,  // All deep research is now agentic by default
+        // Reasoning layer metadata - contradiction detection and confidence
+        reasoning: {
+          consensus: facts?.source_agreement?.consensus || 'unknown',
+          confidence: facts?.source_agreement?.confidence_score ?? null,
+          conflicts_found: facts?.source_agreement?.conflicting_claims?.length || 0
+        },
         quota: {
           limit: NAMESPACE_LIMITS.deep_research.limit,
           remaining: rateLimitRemaining,
@@ -1932,15 +2350,15 @@ RULES:
       // Note: We don't have exact reset from feature check here easily without refactoring, 
       // but we can infer or skip reset for now. Or better, update checkFeatureRateLimit to return it.
       // For now, let's use the result from verifyApiKey if available for GLOBAL limit fallback
-    } 
-    
+    }
+
     // Add global rate limit headers if available (from Unkey verification)
     if (result.ratelimit) {
       // If we didn't set feature specific headers, or just to provide global status
       // Standard practice: if specific feature limit is stricter/used, show that. 
       // But here deep_research is independent.
       // Let's allow overriding if we want to show Global API limit too, but standard headers usually show the one that constrained the request.
-      
+
       // If we haven't set headers yet (BYOK or no feature limit applied)
       if (!headers['X-RateLimit-Limit']) {
         headers['X-RateLimit-Limit'] = String(result.ratelimit.limit)
@@ -1979,13 +2397,14 @@ export async function GET() {
   return Response.json({
     status: 'ok',
     service: 'UnforgeAPI Deep Research',
-    version: '4.2.0',
+    version: '4.3.0',
     description: 'Web search with AI-powered analysis and structured reports',
     features: {
       modes: ['report', 'extract', 'schema', 'compare'],
       presets: Object.keys(DOMAIN_PRESETS),
       webhook: true,
-      cache: redis ? 'enabled' : 'disabled'
+      cache: redis ? 'enabled' : 'disabled',
+      agentic_loop: true
     },
     examples: {
       report: {
@@ -2009,6 +2428,12 @@ export async function GET() {
         mode: 'compare',
         queries: ['Tesla stock', 'Rivian stock', 'Lucid stock'],
         preset: 'stocks'
+      },
+      agentic_loop: {
+        query: '2026 AI trends',
+        agentic_loop: true,
+        preset: 'tech',
+        description: 'Enable agentic loop to eliminate outdated data and hallucinations'
       }
     }
   })
