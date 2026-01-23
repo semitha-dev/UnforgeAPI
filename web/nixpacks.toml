@@ -1,0 +1,8 @@
+# Nixpacks configuration for Railway
+# Ensures proper Node.js version and build process
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
