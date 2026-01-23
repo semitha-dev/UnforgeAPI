@@ -1,6 +1,9 @@
 # Nixpacks configuration for Railway
 # Ensures proper Node.js version and build process
 
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
 [phases.build]
 cmds = ["npm run build"]
 
