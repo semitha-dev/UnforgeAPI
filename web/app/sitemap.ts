@@ -1,8 +1,9 @@
 import type { MetadataRoute } from 'next'
+import { blogPosts } from '@/lib/blog-data'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://unforge.ai'
-  
+
   // Static pages
   const staticPages = [
     {
@@ -12,16 +13,52 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
     },
     {
+      url: `${baseUrl}/about`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/careers`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/contact`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/cookies`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly' as const,
+      priority: 0.3,
+    },
+    {
       url: `${baseUrl}/docs`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/signup`,
+      url: `${baseUrl}/help`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
-      priority: 0.9,
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly' as const,
+      priority: 0.4,
     },
     {
       url: `${baseUrl}/signin`,
@@ -30,76 +67,32 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/hub/blog`,
+      url: `${baseUrl}/signup`,
       lastModified: new Date(),
-      changeFrequency: 'weekly' as const,
-      priority: 0.9,
-    },
-  ]
-  
-  // Blog posts
-  const blogPosts = [
-    {
-      url: `${baseUrl}/hub/blog/deep-research-api-machines-ai-agents`,
-      lastModified: new Date('2025-01-15'),
       changeFrequency: 'monthly' as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/hub/blog/structured-json-output-ai-automation`,
-      lastModified: new Date('2025-01-10'),
-      changeFrequency: 'monthly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/hub/blog/web-grounding-ai-agents`,
-      lastModified: new Date('2025-01-08'),
-      changeFrequency: 'monthly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/hub/blog/byok-unlimited-scaling`,
-      lastModified: new Date('2025-01-05'),
-      changeFrequency: 'monthly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/hub/blog/30-second-research-pipeline`,
-      lastModified: new Date('2024-12-28'),
+      url: `${baseUrl}/support`,
+      lastModified: new Date(),
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/hub/blog/custom-schemas-data-extraction`,
-      lastModified: new Date('2024-12-20'),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/hub/blog/ai-agent-integration-guide`,
-      lastModified: new Date('2024-12-15'),
-      changeFrequency: 'monthly' as const,
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/hub/blog/cost-optimization-ai-apis`,
-      lastModified: new Date('2024-12-10'),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/hub/blog/webhook-delivery-async-ai`,
-      lastModified: new Date('2024-12-05'),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    },
-    {
-      url: `${baseUrl}/hub/blog/domain-presets-better-results`,
-      lastModified: new Date('2024-11-28'),
-      changeFrequency: 'monthly' as const,
-      priority: 0.6,
+      url: `${baseUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'yearly' as const,
+      priority: 0.4,
     },
   ]
-  
-  return [...staticPages, ...blogPosts]
+
+  // Generate blog post entries dynamically from blog-data.ts
+  const blogPostEntries = blogPosts.map((post) => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: new Date(post.date),
+    changeFrequency: 'monthly' as const,
+    priority: post.featured ? 0.9 : 0.7,
+  }))
+
+  return [...staticPages, ...blogPostEntries]
 }
