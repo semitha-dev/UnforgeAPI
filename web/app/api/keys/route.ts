@@ -59,8 +59,8 @@ function getRateLimitConfig(plan: ApiPlan) {
       // 50,000 requests per month (fair usage policy)
       return { type: 'fast' as const, limit: 50000, duration: 2592000000 };
     case 'byok_starter':
-      // 100 requests per day
-      return { type: 'fast' as const, limit: 100, duration: 86400000 };
+      // 50 requests per day (matches subscription-constants.ts PLAN_CONFIG)
+      return { type: 'fast' as const, limit: 50, duration: 86400000 };
     case 'byok_pro':
       // 10 requests per second (speed limit only)
       return { type: 'fast' as const, limit: 10, duration: 1000 };

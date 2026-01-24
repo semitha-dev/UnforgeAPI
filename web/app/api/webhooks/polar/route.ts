@@ -245,9 +245,10 @@ async function downgradeUserApiKeys(
       const newPlan = ['managed_pro', 'managed_expert'].includes(key.tier) ? 'sandbox' : 'byok_starter';
       
       // Get rate limit config for the free plan
-      const rateLimitConfig = newPlan === 'sandbox' 
+      // byok_starter: 50/day (matches subscription-constants.ts PLAN_CONFIG)
+      const rateLimitConfig = newPlan === 'sandbox'
         ? { type: 'fast' as const, limit: 50, duration: 86400000 } // 50/day
-        : { type: 'fast' as const, limit: 100, duration: 86400000 }; // 100/day
+        : { type: 'fast' as const, limit: 50, duration: 86400000 }; // 50/day for byok_starter
       
       // Update key in Unkey
       const unkeyResponse = await fetch(`${UNKEY_API_URL}/v1/keys.updateKey`, {
@@ -550,8 +551,8 @@ export async function POST(request: NextRequest) {
           } else {
             console.log(`✅ Subscription activated from checkout for user ${profile.id}: tier=${tier}`);
             
-            // Upgrade existing API keys when subscription is activated
-            if (tier === 'managed_pro' || tier === 'managed_expert' || tier === 'byok_pro' || tier === 'pro') {
+            // Upgrade existing API keys when subscription is activated (paid tiers)
+            if (['managed_pro', 'managed_expert', 'byok_pro', 'pro'].includes(tier)) {
               try {
                 await upgradeUserApiKeys(supabase, profile.id, tier);
               } catch (keyErr) {

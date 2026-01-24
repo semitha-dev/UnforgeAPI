@@ -1,4 +1,5 @@
 import { createClient } from '@/app/lib/supabaseServer';
+import { createAdminClient } from '@/app/lib/supabaseAdmin';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -24,11 +25,99 @@ const POLAR_API_URL = process.env.POLAR_SANDBOX === 'true'
 const POLAR_ACCESS_TOKEN = process.env.POLAR_ACCESS_TOKEN;
 const CRON_SECRET = process.env.CRON_SECRET;
 
-// Map product IDs to subscription tiers
+// Map product IDs to subscription tiers (must match webhook handler)
 const PRODUCT_TO_TIER: Record<string, string> = {
-  [process.env.POLAR_PRO_PRODUCT_ID || '']: 'pro',
-  [process.env.POLAR_PREMIUM_PRODUCT_ID || '']: 'premium',
+  [process.env.POLAR_PRO_PRODUCT_ID || '']: 'pro', // Legacy
+  [process.env.POLAR_MANAGED_PRO_PRODUCT_ID || '']: 'managed_pro',
+  [process.env.POLAR_MANAGED_EXPERT_PRODUCT_ID || '']: 'managed_expert',
+  [process.env.POLAR_BYOK_PRO_PRODUCT_ID || '']: 'byok_pro',
 };
+
+// Unkey API URL for key management
+const UNKEY_API_URL = 'https://api.unkey.dev';
+
+/**
+ * Downgrade API keys when subscription expires
+ * Mirrors the logic in webhook handler
+ */
+async function downgradeUserApiKeys(userId: string): Promise<void> {
+  const supabaseAdmin = createAdminClient();
+
+  // Get user's workspace
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('default_workspace_id')
+    .eq('id', userId)
+    .single();
+
+  const workspaceId = profile?.default_workspace_id || userId;
+
+  // Get all paid tier API keys for this workspace
+  const { data: keys, error } = await supabaseAdmin
+    .from('api_keys')
+    .select('id, unkey_id, tier, name')
+    .eq('workspace_id', workspaceId)
+    .eq('is_active', true)
+    .in('tier', ['managed_pro', 'managed_expert', 'byok_pro', 'pro']);
+
+  if (error || !keys?.length) {
+    return;
+  }
+
+  console.log(`[Reconcile:Keys] Downgrading ${keys.length} keys for user ${userId}`);
+
+  for (const key of keys) {
+    try {
+      const newPlan = ['managed_pro', 'managed_expert', 'pro'].includes(key.tier) ? 'sandbox' : 'byok_starter';
+      const rateLimitConfig = { type: 'fast' as const, limit: 50, duration: 86400000 }; // 50/day
+
+      // Update key in Unkey
+      const unkeyResponse = await fetch(`${UNKEY_API_URL}/v1/keys.updateKey`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          keyId: key.unkey_id,
+          meta: {
+            plan: newPlan,
+            tier: newPlan,
+            searchEnabled: true,
+            requiresUserKeys: newPlan === 'byok_starter',
+            downgradedAt: new Date().toISOString(),
+            downgradedBy: 'reconcile_job'
+          },
+          ratelimit: rateLimitConfig
+        })
+      });
+
+      if (!unkeyResponse.ok) {
+        console.error(`[Reconcile:Keys] Failed to downgrade Unkey key ${key.unkey_id}`);
+        continue;
+      }
+
+      // Update key in database
+      await supabaseAdmin
+        .from('api_keys')
+        .update({
+          tier: newPlan,
+          metadata: {
+            plan: newPlan,
+            searchEnabled: true,
+            requiresUserKeys: newPlan === 'byok_starter',
+            downgradedAt: new Date().toISOString(),
+            downgradedBy: 'reconcile_job'
+          }
+        })
+        .eq('id', key.id);
+
+      console.log(`[Reconcile:Keys] Downgraded key ${key.name} to ${newPlan}`);
+    } catch (err) {
+      console.error(`[Reconcile:Keys] Error downgrading key ${key.unkey_id}:`, err);
+    }
+  }
+}
 
 // Token allocation per tier
 const MONTHLY_TOKENS: Record<string, number> = {
@@ -125,6 +214,10 @@ export async function POST(request: NextRequest) {
                   updated_at: now.toISOString(),
                 })
                 .eq('id', user.id);
+
+              // Downgrade API keys to match free tier
+              await downgradeUserApiKeys(user.id);
+
               results.expired++;
               results.details.push(`${user.email}: Downgraded to free (subscription not found)`);
             }
@@ -275,7 +368,10 @@ export async function POST(request: NextRequest) {
             updated_at: now.toISOString(),
           })
           .eq('id', user.id);
-        
+
+        // Downgrade API keys to match free tier
+        await downgradeUserApiKeys(user.id);
+
         results.expired++;
         results.details.push(`${user.email}: Expired, downgraded to free`);
       }
@@ -304,7 +400,10 @@ export async function POST(request: NextRequest) {
             updated_at: now.toISOString(),
           })
           .eq('id', user.id);
-        
+
+        // Downgrade API keys to match free tier
+        await downgradeUserApiKeys(user.id);
+
         results.expired++;
         results.details.push(`${user.email}: Grace period expired, downgraded to free`);
       }

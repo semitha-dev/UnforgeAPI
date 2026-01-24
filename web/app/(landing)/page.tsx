@@ -301,7 +301,15 @@ const StatsSection = () => {
 
   return (
     <section className="relative py-20 border-y border-white/10">
-      <div className="max-w-7xl mx-auto px-6">
+      {/* Background Grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          backgroundSize: '40px 40px',
+          backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
+        }}
+      />
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {stats.map((stat, index) => (
             <motion.div
@@ -366,7 +374,15 @@ const FeaturesSection = () => {
 
   return (
     <section id="features" className="relative py-32">
-      <div className="max-w-7xl mx-auto px-6">
+      {/* Background Grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          backgroundSize: '40px 40px',
+          backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
+        }}
+      />
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -411,6 +427,14 @@ const FeaturesSection = () => {
 const DeepResearchSection = () => {
   return (
     <section id="deep-research" className="relative py-32 overflow-hidden">
+      {/* Background Grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          backgroundSize: '40px 40px',
+          backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
+        }}
+      />
       {/* Background gradient */}
       <div className="absolute inset-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-gradient-to-br from-purple-600/20 via-pink-500/10 to-cyan-500/20 rounded-full blur-[120px]" />
@@ -659,7 +683,15 @@ const HowItWorksSection = () => {
 
   return (
     <section id="how-it-works" className="relative py-32 bg-gradient-to-b from-transparent via-purple-950/20 to-transparent">
-      <div className="max-w-7xl mx-auto px-6">
+      {/* Background Grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          backgroundSize: '40px 40px',
+          backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
+        }}
+      />
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -808,7 +840,15 @@ const PricingSection = () => {
 
   return (
     <section id="pricing" className="relative py-32">
-      <div className="max-w-7xl mx-auto px-6">
+      {/* Background Grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          backgroundSize: '40px 40px',
+          backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
+        }}
+      />
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -996,7 +1036,15 @@ const FAQSection = () => {
 
   return (
     <section id="faq" className="relative py-32">
-      <div className="max-w-3xl mx-auto px-6">
+      {/* Background Grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          backgroundSize: '40px 40px',
+          backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
+        }}
+      />
+      <div className="max-w-3xl mx-auto px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1049,7 +1097,15 @@ const FAQSection = () => {
 const CTASection = () => {
   return (
     <section className="relative py-32">
-      <div className="max-w-4xl mx-auto px-6 text-center">
+      {/* Background Grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          backgroundSize: '40px 40px',
+          backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
+        }}
+      />
+      <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1086,8 +1142,16 @@ const CTASection = () => {
 // Footer
 const Footer = () => {
   return (
-    <footer className="border-t border-white/10 py-12">
-      <div className="max-w-7xl mx-auto px-6">
+    <footer className="relative border-t border-white/10 py-12">
+      {/* Background Grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30"
+        style={{
+          backgroundSize: '40px 40px',
+          backgroundImage: 'linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px)'
+        }}
+      />
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-lg">

@@ -360,45 +360,9 @@ export type SubscriptionTier = typeof SUBSCRIPTION_TIERS[keyof typeof SUBSCRIPTI
 // Pro subscription product ID (Polar) - Legacy
 export const PRO_PRODUCT_ID = 'ea4378a7-1373-4fb7-b7e4-bb1b293e10c8';
 
-// Feature limits by tier
-export const LIMITS: Record<SubscriptionTier, {
-  spaces: number;           // Max active spaces
-  notes: number;
-  qa_pairs: number;
-  flashcard_sets: number;
-  schedule: boolean;
-  searchRateLimit: number;  // Searches per minute
-  researchSearch: boolean;  // Deep research feature
-  contentGapAudit: 'teaser' | 'full';
-  morningReport: 'daily' | 'full';
-}> = {
-  free: {
-    spaces: 3,
-    notes: Infinity,        // No limit on notes
-    qa_pairs: Infinity,
-    flashcard_sets: Infinity,
-    schedule: false,
-    searchRateLimit: 5,     // 5 searches per minute
-    researchSearch: false,  // Locked
-    contentGapAudit: 'teaser',
-    morningReport: 'daily',
-  },
-  pro: {
-    spaces: Infinity,
-    notes: Infinity,
-    qa_pairs: Infinity,
-    flashcard_sets: Infinity,
-    schedule: true,
-    searchRateLimit: Infinity, // Unlimited
-    researchSearch: true,
-    contentGapAudit: 'full',
-    morningReport: 'full',
-  },
-};
-
 // Model to use for free tier search
 export const FREE_TIER_MODEL = 'llama-3.1-8b-instant';
-// Model to use for Pro tier search  
+// Model to use for Pro tier search
 export const PRO_TIER_MODEL = 'llama-3.3-70b-versatile';
 
 // Rate limiting for free tier (searches per minute)

@@ -1,6 +1,6 @@
 import { createClient } from '@/app/lib/supabaseServer';
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserSubscription, SUBSCRIPTION_TIERS, LIMITS } from '@/lib/subscription';
+import { getUserSubscription, SUBSCRIPTION_TIERS } from '@/lib/subscription';
 
 // Disable caching for this route - token balance must always be fresh
 export const dynamic = 'force-dynamic';
@@ -17,22 +17,11 @@ export async function GET(request: NextRequest) {
     }
 
     const subscription = await getUserSubscription(user.id);
-    const tier = subscription.subscription_tier || SUBSCRIPTION_TIERS.FREE;
-    const limits = LIMITS[tier];
-
-    // Get current usage counts
-    const [projectsResult, notesResult, flashcardsResult, qaResult] = await Promise.all([
-      supabase.from('projects').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-      supabase.from('notes').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-      supabase.from('flashcard_sets').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-      supabase.from('qa_pairs').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
-    ]);
 
     return NextResponse.json({
       subscription: {
         tier: subscription.subscription_tier || 'free',
         status: subscription.subscription_status || 'inactive',
-        tokens_balance: 0,
         ends_at: subscription.subscription_ends_at,
         next_billing: subscription.next_billing_date,
         canceled_at: subscription.canceled_at,
@@ -42,23 +31,6 @@ export async function GET(request: NextRequest) {
         subscription_started_at: subscription.subscription_started_at,
         current_period_start: subscription.current_period_start,
         current_period_end: subscription.current_period_end,
-      },
-      limits: {
-        spaces: limits.spaces === Infinity ? 'Unlimited' : limits.spaces,
-        notes: limits.notes === Infinity ? 'Unlimited' : limits.notes,
-        flashcard_sets: limits.flashcard_sets === Infinity ? 'Unlimited' : limits.flashcard_sets,
-        qa_pairs: limits.qa_pairs === Infinity ? 'Unlimited' : limits.qa_pairs,
-        schedule: limits.schedule,
-        searchRateLimit: limits.searchRateLimit === Infinity ? 'Unlimited' : limits.searchRateLimit,
-        researchSearch: limits.researchSearch,
-        contentGapAudit: limits.contentGapAudit,
-        morningReport: limits.morningReport,
-      },
-      usage: {
-        projects: projectsResult.count || 0,
-        notes: notesResult.count || 0,
-        flashcard_sets: flashcardsResult.count || 0,
-        qa_pairs: qaResult.count || 0,
       },
       _timestamp: Date.now(), // Debug: verify fresh data
     }, {
