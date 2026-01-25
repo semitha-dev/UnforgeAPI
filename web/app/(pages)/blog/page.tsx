@@ -214,7 +214,7 @@ export default function BlogPage() {
                           </div>
 
                           <div className="flex items-center gap-3 mb-4">
-                            <span className="px-3 py-1 bg-accent/10 text-accent text-xs font-semibold rounded-full border border-accent/20">
+                            <span className="px-3 py-1 bg-accent/10 text-accent-foreground text-xs font-semibold rounded-full border border-accent/20">
                               {post.category}
                             </span>
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -286,7 +286,7 @@ export default function BlogPage() {
 
                         <div className="p-6 flex-1 flex flex-col">
                           <div className="flex items-center gap-3 mb-4">
-                            <span className="px-2.5 py-1 bg-accent/10 text-accent text-xs font-semibold rounded-full border border-accent/20">
+                            <span className="px-2.5 py-1 bg-accent/10 text-accent-foreground text-xs font-semibold rounded-full border border-accent/20">
                               {post.category}
                             </span>
                             <span className="flex items-center gap-1 text-xs text-muted-foreground ml-auto">
