@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next'
 import { blogPosts } from '@/lib/blog-data'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://unforge.ai'
+  const baseUrl = 'https://www.unforgeapi.com'
 
   // Static pages
   const staticPages = [
