@@ -1063,7 +1063,7 @@ export async function POST(req: NextRequest) {
       return Response.json({
         error: 'Deep Research requires a valid plan',
         code: 'PLAN_UPGRADE_REQUIRED',
-        hint: 'Create a free API key at https://unforge.ai/dashboard',
+        hint: 'Create a free API key at https://www.unforgeapi.com/dashboard',
         current_plan: plan
       }, { status: 403 })
     }

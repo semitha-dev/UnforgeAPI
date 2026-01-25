@@ -518,7 +518,7 @@ export async function POST(req: NextRequest) {
               code: 'SYSTEM_BUSY',
               hint: 'Please try again in a few seconds, or upgrade to a paid plan for priority access.',
               retry_after: 5,
-              upgrade_url: 'https://unforge.ai/pricing'
+              upgrade_url: 'https://www.unforgeapi.com/pricing'
             }, { status: 503 })
           }
         } catch (loadCheckError) {

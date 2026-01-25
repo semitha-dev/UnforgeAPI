@@ -87,7 +87,7 @@ When results are invalid, the LLM generates refined queries with:
 ### Basic Request (No Agentic Loop)
 
 ```bash
-curl -X POST https://api.unforge.ai/api/v1/deep-research \
+curl -X POST https://api.unforgeapi.com/api/v1/deep-research \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -100,7 +100,7 @@ curl -X POST https://api.unforge.ai/api/v1/deep-research \
 ### With Agentic Loop Enabled
 
 ```bash
-curl -X POST https://api.unforge.ai/api/v1/deep-research \
+curl -X POST https://api.unforgeapi.com/api/v1/deep-research \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

@@ -22,7 +22,7 @@ export default function SupportPage() {
     setSuccess('');
 
     // Create mailto link
-    const mailtoLink = `mailto:support@unforge.ai?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
+    const mailtoLink = `mailto:support@unforgeapi.com?subject=${encodeURIComponent(formData.subject)}&body=${encodeURIComponent(
       `Name: ${formData.name}\nEmail: ${formData.email}\n\nMessage:\n${formData.message}`
     )}`;
 
@@ -30,7 +30,7 @@ export default function SupportPage() {
     window.location.href = mailtoLink;
 
     // Show success message
-    setSuccess('Opening your email client... If it doesn\'t open automatically, please email us at support@unforge.ai');
+    setSuccess('Opening your email client... If it doesn\'t open automatically, please email us at support@unforgeapi.com');
     
     // Reset form
     setFormData({
@@ -43,7 +43,7 @@ export default function SupportPage() {
     setSending(false);
   };
 
-  const supportEmail = 'support@unforge.ai';
+  const supportEmail = 'support@unforgeapi.com';
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 sm:py-8 px-3 sm:px-6 lg:px-8">
