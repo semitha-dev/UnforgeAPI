@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = 'https://unforge.ai'
+  const baseUrl = 'https://www.unforgeapi.com'
   
   return {
     rules: [

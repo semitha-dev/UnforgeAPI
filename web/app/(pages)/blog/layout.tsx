@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     images: ['/landingpage.png']
   },
   alternates: {
-    canonical: 'https://unforge.ai/blog'
+    canonical: 'https://www.unforgeapi.com/blog'
   }
 }
 

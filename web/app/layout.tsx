@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://unforge.ai'),
+  metadataBase: new URL('https://www.unforgeapi.com'),
   title: {
     default: "UnforgeAPI - Deep Research API for Machines & AI Agents",
     template: "%s | UnforgeAPI"
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://unforge.ai",
+    url: "https://www.unforgeapi.com",
     siteName: "UnforgeAPI",
     title: "UnforgeAPI - Deep Research API for Machines & AI Agents",
     description: "Deep Research API built for machines and AI agents. Real-time web grounding, 30-40 second deep analysis, and perfectly structured JSON output.",
@@ -91,7 +91,7 @@ export const metadata: Metadata = {
     google: "your-google-verification-code",
   },
   alternates: {
-    canonical: "https://unforge.ai",
+    canonical: "https://www.unforgeapi.com",
   },
 };
 

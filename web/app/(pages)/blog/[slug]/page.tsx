@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     }
   }
 
-  const url = `https://unforge.ai/blog/${post.slug}`
+  const url = `https://www.unforgeapi.com/blog/${post.slug}`
 
   return {
     title: post.title,
@@ -85,7 +85,7 @@ function generateJsonLd(post: typeof blogPosts[0]) {
     '@type': 'BlogPosting',
     headline: post.title,
     description: post.excerpt,
-    image: post.image || 'https://unforge.ai/landingpage.png',
+    image: post.image || 'https://www.unforgeapi.com/landingpage.png',
     datePublished: post.date,
     dateModified: post.date,
     author: {
@@ -98,12 +98,12 @@ function generateJsonLd(post: typeof blogPosts[0]) {
       name: 'UnforgeAPI',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://unforge.ai/reallogo.png'
+        url: 'https://www.unforgeapi.com/reallogo.png'
       }
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
-      '@id': `https://unforge.ai/blog/${post.slug}`
+      '@id': `https://www.unforgeapi.com/blog/${post.slug}`
     },
     articleSection: post.category,
     wordCount: post.content.split(/\s+/).length,
