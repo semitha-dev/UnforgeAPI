@@ -418,8 +418,8 @@ function BillingPageContent() {
       <div className="mb-12">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-white">Available Plans</h2>
-          <a 
-            href="mailto:enterprise@leaflearning.com" 
+          <a
+            href="mailto:support@unforgeapi.com"
             className="text-sm text-slate-400 hover:text-indigo-400 transition-colors flex items-center gap-1"
           >
             Contact Sales for Enterprise
@@ -541,11 +541,11 @@ function BillingPageContent() {
             </button>
           </div>
 
-          {/* BYOK Unlimited Plan */}
+          {/* BYOK Pro Plan */}
           <div className="relative bg-[#0e0e11] border border-purple-500/30 rounded-2xl p-6 flex flex-col hover:border-purple-500/60 transition-colors shadow-[0_0_25px_-5px_rgba(139,92,246,0.15)]">
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-medium text-purple-200">BYOK Unlimited</h3>
+                <h3 className="text-lg font-medium text-purple-200">BYOK Pro</h3>
                 {subscription.tier === 'byok_pro' && (
                   <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-purple-500/20 text-purple-400 rounded">
                     Current
@@ -558,12 +558,12 @@ function BillingPageContent() {
               </div>
             </div>
             <div className="text-sm text-slate-400 mb-6 border-b border-white/5 pb-6">
-              Scale without limits using your own keys.
+              Production scale with your own keys.
             </div>
             <ul className="flex-grow space-y-3">
               <li className="flex items-center gap-3 text-sm text-slate-300">
                 <Check className="w-5 h-5 text-purple-400" />
-                <span><span className="text-white font-medium">Unlimited</span> requests*</span>
+                <span><span className="text-white font-medium">Unlimited</span> requests (10 req/sec)</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-slate-300">
                 <Check className="w-5 h-5 text-purple-400" />
@@ -571,14 +571,14 @@ function BillingPageContent() {
               </li>
               <li className="flex items-center gap-3 text-sm text-slate-300">
                 <Check className="w-5 h-5 text-purple-400" />
-                Unlimited Search (Your Keys)
+                Unlimited Search / Deep Research
               </li>
               <li className="flex items-center gap-3 text-sm text-slate-300">
                 <Check className="w-5 h-5 text-purple-400" />
-                <span><span className="text-white font-medium">Unlimited</span> Deep Research</span>
+                <span><span className="text-white font-medium">500</span> Agentic / month</span>
               </li>
             </ul>
-            <p className="text-[10px] text-slate-500 mt-3">*Subject to platform fair use policy to prevent abuse.</p>
+            <p className="text-[10px] text-slate-500 mt-3">Agentic mode capped at 500/month for Vercel protection.</p>
             <button
               onClick={handleManageSubscription}
               disabled={isLoadingPortal}
@@ -591,7 +591,7 @@ function BillingPageContent() {
               {isLoadingPortal && subscription.tier === 'byok_pro' ? (
                 <Loader2 className="w-4 h-4 animate-spin mx-auto" />
               ) : (
-                subscription.tier === 'byok_pro' ? 'Manage Plan' : 'Get Unlimited'
+                subscription.tier === 'byok_pro' ? 'Manage Plan' : 'Get BYOK Pro'
               )}
             </button>
           </div>

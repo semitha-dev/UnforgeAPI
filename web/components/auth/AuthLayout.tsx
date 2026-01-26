@@ -53,7 +53,7 @@ export default function AuthLayout({
     return (
         <div className="bg-[#F9FAFB] dark:bg-[#111827] font-sans h-screen w-full overflow-hidden flex flex-col md:flex-row text-slate-900 dark:text-white transition-colors duration-200">
             {/* Left Branding Panel - Hidden on mobile */}
-            <div className="hidden md:flex md:w-5/12 lg:w-1/2 bg-[#0F172A] dark:bg-black relative flex-col justify-between p-12 text-white overflow-hidden">
+            <div className="hidden md:flex md:w-5/12 lg:w-1/2 bg-[#0F172A] dark:bg-black relative flex-col p-12 text-white overflow-hidden">
                 {/* Grid Pattern Background */}
                 <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                     <svg className="h-full w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
@@ -67,15 +67,15 @@ export default function AuthLayout({
                 </div>
 
                 {/* Logo */}
-                <div className="relative z-10 flex items-center space-x-3">
+                <div className="absolute top-12 left-12 z-10 flex items-center space-x-3">
                     <div className="bg-[#00A86B]/20 p-2.5 rounded-lg backdrop-blur-sm border border-[#00A86B]/30">
                         <Image src="/reallogo.png" alt={brandTitle} width={28} height={28} className="object-contain" />
                     </div>
                     <span className="text-2xl font-bold tracking-tight">{brandTitle}</span>
                 </div>
 
-                {/* Main Content */}
-                <div className="relative z-10 max-w-md">
+                {/* Main Content - Centered vertically */}
+                <div className="relative z-10 max-w-md flex-1 flex flex-col justify-center">
                     <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
                         {headline}
                     </h1>
@@ -95,7 +95,7 @@ export default function AuthLayout({
                 </div>
 
                 {/* Footer */}
-                <div className="relative z-10 text-sm text-slate-500 font-mono">
+                <div className="absolute bottom-12 left-12 z-10 text-sm text-slate-500 font-mono">
                     © {new Date().getFullYear()} UnforgeAPI Inc.
                 </div>
             </div>

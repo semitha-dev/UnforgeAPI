@@ -221,7 +221,7 @@ const StatsSection = () => {
         }}
       />
       <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -717,9 +717,9 @@ const PricingSection = () => {
       period: '',
       description: 'Test the engine with your own keys',
       features: [
-        '100 requests / day',
-        '5 Deep Research / day',
-        'Web Search enabled',
+        '50 requests / day',
+        '10 Deep Research / day',
+        'Unlimited Web Search',
         'Your Groq & Tavily keys required',
         'Community support',
       ],
@@ -731,19 +731,19 @@ const PricingSection = () => {
       name: 'BYOK Pro',
       price: '$5',
       period: '/month',
-      description: 'Production scale with agentic cap.',
+      description: 'Production scale with your own keys.',
       features: [
-        'Unlimited standard requests',
+        'Unlimited requests (10 req/sec)',
         'Unlimited Web Search',
-        '∞ Standard Deep Research',
-        '100 Agentic / month',
+        'Unlimited Deep Research',
+        '500 Agentic / month',
         'Your Groq & Tavily keys',
         'Premium support',
       ],
       cta: 'Go Pro',
       popular: true,
       badge: 'Best Value',
-      footnote: 'Agentic mode capped at 100/month for Vercel protection.',
+      footnote: 'Agentic mode capped at 500/month for Vercel protection.',
     },
   ];
 
@@ -901,12 +901,32 @@ const PricingSection = () => {
           ))}
         </div>
 
+        {/* Enterprise CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-12 p-6 bg-white/5 border border-white/10 rounded-xl text-center max-w-2xl mx-auto"
+        >
+          <h3 className="text-xl font-semibold text-white mb-2">Need Enterprise?</h3>
+          <p className="text-gray-400 mb-4">
+            Custom limits, dedicated support, SLAs, and more. Let&apos;s talk about your needs.
+          </p>
+          <a
+            href="mailto:support@unforgeapi.com"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 border border-white/20 hover:bg-white/20 text-white rounded-lg font-medium transition-colors"
+          >
+            Contact Sales
+            <ArrowRight className="w-4 h-4" />
+          </a>
+        </motion.div>
+
         {/* Comparison Note */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="mt-12 text-center"
+          className="mt-8 text-center"
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-full text-sm text-gray-400">
             <Globe className="w-4 h-4" />
@@ -936,8 +956,8 @@ const FAQSection = () => {
       answer: 'Yes! With our BYOK (Bring Your Own Key) tier, you can use your own Groq and Tavily API keys. This means zero markup on token usage and unlimited scaling based on your provider limits.',
     },
     {
-      question: 'What models do you use?',
-      answer: 'We use Llama-3-8b for CHAT path responses (fast, cost-effective) and Llama-3-70b for RESEARCH synthesis (high quality). Context path uses the same model as the determined best fit for the query complexity.',
+      question: 'How fast is Deep Research compared to alternatives?',
+      answer: 'Deep Research returns comprehensive, cited reports in 30-40 seconds. Traditional research APIs take 2-5 minutes for similar depth. Our multi-stage pipeline parallelizes web fetching and AI analysis to deliver speed without sacrificing quality.',
     },
     {
       question: 'How do I migrate from my current setup?',

@@ -97,20 +97,21 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
 
   const byokPlan = {
     id: 'byok' as const,
-    name: 'BYOK Unlimited',
+    name: 'BYOK Pro',
     price: '$5',
     period: '/month',
-    description: 'Unlimited scale for production apps.',
+    description: 'Production scale with your own keys.',
     features: [
-      'Unlimited requests*',
+      'Unlimited requests (10 req/sec)',
       'Unlimited Web Search',
       'Unlimited Deep Research',
+      '500 Agentic / month',
       'Your Groq & Tavily keys',
       'Premium support',
     ],
     popular: true,
     badge: 'Best Value',
-    footnote: '*Subject to platform fair use policy to prevent abuse.',
+    footnote: 'Agentic mode capped at 500/month for Vercel protection.',
   }
 
   return (
@@ -302,8 +303,22 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
           </div>
         </div>
 
+        {/* Enterprise CTA */}
+        <div className="mt-12 p-6 bg-white/5 border border-white/10 rounded-xl text-center max-w-md">
+          <h3 className="text-lg font-semibold text-white mb-2">Need Enterprise?</h3>
+          <p className="text-gray-400 text-sm mb-4">
+            Custom limits, dedicated support, and SLAs.
+          </p>
+          <a
+            href="mailto:support@unforgeapi.com"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
+          >
+            Contact Sales
+          </a>
+        </div>
+
         {/* Footer */}
-        <p className="text-gray-500 text-sm mt-12 text-center">
+        <p className="text-gray-500 text-sm mt-8 text-center">
           All plans include a 7-day money-back guarantee. Cancel anytime.
         </p>
       </div>

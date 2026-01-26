@@ -51,7 +51,7 @@ export const POLAR_PRODUCT_IDS = {
 // - Managed Pro: 50 Total Requests/month
 // - Managed Expert: 200 Total Requests/month
 // - BYOK Starter: 10 Total Requests/day
-// - BYOK Pro: Unlimited Standard, but HARD CAP of 100 Agentic/month (Vercel protection)
+// - BYOK Pro: Unlimited Standard, but HARD CAP of 500 Agentic/month (Vercel protection)
 export const DEEP_RESEARCH_LIMITS: Record<ApiPlan, {
   limit: number;        // -1 = unlimited, 0 = no access
   period: 'daily' | 'monthly';
@@ -81,8 +81,8 @@ export const DEEP_RESEARCH_LIMITS: Record<ApiPlan, {
   byok_pro: {
     limit: -1,  // Unlimited standard requests (rate limited to 10 req/sec)
     period: 'monthly',
-    description: 'Unlimited standard, 100 agentic/month',
-    byokAgenticCap: 100,  // HARD CAP: 100 agentic requests/month (Vercel execution time protection)
+    description: 'Unlimited standard, 500 agentic/month',
+    byokAgenticCap: 500,  // HARD CAP: 500 agentic requests/month (Vercel execution time protection)
   },
   pro: {
     limit: 50,

@@ -386,7 +386,7 @@ export default function DocsPage() {
                 <Clock className="w-4 h-4" />
                 Deep Research Limits
               </h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
                 <div>
                   <div className="text-gray-500">Sandbox</div>
                   <div className="font-medium text-gray-900 dark:text-white">3/day</div>
@@ -396,12 +396,20 @@ export default function DocsPage() {
                   <div className="font-medium text-gray-900 dark:text-white">50/month</div>
                 </div>
                 <div>
+                  <div className="text-gray-500">Managed Expert</div>
+                  <div className="font-medium text-gray-900 dark:text-white">200/month</div>
+                </div>
+                <div>
                   <div className="text-gray-500">BYOK Starter</div>
                   <div className="font-medium text-gray-900 dark:text-white">10/day</div>
                 </div>
                 <div>
                   <div className="text-gray-500">BYOK Pro</div>
-                  <div className="font-medium text-gray-900 dark:text-white">∞ std, 100 agentic/mo</div>
+                  <div className="font-medium text-gray-900 dark:text-white">∞ std, 500 agentic/mo</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Enterprise</div>
+                  <a href="mailto:support@unforgeapi.com" className="font-medium text-violet-600 dark:text-violet-400 hover:underline">Contact Us</a>
                 </div>
               </div>
             </div>
@@ -1048,11 +1056,17 @@ print(f"Routed to: {data['meta']['routed_to']}")`}
                     <td className="py-3 text-gray-600 dark:text-gray-400">5,000 search/mo, 200 deep research/mo</td>
                     <td className="py-3 text-gray-600 dark:text-gray-400">Shared</td>
                   </tr>
-                  <tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
                     <td className="py-3 font-medium text-gray-900 dark:text-white">BYOK Pro</td>
                     <td className="py-3">$5/mo</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">∞ std, 100 agentic/mo</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">∞ std, 500 agentic/mo</td>
                     <td className="py-3 text-gray-600 dark:text-gray-400">Your own keys</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">Enterprise</td>
+                    <td className="py-3"><a href="mailto:support@unforgeapi.com" className="text-violet-600 dark:text-violet-400 hover:underline">Contact Us</a></td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Custom limits, dedicated support</td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Custom</td>
                   </tr>
                 </tbody>
               </table>
@@ -1117,12 +1131,19 @@ print(f"Routed to: {data['meta']['routed_to']}")`}
                     <td className="py-3">Unlimited*</td>
                     <td className="py-3">10 / day</td>
                   </tr>
-                  <tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
                     <td className="py-3 font-medium text-gray-900 dark:text-white">BYOK Pro</td>
                     <td className="py-3">Unlimited</td>
                     <td className="py-3 text-gray-600 dark:text-gray-400">10 req/sec</td>
                     <td className="py-3">Unlimited*</td>
-                    <td className="py-3">∞ std, 100 agentic/mo</td>
+                    <td className="py-3">∞ std, 500 agentic/mo</td>
+                  </tr>
+                  <tr>
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">Enterprise</td>
+                    <td className="py-3"><a href="mailto:support@unforgeapi.com" className="text-violet-600 dark:text-violet-400 hover:underline">Contact Us</a></td>
+                    <td className="py-3 text-gray-600 dark:text-gray-400">Custom</td>
+                    <td className="py-3"><a href="mailto:support@unforgeapi.com" className="text-violet-600 dark:text-violet-400 hover:underline">Contact Us</a></td>
+                    <td className="py-3"><a href="mailto:support@unforgeapi.com" className="text-violet-600 dark:text-violet-400 hover:underline">Contact Us</a></td>
                   </tr>
                 </tbody>
               </table>
