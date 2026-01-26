@@ -119,7 +119,7 @@ export default function DashboardOverviewPage() {
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-10">
-        <h1 className="text-3xl font-bold text-white tracking-tight mb-2">Welcome to {stats.workspace}</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight mb-2">{stats.workspace}</h1>
         <p className="text-slate-500 max-w-2xl text-sm leading-relaxed">
           Your UnforgeAPI dashboard overview and quick access to key features.
         </p>

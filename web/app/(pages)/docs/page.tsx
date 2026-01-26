@@ -54,10 +54,9 @@ export default function DocsPage() {
 
   const sections = [
     { id: 'deep-research', label: 'Deep Research' },
-    { id: 'introduction', label: 'Quick Start' },
+    { id: 'chat-endpoint', label: 'Chat API' },
     { id: 'how-it-works', label: 'How It Works' },
     { id: 'authentication', label: 'Authentication' },
-    { id: 'chat-endpoint', label: 'Chat API' },
     { id: 'advanced', label: 'Parameters' },
     { id: 'enterprise', label: 'Compliance' },
     { id: 'examples', label: 'Examples' },
@@ -114,7 +113,7 @@ export default function DocsPage() {
         {/* Main Content */}
         <main className="flex-1 md:pl-72 py-10 px-6 max-w-5xl">
           {/* Deep Research - Main Feature */}
-          <section id="deep-research" className="mb-16">
+          <section id="introduction" className="mb-16">
             <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight text-gray-900 dark:text-white">
               UnforgeAPI Documentation
             </h1>
@@ -150,139 +149,6 @@ export default function DocsPage() {
             <p className="text-gray-600 dark:text-gray-400 text-sm">
               That's it. The API detected this was a simple question and responded in 320ms without a web search.
             </p>
-          </section>
-
-          {/* Why Routing Exists */}
-          <section id="how-it-works" className="mb-16">
-            <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">How It Works</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              A normal chat API treats every query the same. UnforgeAPI analyzes each query and picks the fastest, cheapest path that still gives a good answer. This reduces latency and cost without you writing routing logic.
-            </p>
-
-            <div className="space-y-4 mb-8">
-              <div className="p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                  <h4 className="font-semibold text-gray-900 dark:text-white">CHAT</h4>
-                  <span className="text-xs text-gray-500 ml-auto">~0.3s</span>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  Greetings, simple questions, casual conversation. No web search, no context lookup.
-                </p>
-              </div>
-
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <h4 className="font-semibold text-gray-900 dark:text-white">CONTEXT</h4>
-                  <span className="text-xs text-gray-500 ml-auto">~0.5s</span>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  When you pass your own data via the <code className="text-violet-600 dark:text-violet-400">context</code> field, and the answer is in that data. No web search cost.
-                </p>
-              </div>
-
-              <div className="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                  <h4 className="font-semibold text-gray-900 dark:text-white">RESEARCH</h4>
-                  <span className="text-xs text-gray-500 ml-auto">~1.5s</span>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  Questions that need current facts from the web. Searches and synthesizes an answer.
-                </p>
-              </div>
-            </div>
-
-            {/* When to Use What */}
-            <div className="p-6 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-2xl">
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">When to use what</h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-                Use <strong className="text-gray-800 dark:text-gray-200">CHAT</strong> for greetings and casual conversation where speed matters.
-                Use <strong className="text-gray-800 dark:text-gray-200">CONTEXT</strong> when you already have the answer inside your data and want to avoid web search costs.
-                Use <strong className="text-gray-800 dark:text-gray-200">RESEARCH</strong> when freshness and external verification are required.
-                The router picks automatically, but you can override with <code className="text-violet-600 dark:text-violet-400">force_intent</code>.
-              </p>
-            </div>
-          </section>
-
-          {/* Authentication */}
-          <section id="authentication" className="mb-16">
-            <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Authentication</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              All requests require an API key in the Authorization header.
-            </p>
-
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              All API requests require a valid API key passed in the Authorization header.
-            </p>
-
-            <CodeBlock
-              language="http"
-              code={`Authorization: Bearer uf_your_api_key`}
-            />
-
-            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-xl">
-              <p className="text-yellow-700 dark:text-yellow-400 text-sm">
-                <strong>Security Note:</strong> Never expose your API key in client-side code.
-                Always make requests from your backend server.
-              </p>
-            </div>
-
-            {/* Managed Tier */}
-            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">
-              Managed Tier (Recommended)
-            </h3>
-            <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl mb-4">
-              <p className="text-emerald-700 dark:text-emerald-300 text-sm mb-2">
-                <strong>Plug & Play:</strong> Just use your UnforgeAPI key. We handle everything.
-              </p>
-              <ul className="text-gray-600 dark:text-gray-400 text-sm space-y-1 list-disc list-inside">
-                <li>No extra setup - get your key and start building</li>
-                <li>We handle infrastructure, rate limiting, monitoring</li>
-                <li>Predictable billing: $20/mo flat</li>
-                <li>All features included</li>
-              </ul>
-            </div>
-            <CodeBlock
-              language="bash"
-              code={`# Managed tier - just your API key, that's it!
-curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
-  -H "Authorization: Bearer uf_your_api_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{"query": "What is quantum computing?"}'`}
-            />
-
-            {/* BYOK Tier */}
-            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">
-              BYOK Tier (Bring Your Own Keys)
-            </h3>
-            <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl mb-4">
-              <p className="text-amber-700 dark:text-amber-300 text-sm mb-2">
-                <strong>Full Control:</strong> Use your own API keys. BYOK Pro gets unlimited usage.
-              </p>
-              <ul className="text-gray-600 dark:text-gray-400 text-sm space-y-1 list-disc list-inside">
-                <li>BYOK Pro: Unlimited usage with your own keys</li>
-                <li>Pay providers directly at their rates</li>
-                <li>Platform fee: $5/mo</li>
-              </ul>
-            </div>
-            <CodeBlock
-              language="bash"
-              code={`# BYOK tier - pass your own keys
-curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
-  -H "Authorization: Bearer uf_your_api_key" \\
-  -H "x-groq-key: gsk_your_groq_key" \\
-  -H "x-tavily-key: tvly-your_tavily_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{"query": "What is quantum computing?"}'`}
-            />
-            <div className="mt-4 p-4 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 rounded-xl">
-              <p className="text-violet-700 dark:text-violet-300 text-sm">
-                <strong>Stateless Security:</strong> Your API keys are only used for the duration
-                of the request and are never logged or stored.
-              </p>
-            </div>
           </section>
 
           {/* Deep Research - Main Feature */}
@@ -682,6 +548,139 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
   }
 }`}
               />
+            </div>
+          </section>
+
+          {/* Why Routing Exists */}
+          <section id="how-it-works" className="mb-16">
+            <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">How It Works</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              A normal chat API treats every query the same. UnforgeAPI analyzes each query and picks the fastest, cheapest path that still gives a good answer. This reduces latency and cost without you writing routing logic.
+            </p>
+
+            <div className="space-y-4 mb-8">
+              <div className="p-4 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">CHAT</h4>
+                  <span className="text-xs text-gray-500 ml-auto">~0.3s</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Greetings, simple questions, casual conversation. No web search, no context lookup.
+                </p>
+              </div>
+
+              <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">CONTEXT</h4>
+                  <span className="text-xs text-gray-500 ml-auto">~0.5s</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  When you pass your own data via the <code className="text-violet-600 dark:text-violet-400">context</code> field, and the answer is in that data. No web search cost.
+                </p>
+              </div>
+
+              <div className="p-4 bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                  <h4 className="font-semibold text-gray-900 dark:text-white">RESEARCH</h4>
+                  <span className="text-xs text-gray-500 ml-auto">~1.5s</span>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
+                  Questions that need current facts from the web. Searches and synthesizes an answer.
+                </p>
+              </div>
+            </div>
+
+            {/* When to Use What */}
+            <div className="p-6 bg-gray-50 dark:bg-zinc-900/50 border border-gray-200 dark:border-zinc-800 rounded-2xl">
+              <h3 className="font-semibold text-gray-900 dark:text-white mb-4">When to use what</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                Use <strong className="text-gray-800 dark:text-gray-200">CHAT</strong> for greetings and casual conversation where speed matters.
+                Use <strong className="text-gray-800 dark:text-gray-200">CONTEXT</strong> when you already have the answer inside your data and want to avoid web search costs.
+                Use <strong className="text-gray-800 dark:text-gray-200">RESEARCH</strong> when freshness and external verification are required.
+                The router picks automatically, but you can override with <code className="text-violet-600 dark:text-violet-400">force_intent</code>.
+              </p>
+            </div>
+          </section>
+
+          {/* Authentication */}
+          <section id="authentication" className="mb-16">
+            <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Authentication</h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              All requests require an API key in the Authorization header.
+            </p>
+
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              All API requests require a valid API key passed in the Authorization header.
+            </p>
+
+            <CodeBlock
+              language="http"
+              code={`Authorization: Bearer uf_your_api_key`}
+            />
+
+            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/20 rounded-xl">
+              <p className="text-yellow-700 dark:text-yellow-400 text-sm">
+                <strong>Security Note:</strong> Never expose your API key in client-side code.
+                Always make requests from your backend server.
+              </p>
+            </div>
+
+            {/* Managed Tier */}
+            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">
+              Managed Tier (Recommended)
+            </h3>
+            <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl mb-4">
+              <p className="text-emerald-700 dark:text-emerald-300 text-sm mb-2">
+                <strong>Plug & Play:</strong> Just use your UnforgeAPI key. We handle everything.
+              </p>
+              <ul className="text-gray-600 dark:text-gray-400 text-sm space-y-1 list-disc list-inside">
+                <li>No extra setup - get your key and start building</li>
+                <li>We handle infrastructure, rate limiting, monitoring</li>
+                <li>Predictable billing: $20/mo flat</li>
+                <li>All features included</li>
+              </ul>
+            </div>
+            <CodeBlock
+              language="bash"
+              code={`# Managed tier - just your API key, that's it!
+curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "What is quantum computing?"}'`}
+            />
+
+            {/* BYOK Tier */}
+            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">
+              BYOK Tier (Bring Your Own Keys)
+            </h3>
+            <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl mb-4">
+              <p className="text-amber-700 dark:text-amber-300 text-sm mb-2">
+                <strong>Full Control:</strong> Use your own API keys. BYOK Pro gets unlimited usage.
+              </p>
+              <ul className="text-gray-600 dark:text-gray-400 text-sm space-y-1 list-disc list-inside">
+                <li>BYOK Pro: Unlimited usage with your own keys</li>
+                <li>Pay providers directly at their rates</li>
+                <li>Platform fee: $5/mo</li>
+              </ul>
+            </div>
+            <CodeBlock
+              language="bash"
+              code={`# BYOK tier - pass your own keys
+curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+  -H "Authorization: Bearer uf_your_api_key" \\
+  -H "x-groq-key: gsk_your_groq_key" \\
+  -H "x-tavily-key: tvly-your_tavily_key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"query": "What is quantum computing?"}'`}
+            />
+            <div className="mt-4 p-4 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 rounded-xl">
+              <p className="text-violet-700 dark:text-violet-300 text-sm">
+                <strong>Stateless Security:</strong> Your API keys are only used for the duration
+                of the request and are never logged or stored.
+              </p>
             </div>
           </section>
 

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Cpu, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 interface NavigationProps {
   /** Hide section links when on non-landing pages */
@@ -34,8 +35,14 @@ export const Navigation = ({ showSectionLinks = true }: NavigationProps) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-lg shadow-[0_0_10px_rgba(255,255,255,0.2)]">
-              <Cpu className="w-4 h-4" />
+            <div className="w-12 h-12 flex items-center justify-center rounded-lg">
+              <Image 
+                src="/reallogo.png" 
+                alt="UnforgeAPI Logo" 
+                width={48} 
+                height={48} 
+                className="w-12 h-12"
+              />
             </div>
             <span className="font-bold text-lg tracking-tight text-white">UnforgeAPI</span>
           </Link>

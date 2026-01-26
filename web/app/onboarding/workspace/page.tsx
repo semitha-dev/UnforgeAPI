@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
 import { Loader2, Rocket } from 'lucide-react'
-import { motion } from 'framer-motion'
+import AuthLayout from '@/components/auth/AuthLayout'
 
 export default function OnboardingWorkspacePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [workspaceName, setWorkspaceName] = useState('My Workspace')
-  
+
   const router = useRouter()
   const supabase = createClient()
 
@@ -19,7 +19,7 @@ export default function OnboardingWorkspacePage() {
     const checkUser = async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser()
-        
+
         if (userError || !user) {
           router.push('/signin')
           return
@@ -63,7 +63,7 @@ export default function OnboardingWorkspacePage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       console.log('[Onboarding] User:', user?.id, user?.email)
-      
+
       if (!user) {
         router.push('/signin')
         return
@@ -135,7 +135,7 @@ export default function OnboardingWorkspacePage() {
 
         if (workspaceError) {
           console.error('[Onboarding] Workspace creation error:', workspaceError)
-          
+
           if (workspaceError.code === '23505' || workspaceError.code === '409') {
             const { data: existing } = await supabase
               .from('workspaces')
@@ -144,7 +144,7 @@ export default function OnboardingWorkspacePage() {
               .single()
             workspaceId = existing?.id
           }
-          
+
           if (!workspaceId) {
             throw new Error(`Failed to create workspace: ${workspaceError.message}`)
           }
@@ -180,74 +180,98 @@ export default function OnboardingWorkspacePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+      <div className="min-h-screen bg-[#F9FAFB] dark:bg-[#111827] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#00A86B]" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 mb-4">
-            <Rocket className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">
-            Welcome to UnforgeAPI
-          </h1>
-          <p className="text-neutral-400">
-            Let's set up your workspace to get started
-          </p>
-        </div>
+    <AuthLayout
+      headline={
+        <>
+          Almost there! <br />
+          <span className="text-[#00A86B]">Set up your workspace.</span>
+        </>
+      }
+      subtitle="Create your workspace to organize your API keys, projects, and team collaborations all in one place."
+      features={[
+        'Organize multiple projects',
+        'Invite team members',
+        'Centralized API management',
+      ]}
+      showSteps={true}
+      currentStep={2}
+      stepLabels={['Account', 'Workspace', 'Finish']}
+    >
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Create your workspace</h2>
+        <p className="text-slate-500 dark:text-slate-400">Let's give your new digital headquarters a name.</p>
+      </div>
 
-        <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-neutral-300 mb-2">
-              Workspace Name
-            </label>
+      <div className="space-y-6">
+        {/* Workspace Name Field */}
+        <div className="space-y-2">
+          <label htmlFor="workspace_name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+            Workspace Name
+          </label>
+          <div className="relative">
             <input
+              id="workspace_name"
               type="text"
               value={workspaceName}
               onChange={(e) => setWorkspaceName(e.target.value)}
-              className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-xl text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-              placeholder="My Workspace"
+              className="block w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#111827] text-slate-900 dark:text-white py-3 px-4 shadow-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 focus:border-[#00A86B]"
+              placeholder="e.g. Acme Corp Engineering"
             />
-          </div>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-              {error}
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
             </div>
-          )}
-
-          <button
-            onClick={createWorkspace}
-            disabled={isCreating || !workspaceName.trim()}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isCreating ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Setting up...
-              </>
-            ) : (
-              <>
-                <Rocket className="w-5 h-5" />
-                Continue
-              </>
-            )}
-          </button>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-500">
+            This will be the name displayed to your team members.
+          </p>
         </div>
 
-        <p className="text-center text-neutral-500 text-sm mt-6">
-          You can rename your workspace later in settings
+        {/* Divider */}
+        <div className="relative py-2">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg">
+            <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <button
+          onClick={createWorkspace}
+          disabled={isCreating || !workspaceName.trim()}
+          className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-[#00A86B] hover:bg-[#008f5b] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00A86B] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+        >
+          {isCreating ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Setting up...
+            </>
+          ) : (
+            <>
+              <Rocket className="w-5 h-5 mr-2 group-hover:animate-pulse" />
+              Create Workspace
+            </>
+          )}
+        </button>
+
+        <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+          You can rename your workspace later in settings.
         </p>
-      </motion.div>
-    </div>
+      </div>
+    </AuthLayout>
   )
 }
