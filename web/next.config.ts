@@ -3,19 +3,22 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Performance optimizations
   reactStrictMode: true,
-  
+
+  // Output standalone for Railway deployment
+  output: 'standalone',
+
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 60,
     unoptimized: true,
   },
-  
+
   // Compiler optimizations
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
-  
+
   // Experimental performance features
   experimental: {
     optimizeCss: true,
