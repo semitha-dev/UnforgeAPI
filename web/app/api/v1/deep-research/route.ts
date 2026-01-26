@@ -1405,6 +1405,78 @@ export async function POST(req: NextRequest) {
     }, ctx)
 
     // ============================================
+    // 4.5 ASYNC WEBHOOK HANDLER (Fire-and-Forget)
+    // ============================================
+    // If webhook is provided, trigger background processing and return immediately
+    // This enables true async processing where the client gets a 202 response
+    // and results are POSTed to the webhook URL when complete
+    if (webhook) {
+      debug('async:webhook:triggered', { 
+        webhook: webhook.substring(0, 50) + '...', 
+        requestId 
+      }, ctx)
+
+      // Determine the base URL for internal API calls
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
+        || process.env.RAILWAY_PUBLIC_DOMAIN 
+        || `http://localhost:${process.env.PORT || 3000}`
+      
+      const internalUrl = `${baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`}/api/v1/deep-research/process`
+
+      // Fire-and-forget: trigger internal processing endpoint
+      // We don't await this - just fire and let it run in the background
+      fetch(internalUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': process.env.INTERNAL_PROCESS_SECRET || process.env.WEBHOOK_SECRET || 'default-internal-secret'
+        },
+        body: JSON.stringify({
+          // Auth context
+          apiKey: token,
+          workspaceId: result.meta?.workspaceId,
+          keyId: result.keyId,
+          plan,
+
+          // Request params
+          query: effectiveQuery,
+          queries,
+          mode,
+          extract,
+          schema,
+          preset,
+          webhook,
+          request_id: requestId,
+          agentic_loop,
+
+          // Provider keys (already resolved - for BYOK or managed)
+          tavilyKey: activeTavilyKey,
+          groqKey: activeGroqKey,
+          cerebrasKey: activeCerebrasKey,
+          googleKey: activeGoogleKey
+        })
+      }).catch(err => {
+        // Log but don't fail - the background process will handle its own errors
+        debugError('async:webhook:trigger_failed', err, ctx)
+      })
+
+      // Return immediately with 202 Accepted
+      const asyncLatencyMs = Math.round(performance.now() - startTime)
+      debug('async:webhook:returning', { latencyMs: asyncLatencyMs }, ctx)
+
+      return Response.json({
+        status: 'processing',
+        request_id: requestId,
+        webhook,
+        message: 'Research started. Results will be POSTed to your webhook URL when complete.',
+        meta: {
+          latency_ms: asyncLatencyMs,
+          estimated_completion: '30-60 seconds'
+        }
+      }, { status: 202 })
+    }
+
+    // ============================================
     // 5. CHECK CACHE (Global - Upstash Redis)
     // ============================================
     const redis = getRedisClient()
