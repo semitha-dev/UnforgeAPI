@@ -4,9 +4,15 @@
  * Run: node scripts/test-deep-research.mjs
  */
 
-const BASE_URL = 'http://localhost:3000/api/v1/deep-research';
-const API_KEY = 'uf_3ZiBy3WnjhhUQQt8f3wFgf5D';
-const TAVILY_KEY = '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';
+const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000/api/v1/deep-research';
+const API_KEY = process.env.TEST_API_KEY || '';
+const TAVILY_KEY = process.env.TEST_TAVILY_KEY || '';
+
+if (!API_KEY || !TAVILY_KEY) {
+  console.error('Error: TEST_API_KEY and TEST_TAVILY_KEY environment variables are required');
+  console.error('Set them before running: TEST_API_KEY=uf_xxx TEST_TAVILY_KEY=tvly-xxx node scripts/test-deep-research.mjs');
+  process.exit(1);
+}
 
 const tests = [];
 let passed = 0;

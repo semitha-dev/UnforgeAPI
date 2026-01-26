@@ -21,13 +21,20 @@ interface UnkeyVerifyResult {
  */
 async function verifyApiKey(key: string): Promise<UnkeyVerifyResult> {
   try {
-    const response = await fetch('https://api.unkey.dev/v1/keys.verifyKey', {
+    // V2 API endpoint (V1 is deprecated)
+    // V2 requires Authorization header with root key
+    const unkeyRootKey = process.env.UNKEY_ROOT_KEY
+    const response = await fetch('https://api.unkey.com/v2/keys.verifyKey', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(unkeyRootKey && { 'Authorization': `Bearer ${unkeyRootKey}` })
+      },
       body: JSON.stringify({ key })
     })
 
     const rawResult = await response.json()
+    // V2 wraps result in a .data object
     const result = rawResult.data || rawResult
 
     if (!response.ok) {
@@ -72,8 +79,8 @@ async function getRateLimitStatus(
   }
 
   try {
-    // Use cost: 0 to query status without consuming quota
-    const response = await fetch('https://api.unkey.dev/v1/ratelimits.limit', {
+    // V2 API endpoint (V1 is deprecated)
+    const response = await fetch('https://api.unkey.com/v2/ratelimits.limit', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

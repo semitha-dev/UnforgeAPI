@@ -34,7 +34,7 @@ function getRedisClient(): Redis | null {
 export async function GET(request: NextRequest) {
   // Only allow in development or with DEBUG flag
   if (!DEBUG) {
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Debug endpoint disabled in production',
       hint: 'Set DEBUG=true environment variable to enable'
     }, { status: 403 })
@@ -48,10 +48,10 @@ export async function GET(request: NextRequest) {
   // ============================================
   results.redis = { name: 'Upstash Redis', status: 'checking' }
   const redisStart = performance.now()
-  
+
   try {
     const redis = getRedisClient()
-    
+
     if (!redis) {
       results.redis = {
         name: 'Upstash Redis',
@@ -67,18 +67,18 @@ export async function GET(request: NextRequest) {
       // Test basic operations
       const testKey = `debug:test:${Date.now()}`
       const testValue = { timestamp: new Date().toISOString(), random: Math.random() }
-      
+
       // SET
       await redis.set(testKey, JSON.stringify(testValue), { ex: 60 })
-      
+
       // GET
       const retrieved = await redis.get<string>(testKey)
-      
+
       // DELETE
       await redis.del(testKey)
-      
+
       const redisLatency = Math.round(performance.now() - redisStart)
-      
+
       results.redis = {
         name: 'Upstash Redis',
         status: 'ok',
@@ -109,12 +109,12 @@ export async function GET(request: NextRequest) {
   // 2. Test Cache Key Generation (SHA256)
   // ============================================
   results.cacheHashing = { name: 'Cache Key Hashing', status: 'checking' }
-  
+
   try {
     const testQuery = 'What is the stock price of Apple?'
     const hash = createHash('sha256').update(testQuery.toLowerCase().trim()).digest('hex')
     const cacheKey = `research:${hash}`
-    
+
     results.cacheHashing = {
       name: 'Cache Key Hashing (SHA256)',
       status: 'ok',
@@ -140,11 +140,11 @@ export async function GET(request: NextRequest) {
   // ============================================
   results.unkey = { name: 'Unkey API', status: 'checking' }
   const unkeyStart = performance.now()
-  
+
   try {
     const hasRootKey = !!process.env.UNKEY_ROOT_KEY
     const hasApiId = !!process.env.UNKEY_API_ID
-    
+
     if (!hasRootKey || !hasApiId) {
       results.unkey = {
         name: 'Unkey API',
@@ -153,21 +153,20 @@ export async function GET(request: NextRequest) {
         error: 'Unkey not configured'
       }
     } else {
-      // Verify the API is reachable by getting API info (requires apiId parameter)
-      // Unkey API endpoint
-      const response = await fetch(`https://api.unkey.dev/v1/apis.getApi?apiId=${process.env.UNKEY_API_ID}`, {
+      // V2 API endpoint (V1 is deprecated)
+      const response = await fetch(`https://api.unkey.com/v2/apis.getApi?apiId=${process.env.UNKEY_API_ID}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${process.env.UNKEY_ROOT_KEY}`,
           'Content-Type': 'application/json'
         }
       })
-      
+
       const unkeyLatency = Math.round(performance.now() - unkeyStart)
       const rawResponse = await response.json().catch(() => ({}))
       // Unkey v2 wraps response in { meta, data } envelope
       const responseData = rawResponse.data || rawResponse
-      
+
       if (response.ok) {
         results.unkey = {
           name: 'Unkey API',
@@ -186,7 +185,7 @@ export async function GET(request: NextRequest) {
           status: 'error',
           latencyMs: unkeyLatency,
           error: responseData.error?.message || `API returned ${response.status}`,
-          details: { 
+          details: {
             statusCode: response.status,
             errorCode: responseData.error?.code
           }
@@ -207,11 +206,11 @@ export async function GET(request: NextRequest) {
   // ============================================
   results.supabase = { name: 'Supabase', status: 'checking' }
   const supabaseStart = performance.now()
-  
+
   try {
     const hasUrl = !!process.env.NEXT_PUBLIC_SUPABASE_URL
     const hasServiceKey = !!process.env.SUPABASE_SERVICE_ROLE_KEY
-    
+
     if (!hasUrl || !hasServiceKey) {
       results.supabase = {
         name: 'Supabase',
@@ -224,15 +223,15 @@ export async function GET(request: NextRequest) {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       )
-      
+
       // Simple query to test connectivity
       const { data, error } = await supabase
         .from('profiles')
         .select('count')
         .limit(1)
-      
+
       const supabaseLatency = Math.round(performance.now() - supabaseStart)
-      
+
       if (error) {
         results.supabase = {
           name: 'Supabase',
@@ -319,26 +318,26 @@ export async function POST(request: NextRequest) {
       // Test the actual cache mechanism
       const redis = getRedisClient()
       if (!redis) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Redis not configured' 
+        return NextResponse.json({
+          success: false,
+          error: 'Redis not configured'
         })
       }
 
       const testQuery = body.query || 'test query for cache'
       const hash = createHash('sha256').update(testQuery.toLowerCase().trim()).digest('hex')
       const cacheKey = `research:${hash}`
-      
+
       // Check if exists
       const existing = await redis.get(cacheKey)
-      
+
       // Set a test value
       const testReport = `Test report generated at ${new Date().toISOString()}`
       await redis.set(cacheKey, testReport, { ex: 60 })
-      
+
       // Retrieve it
       const retrieved = await redis.get(cacheKey)
-      
+
       return NextResponse.json({
         success: true,
         test: 'redis-cache',
@@ -357,13 +356,13 @@ export async function POST(request: NextRequest) {
     if (test === 'api-key-plan') {
       // Test API key plan determination logic
       const { subscriptionTier, polarProductId, requestedTier } = body
-      
+
       const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID!
       const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID!
-      
+
       let plan: string
       let reason: string
-      
+
       if (requestedTier === 'byok') {
         if (polarProductId === BYOK_PRO_PRODUCT_ID || subscriptionTier === 'byok_pro') {
           plan = 'byok_pro'
@@ -384,7 +383,7 @@ export async function POST(request: NextRequest) {
         plan = 'sandbox'
         reason = 'Unknown tier, defaulting to sandbox'
       }
-      
+
       return NextResponse.json({
         success: true,
         test: 'api-key-plan',
@@ -397,9 +396,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unknown test type' }, { status: 400 })
 
   } catch (error: any) {
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
+    return NextResponse.json({
+      success: false,
+      error: error.message
     }, { status: 500 })
   }
 }

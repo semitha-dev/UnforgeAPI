@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@unkey/api": "^2.2.1"
+  }
+}

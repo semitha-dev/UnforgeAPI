@@ -126,7 +126,7 @@ export default function DocsPage() {
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-4">Try it now</h3>
               <CodeBlock
                 language="bash"
-                code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+                code={`curl -X POST https://www.unforgeapi.com/api/v1/chat \\
   -H "Authorization: Bearer uf_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{"query": "What is the capital of France?"}'`}
@@ -175,7 +175,7 @@ export default function DocsPage() {
 
               <CodeBlock
                 language="bash"
-                code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/deep-research \\
+                code={`curl -X POST https://www.unforgeapi.com/api/v1/deep-research \\
   -H "Authorization: Bearer uf_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -318,7 +318,7 @@ export default function DocsPage() {
             <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Example: Extract Mode</h3>
             <CodeBlock
               language="bash"
-              code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/deep-research \\
+              code={`curl -X POST https://www.unforgeapi.com/api/v1/deep-research \\
   -H "Authorization: Bearer uf_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -339,7 +339,7 @@ export default function DocsPage() {
             </p>
             <CodeBlock
               language="bash"
-              code={`curl -X POST https://homerun-snowy.vercel.app/api/v1/deep-research \\
+              code={`curl -X POST https://www.unforgeapi.com/api/v1/deep-research \\
   -H "Authorization: Bearer uf_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -646,7 +646,7 @@ export default function DocsPage() {
             <CodeBlock
               language="bash"
               code={`# Managed tier - just your API key, that's it!
-curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+curl -X POST https://www.unforgeapi.com/api/v1/chat \\
   -H "Authorization: Bearer uf_your_api_key" \\
   -H "Content-Type: application/json" \\
   -d '{"query": "What is quantum computing?"}'`}
@@ -669,7 +669,7 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
             <CodeBlock
               language="bash"
               code={`# BYOK tier - pass your own keys
-curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
+curl -X POST https://www.unforgeapi.com/api/v1/chat \\
   -H "Authorization: Bearer uf_your_api_key" \\
   -H "x-groq-key: gsk_your_groq_key" \\
   -H "x-tavily-key: tvly-your_tavily_key" \\
@@ -916,7 +916,7 @@ curl -X POST https://homerun-snowy.vercel.app/api/v1/chat \\
             <CodeBlock
               language="javascript"
               code={`// Deep Research - get a comprehensive report
-const response = await fetch('https://homerun-snowy.vercel.app/api/v1/deep-research', {
+const response = await fetch('https://www.unforgeapi.com/api/v1/deep-research', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer uf_your_api_key',
@@ -946,7 +946,7 @@ console.log(data.sources);
 
 # Deep Research with data extraction
 response = requests.post(
-    'https://homerun-snowy.vercel.app/api/v1/deep-research',
+    'https://www.unforgeapi.com/api/v1/deep-research',
     headers={
         'Authorization': 'Bearer uf_your_api_key',
         'Content-Type': 'application/json'
@@ -970,7 +970,7 @@ print(data['sources'])    # Source citations`}
             </h3>
             <CodeBlock
               language="javascript"
-              code={`const response = await fetch('https://homerun-snowy.vercel.app/api/v1/chat', {
+              code={`const response = await fetch('https://www.unforgeapi.com/api/v1/chat', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer uf_your_api_key',
@@ -998,7 +998,7 @@ console.log(data.meta.routed_to);
               code={`import requests
 
 response = requests.post(
-    'https://homerun-snowy.vercel.app/api/v1/chat',
+    'https://www.unforgeapi.com/api/v1/chat',
     headers={
         'Authorization': 'Bearer uf_your_api_key',
         'Content-Type': 'application/json'

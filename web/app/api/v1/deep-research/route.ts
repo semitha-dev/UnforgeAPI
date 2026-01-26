@@ -463,14 +463,21 @@ async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<Un
   const verifyStartTime = performance.now()
 
   try {
-    const response = await fetch('https://api.unkey.dev/v1/keys.verifyKey', {
+    // V2 API endpoint (V1 is deprecated)
+    // V2 requires Authorization header with root key
+    const unkeyRootKey = process.env.UNKEY_ROOT_KEY
+    const response = await fetch('https://api.unkey.com/v2/keys.verifyKey', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(unkeyRootKey && { 'Authorization': `Bearer ${unkeyRootKey}` })
+      },
       body: JSON.stringify({ key })
     })
 
     const verifyLatency = Math.round(performance.now() - verifyStartTime)
     const rawResult = await response.json()
+    // V2 wraps result in a .data object
     const result = rawResult.data || rawResult
 
     debug('verifyApiKey:response', {
@@ -485,7 +492,9 @@ async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<Un
       unkeyRequestId: rawResult.meta?.requestId,
       rawError: result.error || rawResult.error,
       rawCode: result.code || rawResult.code,
-      ratelimit: result.ratelimit
+      ratelimit: result.ratelimit,
+      rawResultKeys: Object.keys(rawResult),
+      fullRawResult: JSON.stringify(rawResult).substring(0, 1000)
     }, context)
 
     if (!response.ok) {
@@ -1125,6 +1134,10 @@ export async function POST(req: NextRequest) {
       agentic_loop = false  // Default: standard single-shot search
     } = body
 
+    // Check for internal webhook header (set by fire-and-forget self-call)
+    // This tells us where to deliver results when processing completes
+    const internalWebhook = req.headers.get('x-internal-webhook')
+
     // ============================================
     // 3.1 BYOK PRO AGENTIC CAP CHECK (100/month hard limit)
     // ============================================
@@ -1246,6 +1259,62 @@ export async function POST(req: NextRequest) {
           hint: 'Webhook must be a valid HTTP/HTTPS URL'
         }, { status: 400 })
       }
+
+      // ============================================
+      // ASYNC WEBHOOK MODE: Fire-and-Forget Self-Call
+      // ============================================
+      // When webhook is provided, trigger an internal call WITHOUT the webhook param
+      // to do the actual processing, then return 202 Accepted immediately.
+      // The internal call will call sendWebhook() when complete.
+      debug('webhook:fireAndForget:start', {
+        webhookUrl: webhook.substring(0, 50) + '...',
+        requestId
+      }, ctx)
+
+      // Build internal URL - use the same endpoint
+      const internalUrl = new URL(req.url)
+
+      // Prepare body WITHOUT webhook param (to prevent infinite loop)
+      const internalBody: Omit<RequestBody, 'webhook'> = {
+        query,
+        queries,
+        stream,
+        mode,
+        extract,
+        schema,
+        preset,
+        agentic_loop
+      }
+
+      // Fire-and-forget: trigger internal request (no await!)
+      fetch(internalUrl.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader || '',
+          // Forward BYOK keys if present
+          ...(req.headers.get('x-tavily-key') && { 'x-tavily-key': req.headers.get('x-tavily-key')! }),
+          ...(req.headers.get('x-cerebras-key') && { 'x-cerebras-key': req.headers.get('x-cerebras-key')! }),
+          ...(req.headers.get('x-groq-key') && { 'x-groq-key': req.headers.get('x-groq-key')! }),
+          ...(req.headers.get('x-google-key') && { 'x-google-key': req.headers.get('x-google-key')! }),
+          // Pass webhook in a special header so internal handler knows where to send results
+          'x-internal-webhook': webhook
+        },
+        body: JSON.stringify(internalBody)
+      }).catch((err) => {
+        // Log but don't fail - the request was accepted
+        debugError('webhook:fireAndForget:error', err, ctx)
+      })
+
+      debug('webhook:fireAndForget:accepted', { requestId }, ctx)
+
+      // Return 202 Accepted immediately
+      return Response.json({
+        status: 'accepted',
+        message: 'Request accepted for async processing. Results will be delivered to the webhook URL.',
+        request_id: requestId,
+        webhook
+      }, { status: 202 })
     }
 
     debug('request:parsed', {
@@ -1902,9 +1971,9 @@ RULES:
         redis.set(cacheKey, cacheData, { ex: CACHE_TTL_SECONDS }).catch(() => { })
       }
 
-      // Send webhook if configured
-      if (webhook) {
-        sendWebhook(webhook, {
+      // Send webhook if this is an internal async call
+      if (internalWebhook) {
+        sendWebhook(internalWebhook, {
           mode: 'extract',
           query: effectiveQuery,
           data: extractedData,
@@ -1946,8 +2015,9 @@ RULES:
         redis.set(cacheKey, cacheData, { ex: CACHE_TTL_SECONDS }).catch(() => { })
       }
 
-      if (webhook) {
-        sendWebhook(webhook, {
+      // Send webhook if this is an internal async call
+      if (internalWebhook) {
+        sendWebhook(internalWebhook, {
           mode: 'schema',
           query: effectiveQuery,
           data: schemaData,
@@ -2280,9 +2350,9 @@ RULES:
         })
     }
 
-    // Send webhook if configured
-    if (webhook) {
-      sendWebhook(webhook, {
+    // Send webhook if this is an internal async call
+    if (internalWebhook) {
+      sendWebhook(internalWebhook, {
         mode,
         query: effectiveQuery,
         report,

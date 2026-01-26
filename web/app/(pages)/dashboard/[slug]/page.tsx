@@ -408,7 +408,7 @@ export default function WorkspaceDashboardPage({ params }: { params: Promise<{ s
             <div className="text-neutral-500 mb-2"># Make your first request</div>
             <div>
               <span className="text-emerald-400">curl</span>
-              <span className="text-neutral-300"> -X POST https://homerun-snowy.vercel.app/api/v1/chat \</span>
+              <span className="text-neutral-300"> -X POST https://www.unforgeapi.com/api/v1/chat \</span>
             </div>
             <div className="pl-4">
               <span className="text-neutral-300">-H </span>

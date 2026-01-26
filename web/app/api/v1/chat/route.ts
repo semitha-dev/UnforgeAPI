@@ -78,7 +78,7 @@ function debugError(tag: string, error: any, context?: DebugContext) {
   const reqId = context?.requestId || ''
   const elapsed = context?.startTime ? `+${Math.round(performance.now() - context.startTime)}ms` : ''
   const prefix = `❌ [UnforgeAPI:${tag}:ERROR]${reqId ? ` [${reqId}]` : ''}${elapsed ? ` ${elapsed}` : ''}`
-  
+
   console.error(`${timestamp} ${prefix}`, {
     message: error?.message || String(error),
     name: error?.name,
@@ -145,13 +145,13 @@ async function logUsage(data: {
   latencyMs: number
   query: string
 }, context?: DebugContext) {
-  debug('logUsage:start', { 
+  debug('logUsage:start', {
     workspaceId: data.workspaceId,
     keyId: data.keyId,
     intent: data.intent,
     latencyMs: data.latencyMs
   }, context)
-  
+
   if (!data.workspaceId || !data.keyId) {
     debug('logUsage:skipped', { reason: 'missing workspaceId or keyId' }, context)
     return
@@ -179,14 +179,21 @@ async function verifyApiKeyOnce(key: string, context?: DebugContext): Promise<Un
   const verifyStartTime = performance.now()
 
   try {
-    const response = await fetch('https://api.unkey.dev/v1/keys.verifyKey', {
+    // V2 API endpoint (V1 is deprecated)
+    // V2 requires Authorization header with root key
+    const unkeyRootKey = process.env.UNKEY_ROOT_KEY
+    const response = await fetch('https://api.unkey.com/v2/keys.verifyKey', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(unkeyRootKey && { 'Authorization': `Bearer ${unkeyRootKey}` })
+      },
       body: JSON.stringify({ key })
     })
 
     const verifyLatency = Math.round(performance.now() - verifyStartTime)
     const rawResult = await response.json()
+    // V2 wraps result in a .data object
     const result = rawResult.data || rawResult
 
     debug('verifyApiKey:response', {
@@ -297,8 +304,8 @@ export async function POST(req: NextRequest) {
   const startTime = performance.now()
   const requestId = `api-${Date.now()}-${Math.random().toString(36).substring(7)}`
   const ctx: DebugContext = { requestId, startTime }
-  
-  debug('POST:start', { 
+
+  debug('POST:start', {
     timestamp: new Date().toISOString(),
     url: req.url,
     method: req.method,
@@ -316,14 +323,14 @@ export async function POST(req: NextRequest) {
     // 1. HEADER AUTHENTICATION (Stateless)
     // ============================================
     debug('auth:start', {}, ctx)
-    
+
     const authHeader = req.headers.get('Authorization')
     const token = authHeader?.replace('Bearer ', '')
-    
-    debug('auth:check', { 
-      hasAuth: !!authHeader, 
+
+    debug('auth:check', {
+      hasAuth: !!authHeader,
       tokenLength: token?.length,
-      tokenPrefix: token?.substring(0, 10) 
+      tokenPrefix: token?.substring(0, 10)
     }, ctx)
 
     if (!token) {
@@ -339,10 +346,10 @@ export async function POST(req: NextRequest) {
     // ============================================
     debug('unkey:verifying', {}, ctx)
     const result = await verifyApiKey(token, ctx)
-    
-    debug('unkey:result', { 
-      valid: result.valid, 
-      code: result.code, 
+
+    debug('unkey:result', {
+      valid: result.valid,
+      code: result.code,
       tier: result.meta?.tier,
       keyId: result.keyId
     }, ctx)
@@ -367,13 +374,13 @@ export async function POST(req: NextRequest) {
     // 3. PARSE REQUEST & HEADERS (BYOK Logic)
     // ============================================
     debug('request:parsing', {}, ctx)
-    
+
     let body: RequestBody
     try {
       body = await req.json()
-      debug('request:body', { 
+      debug('request:body', {
         hasQuery: !!body.query,
-        queryLength: body.query?.length, 
+        queryLength: body.query?.length,
         queryPreview: body.query?.substring(0, 100),
         hasContext: !!body.context,
         contextLength: body.context?.length,
@@ -395,14 +402,14 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       )
     }
-    
-    const { 
-      query, 
-      context, 
-      history, 
-      system_prompt, 
-      force_intent, 
-      temperature, 
+
+    const {
+      query,
+      context,
+      history,
+      system_prompt,
+      force_intent,
+      temperature,
       max_tokens,
       strict_mode,
       grounded_only,
@@ -435,17 +442,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate and clamp temperature
-    const validTemperature = temperature !== undefined 
-      ? Math.max(0, Math.min(1, temperature)) 
-      : undefined
-    
-    // Validate and clamp max_tokens
-    const validMaxTokens = max_tokens !== undefined 
-      ? Math.max(50, Math.min(2000, max_tokens)) 
+    const validTemperature = temperature !== undefined
+      ? Math.max(0, Math.min(1, temperature))
       : undefined
 
-    debug('params:validated', { 
-      validTemperature, 
+    // Validate and clamp max_tokens
+    const validMaxTokens = max_tokens !== undefined
+      ? Math.max(50, Math.min(2000, max_tokens))
+      : undefined
+
+    debug('params:validated', {
+      validTemperature,
       validMaxTokens,
       hasSystemPrompt: !!system_prompt,
       forceIntent: force_intent
@@ -459,8 +466,8 @@ export async function POST(req: NextRequest) {
     // This protects our wallet - BYOK users use their own credits
     const activeGroqKey = userGroqKey || process.env.GROQ_API_KEY
     const activeTavilyKey = userTavilyKey || process.env.TAVILY_API_KEY
-    
-    debug('byok:keys', { 
+
+    debug('byok:keys', {
       hasUserGroqKey: !!userGroqKey,
       hasUserTavilyKey: !!userTavilyKey,
       hasSystemGroq: !!process.env.GROQ_API_KEY,
@@ -485,7 +492,7 @@ export async function POST(req: NextRequest) {
     const searchEnabled = result.meta?.searchEnabled !== false
     const requiresUserKeys = result.meta?.requiresUserKeys || isByokPlan
     const isPriority = isPriorityPlan(validPlanType)
-    
+
     debug('tier:check', { plan, isByokPlan, searchEnabled, requiresUserKeys, isPriority }, ctx)
 
     // ============================================
@@ -498,21 +505,21 @@ export async function POST(req: NextRequest) {
           // Check system load (requests in last minute from free users)
           const freeUserLoadKey = 'system:free_user_load'
           const currentLoad = await redis.incr(freeUserLoadKey)
-          
+
           // Set expiry if this is a new key
           if (currentLoad === 1) {
             await redis.expire(freeUserLoadKey, 60)
           }
-          
+
           // If more than 100 free user requests per minute, throttle
           const FREE_USER_THROTTLE_THRESHOLD = 100
           if (currentLoad > FREE_USER_THROTTLE_THRESHOLD) {
-            debug('priority:throttled', { 
-              plan, 
-              currentLoad, 
-              threshold: FREE_USER_THROTTLE_THRESHOLD 
+            debug('priority:throttled', {
+              plan,
+              currentLoad,
+              threshold: FREE_USER_THROTTLE_THRESHOLD
             }, ctx)
-            
+
             return Response.json({
               error: 'System is currently busy. Paid users are prioritized during high traffic.',
               code: 'SYSTEM_BUSY',
@@ -527,7 +534,7 @@ export async function POST(req: NextRequest) {
         }
       }
     }
-    
+
     // ============================================
     // BYOK KEY REQUIREMENT CHECK
     // ============================================
@@ -536,7 +543,7 @@ export async function POST(req: NextRequest) {
       if (!userGroqKey) {
         debug('byok:missingGroqKey', { plan }, ctx)
         return Response.json(
-          { 
+          {
             error: 'BYOK plans require x-groq-key header',
             code: 'BYOK_MISSING_GROQ_KEY',
             hint: 'Add your Groq API key in the x-groq-key header'
@@ -547,7 +554,7 @@ export async function POST(req: NextRequest) {
       if (!userTavilyKey) {
         debug('byok:missingTavilyKey', { plan }, ctx)
         return Response.json(
-          { 
+          {
             error: 'BYOK plans require x-tavily-key header',
             code: 'BYOK_MISSING_TAVILY_KEY',
             hint: 'Add your Tavily API key in the x-tavily-key header'
@@ -561,39 +568,39 @@ export async function POST(req: NextRequest) {
     // 4. SMART ROUTING DECISION
     // ============================================
     // Priority: force_intent > smart routing > classifier
-    
+
     let intent: Intent
     let classification: { intent: Intent; confidence: number; reason: string }
-    
+
     // Check for force_intent override FIRST
     if (force_intent) {
       intent = force_intent
-      classification = { 
-        intent: force_intent, 
-        confidence: 1.0, 
-        reason: 'User forced intent via force_intent parameter' 
+      classification = {
+        intent: force_intent,
+        confidence: 1.0,
+        reason: 'User forced intent via force_intent parameter'
       }
-      debug('router:forcedIntent', { 
+      debug('router:forcedIntent', {
         forcedIntent: force_intent,
         hasContext: !!context
       }, ctx)
     } else if (context) {
       // CONTEXT PROVIDED → Always use context-aware path
       // Only question: Does user need external search too?
-      debug('router:contextProvided', { 
+      debug('router:contextProvided', {
         queryPreview: query.substring(0, 100),
         contextLength: context.length
       }, ctx)
-      
+
       const classifyStartTime = performance.now()
       classification = await classifyIntent(query, context, activeGroqKey)
       const classifyLatency = Math.round(performance.now() - classifyStartTime)
-      
+
       // Override: If router says CHAT but we have context, use CONTEXT instead
       // This prevents the AI from ignoring company context
       if (classification.intent === 'CHAT') {
         intent = 'CONTEXT'
-        debug('router:override', { 
+        debug('router:override', {
           originalIntent: 'CHAT',
           newIntent: 'CONTEXT',
           reason: 'Context provided - must use context-aware response'
@@ -601,28 +608,28 @@ export async function POST(req: NextRequest) {
       } else {
         intent = classification.intent
       }
-      
-      debug('router:classified', { 
+
+      debug('router:classified', {
         originalIntent: classification.intent,
-        finalIntent: intent, 
+        finalIntent: intent,
         confidence: classification.confidence,
         reason: classification.reason,
         classifyLatencyMs: classifyLatency
       }, ctx)
     } else {
       // NO CONTEXT → Normal routing (CHAT vs RESEARCH)
-      debug('router:noContext', { 
+      debug('router:noContext', {
         queryPreview: query.substring(0, 100)
       }, ctx)
-      
+
       const classifyStartTime = performance.now()
       classification = await classifyIntent(query, context, activeGroqKey)
       const classifyLatency = Math.round(performance.now() - classifyStartTime)
-      
+
       intent = classification.intent
-      
-      debug('router:classified', { 
-        intent, 
+
+      debug('router:classified', {
+        intent,
         confidence: classification.confidence,
         reason: classification.reason,
         classifyLatencyMs: classifyLatency
@@ -634,7 +641,7 @@ export async function POST(req: NextRequest) {
     // ============================================
     let answer: string
     let sources: Array<{ title: string; url: string }> | undefined
-    
+
     // Enterprise feature response fields
     let meta_confidence_score: number | undefined
     let meta_grounded: boolean | undefined
@@ -648,10 +655,10 @@ export async function POST(req: NextRequest) {
       // Path A: Simple chat (only when NO context provided)
       debug('path:chat:start', { hasContext: !!context }, ctx)
       const pathStartTime = performance.now()
-      
+
       try {
         answer = await generateChat(query, activeGroqKey, context)
-        debug('path:chat:complete', { 
+        debug('path:chat:complete', {
           answerLength: answer.length,
           pathLatencyMs: Math.round(performance.now() - pathStartTime)
         }, ctx)
@@ -659,12 +666,12 @@ export async function POST(req: NextRequest) {
         debugError('path:chat', error, ctx)
         answer = 'Hello! How can I help you today?'
       }
-    } 
+    }
     else if (intent === 'CONTEXT') {
       // Path B: Local RAG (Zero Search Cost)
       // Absolutely NO calls to Tavily
-      debug('path:context:start', { 
-        contextLength: context?.length, 
+      debug('path:context:start', {
+        contextLength: context?.length,
         historyLength: history?.length,
         hasSystemPrompt: !!system_prompt,
         temperature: validTemperature,
@@ -674,7 +681,7 @@ export async function POST(req: NextRequest) {
         citationMode: citation_mode
       }, ctx)
       const pathStartTime = performance.now()
-      
+
       if (!context) {
         debug('path:context:noContext', { fallbackToResearch: false }, ctx)
         answer = 'No context was provided to answer your question.'
@@ -689,23 +696,23 @@ export async function POST(req: NextRequest) {
           grounded_only,
           citation_mode
         }
-        
+
         try {
           const result = await generateFromContext(query, context, activeGroqKey, genOptions)
           answer = result.answer
-          
+
           // Populate enterprise response metadata
           meta_confidence_score = result.confidence_score
           meta_grounded = result.grounded
           meta_citations = result.citations
           meta_refusal = result.refusal
-          
+
           // GUARDRAIL: Check if AI broke character (only if no custom system_prompt and not refused)
           if (!system_prompt && !result.refusal && didBreakCharacter(answer)) {
-            debug('path:context:guardrail:triggered', { 
+            debug('path:context:guardrail:triggered', {
               reason: 'AI broke character, retrying with stronger prompt'
             }, ctx)
-            
+
             // Retry with explicit correction
             const retryPrompt = `IMPORTANT: The user is interacting with YOUR company's AI assistant. DO NOT say you are "just an AI" or a "language model". You represent the organization in the context. Now answer naturally as their representative: ${query}`
             const retryResult = await generateFromContext(retryPrompt, context, activeGroqKey, genOptions)
@@ -713,14 +720,14 @@ export async function POST(req: NextRequest) {
             meta_confidence_score = retryResult.confidence_score
             meta_grounded = retryResult.grounded
             meta_citations = retryResult.citations
-            
-            debug('path:context:guardrail:retry', { 
+
+            debug('path:context:guardrail:retry', {
               retryAnswerLength: answer.length,
               stillBroke: didBreakCharacter(answer)
             }, ctx)
           }
-          
-          debug('path:context:complete', { 
+
+          debug('path:context:complete', {
             answerLength: answer.length,
             pathLatencyMs: Math.round(performance.now() - pathStartTime)
           }, ctx)
@@ -729,18 +736,18 @@ export async function POST(req: NextRequest) {
           answer = 'I could not generate an answer from the provided context.'
         }
       }
-    } 
+    }
     else if (intent === 'RESEARCH') {
       // Path C: Expensive Search
-      debug('path:research:start', { 
+      debug('path:research:start', {
         plan,
-        isByokPlan, 
+        isByokPlan,
         searchEnabled,
         hasUserTavilyKey: !!userTavilyKey,
         hasActiveTavilyKey: !!activeTavilyKey
       }, ctx)
       const pathStartTime = performance.now()
-      
+
       // Check if search is enabled for this plan (via metadata override)
       if (!searchEnabled) {
         debug('path:research:rejected', { reason: 'SEARCH_DISABLED', plan }, ctx)
@@ -795,7 +802,7 @@ export async function POST(req: NextRequest) {
       if (isByokPlan && !userTavilyKey) {
         debug('path:research:rejected', { reason: 'BYOK_MISSING_KEY' }, ctx)
         return Response.json(
-          { 
+          {
             error: 'Research intent requires x-tavily-key header for BYOK plans',
             code: 'BYOK_MISSING_KEY'
           },
@@ -815,17 +822,17 @@ export async function POST(req: NextRequest) {
         debug('path:research:tavily:start', {}, ctx)
         const searchStartTime = performance.now()
         const searchResults = await tavilySearch(query, activeTavilyKey)
-        debug('path:research:tavily:complete', { 
+        debug('path:research:tavily:complete', {
           resultCount: searchResults.length,
           searchLatencyMs: Math.round(performance.now() - searchStartTime)
         }, ctx)
-        
+
         debug('path:research:synthesis:start', { resultCount: searchResults.length }, ctx)
         const synthStartTime = performance.now()
         const synthesized = await synthesizeAnswer(query, searchResults, activeGroqKey)
         answer = synthesized.answer
         sources = synthesized.sources
-        debug('path:research:synthesis:complete', { 
+        debug('path:research:synthesis:complete', {
           answerLength: answer.length,
           sourceCount: sources.length,
           synthLatencyMs: Math.round(performance.now() - synthStartTime),
@@ -836,7 +843,7 @@ export async function POST(req: NextRequest) {
         answer = 'I encountered an error while searching for information. Please try again.'
         sources = []
       }
-    } 
+    }
     else {
       // Fallback (should never happen)
       debug('path:fallback', { intent, reason: 'unexpected intent' }, ctx)
@@ -861,7 +868,7 @@ export async function POST(req: NextRequest) {
     if (sources) {
       meta.sources = sources
     }
-    
+
     // Add enterprise features to response metadata
     if (meta_confidence_score !== undefined) {
       meta.confidence_score = meta_confidence_score
@@ -875,12 +882,12 @@ export async function POST(req: NextRequest) {
     if (meta_refusal !== undefined) {
       meta.refusal = meta_refusal
     }
-    
-    debug('response:success', { 
+
+    debug('response:success', {
       intent,
       classifiedIntent: classification.intent,
       forcedIntent: force_intent,
-      latencyMs, 
+      latencyMs,
       answerLength: answer.length,
       hasSources: !!sources,
       sourceCount: sources?.length || 0,
@@ -907,7 +914,7 @@ export async function POST(req: NextRequest) {
 
     // Add rate limit headers (Unkey Global Limit OR Feature Limit)
     // Priority: Feature Limit (if used) > Global Limit (from key verification)
-    
+
     if (rateLimitInfo) {
       // Feature Limit (Web Search)
       headers['X-RateLimit-Limit'] = String(rateLimitInfo.limit)
@@ -925,8 +932,8 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     const latencyMs = Math.round(performance.now() - startTime)
     debugError('POST:unhandled', error, ctx)
-    
-    debug('response:error', { 
+
+    debug('response:error', {
       latencyMs,
       errorMessage: error.message,
       errorName: error.name

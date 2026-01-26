@@ -214,8 +214,8 @@ export async function checkFeatureRateLimit(
   }
 
   try {
-    // Use Unkey's ratelimit API with namespace isolation
-    const response = await fetch('https://api.unkey.dev/v1/ratelimits.limit', {
+    // V2 API endpoint - note: singular "ratelimit" not "ratelimits"
+    const response = await fetch('https://api.unkey.com/v2/ratelimit.limit', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -225,8 +225,8 @@ export async function checkFeatureRateLimit(
         namespace: namespace,
         identifier: identifier,  // workspaceId for account-level limits
         limit: namespaceConfig.limit,  // Use tier-based limit
-        duration: namespaceConfig.durationMs,
-        async: false  // Sync mode for accurate count
+        duration: namespaceConfig.durationMs
+        // Note: 'async' parameter was removed in Unkey v2 API
       })
     })
 
