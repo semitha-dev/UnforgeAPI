@@ -54,7 +54,8 @@ export default function ApiKeysPage() {
   const subscription = {
     tier: subscriptionTier || 'free',
     status: 'active',
-    hasManagedPro: subscriptionTier === 'managed_pro' || subscriptionTier === 'managed_expert',
+    hasManagedPro: subscriptionTier === 'managed_pro',
+    hasManagedExpert: subscriptionTier === 'managed_expert',
     hasByokPro: subscriptionTier === 'byok_pro'
   }
 
@@ -367,12 +368,12 @@ export default function ApiKeysPage() {
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-2">
-            {subscription.hasManagedPro ? '50,000 requests/month' : '50 requests/day limit'}
+            {subscription.hasManagedExpert ? '200,000 requests/month' : subscription.hasManagedPro ? '50,000 requests/month' : '50 requests/day limit'}
           </p>
           <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
-            {subscription.hasManagedPro && <Crown className="w-4 h-4 text-emerald-400" />}
+            {(subscription.hasManagedPro || subscription.hasManagedExpert) && <Crown className="w-4 h-4 text-emerald-400" />}
             <span className="text-xs text-slate-400">
-              {subscription.hasManagedPro ? 'Managed Pro Active' : 'Managed Free Tier'}
+              {subscription.hasManagedExpert ? 'Managed Expert Active' : subscription.hasManagedPro ? 'Managed Pro Active' : 'Managed Free Tier'}
             </span>
           </div>
         </div>
@@ -429,16 +430,17 @@ export default function ApiKeysPage() {
                     </div>
                   </div>
                   <div className="w-32 flex justify-center">
-                    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full ${
-                      key.tier === 'byok_pro' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                      key.tier === 'byok_starter' || key.tier === 'byok' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' :
-                      key.tier === 'managed_pro' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                      'bg-slate-800 text-slate-400 border border-slate-700'
-                    }`}>
+                    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full ${key.tier === 'byok_pro' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                        key.tier === 'byok_starter' || key.tier === 'byok' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' :
+                          key.tier === 'managed_expert' ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40' :
+                            key.tier === 'managed_pro' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                              'bg-slate-800 text-slate-400 border border-slate-700'
+                      }`}>
                       {key.tier === 'byok_pro' ? 'BYOK PRO' :
-                       key.tier === 'byok_starter' || key.tier === 'byok' ? 'BYOK' :
-                       key.tier === 'managed_pro' ? 'MANAGED PRO' :
-                       'MANAGED'}
+                        key.tier === 'byok_starter' || key.tier === 'byok' ? 'BYOK' :
+                          key.tier === 'managed_expert' ? 'MANAGED EXPERT' :
+                            key.tier === 'managed_pro' ? 'MANAGED PRO' :
+                              'MANAGED'}
                     </span>
                   </div>
                   <div className="w-24 flex justify-center">
@@ -566,11 +568,10 @@ export default function ApiKeysPage() {
                     <button
                       type="button"
                       onClick={() => setNewKeyTier('byok')}
-                      className={`p-4 rounded-xl border transition-all ${
-                        newKeyTier === 'byok'
+                      className={`p-4 rounded-xl border transition-all ${newKeyTier === 'byok'
                           ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)]'
                           : 'border-white/10 hover:border-white/20 bg-[#18181b]'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <Zap className="w-4 h-4 text-amber-400" />
@@ -586,11 +587,10 @@ export default function ApiKeysPage() {
                     <button
                       type="button"
                       onClick={() => setNewKeyTier('managed')}
-                      className={`p-4 rounded-xl border transition-all ${
-                        newKeyTier === 'managed'
+                      className={`p-4 rounded-xl border transition-all ${newKeyTier === 'managed'
                           ? 'border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_-3px_rgba(52,211,153,0.2)]'
                           : 'border-white/10 hover:border-white/20 bg-[#18181b]'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <Shield className="w-4 h-4 text-emerald-400" />
