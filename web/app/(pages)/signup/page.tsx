@@ -164,10 +164,12 @@ export default function SignUpPage() {
   const handleGoogleSignIn = async () => {
     console.log('[Signup] Google OAuth starting...')
     try {
+      // Use environment variable for production, fallback to window.location.origin for local dev
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=/onboarding/workspace`
+          redirectTo: `${baseUrl}/auth/callback?next=/onboarding/workspace`
         }
       })
       if (error) {
