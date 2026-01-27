@@ -162,22 +162,68 @@ export default function SignUpPage() {
   }
 
   const handleGoogleSignIn = async () => {
-    console.log('[Signup] Google OAuth starting...')
+    console.log('========================================')
+    console.log('[Signup] Google OAuth Flow Starting')
+    console.log('========================================')
+
+    console.log('[Signup] Step 1: Environment Check')
+    console.log('[Signup] - process.env.NEXT_PUBLIC_APP_URL:', process.env.NEXT_PUBLIC_APP_URL)
+    console.log('[Signup] - window.location.origin:', window.location.origin)
+    console.log('[Signup] - window.location.href:', window.location.href)
+
     try {
       // Use environment variable for production, fallback to window.location.origin for local dev
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-      const { error } = await supabase.auth.signInWithOAuth({
+      const redirectUrl = `${baseUrl}/auth/callback?next=/onboarding/workspace`
+
+      console.log('[Signup] Step 2: Redirect URL Configuration')
+      console.log('[Signup] - baseUrl:', baseUrl)
+      console.log('[Signup] - Full redirectTo URL:', redirectUrl)
+
+      console.log('[Signup] Step 3: Calling supabase.auth.signInWithOAuth...')
+      console.log('[Signup] - Provider: google')
+      console.log('[Signup] - Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${baseUrl}/auth/callback?next=/onboarding/workspace`
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       })
+
+      console.log('[Signup] Step 4: OAuth Response Received')
+      console.log('[Signup] - Data:', data)
+      console.log('[Signup] - Error:', error)
+
       if (error) {
-        setErrors({ general: error.message })
+        console.error('[Signup] ❌ OAuth Error Details:')
+        console.error('[Signup] - Error Message:', error.message)
+        console.error('[Signup] - Error Name:', error.name)
+        console.error('[Signup] - Error Status:', error.status)
+        console.error('[Signup] - Full Error Object:', JSON.stringify(error, null, 2))
+        setErrors({ general: `Google Sign-In Error: ${error.message}` })
+      } else {
+        console.log('[Signup] ✅ OAuth call successful, should redirect to Google now...')
+        console.log('[Signup] - If you are still on this page, check:')
+        console.log('[Signup]   1. Is Google provider enabled in Supabase Dashboard?')
+        console.log('[Signup]   2. Are Client ID and Secret configured in Supabase?')
+        console.log('[Signup]   3. Check Network tab for any failed requests')
       }
     } catch (error: any) {
-      setErrors({ general: 'Failed to sign in with Google' })
+      console.error('[Signup] ❌ Unexpected Error in Google OAuth')
+      console.error('[Signup] - Error Message:', error.message)
+      console.error('[Signup] - Error Stack:', error.stack)
+      console.error('[Signup] - Full Error:', error)
+      setErrors({ general: `Failed to sign in with Google: ${error.message || 'Unknown error'}` })
     }
+
+    console.log('========================================')
+    console.log('[Signup] Google OAuth Flow End')
+    console.log('========================================')
   }
 
   return (
