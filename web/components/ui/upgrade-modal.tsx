@@ -132,7 +132,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm overflow-auto">
+    <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm overflow-y-auto custom-scrollbar">
       {/* Close button - top right */}
       <button
         onClick={onClose}
