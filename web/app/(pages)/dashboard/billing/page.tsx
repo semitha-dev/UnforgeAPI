@@ -3,9 +3,9 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/app/lib/supabaseClient'
-import { 
-  CreditCard, 
-  Check, 
+import {
+  CreditCard,
+  Check,
   X,
   ArrowRight,
   Shield,
@@ -37,7 +37,7 @@ function UsageRingChart({ percentage }: { percentage: number }) {
   const radius = 32
   const circumference = 2 * Math.PI * radius
   const strokeDashoffset = circumference - (percentage / 100) * circumference
-  
+
   return (
     <div className="relative w-20 h-20 flex items-center justify-center">
       <svg className="w-full h-full transform -rotate-90">
@@ -64,7 +64,9 @@ function UsageRingChart({ percentage }: { percentage: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-bold text-white">{Math.round(percentage)}%</span>
+        <span className="text-xs font-bold text-white">
+          {percentage > 0 && percentage < 1 ? '< 1' : Math.round(percentage)}%
+        </span>
       </div>
     </div>
   )
@@ -76,7 +78,7 @@ function BillingPageContent() {
   const subscriptionSuccess = searchParams.get('subscription') === 'success'
   const { tier, isPro: isSubscriptionPro, isLoading: subscriptionLoading, refetch: refetchSubscription } = useSubscription()
   const { user, refetch: refetchUser } = useUser()
-  
+
   const [subscription, setSubscription] = useState<SubscriptionInfo>({
     tier: 'sandbox',
     status: null,
@@ -87,7 +89,7 @@ function BillingPageContent() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [isRefetching, setIsRefetching] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  
+
   // Usage data
   const [usage, setUsage] = useState({ used: 0, total: 50, period: 'day' as 'day' | 'month', limitType: 'daily' as 'daily' | 'monthly' | 'rate' })
   const [isFetchingUsage, setIsFetchingUsage] = useState(false)
@@ -114,14 +116,14 @@ function BillingPageContent() {
   // Fetch subscription data from subscription context
   useEffect(() => {
     const tierValue = (tier || 'sandbox') as ApiPlan
-    
+
     setSubscription({
       tier: PLAN_CONFIG[tierValue as ApiPlan] ? tierValue : 'sandbox',
       status: user?.subscriptionStatus || null,
       endsAt: user?.subscriptionEndsAt || null,
       polarCustomerId: null,
     })
-    
+
     // Set usage limits based on plan config (actual usage will be fetched separately)
     const config = PLAN_CONFIG[tierValue as ApiPlan] || PLAN_CONFIG.sandbox
     const isMonthly = config.limitType === 'monthly'
@@ -140,7 +142,7 @@ function BillingPageContent() {
         setIsFetchingUsage(false)
         return
       }
-      
+
       setIsFetchingUsage(true)
       try {
         // Fetch workspace ID directly from Supabase to ensure it's available
@@ -164,10 +166,10 @@ function BillingPageContent() {
           const tierValue = (tier || 'sandbox') as ApiPlan
           const config = PLAN_CONFIG[tierValue] || PLAN_CONFIG.sandbox
           const isMonthly = config.limitType === 'monthly'
-          
+
           // Use requestsThisMonth for monthly plans, requestsToday for daily plans
           const used = isMonthly ? (data.requestsThisMonth || 0) : (data.requestsToday || 0)
-          
+
           setUsage({
             used,
             total: config.limit || 50,
@@ -181,7 +183,7 @@ function BillingPageContent() {
         setIsFetchingUsage(false)
       }
     }
-    
+
     fetchUsage()
   }, [user?.id, tier])
 
@@ -205,7 +207,7 @@ function BillingPageContent() {
     try {
       const response = await fetch('/api/subscription/manage')
       const data = await response.json()
-      
+
       if (data.portalUrl) {
         window.open(data.portalUrl, '_blank')
       } else {
@@ -232,9 +234,16 @@ function BillingPageContent() {
     }
   }
 
-  // Calculate days until reset (end of month)
+  // Calculate days until reset (based on subscription period end, not calendar month)
   const getDaysUntilReset = () => {
     const now = new Date()
+    // Use actual subscription period end date if available, otherwise fall back to end of month
+    if (subscription.endsAt) {
+      const resetDate = new Date(subscription.endsAt)
+      const diff = Math.ceil((resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      return Math.max(0, diff)
+    }
+    // Fallback: end of month for sandbox/free users
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     const diff = Math.ceil((endOfMonth.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
     return diff
@@ -250,8 +259,8 @@ function BillingPageContent() {
     }
   }
 
-  const usagePercentage = usage.limitType === 'rate' || usage.total === -1 
-    ? 0 
+  const usagePercentage = usage.limitType === 'rate' || usage.total === -1
+    ? 0
     : usage.total > 0 ? Math.min((usage.used / usage.total) * 100, 100) : 0
 
   if (subscriptionLoading || isRefetching) {
@@ -317,11 +326,10 @@ function BillingPageContent() {
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Current Plan</p>
               <h3 className="text-2xl font-bold text-white">{planConfig.name}</h3>
             </div>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-              subscription.status === 'active' || !isPaidPlan
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_-3px_rgba(52,211,153,0.3)]'
-                : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-            }`}>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border ${subscription.status === 'active' || !isPaidPlan
+              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_-3px_rgba(52,211,153,0.3)]'
+              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              }`}>
               {subscription.status === 'canceled' ? 'CANCELED' : 'ACTIVE'}
             </span>
           </div>
@@ -355,8 +363,8 @@ function BillingPageContent() {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-2">
-                {usage.limitType === 'daily' 
-                  ? 'Daily API requests' 
+                {usage.limitType === 'daily'
+                  ? 'Daily API requests'
                   : usage.limitType === 'rate'
                     ? 'Unlimited requests (rate limited)'
                     : 'Monthly API requests this billing period'}
@@ -389,14 +397,14 @@ function BillingPageContent() {
           </div>
           <div className="flex-grow">
             <p className="text-sm text-slate-500 mt-2">
-              {isPaidPlan 
+              {isPaidPlan
                 ? `Next billing on ${subscription.endsAt ? new Date(subscription.endsAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'renewal date'}`
                 : 'Sandbox Tier is free forever.'
               }
             </p>
           </div>
           <div className="mt-auto pt-4 border-t border-white/5">
-            <button 
+            <button
               onClick={handleManageSubscription}
               disabled={isLoadingPortal}
               className="text-sm text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 group transition-colors"
@@ -429,9 +437,8 @@ function BillingPageContent() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Managed Pro Plan */}
-          <div className={`relative bg-[#0e0e11] border border-white/5 rounded-2xl p-6 flex flex-col ${
-            subscription.tier === 'managed_pro' ? 'opacity-75 hover:opacity-100' : ''
-          } transition-opacity`}>
+          <div className={`relative bg-[#0e0e11] border border-white/5 rounded-2xl p-6 flex flex-col ${subscription.tier === 'managed_pro' ? 'opacity-75 hover:opacity-100' : ''
+            } transition-opacity`}>
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-medium text-slate-300">Managed Pro</h3>
@@ -470,11 +477,10 @@ function BillingPageContent() {
             <button
               onClick={handleManageSubscription}
               disabled={isLoadingPortal}
-              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${
-                subscription.tier === 'managed_pro'
-                  ? 'border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white bg-slate-900/50 hover:bg-slate-800/50 cursor-pointer'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${subscription.tier === 'managed_pro'
+                ? 'border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white bg-slate-900/50 hover:bg-slate-800/50 cursor-pointer'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isLoadingPortal && subscription.tier === 'managed_pro' ? (
                 <Loader2 className="w-4 h-4 animate-spin mx-auto" />
@@ -527,11 +533,10 @@ function BillingPageContent() {
             <button
               onClick={handleManageSubscription}
               disabled={isLoadingPortal}
-              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                subscription.tier === 'managed_expert'
-                  ? 'border border-indigo-500/50 hover:border-indigo-400 text-indigo-200 hover:text-white bg-indigo-600/30 hover:bg-indigo-600/50 cursor-pointer'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 cursor-pointer'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${subscription.tier === 'managed_expert'
+                ? 'border border-indigo-500/50 hover:border-indigo-400 text-indigo-200 hover:text-white bg-indigo-600/30 hover:bg-indigo-600/50 cursor-pointer'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 cursor-pointer'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isLoadingPortal && subscription.tier === 'managed_expert' ? (
                 <Loader2 className="w-4 h-4 animate-spin mx-auto" />
@@ -582,11 +587,10 @@ function BillingPageContent() {
             <button
               onClick={handleManageSubscription}
               disabled={isLoadingPortal}
-              className={`mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${
-                subscription.tier === 'byok_pro'
-                  ? 'border border-purple-500/50 hover:border-purple-400 text-purple-300 hover:text-white bg-purple-600/20 hover:bg-purple-600/30 cursor-pointer'
-                  : 'border border-purple-500/50 text-purple-300 hover:bg-purple-500/10 cursor-pointer'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${subscription.tier === 'byok_pro'
+                ? 'border border-purple-500/50 hover:border-purple-400 text-purple-300 hover:text-white bg-purple-600/20 hover:bg-purple-600/30 cursor-pointer'
+                : 'border border-purple-500/50 text-purple-300 hover:bg-purple-500/10 cursor-pointer'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isLoadingPortal && subscription.tier === 'byok_pro' ? (
                 <Loader2 className="w-4 h-4 animate-spin mx-auto" />
@@ -606,7 +610,7 @@ function BillingPageContent() {
             <h2 className="text-lg font-semibold text-white">Payment Method</h2>
           </div>
           <div className="bg-[#0e0e11] rounded-xl border border-white/5 p-6 pb-8 h-[320px] flex flex-col justify-between">
-            <div 
+            <div
               onClick={() => isPaidPlan && handleManageSubscription()}
               className={`flex-grow rounded-lg border-2 border-dashed border-slate-800 bg-[#18181b]/30 hover:bg-[#18181b]/50 hover:border-slate-700 transition-all flex flex-col items-center justify-center p-8 group ${isPaidPlan ? 'cursor-pointer' : 'cursor-default'}`}
             >
@@ -617,13 +621,13 @@ function BillingPageContent() {
                 {isPaidPlan ? 'Manage Payment Method' : 'No Payment Method'}
               </p>
               <p className="text-xs text-slate-500 mb-6 text-center max-w-[220px]">
-                {isPaidPlan 
+                {isPaidPlan
                   ? 'Update your payment method or view invoices via Polar.'
                   : 'Upgrade to a paid plan to add a payment method.'
                 }
               </p>
               {isPaidPlan ? (
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); handleManageSubscription(); }}
                   disabled={isLoadingPortal}
                   className="flex items-center gap-2 px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 text-xs font-medium text-white transition-all disabled:opacity-50"
@@ -638,7 +642,7 @@ function BillingPageContent() {
                   )}
                 </button>
               ) : (
-                <button 
+                <button
                   onClick={() => setShowUpgradeModal(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-md bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-medium text-white transition-all"
                 >
@@ -653,7 +657,7 @@ function BillingPageContent() {
                 <span >Secured by Polar</span>
               </div>
               {isPaidPlan && (
-                <button 
+                <button
                   onClick={handleManageSubscription}
                   className="text-slate-400 hover:text-white transition-colors flex items-center gap-1"
                 >
@@ -669,7 +673,7 @@ function BillingPageContent() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-white">Recent Transactions</h2>
-            <button 
+            <button
               onClick={handleManageSubscription}
               className="text-sm text-slate-400 hover:text-indigo-400 transition-colors flex items-center gap-1"
             >
@@ -700,9 +704,9 @@ function BillingPageContent() {
       </div>
 
       {/* Upgrade Modal */}
-      <UpgradeModal 
-        isOpen={showUpgradeModal} 
-        onClose={() => setShowUpgradeModal(false)} 
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
       />
     </div>
   )

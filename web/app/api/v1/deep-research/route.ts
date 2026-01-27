@@ -1096,7 +1096,7 @@ export async function POST(req: NextRequest) {
         namespace: UNKEY_NAMESPACES.DEEP_RESEARCH
       }, ctx)
 
-      const rateLimitResult = await checkFeatureRateLimit(workspaceId, UNKEY_NAMESPACES.DEEP_RESEARCH)
+      const rateLimitResult = await checkFeatureRateLimit(workspaceId, UNKEY_NAMESPACES.DEEP_RESEARCH, validPlan)
       rateLimitRemaining = rateLimitResult.remaining
 
       debug('rateLimit:result', {
@@ -1412,15 +1412,15 @@ export async function POST(req: NextRequest) {
     // This enables true async processing where the client gets a 202 response
     // and results are POSTed to the webhook URL when complete
     if (webhook) {
-      debug('async:webhook:triggered', { 
-        webhook: webhook.substring(0, 50) + '...', 
-        requestId 
+      debug('async:webhook:triggered', {
+        webhook: webhook.substring(0, 50) + '...',
+        requestId
       }, ctx)
 
       // Determine the base URL for internal API calls
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL
         || `http://localhost:${process.env.PORT || 3000}`
-      
+
       const internalUrl = `${baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`}/api/v1/deep-research/process`
 
       // Fire-and-forget: trigger internal processing endpoint

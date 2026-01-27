@@ -195,7 +195,7 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     requiresUserKeys: false,
     isPriority: true,
     features: [
-      'Unlimited Chat & Context',
+      '50,000 requests / month',
       '1,000 Web Search / month',
       '50 Deep Research / month (agentic)',
       'System API keys',
@@ -218,7 +218,7 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     requiresUserKeys: false,
     isPriority: true,
     features: [
-      'Unlimited Chat & Context',
+      '200,000 requests / month',
       '5,000 Web Search / month',
       '200 Deep Research / month (agentic)',
       'System API keys',
@@ -291,7 +291,7 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     requiresUserKeys: false,
     isPriority: true,
     features: [
-      'Unlimited Chat & Context',
+      '50,000 requests / month',
       '1,000 Web Search / month',
       '50 Deep Research / month (agentic)',
       'System API keys',

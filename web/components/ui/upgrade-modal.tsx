@@ -69,7 +69,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
       period: '/month',
       description: 'For production applications',
       features: [
-        'Unlimited Chat & Context',
+        '50,000 requests / month',
         '1,000 Web Search / month',
         '50 Deep Research / month',
         'Priority support',
@@ -84,7 +84,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
       period: '/month',
       description: 'For high-volume production apps',
       features: [
-        'Unlimited Chat & Context',
+        '200,000 requests / month',
         '5,000 Web Search / month',
         '200 Deep Research / month',
         'Priority support',

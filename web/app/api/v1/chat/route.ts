@@ -775,7 +775,7 @@ export async function POST(req: NextRequest) {
           namespace: UNKEY_NAMESPACES.WEB_SEARCH
         }, ctx)
 
-        const rateLimitResult = await checkFeatureRateLimit(workspaceId, UNKEY_NAMESPACES.WEB_SEARCH)
+        const rateLimitResult = await checkFeatureRateLimit(workspaceId, UNKEY_NAMESPACES.WEB_SEARCH, validPlanType)
 
         debug('path:research:rateLimitResult', {
           success: rateLimitResult.success,

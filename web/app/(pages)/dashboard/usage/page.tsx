@@ -88,7 +88,9 @@ function UsageRingChart({ percentage }: { percentage: number }) {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xs font-bold text-white">{Math.round(percentage)}%</span>
+        <span className="text-xs font-bold text-white">
+          {percentage > 0 && percentage < 1 ? '< 1' : Math.round(percentage)}%
+        </span>
       </div>
     </div>
   )
@@ -195,11 +197,11 @@ export default function UsagePage() {
 
       const deepResearchUsed = usageData?.deepResearchUsage || 0
       const planLimits = DEEP_RESEARCH_LIMITS[currentUserPlan as keyof typeof DEEP_RESEARCH_LIMITS] ?? { limit: 0, period: 'daily' as const }
-      
+
       // Calculate monthly limit based on plan config
       const currentPlanConfig = PLAN_CONFIG[currentUserPlan as keyof typeof PLAN_CONFIG] || PLAN_CONFIG.sandbox
       setPlanConfig(currentPlanConfig)
-      
+
       let calculatedMonthlyLimit: number
       if (currentPlanConfig.limitType === 'rate') {
         calculatedMonthlyLimit = -1 // Unlimited
@@ -253,8 +255,8 @@ export default function UsagePage() {
   }
 
   const totalIntents = (stats?.intentBreakdown.chat || 0) + (stats?.intentBreakdown.context || 0) + (stats?.intentBreakdown.research || 0)
-  const requestsUsedPercentage = monthlyLimit > 0 
-    ? Math.min(((stats?.requestsThisMonth || 0) / monthlyLimit) * 100, 100) 
+  const requestsUsedPercentage = monthlyLimit > 0
+    ? Math.min(((stats?.requestsThisMonth || 0) / monthlyLimit) * 100, 100)
     : 0
 
   return (
@@ -274,11 +276,10 @@ export default function UsagePage() {
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                  timeRange === range
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${timeRange === range
                     ? 'bg-indigo-500/20 text-indigo-400'
                     : 'text-slate-400 hover:text-white'
-                }`}
+                  }`}
               >
                 {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
               </button>
@@ -315,11 +316,10 @@ export default function UsagePage() {
                         setSelectedKeyId('all')
                         setKeyDropdownOpen(false)
                       }}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                        selectedKeyId === 'all'
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${selectedKeyId === 'all'
                           ? 'bg-white/5 text-white'
                           : 'text-slate-300 hover:bg-white/5'
-                      }`}
+                        }`}
                     >
                       <Key className="w-4 h-4 flex-shrink-0" />
                       <span className="flex-1 truncate text-sm">All Keys</span>
@@ -340,11 +340,10 @@ export default function UsagePage() {
                           setSelectedKeyId(key.id)
                           setKeyDropdownOpen(false)
                         }}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                          selectedKeyId === key.id
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${selectedKeyId === key.id
                             ? 'bg-white/5 text-white'
                             : 'text-slate-300 hover:bg-white/5'
-                        }`}
+                          }`}
                       >
                         <Key className="w-4 h-4 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
@@ -409,8 +408,8 @@ export default function UsagePage() {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-2">
-                {planConfig.limitType === 'daily' 
-                  ? 'Daily API requests' 
+                {planConfig.limitType === 'daily'
+                  ? 'Daily API requests'
                   : planConfig.limitType === 'rate'
                     ? 'Unlimited requests (rate limited)'
                     : 'Monthly API requests this billing period'}
@@ -459,13 +458,12 @@ export default function UsagePage() {
         <div className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-white">Deep Research Quota</h2>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-              deepResearchQuota.limit === -1
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${deepResearchQuota.limit === -1
                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/20'
                 : deepResearchQuota.limit === 0
                   ? 'bg-slate-800 text-slate-400 border border-slate-700'
                   : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/20'
-            }`}>
+              }`}>
               {deepResearchQuota.plan.replace('_', ' ').toUpperCase()}
             </span>
           </div>
@@ -505,22 +503,20 @@ export default function UsagePage() {
                 </div>
                 <div className="h-2 bg-slate-800 rounded-full overflow-hidden mb-3">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      deepResearchQuota.used >= deepResearchQuota.limit
+                    className={`h-full rounded-full transition-all duration-500 ${deepResearchQuota.used >= deepResearchQuota.limit
                         ? 'bg-red-500'
                         : deepResearchQuota.used >= deepResearchQuota.limit * 0.8
                           ? 'bg-amber-500'
                           : 'bg-indigo-500'
-                    }`}
+                      }`}
                     style={{ width: `${Math.min((deepResearchQuota.used / deepResearchQuota.limit) * 100, 100)}%` }}
                   />
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className={`font-medium ${
-                    deepResearchQuota.used >= deepResearchQuota.limit
+                  <span className={`font-medium ${deepResearchQuota.used >= deepResearchQuota.limit
                       ? 'text-red-400'
                       : 'text-emerald-400'
-                  }`}>
+                    }`}>
                     {deepResearchQuota.limit - deepResearchQuota.used} remaining
                   </span>
                   <span className="text-slate-500">
