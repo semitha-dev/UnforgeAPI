@@ -94,20 +94,10 @@ export async function GET(request: Request) {
           return NextResponse.redirect(`${origin}/onboarding/workspace`)
         }
 
-        // Get workspace slug for redirect
+        // Redirect to dashboard (the dashboard page will handle workspace routing)
         if (next === '/dashboard' && profile.default_workspace_id) {
-          const { data: workspace, error: wsError } = await supabase
-            .from('workspaces')
-            .select('slug')
-            .eq('id', profile.default_workspace_id)
-            .single()
-          
-          console.log('[Auth Callback] Workspace fetch:', { workspace, wsError: wsError?.message })
-          
-          if (workspace) {
-            console.log('[Auth Callback] Redirecting to dashboard:', workspace.slug)
-            return NextResponse.redirect(`${origin}/dashboard/${workspace.slug}`)
-          }
+          console.log('[Auth Callback] Redirecting to dashboard')
+          return NextResponse.redirect(`${origin}/dashboard`)
         }
       }
       

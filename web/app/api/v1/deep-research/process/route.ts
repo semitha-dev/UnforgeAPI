@@ -32,6 +32,7 @@ import { jsonrepair } from 'jsonrepair'
 // ============================================
 
 export const maxDuration = 300
+export const preferredRegion = 'auto' // Enable Fluid Compute
 
 const TIME_LIMIT_MS = 250_000
 const DEBUG = process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true'

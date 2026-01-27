@@ -156,23 +156,9 @@ export default function SignInPage() {
             console.log('[Signin] Redirecting to onboarding (no workspace)')
             router.push('/onboarding/workspace')
           } else {
-            // Get workspace slug
-            console.log('[Signin] Fetching workspace:', profile.default_workspace_id)
-            const { data: workspace, error: wsError } = await supabase
-              .from('workspaces')
-              .select('slug')
-              .eq('id', profile.default_workspace_id)
-              .single()
-
-            console.log('[Signin] Workspace result:', { workspace, error: wsError?.message })
-
-            if (workspace) {
-              console.log('[Signin] Redirecting to dashboard:', workspace.slug)
-              router.push(`/dashboard/${workspace.slug}`)
-            } else {
-              console.log('[Signin] Redirecting to onboarding (no workspace found)')
-              router.push('/onboarding/workspace')
-            }
+            // Redirect to dashboard (the dashboard page will handle workspace routing)
+            console.log('[Signin] Redirecting to dashboard')
+            router.push('/dashboard')
           }
         } catch (profileError) {
           console.error('[Signin] Profile check error:', profileError)

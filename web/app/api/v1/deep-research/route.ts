@@ -47,6 +47,7 @@ import { checkFeatureRateLimit, isByokExempt, getRateLimitErrorResponse, UNKEY_N
 // ============================================
 
 export const maxDuration = 300
+export const preferredRegion = 'auto' // Enable Fluid Compute
 
 // Auto-cut timer: Stop processing at 4m10s to leave room for emergency finalization
 // Vercel Fluid Compute gives us 300s (5 minutes) on Free Tier
