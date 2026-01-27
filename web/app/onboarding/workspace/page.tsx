@@ -206,13 +206,13 @@ export default function OnboardingWorkspacePage() {
     >
       <div className="mb-8">
         <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Create your workspace</h2>
-        <p className="text-slate-500 dark:text-slate-400">Let's give your new digital headquarters a name.</p>
+        <p className="text-black dark:text-slate-400">Let's give your new digital headquarters a name.</p>
       </div>
 
       <div className="space-y-6">
         {/* Workspace Name Field */}
         <div className="space-y-2">
-          <label htmlFor="workspace_name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <label htmlFor="workspace_name" className="block text-sm font-medium text-black dark:text-slate-300">
             Workspace Name
           </label>
           <div className="relative">

@@ -10,7 +10,7 @@ export default function PrivacyPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link 
+          <Link
             href="/"
             className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
           >
@@ -19,9 +19,9 @@ export default function PrivacyPage() {
           </Link>
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/reallogo.png" alt="LeafLearning" width={32} height={32} className="object-contain" />
+              <Image src="/reallogo.png" alt="UnforgeAPI" width={32} height={32} className="object-contain" />
             </div>
-            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
+            <span className="font-bold font-headline text-text-primary">UnforgeAPI</span>
           </Link>
         </div>
       </header>
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
             Your Privacy Matters
           </h1>
           <p className="text-lg text-text-secondary font-body">
-            Last updated: January 15, 2025
+            Last updated: January 27, 2026
           </p>
         </div>
       </section>
@@ -46,42 +46,50 @@ export default function PrivacyPage() {
       <section className="py-12">
         <div className="max-w-4xl mx-auto px-6">
           <div className="bg-card rounded-2xl border border-border p-8 md:p-12 space-y-8">
-            
+
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Introduction</h2>
               <p className="text-text-secondary font-body leading-relaxed">
-                LeafLearning ("we," "our," or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services. Please read this policy carefully. By using LeafLearning, you consent to the practices described in this Privacy Policy.
+                UnforgeAPI (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our API services. Please read this policy carefully. By using UnforgeAPI, you consent to the practices described in this Privacy Policy.
               </p>
             </div>
 
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Information We Collect</h2>
               <div className="space-y-4 text-text-secondary font-body leading-relaxed">
-                <p><strong className="text-text-primary">Personal Information:</strong> When you create an account, we collect your email address and, optionally, your name and profile picture.</p>
-                <p><strong className="text-text-primary">Usage Data:</strong> We automatically collect information about how you interact with our services, including pages visited, features used, and time spent studying.</p>
-                <p><strong className="text-text-primary">Study Materials:</strong> When you upload notes, PDFs, or other study materials, we store this content securely to provide our services.</p>
-                <p><strong className="text-text-primary">Payment Information:</strong> If you make a purchase, payment information is processed by our payment provider (Stripe). We do not store your full credit card details.</p>
-                <p><strong className="text-text-primary">Device Information:</strong> We may collect information about the device you use to access our services, including device type, operating system, and browser type.</p>
+                <p><strong className="text-text-primary">Account Information:</strong> When you create an account, we collect your email address and, optionally, your name and profile picture.</p>
+                <p><strong className="text-text-primary">API Usage Data:</strong> We automatically collect information about your API usage, including request counts, endpoints accessed, response times, and error rates.</p>
+                <p><strong className="text-text-primary">Query Data:</strong> When you submit queries to our API, we process this content in real-time to provide research results. Query content is not permanently stored beyond rate limiting and usage tracking purposes.</p>
+                <p><strong className="text-text-primary">Payment Information:</strong> If you subscribe to a paid plan, payment information is processed by our payment provider (Polar). We do not store your full credit card details.</p>
+                <p><strong className="text-text-primary">Device Information:</strong> We may collect information about the device or server making API requests, including IP address, user agent, and request headers.</p>
               </div>
             </div>
 
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">How We Use Your Information</h2>
               <ul className="list-disc list-inside space-y-2 text-text-secondary font-body leading-relaxed">
-                <li>To provide, maintain, and improve our services</li>
-                <li>To process transactions and send related information</li>
+                <li>To provide, maintain, and improve our API services</li>
+                <li>To process API requests and deliver research results</li>
+                <li>To enforce rate limits and usage quotas</li>
+                <li>To process subscription payments and billing</li>
                 <li>To send you technical notices, updates, and support messages</li>
                 <li>To respond to your comments, questions, and requests</li>
-                <li>To personalize your learning experience</li>
-                <li>To monitor and analyze trends, usage, and activities</li>
-                <li>To detect, prevent, and address technical issues and fraud</li>
+                <li>To monitor and analyze API performance and usage patterns</li>
+                <li>To detect, prevent, and address abuse, technical issues, and fraud</li>
               </ul>
             </div>
 
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">AI Processing</h2>
               <p className="text-text-secondary font-body leading-relaxed">
-                Our service uses artificial intelligence to generate flashcards, quizzes, and summaries from your study materials. Your content is processed by AI models to provide these features. We use industry-leading AI providers with strict data handling policies. Your study materials are not used to train AI models.
+                Our service uses artificial intelligence to perform deep research and generate structured outputs from your queries. Your queries are processed by AI providers including Groq, Gemini, and Tavily. These providers have strict data handling policies. Your query data is not used to train AI models.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-bold font-headline text-primary mb-4">BYOK (Bring Your Own Keys)</h2>
+              <p className="text-text-secondary font-body leading-relaxed">
+                If you use the BYOK feature, your API keys for third-party services (Groq, Gemini, Tavily) are stored securely and encrypted. These keys are only used to process your API requests and are never shared with other users or third parties. You can delete your stored keys at any time through your account settings.
               </p>
             </div>
 
@@ -89,7 +97,8 @@ export default function PrivacyPage() {
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Data Sharing</h2>
               <div className="space-y-4 text-text-secondary font-body leading-relaxed">
                 <p>We do not sell, trade, or otherwise transfer your personal information to third parties except as described below:</p>
-                <p><strong className="text-text-primary">Service Providers:</strong> We may share information with third-party vendors who perform services on our behalf, such as payment processing, data analysis, and email delivery.</p>
+                <p><strong className="text-text-primary">AI Service Providers:</strong> We share query data with AI providers (Groq, Gemini, Tavily) strictly for processing your API requests.</p>
+                <p><strong className="text-text-primary">Payment Processors:</strong> Subscription and payment data is shared with Polar for billing purposes.</p>
                 <p><strong className="text-text-primary">Legal Requirements:</strong> We may disclose information if required by law or in response to valid requests by public authorities.</p>
                 <p><strong className="text-text-primary">Business Transfers:</strong> If we are involved in a merger, acquisition, or sale of assets, your information may be transferred as part of that transaction.</p>
               </div>
@@ -98,14 +107,14 @@ export default function PrivacyPage() {
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Data Security</h2>
               <p className="text-text-secondary font-body leading-relaxed">
-                We implement industry-standard security measures to protect your information. This includes encryption of data in transit (TLS 1.3) and at rest (AES-256), secure servers, and regular security audits. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
+                We implement industry-standard security measures to protect your information. This includes encryption of data in transit (TLS 1.3) and at rest (AES-256), secure API key storage, and regular security audits. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.
               </p>
             </div>
 
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Data Retention</h2>
               <p className="text-text-secondary font-body leading-relaxed">
-                We retain your personal information for as long as your account is active or as needed to provide you services. You can request deletion of your data at any time by contacting us or through your account settings. We may retain certain information as required by law or for legitimate business purposes.
+                We retain your account information for as long as your account is active or as needed to provide you services. API usage logs are retained for 90 days for analytics and debugging purposes. You can request deletion of your data at any time by contacting us or through your account settings. We may retain certain information as required by law or for legitimate business purposes.
               </p>
             </div>
 
@@ -113,31 +122,31 @@ export default function PrivacyPage() {
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Your Rights</h2>
               <ul className="list-disc list-inside space-y-2 text-text-secondary font-body leading-relaxed">
                 <li><strong className="text-text-primary">Access:</strong> You can request a copy of your personal data</li>
-                <li><strong className="text-text-primary">Correction:</strong> You can update or correct your information</li>
+                <li><strong className="text-text-primary">Correction:</strong> You can update or correct your account information</li>
                 <li><strong className="text-text-primary">Deletion:</strong> You can request deletion of your account and data</li>
-                <li><strong className="text-text-primary">Export:</strong> You can export your flashcards and study materials</li>
+                <li><strong className="text-text-primary">API Key Management:</strong> You can regenerate or delete your API keys at any time</li>
                 <li><strong className="text-text-primary">Opt-out:</strong> You can unsubscribe from marketing communications</li>
               </ul>
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold font-headline text-primary mb-4">Children's Privacy</h2>
+              <h2 className="text-2xl font-bold font-headline text-primary mb-4">Children&apos;s Privacy</h2>
               <p className="text-text-secondary font-body leading-relaxed">
-                Our services are not intended for children under 13 years of age. We do not knowingly collect personal information from children under 13. If you are a parent or guardian and believe your child has provided us with personal information, please contact us.
+                Our services are not intended for children under 18 years of age. We do not knowingly collect personal information from children under 18. If you are a parent or guardian and believe your child has provided us with personal information, please contact us.
               </p>
             </div>
 
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">International Users</h2>
               <p className="text-text-secondary font-body leading-relaxed">
-                LeafLearning is operated from various locations worldwide. If you are accessing our services from outside your country, please be aware that your information may be transferred to, stored, and processed in different jurisdictions with different data protection laws than your own.
+                UnforgeAPI is operated from Sri Lanka. If you are accessing our services from outside Sri Lanka, please be aware that your information may be transferred to, stored, and processed in Sri Lanka or other jurisdictions where our service providers operate, which may have different data protection laws than your own.
               </p>
             </div>
 
             <div>
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Changes to This Policy</h2>
               <p className="text-text-secondary font-body leading-relaxed">
-                We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date. We encourage you to review this Privacy Policy periodically.
+                We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the &quot;Last updated&quot; date. We encourage you to review this Privacy Policy periodically.
               </p>
             </div>
 
@@ -145,8 +154,8 @@ export default function PrivacyPage() {
               <h2 className="text-2xl font-bold font-headline text-primary mb-4">Contact Us</h2>
               <p className="text-text-secondary font-body leading-relaxed">
                 If you have any questions about this Privacy Policy, please contact us at{' '}
-                <a href="mailto:privacy@leaflearning.app" className="text-accent hover:underline">
-                  privacy@leaflearning.app
+                <a href="mailto:support@unforgeapi.com" className="text-accent hover:underline">
+                  support@unforgeapi.com
                 </a>
               </p>
             </div>
@@ -159,7 +168,7 @@ export default function PrivacyPage() {
       <footer className="py-8 border-t border-border">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} LeafLearning. All rights reserved.
+            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
           </p>
         </div>
       </footer>

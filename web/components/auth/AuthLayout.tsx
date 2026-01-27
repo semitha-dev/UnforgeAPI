@@ -114,16 +114,14 @@ export default function AuthLayout({
 
                                 return (
                                     <span key={index} className="flex items-center">
-                                        <span className={`flex items-center ${
-                                            isCompleted ? 'text-[#00A86B]' :
+                                        <span className={`flex items-center ${isCompleted ? 'text-[#00A86B]' :
                                             isCurrent ? 'text-slate-900' :
-                                            'text-slate-400'
-                                        }`}>
-                                            <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 text-xs font-semibold transition-all duration-200 ${
-                                                isCompleted ? 'bg-[#00A86B] text-white' :
-                                                isCurrent ? 'bg-slate-100 text-slate-600 ring-2 ring-[#00A86B] ring-offset-2 ring-offset-white' :
-                                                'bg-slate-100 text-slate-400 border border-slate-200'
+                                                'text-slate-400'
                                             }`}>
+                                            <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 text-xs font-semibold transition-all duration-200 ${isCompleted ? 'bg-[#00A86B] text-white' :
+                                                isCurrent ? 'bg-slate-100 text-slate-600 ring-2 ring-[#00A86B] ring-offset-2 ring-offset-white' :
+                                                    'bg-slate-100 text-slate-400 border border-slate-200'
+                                                }`}>
                                                 {isCompleted ? (
                                                     <Check className="w-3.5 h-3.5" />
                                                 ) : (
@@ -145,16 +143,16 @@ export default function AuthLayout({
                 )}
 
                 {/* Main Form Content */}
-                <div className="flex-1 flex flex-col justify-center px-6 sm:px-12 lg:px-20 max-w-2xl mx-auto w-full py-8 sm:py-12">
-                    {/* Mobile Logo - Only visible on mobile */}
-                    <div className="w-12 h-12 bg-[#00A86B]/10 rounded-xl flex items-center justify-center mb-6 md:hidden">
-                        <Image src="/reallogo.png" alt={brandTitle} width={24} height={24} className="object-contain" />
+                <div className="flex-1 flex flex-col justify-center items-center px-6 sm:px-12 lg:px-16 w-full py-8 sm:py-12">
+                    <div className="w-full max-w-md">
+                        {/* Mobile Logo - Only visible on mobile */}
+                        <div className="w-12 h-12 bg-[#00A86B]/10 rounded-xl flex items-center justify-center mb-6 md:hidden">
+                            <Image src="/reallogo.png" alt={brandTitle} width={24} height={24} className="object-contain" />
+                        </div>
+
+                        {children}
                     </div>
-
-                    {children}
                 </div>
-
-                {/* Help Footer */}
                 <div className="p-6 sm:p-8 border-t border-slate-100 text-center">
                     <Link
                         href={footerLink.href}

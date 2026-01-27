@@ -10,7 +10,7 @@ export default function TermsPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link 
+          <Link
             href="/"
             className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
           >
@@ -19,9 +19,9 @@ export default function TermsPage() {
           </Link>
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/reallogo.png" alt="LeafLearning" width={32} height={32} className="object-contain" />
+              <Image src="/reallogo.png" alt="UnforgeAPI" width={32} height={32} className="object-contain" />
             </div>
-            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
+            <span className="font-bold font-headline text-text-primary">UnforgeAPI</span>
           </Link>
         </div>
       </header>
@@ -37,7 +37,7 @@ export default function TermsPage() {
             Legal Policies
           </h1>
           <p className="text-lg text-text-secondary font-body">
-            Last Updated: January 15, 2025
+            Last Updated: January 27, 2026
           </p>
         </div>
       </section>
@@ -77,7 +77,7 @@ export default function TermsPage() {
       {/* Content */}
       <section className="py-12">
         <div className="max-w-4xl mx-auto px-6 space-y-12">
-          
+
           {/* Terms of Service */}
           <div id="terms" className="scroll-mt-24">
             <div className="bg-card rounded-2xl border border-border p-8 shadow-sm">
@@ -91,49 +91,50 @@ export default function TermsPage() {
               <div className="space-y-6 text-text-secondary font-body leading-relaxed">
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Acceptance of Terms</h3>
-                  <p>By creating an account or using LeafLearning, you agree to these Terms of Service and our Privacy Policy. If you do not agree, you must stop using the platform immediately.</p>
+                  <p>By creating an account or using UnforgeAPI, you agree to these Terms of Service and our Privacy Policy. If you do not agree, you must stop using the platform immediately.</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Eligibility</h3>
-                  <p>You must be at least <strong className="text-text-primary">18 years old</strong> to create an account and use LeafLearning. By creating an account, you confirm that you are at least 18 years of age. Minors are not permitted to use this service.</p>
+                  <p>You must be at least <strong className="text-text-primary">18 years old</strong> to create an account and use UnforgeAPI. By creating an account, you confirm that you are at least 18 years of age. Minors are not permitted to use this service.</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Service Description</h3>
-                  <p>LeafLearning is an AI-powered study companion.</p>
+                  <p>UnforgeAPI is a Deep Research API built for AI agents and developers.</p>
                   <ul className="list-disc list-inside mt-2 space-y-1 ml-4">
-                    <li><strong className="text-text-primary">AI Provider:</strong> Our AI features are powered by Groq (Llama models). Your input data will be processed by these AI APIs.</li>
-                    <li><strong className="text-text-primary">Nature of AI:</strong> AI is probabilistic. LeafLearning does not guarantee that summaries, citations, or answers are 100% accurate, complete, or unbiased.</li>
+                    <li><strong className="text-text-primary">AI Provider:</strong> Our AI features are powered by multiple providers including Groq, Gemini, and Tavily. Your input data will be processed by these AI APIs.</li>
+                    <li><strong className="text-text-primary">Nature of AI:</strong> AI is probabilistic. UnforgeAPI does not guarantee that research results, citations, or answers are 100% accurate, complete, or unbiased.</li>
+                    <li><strong className="text-text-primary">BYOK Support:</strong> Users may bring their own API keys (Groq, Gemini, Tavily) for unlimited scaling.</li>
                   </ul>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Data Handling & User Content</h3>
                   <ul className="list-disc list-inside space-y-2 ml-4">
-                    <li><strong className="text-text-primary">Your Ownership:</strong> You retain ownership of all notes and files you upload.</li>
-                    <li><strong className="text-text-primary">PDF Processing:</strong> LeafLearning does not store the PDF files you upload. They are processed temporarily and immediately discarded.</li>
-                    <li><strong className="text-text-primary">Stored Content:</strong> We store only the text input you manually enter and the output generated by the AI (flashcards, quizzes, etc.).</li>
+                    <li><strong className="text-text-primary">Your Ownership:</strong> You retain ownership of all queries and data you submit through the API.</li>
+                    <li><strong className="text-text-primary">Query Processing:</strong> UnforgeAPI processes your queries in real-time and does not permanently store query content beyond what is necessary for rate limiting and usage tracking.</li>
+                    <li><strong className="text-text-primary">API Responses:</strong> Research results and structured JSON outputs are generated on-demand and delivered to your application.</li>
                   </ul>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-text-primary mb-2">Token System</h3>
+                  <h3 className="font-semibold text-text-primary mb-2">Subscription & Usage Limits</h3>
                   <ul className="list-disc list-inside space-y-2 ml-4">
-                    <li><strong className="text-text-primary">Token Validity:</strong> Tokens are valid for the period specified at the time of purchase. LeafLearning reserves the right to modify token expiration policies at its discretion.</li>
-                    <li><strong className="text-text-primary">Non-Transferable:</strong> Tokens cannot be transferred to other accounts or exchanged for cash.</li>
-                    <li><strong className="text-text-primary">Free Tier:</strong> New users receive 500 complimentary tokens upon registration.</li>
+                    <li><strong className="text-text-primary">Rate Limits:</strong> API usage is subject to the rate limits of your subscription tier. UnforgeAPI reserves the right to modify limits at its discretion.</li>
+                    <li><strong className="text-text-primary">Non-Transferable:</strong> Subscription benefits cannot be transferred to other accounts or exchanged for cash.</li>
+                    <li><strong className="text-text-primary">Free Tier:</strong> New users receive access to the Sandbox tier with limited daily requests upon registration.</li>
                   </ul>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-text-primary mb-2">Academic Integrity</h3>
-                  <p>LeafLearning is for learning assistance. You agree NOT to use AI-generated text to commit plagiarism or submit AI-generated citations without verifying them against primary sources.</p>
+                  <h3 className="font-semibold text-text-primary mb-2">Acceptable Use</h3>
+                  <p>UnforgeAPI is for legitimate research and development purposes. You agree NOT to use the API for illegal activities, spam, or to circumvent security measures of third-party services.</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Limitation of Liability</h3>
-                  <p>The Service is provided "AS IS." LeafLearning is not liable for academic consequences (failing grades), loss of data, or AI "hallucinations." You are solely responsible for verifying the accuracy of all materials.</p>
+                  <p>The Service is provided &quot;AS IS.&quot; UnforgeAPI is not liable for inaccurate research results, loss of data, service interruptions, or AI &quot;hallucinations.&quot; You are solely responsible for verifying the accuracy of all API responses.</p>
                 </div>
 
                 <div>
@@ -157,7 +158,7 @@ export default function TermsPage() {
               <div className="space-y-6 text-text-secondary font-body leading-relaxed">
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Information We Collect</h3>
-                  <p>Account Data (Email/Username), Study Data (Notes/Quizzes), and Usage Analytics.</p>
+                  <p>Account Data (Email/Username), API Usage Data (Request counts, endpoints used), and Usage Analytics.</p>
                 </div>
 
                 <div>
@@ -167,17 +168,17 @@ export default function TermsPage() {
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Third-Party Disclosure</h3>
-                  <p>We share text data with Groq AI strictly for content generation. We do not sell your data to advertisers.</p>
+                  <p>We share query data with AI providers (Groq, Gemini, Tavily) strictly for processing your API requests. We do not sell your data to advertisers.</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Data Deletion</h3>
-                  <p>You may request full account deletion at any time. Upon deletion, all notes, progress, and token balances are permanently removed.</p>
+                  <p>You may request full account deletion at any time. Upon deletion, all account data and usage history are permanently removed.</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">International Transfers</h3>
-                  <p>Your data may be processed in servers located in Sri Lanka or where our third-party providers (Groq, Polar) operate.</p>
+                  <p>Your data may be processed in servers located in Sri Lanka or where our third-party providers (Groq, Gemini, Tavily, Polar) operate.</p>
                 </div>
 
                 <p className="pt-4">
@@ -201,17 +202,17 @@ export default function TermsPage() {
               <div className="space-y-6 text-text-secondary font-body leading-relaxed">
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Digital Goods</h3>
-                  <p>Since tokens grant immediate access to AI features, all purchases are final and non-refundable.</p>
+                  <p>Since subscriptions grant immediate access to API features, all purchases are final and non-refundable.</p>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-text-primary mb-2">Token Expiration</h3>
-                  <p>Tokens are subject to the expiration terms active at the time of purchase. Check your dashboard for current validity periods.</p>
+                  <h3 className="font-semibold text-text-primary mb-2">Subscription Periods</h3>
+                  <p>Subscriptions are billed monthly. Check your dashboard for current billing periods and usage limits.</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-text-primary mb-2">Technical Errors</h3>
-                  <p>If a payment error occurs with Polar, contact support to have your tokens manually credited.</p>
+                  <p>If a payment error occurs with Polar, contact support to have your subscription manually activated.</p>
                 </div>
 
                 <div>
@@ -240,14 +241,14 @@ export default function TermsPage() {
               <div className="text-text-secondary font-body leading-relaxed">
                 <p className="mb-6">For legal inquiries or support, please contact us:</p>
                 <div className="flex flex-col sm:flex-row gap-4">
-                  <a 
-                    href="mailto:support@leaflearning.app" 
+                  <a
+                    href="mailto:support@unforgeapi.com"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-muted hover:bg-muted/80 rounded-xl transition-colors"
                   >
                     <Mail className="w-4 h-4 text-text-primary" />
-                    <span className="font-medium text-text-primary">support@leaflearning.app</span>
+                    <span className="font-medium text-text-primary">support@unforgeapi.com</span>
                   </a>
-                  <Link 
+                  <Link
                     href="/contact"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-accent-foreground rounded-xl font-bold font-cta hover:bg-accent/90 transition-colors"
                   >
@@ -264,18 +265,18 @@ export default function TermsPage() {
       {/* CTA Section */}
       <section className="py-12 bg-muted/30">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold font-headline text-primary mb-4">Ready to Start Learning?</h2>
+          <h2 className="text-2xl font-bold font-headline text-primary mb-4">Ready to Build?</h2>
           <p className="text-text-secondary font-body mb-6">
-            Join thousands of students using AI to study smarter.
+            Get your API key and start integrating Deep Research into your applications.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
+            <Link
               href="/signup"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-accent-foreground rounded-xl font-bold font-cta hover:bg-accent/90 transition-colors"
             >
-              Get Started Free
+              Get Your API Key
             </Link>
-            <Link 
+            <Link
               href="/"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold font-cta hover:bg-primary/90 transition-colors"
             >
@@ -290,7 +291,7 @@ export default function TermsPage() {
       <footer className="py-8 border-t border-border">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} LeafLearning. All rights reserved.
+            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
           </p>
         </div>
       </footer>
