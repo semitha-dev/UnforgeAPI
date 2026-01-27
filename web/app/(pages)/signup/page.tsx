@@ -199,14 +199,14 @@ export default function SignUpPage() {
       stepLabels={['Account', 'Workspace', 'Finish']}
     >
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Create your account</h2>
-        <p className="text-slate-500 dark:text-slate-400">Get started with UnforgeAPI for free</p>
+        <h2 className="text-3xl font-bold text-slate-900 mb-2">Create your account</h2>
+        <p className="text-slate-500">Get started with UnforgeAPI for free</p>
       </div>
 
       {/* General Error */}
       {errors.general && (
-        <div className="mb-6 p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg">
-          <p className="text-red-600 dark:text-red-400 text-sm">{errors.general}</p>
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-600 text-sm">{errors.general}</p>
         </div>
       )}
 
@@ -214,7 +214,7 @@ export default function SignUpPage() {
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Name Field */}
         <div className="space-y-2">
-          <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <label htmlFor="name" className="block text-sm font-medium text-slate-700">
             Full Name
           </label>
           <input
@@ -224,7 +224,7 @@ export default function SignUpPage() {
             autoComplete="name"
             value={formData.name}
             onChange={handleInputChange}
-            className={`block w-full rounded-lg border bg-white dark:bg-[#111827] text-slate-900 dark:text-white py-3 px-4 shadow-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 focus:border-[#00A86B] ${errors.name ? 'border-red-500' : 'border-slate-300 dark:border-slate-600'
+            className={`block w-full rounded-lg border bg-white text-slate-900 py-3 px-4 shadow-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 focus:border-[#00A86B] ${errors.name ? 'border-red-500' : 'border-slate-300'
               }`}
             placeholder="Enter your name"
           />
@@ -235,7 +235,7 @@ export default function SignUpPage() {
 
         {/* Email Field */}
         <div className="space-y-2">
-          <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
             Email address
           </label>
           <input
@@ -245,7 +245,7 @@ export default function SignUpPage() {
             autoComplete="email"
             value={formData.email}
             onChange={handleInputChange}
-            className={`block w-full rounded-lg border bg-white dark:bg-[#111827] text-slate-900 dark:text-white py-3 px-4 shadow-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 focus:border-[#00A86B] ${errors.email ? 'border-red-500' : 'border-slate-300 dark:border-slate-600'
+            className={`block w-full rounded-lg border bg-white text-slate-900 py-3 px-4 shadow-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 focus:border-[#00A86B] ${errors.email ? 'border-red-500' : 'border-slate-300'
               }`}
             placeholder="Enter your email"
           />
@@ -256,7 +256,7 @@ export default function SignUpPage() {
 
         {/* Password Field */}
         <div className="space-y-2">
-          <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+          <label htmlFor="password" className="block text-sm font-medium text-slate-700">
             Password
           </label>
           <div className="relative">
@@ -267,14 +267,14 @@ export default function SignUpPage() {
               autoComplete="new-password"
               value={formData.password}
               onChange={handleInputChange}
-              className={`block w-full rounded-lg border bg-white dark:bg-[#111827] text-slate-900 dark:text-white py-3 px-4 pr-12 shadow-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 focus:border-[#00A86B] ${errors.password ? 'border-red-500' : 'border-slate-300 dark:border-slate-600'
+              className={`block w-full rounded-lg border bg-white text-slate-900 py-3 px-4 pr-12 shadow-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 focus:border-[#00A86B] ${errors.password ? 'border-red-500' : 'border-slate-300'
                 }`}
               placeholder="Create a password"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
             >
               {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
@@ -296,9 +296,9 @@ export default function SignUpPage() {
                 setErrors(prev => ({ ...prev, terms: undefined }))
               }
             }}
-            className="mt-1 h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-[#00A86B] focus:ring-[#00A86B]/50 bg-white dark:bg-[#111827]"
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-[#00A86B] focus:ring-[#00A86B]/50 bg-white"
           />
-          <label htmlFor="terms" className="text-sm text-slate-600 dark:text-slate-400">
+          <label htmlFor="terms" className="text-sm text-slate-600">
             I am at least 18 years old and agree to the{' '}
             <Link href="/terms" className="text-[#00A86B] hover:text-[#008f5b] transition-colors">
               terms & policy
@@ -329,10 +329,10 @@ export default function SignUpPage() {
       {/* Divider */}
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+          <div className="w-full border-t border-slate-200"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-4 bg-white dark:bg-[#1F2937] text-slate-500">Or continue with</span>
+          <span className="px-4 bg-white text-slate-500">Or continue with</span>
         </div>
       </div>
 
@@ -340,7 +340,7 @@ export default function SignUpPage() {
       <button
         type="button"
         onClick={handleGoogleSignIn}
-        className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-[#111827] border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+        className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -360,11 +360,11 @@ export default function SignUpPage() {
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
           />
         </svg>
-        <span className="text-slate-700 dark:text-white font-medium">Sign up with Google</span>
+        <span className="text-slate-700 font-medium">Sign up with Google</span>
       </button>
 
       {/* Sign In Link */}
-      <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
+      <p className="mt-8 text-center text-sm text-slate-500">
         Already have an account?{' '}
         <Link href="/signin" className="text-[#00A86B] font-medium hover:text-[#008f5b] transition-colors">
           Sign In

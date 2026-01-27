@@ -101,10 +101,10 @@ export default function AuthLayout({
             </div>
 
             {/* Right Content Panel */}
-            <div className="w-full md:w-7/12 lg:w-1/2 bg-white dark:bg-[#1F2937] flex flex-col h-full overflow-y-auto">
+            <div className="w-full md:w-7/12 lg:w-1/2 bg-white flex flex-col h-full overflow-y-auto">
                 {/* Step Progress Indicator */}
                 {showSteps && (
-                    <div className="w-full px-6 sm:px-8 py-5 flex justify-center md:justify-end items-center border-b border-slate-200 dark:border-slate-700">
+                    <div className="w-full px-6 sm:px-8 py-5 flex justify-center md:justify-end items-center border-b border-slate-200">
                         <div className="flex items-center space-x-1 sm:space-x-2 text-sm font-medium">
                             {stepLabels.map((label, index) => {
                                 const stepNum = index + 1
@@ -116,13 +116,13 @@ export default function AuthLayout({
                                     <span key={index} className="flex items-center">
                                         <span className={`flex items-center ${
                                             isCompleted ? 'text-[#00A86B]' :
-                                            isCurrent ? 'text-slate-900 dark:text-white' :
-                                            'text-slate-400 dark:text-slate-500'
+                                            isCurrent ? 'text-slate-900' :
+                                            'text-slate-400'
                                         }`}>
                                             <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-1.5 sm:mr-2 text-xs font-semibold transition-all duration-200 ${
                                                 isCompleted ? 'bg-[#00A86B] text-white' :
-                                                isCurrent ? 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 ring-2 ring-[#00A86B] ring-offset-2 ring-offset-white dark:ring-offset-[#1F2937]' :
-                                                'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 border border-slate-200 dark:border-slate-700'
+                                                isCurrent ? 'bg-slate-100 text-slate-600 ring-2 ring-[#00A86B] ring-offset-2 ring-offset-white' :
+                                                'bg-slate-100 text-slate-400 border border-slate-200'
                                             }`}>
                                                 {isCompleted ? (
                                                     <Check className="w-3.5 h-3.5" />
@@ -133,7 +133,7 @@ export default function AuthLayout({
                                             <span className="hidden sm:inline">{label}</span>
                                         </span>
                                         {index < stepLabels.length - 1 && (
-                                            <svg className="w-4 h-4 mx-1 sm:mx-2 text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <svg className="w-4 h-4 mx-1 sm:mx-2 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                             </svg>
                                         )}
@@ -155,10 +155,10 @@ export default function AuthLayout({
                 </div>
 
                 {/* Help Footer */}
-                <div className="p-6 sm:p-8 border-t border-slate-100 dark:border-slate-800 text-center">
+                <div className="p-6 sm:p-8 border-t border-slate-100 text-center">
                     <Link
                         href={footerLink.href}
-                        className="inline-flex items-center text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-[#00A86B] dark:hover:text-[#00A86B] transition-colors"
+                        className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-[#00A86B] transition-colors"
                     >
                         <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
