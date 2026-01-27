@@ -115,6 +115,9 @@ function BillingPageContent() {
 
   // Fetch subscription data from subscription context
   useEffect(() => {
+    // Wait until subscription is fully loaded to get correct data including endsAt
+    if (subscriptionLoading) return
+
     const tierValue = (tier || 'sandbox') as ApiPlan
 
     setSubscription({
@@ -133,13 +136,13 @@ function BillingPageContent() {
       period: isMonthly ? 'month' : 'day',
       limitType: config.limitType
     }))
-  }, [tier, user])
+  }, [tier, user, subscriptionLoading])
 
   // Fetch usage data from API
   useEffect(() => {
     const fetchUsage = async () => {
-      if (!user || !user.id || isFetchingUsage) {
-        setIsFetchingUsage(false)
+      // Wait until subscription is fully loaded to get correct tier limits
+      if (!user || !user.id || isFetchingUsage || subscriptionLoading) {
         return
       }
 
@@ -185,7 +188,7 @@ function BillingPageContent() {
     }
 
     fetchUsage()
-  }, [user?.id, tier])
+  }, [user?.id, tier, subscriptionLoading])
 
   // Refetch user data when returning from checkout success
   useEffect(() => {
