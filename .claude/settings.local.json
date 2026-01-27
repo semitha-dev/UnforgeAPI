@@ -13,7 +13,8 @@
       "Bash(dir:*)",
       "Bash(ls -la \"e:\\\\Personal\\\\Leaflearning2\\\\web\\\\app\\\\hub\\\\blog\"\" 2>/dev/null || echo \"Directory check \")",
       "WebFetch(domain:www.unkey.com)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(npm run dev:*)"
     ]
   }
 }

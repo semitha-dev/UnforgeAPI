@@ -37,10 +37,19 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Define routes that should be completely skipped by middleware logic
+  const skipRoutes = ['/auth/callback', '/auth/verify-email']
+
+  // Skip middleware logic for callback and verification routes
+  if (skipRoutes.some(route => pathname.startsWith(route))) {
+    return supabaseResponse
+  }
+
   // Define protected routes (require authentication)
   // Dashboard, API keys, settings, etc.
   const protectedRoutes = [
     '/dashboard',
+    '/onboarding',
     '/support',
     '/debug',
     '/settings',
