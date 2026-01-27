@@ -6,38 +6,38 @@ import { ArrowLeft, Mail, MessageSquare, MapPin, Clock, Send } from 'lucide-reac
 
 export default function ContactPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0a0a0a]">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 z-50 bg-[#0a0a0a]/80 backdrop-blur-md border-b border-white/10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link 
+          <Link
             href="/"
-            className="flex items-center gap-2 text-text-secondary hover:text-text-primary transition-colors"
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium font-body">Back to Home</span>
+            <span className="font-medium">Back to Home</span>
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center overflow-hidden">
-              <Image src="/reallogo.png" alt="LeafLearning" width={32} height={32} className="object-contain" />
+            <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center overflow-hidden">
+              <Image src="/reallogo.png" alt="UnforgeAPI" width={32} height={32} className="object-contain" />
             </div>
-            <span className="font-bold font-headline text-text-primary">LeafLearning</span>
+            <span className="font-bold text-white">UnforgeAPI</span>
           </Link>
         </div>
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 bg-gradient-to-br from-accent/5 via-background to-secondary/5">
+      <section className="py-20 bg-gradient-to-br from-emerald-900/20 via-[#0a0a0a] to-purple-900/10">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full border border-accent/20 mb-6">
-            <MessageSquare className="w-4 h-4 text-accent" />
-            <span className="text-sm font-semibold font-cta text-accent">Contact Us</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20 mb-6">
+            <MessageSquare className="w-4 h-4 text-emerald-400" />
+            <span className="text-sm font-semibold text-emerald-400">Contact Us</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold font-headline text-primary mb-6">
-            We'd Love to Hear From You
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            We&apos;d Love to Hear From You
           </h1>
-          <p className="text-xl text-text-secondary font-body max-w-3xl mx-auto">
-            Have a question, feedback, or just want to say hi? We're here to help.
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Have a question, feedback, or just want to say hi? We&apos;re here to help.
           </p>
         </div>
       </section>
@@ -46,79 +46,97 @@ export default function ContactPage() {
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-3 gap-8 mb-16">
-            <div className="bg-card rounded-2xl p-8 border border-border text-center hover:shadow-card transition-shadow">
-              <div className="w-14 h-14 bg-accent/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-7 h-7 text-accent" />
+            <div className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-center hover:border-white/20 transition-colors">
+              <div className="w-14 h-14 bg-emerald-500/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-7 h-7 text-emerald-400" />
               </div>
-              <h3 className="text-lg font-bold font-headline text-primary mb-2">Email Us</h3>
-              <p className="text-sm text-text-secondary font-body mb-4">For general inquiries and support</p>
-              <a href="mailto:support@leaflearning.app" className="text-accent font-medium hover:underline">
-                support@leaflearning.app
+              <h3 className="text-lg font-bold text-white mb-2">Email Us</h3>
+              <p className="text-sm text-gray-400 mb-4">For general inquiries and support</p>
+              <a href="mailto:support@unforgeapi.com" className="text-emerald-400 font-medium hover:underline">
+                support@unforgeapi.com
               </a>
             </div>
-            <div className="bg-card rounded-2xl p-8 border border-border text-center hover:shadow-card transition-shadow">
-              <div className="w-14 h-14 bg-secondary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Clock className="w-7 h-7 text-secondary" />
+            <div className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-center hover:border-white/20 transition-colors">
+              <div className="w-14 h-14 bg-blue-500/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-7 h-7 text-blue-400" />
               </div>
-              <h3 className="text-lg font-bold font-headline text-primary mb-2">Response Time</h3>
-              <p className="text-sm text-text-secondary font-body mb-4">We typically respond within</p>
-              <span className="text-secondary font-bold">24-48 hours</span>
+              <h3 className="text-lg font-bold text-white mb-2">Response Time</h3>
+              <p className="text-sm text-gray-400 mb-4">We typically respond within</p>
+              <span className="text-blue-400 font-bold">24-48 hours</span>
             </div>
-            <div className="bg-card rounded-2xl p-8 border border-border text-center hover:shadow-card transition-shadow">
-              <div className="w-14 h-14 bg-success/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <MapPin className="w-7 h-7 text-success" />
+            <div className="bg-[#111111] rounded-2xl p-8 border border-white/10 text-center hover:border-white/20 transition-colors">
+              <div className="w-14 h-14 bg-purple-500/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <MapPin className="w-7 h-7 text-purple-400" />
               </div>
-              <h3 className="text-lg font-bold font-headline text-primary mb-2">Location</h3>
-              <p className="text-sm text-text-secondary font-body mb-4">We're a fully remote team</p>
-              <span className="text-success font-bold">Worldwide 🌍</span>
+              <h3 className="text-lg font-bold text-white mb-2">Location</h3>
+              <p className="text-sm text-gray-400 mb-4">We&apos;re a fully remote team</p>
+              <span className="text-purple-400 font-bold">Worldwide 🌍</span>
             </div>
           </div>
 
           {/* Contact Form */}
           <div className="max-w-2xl mx-auto">
-            <div className="bg-card rounded-2xl p-8 border border-border shadow-sm">
-              <h2 className="text-2xl font-bold font-headline text-primary mb-6 text-center">Send Us a Message</h2>
-              <form className="space-y-6">
+            <div className="bg-[#111111] rounded-2xl p-8 border border-white/10">
+              <h2 className="text-2xl font-bold text-white mb-6 text-center">Send Us a Message</h2>
+              <form className="space-y-6" onSubmit={(e) => {
+                e.preventDefault()
+                const form = e.target as HTMLFormElement
+                const name = (form.elements.namedItem('name') as HTMLInputElement).value
+                const email = (form.elements.namedItem('email') as HTMLInputElement).value
+                const subject = (form.elements.namedItem('subject') as HTMLSelectElement).value
+                const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value
+
+                const mailtoSubject = encodeURIComponent(`[${subject}] Contact from ${name}`)
+                const mailtoBody = encodeURIComponent(`Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`)
+
+                window.location.href = `mailto:support@unforgeapi.com?subject=${mailtoSubject}&body=${mailtoBody}`
+              }}>
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-text-primary font-body mb-2">Name</label>
-                    <input 
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Name</label>
+                    <input
+                      name="name"
                       type="text"
                       placeholder="Your name"
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary font-body focus:outline-none focus:border-accent transition-colors"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#0a0a0a] text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500 transition-colors"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-text-primary font-body mb-2">Email</label>
-                    <input 
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                    <input
+                      name="email"
                       type="email"
                       placeholder="your@email.com"
-                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary font-body focus:outline-none focus:border-accent transition-colors"
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#0a0a0a] text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500 transition-colors"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-primary font-body mb-2">Subject</label>
-                  <select className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary font-body focus:outline-none focus:border-accent transition-colors">
-                    <option>General Inquiry</option>
-                    <option>Technical Support</option>
-                    <option>Billing Question</option>
-                    <option>Feature Request</option>
-                    <option>Partnership</option>
-                    <option>Other</option>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Subject</label>
+                  <select name="subject" className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#0a0a0a] text-white focus:outline-none focus:border-emerald-500 transition-colors">
+                    <option value="General Inquiry">General Inquiry</option>
+                    <option value="Technical Support">Technical Support</option>
+                    <option value="Billing Question">Billing Question</option>
+                    <option value="Feature Request">Feature Request</option>
+                    <option value="Partnership">Partnership</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text-primary font-body mb-2">Message</label>
-                  <textarea 
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Message</label>
+                  <textarea
+                    name="message"
                     rows={5}
                     placeholder="How can we help you?"
-                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary font-body focus:outline-none focus:border-accent transition-colors resize-none"
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-white/10 bg-[#0a0a0a] text-white placeholder:text-gray-500 focus:outline-none focus:border-emerald-500 transition-colors resize-none"
                   />
                 </div>
-                <button 
+                <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-accent text-accent-foreground rounded-xl font-bold font-cta hover:bg-accent/90 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-500 transition-colors"
                 >
                   <Send className="w-5 h-5" />
                   Send Message
@@ -130,15 +148,15 @@ export default function ContactPage() {
       </section>
 
       {/* FAQ Link */}
-      <section className="py-16 bg-muted/30">
+      <section className="py-16 bg-white/5">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-bold font-headline text-primary mb-4">Looking for Quick Answers?</h2>
-          <p className="text-text-secondary font-body mb-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Looking for Quick Answers?</h2>
+          <p className="text-gray-400 mb-6">
             Check out our FAQ section for commonly asked questions.
           </p>
-          <Link 
+          <Link
             href="/#faq"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold font-cta hover:bg-primary/90 transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black rounded-xl font-bold hover:bg-gray-200 transition-colors"
           >
             View FAQ
           </Link>
@@ -146,10 +164,10 @@ export default function ContactPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 border-t border-border">
+      <footer className="py-8 border-t border-white/10">
         <div className="max-w-6xl mx-auto px-6 text-center">
-          <p className="text-sm text-text-secondary font-body">
-            © {new Date().getFullYear()} LeafLearning. All rights reserved.
+          <p className="text-sm text-gray-500">
+            © {new Date().getFullYear()} UnforgeAPI. All rights reserved.
           </p>
         </div>
       </footer>

@@ -18,6 +18,7 @@ interface UserProfile {
   subscriptionTier: string
   subscriptionStatus: string | null
   subscriptionEndsAt: string | null
+  currentPeriodEnd: string | null
   createdAt: string | null
   defaultWorkspaceId: string | null
 }
@@ -40,6 +41,7 @@ const defaultUser: UserProfile = {
   subscriptionTier: 'free',
   subscriptionStatus: null,
   subscriptionEndsAt: null,
+  currentPeriodEnd: null,
   createdAt: null,
   defaultWorkspaceId: null
 }
@@ -49,8 +51,8 @@ const UserContext = createContext<UserContextType>({
   isPro: false,
   isAnonymous: true,
   isLoading: true,
-  refetch: async () => {},
-  updateProfile: () => {}
+  refetch: async () => { },
+  updateProfile: () => { }
 })
 
 // Global cache that persists across component mounts (survives navigation)
@@ -65,17 +67,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = useCallback(async (force = false) => {
     debug('fetchUser:start', { force, hasCachedUser: !!globalUserCache })
-    
+
     // If forcing, clear the cache first
     if (force) {
       debug('fetchUser:clearCache', { reason: 'force=true' })
       globalUserCache = null
       fetchingRef.current = false // Reset in case previous fetch hung
     }
-    
+
     // Check global cache first (unless forced)
     if (!force && globalUserCache && Date.now() - globalUserCache.timestamp < CACHE_DURATION) {
-      debug('fetchUser:useCache', { 
+      debug('fetchUser:useCache', {
         subscriptionTier: globalUserCache.user.subscriptionTier,
         cacheAge: Math.round((Date.now() - globalUserCache.timestamp) / 1000) + 's'
       })
@@ -83,7 +85,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setIsLoading(false)
       return
     } else if (!force && globalUserCache) {
-      debug('fetchUser:cacheExpired', { 
+      debug('fetchUser:cacheExpired', {
         subscriptionTier: globalUserCache.user.subscriptionTier,
         cacheAge: Math.round((Date.now() - globalUserCache.timestamp) / 1000) + 's',
         cacheDuration: Math.round(CACHE_DURATION / 1000) + 's'
@@ -103,14 +105,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const supabase = createClient()
       debug('fetchUser:getAuth', { timestamp: new Date().toISOString() })
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-      
-      debug('fetchUser:authResult', { 
-        hasUser: !!authUser, 
+
+      debug('fetchUser:authResult', {
+        hasUser: !!authUser,
         userId: authUser?.id,
         email: authUser?.email,
-        error: authError?.message 
+        error: authError?.message
       })
-      
+
       if (!authUser) {
         debug('fetchUser:noAuth', { reason: 'No authenticated user' })
         const anonymousUser = { ...defaultUser, subscriptionTier: 'anonymous' }
@@ -122,11 +124,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       debug('fetchUser:queryProfile', { userId: authUser.id })
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, name, full_name, email, avatar_url, education_level, subscription_tier, subscription_status, subscription_ends_at, created_at, default_workspace_id')
+        .select('id, name, full_name, email, avatar_url, education_level, subscription_tier, subscription_status, subscription_ends_at, current_period_end, created_at, default_workspace_id')
         .eq('id', authUser.id)
         .single()
-      
-      debug('fetchUser:profileResult', { 
+
+      debug('fetchUser:profileResult', {
         hasProfile: !!profile,
         error: profileError?.message,
         subscription_tier: profile?.subscription_tier,
@@ -143,17 +145,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
         subscriptionTier: profile?.subscription_tier || 'free',
         subscriptionStatus: profile?.subscription_status || null,
         subscriptionEndsAt: profile?.subscription_ends_at || null,
+        currentPeriodEnd: profile?.current_period_end || null,
         createdAt: profile?.created_at || null,
         defaultWorkspaceId: profile?.default_workspace_id || null
       }
 
-      debug('fetchUser:success', { 
+      debug('fetchUser:success', {
         subscriptionTier: userData.subscriptionTier,
         subscriptionStatus: userData.subscriptionStatus,
         name: userData.name,
         email: userData.email
       })
-      
+
       setUser(userData)
       globalUserCache = { user: userData, timestamp: Date.now() }
       debug('fetchUser:cached', { tier: userData.subscriptionTier })

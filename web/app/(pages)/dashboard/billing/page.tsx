@@ -29,6 +29,7 @@ type SubscriptionInfo = {
   tier: ApiPlan
   status: string | null
   endsAt: string | null
+  currentPeriodEnd: string | null
   polarCustomerId: string | null
 }
 
@@ -83,6 +84,7 @@ function BillingPageContent() {
     tier: 'sandbox',
     status: null,
     endsAt: null,
+    currentPeriodEnd: null,
     polarCustomerId: null,
   })
   const [isLoadingPortal, setIsLoadingPortal] = useState(false)
@@ -124,6 +126,7 @@ function BillingPageContent() {
       tier: PLAN_CONFIG[tierValue as ApiPlan] ? tierValue : 'sandbox',
       status: user?.subscriptionStatus || null,
       endsAt: user?.subscriptionEndsAt || null,
+      currentPeriodEnd: user?.currentPeriodEnd || null,
       polarCustomerId: null,
     })
 
@@ -240,7 +243,14 @@ function BillingPageContent() {
   // Calculate days until reset (based on subscription period end, not calendar month)
   const getDaysUntilReset = () => {
     const now = new Date()
-    // Use actual subscription period end date if available, otherwise fall back to end of month
+    // Use actual billing period end date (current_period_end) if available
+    // This is the correct field that Polar sets for billing period resets
+    if (subscription.currentPeriodEnd) {
+      const resetDate = new Date(subscription.currentPeriodEnd)
+      const diff = Math.ceil((resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      return Math.max(0, diff)
+    }
+    // Fallback to subscription ends at if current_period_end not available
     if (subscription.endsAt) {
       const resetDate = new Date(subscription.endsAt)
       const diff = Math.ceil((resetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
