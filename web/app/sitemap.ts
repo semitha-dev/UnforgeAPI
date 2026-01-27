@@ -94,5 +94,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: post.featured ? 0.9 : 0.7,
   }))
 
-  return [...staticPages, ...blogPostEntries]
+  // Documentation section entries for better SEO
+  const docSections = [
+    { id: 'deep-research', label: 'Deep Research API' },
+    { id: 'chat-endpoint', label: 'Chat API' },
+    { id: 'how-it-works', label: 'How It Works' },
+    { id: 'authentication', label: 'Authentication' },
+    { id: 'advanced', label: 'Advanced Parameters' },
+    { id: 'enterprise', label: 'Compliance' },
+    { id: 'examples', label: 'Examples' },
+    { id: 'pricing', label: 'Pricing' },
+    { id: 'rate-limits', label: 'Rate Limits' },
+  ]
+
+  const docSectionEntries = docSections.map((section) => ({
+    url: `${baseUrl}/docs#${section.id}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }))
+
+  return [...staticPages, ...blogPostEntries, ...docSectionEntries]
 }
