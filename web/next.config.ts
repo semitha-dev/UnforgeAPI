@@ -4,9 +4,6 @@ const nextConfig: NextConfig = {
   // Performance optimizations
   reactStrictMode: true,
 
-  // Output standalone for Railway deployment
-  output: 'standalone',
-
   // Image optimization
   images: {
     formats: ['image/avif', 'image/webp'],

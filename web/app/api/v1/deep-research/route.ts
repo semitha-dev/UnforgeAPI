@@ -1417,8 +1417,7 @@ export async function POST(req: NextRequest) {
       }, ctx)
 
       // Determine the base URL for internal API calls
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL 
-        || process.env.RAILWAY_PUBLIC_DOMAIN 
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL
         || `http://localhost:${process.env.PORT || 3000}`
       
       const internalUrl = `${baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`}/api/v1/deep-research/process`
