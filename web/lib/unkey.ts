@@ -244,7 +244,19 @@ export async function checkFeatureRateLimit(
       }
     }
 
-    const result: UnkeyRateLimitResponse = await response.json()
+    const rawResult = await response.json()
+    // V2 API wraps result in a .data object (same as key verification)
+    const result: UnkeyRateLimitResponse = rawResult.data || rawResult
+
+    console.log(`[Unkey:${namespace}] Rate limit response:`, {
+      identifier,
+      rawResultKeys: Object.keys(rawResult),
+      hasDataWrapper: !!rawResult.data,
+      success: result.success,
+      remaining: result.remaining,
+      limit: result.limit,
+      reset: result.reset
+    })
 
     return {
       success: result.success,
@@ -321,13 +333,13 @@ export function getRateLimitErrorResponse(
     }
   }
 
-  // deep_research (all deep research is now agentic by default)
+  // deep_research - standard by default, agentic_loop is optional parameter
   const limitConfig = DEEP_RESEARCH_LIMITS[plan as keyof typeof DEEP_RESEARCH_LIMITS]
   const period = limitConfig?.period || 'daily'
   const periodText = period === 'daily' ? 'day' : 'month'
 
   return {
-    error: `${period === 'daily' ? 'Daily' : 'Monthly'} deep research limit reached (${config.limit}/${periodText}). All deep research is now agentic. Resets ${resetDate.toLocaleString()}.`,
+    error: `${period === 'daily' ? 'Daily' : 'Monthly'} deep research limit reached (${config.limit}/${periodText}). Resets ${resetDate.toLocaleString()}.`,
     code: 'DEEP_RESEARCH_LIMIT_EXCEEDED',
     limit: config.limit,
     remaining: 0,

@@ -1,9 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { 
+import {
   X,
-  Check, 
+  Check,
   Loader2,
 } from 'lucide-react'
 
@@ -32,7 +32,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
     debug('checkout:start', { productType })
     setIsCheckingOut(productType)
     setCheckoutError(null)
-    
+
     try {
       debug('checkout:request', { url: '/api/subscription/checkout', productType })
       const response = await fetch('/api/subscription/checkout', {
@@ -40,14 +40,14 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productType })
       })
-      
+
       const data = await response.json()
       debug('checkout:response', { status: response.status, ok: response.ok, hasUrl: !!data.url, error: data.error })
-      
+
       if (!response.ok) {
         throw new Error(data.error || data.details?.detail || 'Failed to create checkout')
       }
-      
+
       if (data.url) {
         debug('checkout:redirect', { url: data.url })
         window.location.href = data.url
@@ -93,6 +93,23 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
       popular: false,
       badge: 'High Volume',
     },
+    {
+      id: 'enterprise' as const,
+      name: 'Enterprise',
+      price: 'Custom',
+      period: '',
+      description: 'Tailored for your organization',
+      features: [
+        'Custom request limits',
+        'Unlimited Web Search',
+        'Unlimited Deep Research',
+        'Dedicated support & SLAs',
+        'Custom integrations',
+      ],
+      popular: false,
+      badge: 'Custom',
+      isEnterprise: true,
+    },
   ]
 
   const byokPlan = {
@@ -135,23 +152,21 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
 
         {/* Tab selector */}
         <div className="flex items-center gap-1 bg-white/5 rounded-full p-1 mb-10 relative z-20">
-          <button 
+          <button
             onClick={() => handleTabChange('managed')}
-            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
-              activeTab === 'managed' 
-                ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25' 
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${activeTab === 'managed'
+              ? 'bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25'
+              : 'text-gray-400 hover:text-white'
+              }`}
           >
             Managed
           </button>
-          <button 
+          <button
             onClick={() => handleTabChange('byok')}
-            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
-              activeTab === 'byok' 
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25' 
-                : 'text-gray-400 hover:text-white'
-            }`}
+            className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${activeTab === 'byok'
+              ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25'
+              : 'text-gray-400 hover:text-white'
+              }`}
           >
             BYOK
           </button>
@@ -168,88 +183,100 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
             The container height will always be determined by the TALLEST child (Managed),
             preventing layout jumps when switching to the shorter BYOK tab. 
         */}
-        <div className="grid grid-cols-1 w-full max-w-4xl relative">
-          
+        <div className="grid grid-cols-1 w-full max-w-5xl relative">
+
           {/* Managed Plans (Stacked Item 1) */}
-          <div 
-            className={`col-start-1 row-start-1 w-full transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${
-              activeTab === 'managed' 
-                ? 'opacity-100 translate-y-0 visible scale-100 z-10' 
-                : 'opacity-0 translate-y-4 invisible scale-95 z-0'
-            }`}
+          <div
+            className={`col-start-1 row-start-1 w-full transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${activeTab === 'managed'
+              ? 'opacity-100 translate-y-0 visible scale-100 z-10'
+              : 'opacity-0 translate-y-4 invisible scale-95 z-0'
+              }`}
           >
-            <div className="grid md:grid-cols-2 gap-8">
-              {managedPlans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className={`relative p-8 rounded-2xl border flex flex-col ${
-                    plan.popular
-                      ? 'bg-gradient-to-b from-violet-500/20 to-fuchsia-500/20 border-violet-500/50'
-                      : 'bg-white/5 border-white/10'
-                  }`}
-                >
-                  {plan.badge && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <span className="px-4 py-1 text-white text-sm font-medium rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500">
-                        {plan.badge}
-                      </span>
-                    </div>
-                  )}
-
-                  <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
-                  <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-4xl font-bold text-white">{plan.price}</span>
-                    <span className="text-gray-400">{plan.period}</span>
-                  </div>
-                  <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
-
-                  <ul className="space-y-3 mb-8 flex-grow">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
-                        <Check className="w-5 h-5 flex-shrink-0 text-violet-400" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <button
-                    onClick={() => handleCheckout(plan.id)}
-                    disabled={isCheckingOut !== null}
-                    className={`w-full py-3 text-center font-medium rounded-xl transition-all mt-auto flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      plan.popular
-                        ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90'
-                        : 'bg-white/10 text-white hover:bg-white/20'
-                    }`}
+            <div className="grid md:grid-cols-3 gap-6">
+              {managedPlans.map((plan) => {
+                const isEnterprise = 'isEnterprise' in plan && plan.isEnterprise;
+                return (
+                  <div
+                    key={plan.id}
+                    className={`relative p-6 rounded-2xl border flex flex-col ${isEnterprise
+                      ? 'bg-gradient-to-b from-cyan-500/20 to-blue-500/20 border-cyan-500/50'
+                      : plan.popular
+                        ? 'bg-gradient-to-b from-violet-500/20 to-fuchsia-500/20 border-violet-500/50'
+                        : 'bg-white/5 border-white/10'
+                      }`}
                   >
-                    {isCheckingOut === plan.id ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      `Get ${plan.name}`
+                    {plan.badge && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                        <span className={`px-3 py-1 text-white text-xs font-medium rounded-full ${isEnterprise
+                          ? 'bg-gradient-to-r from-cyan-500 to-blue-500'
+                          : 'bg-gradient-to-r from-violet-500 to-fuchsia-500'
+                          }`}>
+                          {plan.badge}
+                        </span>
+                      </div>
                     )}
-                  </button>
-                </div>
-              ))}
+
+                    <h3 className="text-lg font-semibold text-white mb-2">{plan.name}</h3>
+                    <div className="flex items-baseline gap-1 mb-2">
+                      <span className="text-3xl font-bold text-white">{plan.price}</span>
+                      <span className="text-gray-400 text-sm">{plan.period}</span>
+                    </div>
+                    <p className="text-gray-400 text-sm mb-5">{plan.description}</p>
+
+                    <ul className="space-y-2.5 mb-6 flex-grow">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-2 text-sm text-gray-300">
+                          <Check className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isEnterprise ? 'text-cyan-400' : 'text-violet-400'}`} />
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+
+                    {isEnterprise ? (
+                      <a
+                        href="mailto:support@unforgeapi.com"
+                        className="w-full py-3 text-center font-medium rounded-xl transition-all mt-auto flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90"
+                      >
+                        Contact Sales
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => handleCheckout(plan.id as 'managed_pro' | 'managed_expert')}
+                        disabled={isCheckingOut !== null}
+                        className={`w-full py-3 text-center font-medium rounded-xl transition-all mt-auto flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${plan.popular
+                          ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90'
+                          : 'bg-white/10 text-white hover:bg-white/20'
+                          }`}
+                      >
+                        {isCheckingOut === plan.id ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          `Get ${plan.name}`
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
 
           {/* BYOK Plan (Stacked Item 2) */}
-          <div 
-            className={`col-start-1 row-start-1 w-full flex justify-center transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${
-              activeTab === 'byok' 
-                ? 'opacity-100 translate-y-0 visible scale-100 z-10' 
-                : 'opacity-0 translate-y-4 invisible scale-95 z-0'
-            }`}
+          <div
+            className={`col-start-1 row-start-1 w-full flex justify-center transition-all duration-500 ease-[cubic-bezier(0.25,0.1,0.25,1.0)] ${activeTab === 'byok'
+              ? 'opacity-100 translate-y-0 visible scale-100 z-10'
+              : 'opacity-0 translate-y-4 invisible scale-95 z-0'
+              }`}
           >
             <div className="max-w-md w-full">
               <div
-                className={`relative p-8 rounded-2xl border flex flex-col ${
-                  byokPlan.popular
-                    ? 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
-                    : 'bg-white/5 border-white/10'
-                }`}
+                className={`relative p-8 rounded-2xl border flex flex-col ${byokPlan.popular
+                  ? 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
+                  : 'bg-white/5 border-white/10'
+                  }`}
               >
                 {byokPlan.badge && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
@@ -301,20 +328,6 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Enterprise CTA */}
-        <div className="mt-12 p-6 bg-white/5 border border-white/10 rounded-xl text-center max-w-md">
-          <h3 className="text-lg font-semibold text-white mb-2">Need Enterprise?</h3>
-          <p className="text-gray-400 text-sm mb-4">
-            Custom limits, dedicated support, and SLAs.
-          </p>
-          <a
-            href="mailto:support@unforgeapi.com"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/20 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            Contact Sales
-          </a>
         </div>
 
         {/* Footer */}

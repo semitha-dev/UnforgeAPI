@@ -221,7 +221,7 @@ export default function OnboardingWorkspacePage() {
               type="text"
               value={workspaceName}
               onChange={(e) => setWorkspaceName(e.target.value)}
-              className="block w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-[#111827] text-slate-900 dark:text-white py-3 px-4 shadow-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 focus:border-[#00A86B]"
+              className="block w-full rounded-lg border border-slate-300 bg-white text-slate-900 py-3 px-4 shadow-sm transition-colors placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00A86B]/50 focus:border-[#00A86B]"
               placeholder="e.g. Acme Corp Engineering"
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">

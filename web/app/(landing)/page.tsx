@@ -688,7 +688,7 @@ const PricingSection = () => {
         '50 Deep Research / month',
         'Priority support',
       ],
-      cta: 'Get Started',
+      cta: 'Get Managed Pro',
       popular: true,
       badge: 'Most Popular',
     },
@@ -704,9 +704,27 @@ const PricingSection = () => {
         'Priority support',
         'Dedicated account manager',
       ],
-      cta: 'Go Expert',
+      cta: 'Get Managed Expert',
       popular: false,
       badge: 'High Volume',
+    },
+    {
+      name: 'Enterprise',
+      price: 'Custom',
+      period: '',
+      description: 'Tailored for your organization',
+      features: [
+        'Custom request limits',
+        'Unlimited Web Search',
+        'Unlimited Deep Research',
+        'Dedicated support & SLAs',
+        'Custom integrations',
+        'On-premise deployment options',
+      ],
+      cta: 'Contact Sales',
+      popular: false,
+      badge: 'Custom',
+      isEnterprise: true,
     },
   ];
 
@@ -744,6 +762,24 @@ const PricingSection = () => {
       popular: true,
       badge: 'Best Value',
       footnote: 'Agentic mode capped at 500/month for Vercel protection.',
+    },
+    {
+      name: 'Enterprise',
+      price: 'Custom',
+      period: '',
+      description: 'Tailored for your organization',
+      features: [
+        'Custom request limits',
+        'Unlimited Web Search',
+        'Unlimited Deep Research',
+        'Dedicated support & SLAs',
+        'Custom integrations',
+        'Your own API keys',
+      ],
+      cta: 'Contact Sales',
+      popular: false,
+      badge: 'Custom',
+      isEnterprise: true,
     },
   ];
 
@@ -830,96 +866,92 @@ const PricingSection = () => {
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className={`grid gap-8 mx-auto ${activeTab === 'managed' ? 'md:grid-cols-3 max-w-7xl' : 'md:grid-cols-2 max-w-4xl'
+        <div className={`grid gap-6 mx-auto ${activeTab === 'managed' ? 'md:grid-cols-2 lg:grid-cols-4 max-w-7xl' : 'md:grid-cols-3 max-w-5xl'
           }`}>
-          {activePlans.map((plan, index) => (
-            <motion.div
-              key={`${activeTab}-${plan.name}`}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className={`relative p-8 rounded-xl border flex flex-col ${plan.popular
-                ? activeTab === 'managed'
-                  ? 'bg-gradient-to-b from-purple-500/20 to-pink-500/20 border-purple-500/50'
-                  : 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
-                : 'bg-white/5 border-white/10'
-                }`}
-            >
-              {plan.badge && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className={`px-4 py-1 text-white text-sm font-medium rounded-full ${activeTab === 'managed'
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500'
-                    : 'bg-gradient-to-r from-amber-500 to-orange-500'
-                    }`}>
-                    {plan.badge}
-                  </span>
-                </div>
-              )}
-
-              <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
-              <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-4xl font-bold text-white">{plan.price}</span>
-                <span className="text-gray-400">{plan.period}</span>
-              </div>
-              <p className="text-gray-400 text-sm mb-6">{plan.description}</p>
-
-              <ul className="space-y-3 mb-8 flex-grow">
-                {plan.features.map((feature) => {
-                  const isDisabled = feature.startsWith('❌');
-                  const displayText = isDisabled ? feature.replace('❌ ', '') : feature;
-                  return (
-                    <li key={feature} className={`flex items-start gap-2 text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-300'}`}>
-                      {!isDisabled && (
-                        <Check className={`w-5 h-5 flex-shrink-0 ${activeTab === 'managed' ? 'text-purple-400' : 'text-amber-400'
-                          }`} />
-                      )}
-                      {isDisabled && (
-                        <span className="w-5 h-5 flex-shrink-0 text-gray-500">✕</span>
-                      )}
-                      {displayText}
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {'footnote' in plan && (plan as { footnote?: string }).footnote && (
-                <p className="text-[10px] text-gray-500 mb-4 -mt-4">{(plan as { footnote?: string }).footnote}</p>
-              )}
-
-              <Link
-                href="/signup"
-                className={`block w-full py-3 text-center font-medium rounded-lg transition-colors mt-auto ${plan.popular
-                  ? activeTab === 'managed'
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90'
-                    : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90'
-                  : 'bg-white/10 text-white hover:bg-white/20'
+          {activePlans.map((plan, index) => {
+            const isEnterprise = 'isEnterprise' in plan && plan.isEnterprise;
+            return (
+              <motion.div
+                key={`${activeTab}-${plan.name}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className={`relative p-6 rounded-xl border flex flex-col ${isEnterprise
+                  ? 'bg-gradient-to-b from-cyan-500/20 to-blue-500/20 border-cyan-500/50'
+                  : plan.popular
+                    ? activeTab === 'managed'
+                      ? 'bg-gradient-to-b from-purple-500/20 to-pink-500/20 border-purple-500/50'
+                      : 'bg-gradient-to-b from-amber-500/20 to-orange-500/20 border-amber-500/50'
+                    : 'bg-white/5 border-white/10'
                   }`}
               >
-                {plan.cta}
-              </Link>
-            </motion.div>
-          ))}
-        </div>
+                {plan.badge && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <span className={`px-3 py-1 text-white text-xs font-medium rounded-full ${isEnterprise
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-500'
+                      : activeTab === 'managed'
+                        ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                        : 'bg-gradient-to-r from-amber-500 to-orange-500'
+                      }`}>
+                      {plan.badge}
+                    </span>
+                  </div>
+                )}
 
-        {/* Enterprise CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mt-12 p-6 bg-white/5 border border-white/10 rounded-xl text-center max-w-2xl mx-auto"
-        >
-          <h3 className="text-xl font-semibold text-white mb-2">Need Enterprise?</h3>
-          <p className="text-gray-400 mb-4">
-            Custom limits, dedicated support, SLAs, and more. Let&apos;s talk about your needs.
-          </p>
-          <a
-            href="mailto:support@unforgeapi.com"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 border border-white/20 hover:bg-white/20 text-white rounded-lg font-medium transition-colors"
-          >
-            Contact Sales
-            <ArrowRight className="w-4 h-4" />
-          </a>
-        </motion.div>
+                <h3 className="text-lg font-semibold text-white mb-2">{plan.name}</h3>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-3xl font-bold text-white">{plan.price}</span>
+                  <span className="text-gray-400 text-sm">{plan.period}</span>
+                </div>
+                <p className="text-gray-400 text-sm mb-5">{plan.description}</p>
+
+                <ul className="space-y-2.5 mb-6 flex-grow">
+                  {plan.features.map((feature) => {
+                    const isDisabled = feature.startsWith('❌');
+                    const displayText = isDisabled ? feature.replace('❌ ', '') : feature;
+                    return (
+                      <li key={feature} className={`flex items-start gap-2 text-sm ${isDisabled ? 'text-gray-500' : 'text-gray-300'}`}>
+                        {!isDisabled && (
+                          <Check className={`w-4 h-4 flex-shrink-0 mt-0.5 ${isEnterprise ? 'text-cyan-400' : activeTab === 'managed' ? 'text-purple-400' : 'text-amber-400'
+                            }`} />
+                        )}
+                        {isDisabled && (
+                          <span className="w-4 h-4 flex-shrink-0 text-gray-500">✕</span>
+                        )}
+                        {displayText}
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {'footnote' in plan && (plan as { footnote?: string }).footnote && (
+                  <p className="text-[10px] text-gray-500 mb-4 -mt-4">{(plan as { footnote?: string }).footnote}</p>
+                )}
+
+                {isEnterprise ? (
+                  <a
+                    href="mailto:support@unforgeapi.com"
+                    className="block w-full py-3 text-center font-medium rounded-lg transition-colors mt-auto bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90"
+                  >
+                    {plan.cta}
+                  </a>
+                ) : (
+                  <Link
+                    href="/signup"
+                    className={`block w-full py-3 text-center font-medium rounded-lg transition-colors mt-auto ${plan.popular
+                      ? activeTab === 'managed'
+                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:opacity-90'
+                        : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:opacity-90'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
+                  >
+                    {plan.cta}
+                  </Link>
+                )}
+              </motion.div>
+            )
+          })}
+        </div>
 
         {/* Comparison Note */}
         <motion.div
