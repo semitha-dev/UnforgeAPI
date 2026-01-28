@@ -75,18 +75,18 @@ export default function AuthLayout({
                 </div>
 
                 {/* Main Content - Centered vertically */}
-                <div className="relative z-10 max-w-md flex-1 flex flex-col justify-center">
-                    <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
+                <div className="relative z-10 max-w-lg flex-1 flex flex-col justify-center ml-4 lg:ml-8">
+                    <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
                         {headline}
                     </h1>
-                    <p className="text-slate-400 text-lg mb-8 font-light leading-relaxed">
+                    <p className="text-slate-400 text-xl mb-8 font-light leading-relaxed">
                         {subtitle}
                     </p>
                     <ul className="space-y-4">
                         {features.map((feature, index) => (
-                            <li key={index} className="flex items-center space-x-3 text-slate-300">
-                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#00A86B]/20 flex items-center justify-center">
-                                    <Check className="w-3 h-3 text-[#00A86B]" />
+                            <li key={index} className="flex items-center space-x-3 text-slate-300 text-lg">
+                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#00A86B]/20 flex items-center justify-center">
+                                    <Check className="w-3.5 h-3.5 text-[#00A86B]" />
                                 </span>
                                 <span>{feature}</span>
                             </li>

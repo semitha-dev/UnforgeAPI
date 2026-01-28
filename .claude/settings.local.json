@@ -15,7 +15,8 @@
       "WebFetch(domain:www.unkey.com)",
       "Bash(ls:*)",
       "Bash(npm run dev:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "WebFetch(domain:www.firecrawl.dev)"
     ]
   }
 }

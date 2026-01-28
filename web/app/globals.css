@@ -12,12 +12,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: 'Source Sans Pro', sans-serif;
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-headline: 'Crimson Text', serif;
-  --font-body: 'Source Sans Pro', sans-serif;
-  --font-cta: 'Nunito Sans', sans-serif;
-  --font-display: 'Playfair Display', serif;
+  --font-headline: var(--font-geist-sans);
+  --font-body: var(--font-geist-sans);
+  --font-cta: var(--font-geist-sans);
+  --font-display: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -64,123 +64,143 @@
 
 :root {
   --radius: 0.5rem;
-  
-  /* Primary Colors - Navy */
-  --primary: #1B365D;
-  --primary-foreground: #FFFFFF;
-  
-  /* Secondary Colors - Teal */
-  --secondary: #4A90A4;
-  --secondary-foreground: #FFFFFF;
-  
-  /* Accent Colors - Green */
-  --accent: #00C851;
-  --accent-foreground: #FFFFFF;
-  
-  /* Background Colors */
-  --background: #FAFBFC;
-  --foreground: #2C3E50;
-  
-  /* Surface Colors */
-  --card: #FFFFFF;
-  --card-foreground: #2C3E50;
-  
-  /* Popover Colors */
-  --popover: #FFFFFF;
-  --popover-foreground: #2C3E50;
-  
-  /* Muted Colors */
-  --muted: #E8ECF0;
-  --muted-foreground: #5A6C7D;
-  
-  /* Border & Input */
-  --border: #E8ECF0;
-  --input: #E8ECF0;
-  --ring: #1B365D;
-  
+
+  /* Light Theme - Keeping basic defaults but could be Zinc'd if desired */
+  --primary: #18181b;
+  /* Zinc 900 */
+  --primary-foreground: #fafafa;
+
+  --secondary: #f4f4f5;
+  /* Zinc 100 */
+  --secondary-foreground: #18181b;
+
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+
+  --background: #ffffff;
+  --foreground: #09090b;
+  /* Zinc 950 */
+
+  --card: #ffffff;
+  --card-foreground: #09090b;
+
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
+
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  /* Zinc 500 */
+
+  --border: #e4e4e7;
+  /* Zinc 200 */
+  --input: #e4e4e7;
+  --ring: #18181b;
+
   /* Status Colors */
-  --success: #00C851;
+  --success: #22c55e;
   --success-foreground: #FFFFFF;
-  
-  --warning: #FF8C00;
+
+  --warning: #f59e0b;
   --warning-foreground: #FFFFFF;
-  
-  --error: #E74C3C;
+
+  --error: #ef4444;
   --error-foreground: #FFFFFF;
-  
-  --destructive: #E74C3C;
-  --destructive-foreground: #FFFFFF;
-  
-  /* Text Colors */
-  --text-primary: #2C3E50;
-  --text-secondary: #5A6C7D;
-  
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+
+  --text-primary: #09090b;
+  --text-secondary: #71717a;
+
   /* Chart Colors */
-  --chart-1: #1B365D;
-  --chart-2: #4A90A4;
-  --chart-3: #00C851;
-  --chart-4: #FF8C00;
-  --chart-5: #E74C3C;
-  
+  --chart-1: #18181b;
+  --chart-2: #27272a;
+  --chart-3: #3f3f46;
+  --chart-4: #52525b;
+  --chart-5: #71717a;
+
   /* Sidebar */
-  --sidebar: #FAFBFC;
-  --sidebar-foreground: #2C3E50;
-  --sidebar-primary: #1B365D;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E8ECF0;
-  --sidebar-accent-foreground: #1B365D;
-  --sidebar-border: #E8ECF0;
-  --sidebar-ring: #1B365D;
+  --sidebar: #f4f4f5;
+  --sidebar-foreground: #18181b;
+  --sidebar-primary: #18181b;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #e4e4e7;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #18181b;
 }
 
 .dark {
-  /* Pure monochrome dark theme - black/white/gray only */
-  --background: #0a0a0a;
+  /* Zinc Palette - Metallic Dark */
+  --background: #09090b;
+  /* Zinc 950 */
   --foreground: #fafafa;
-  --card: #141414;
+  /* Zinc 50 */
+
+  --card: #18181b;
+  /* Zinc 900 */
   --card-foreground: #fafafa;
-  --popover: #141414;
+
+  --popover: #18181b;
   --popover-foreground: #fafafa;
-  --primary: #ffffff;
-  --primary-foreground: #0a0a0a;
-  --secondary: #1f1f1f;
+
+  --primary: #fafafa;
+  --primary-foreground: #18181b;
+
+  --secondary: #27272a;
+  /* Zinc 800 */
   --secondary-foreground: #fafafa;
-  --muted: #262626;
-  --muted-foreground: #a3a3a3;
-  --accent: #262626;
+
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  /* Zinc 400 */
+
+  --accent: #27272a;
   --accent-foreground: #fafafa;
-  --destructive: #dc2626;
+
+  --destructive: #7f1d1d;
   --destructive-foreground: #fafafa;
-  --border: #262626;
-  --input: #1f1f1f;
-  --ring: #525252;
+
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #d4d4d8;
+  /* Zinc 300 */
+
   --success: #22c55e;
-  --success-foreground: #0a0a0a;
+  --success-foreground: #09090b;
+
   --warning: #f59e0b;
-  --warning-foreground: #0a0a0a;
+  --warning-foreground: #09090b;
+
   --error: #ef4444;
   --error-foreground: #fafafa;
+
   --text-primary: #fafafa;
-  --text-secondary: #a3a3a3;
+  --text-secondary: #a1a1aa;
+
+  /* Charts - Zinc Spectrum */
   --chart-1: #fafafa;
-  --chart-2: #a3a3a3;
-  --chart-3: #737373;
-  --chart-4: #525252;
-  --chart-5: #404040;
-  --sidebar: #0a0a0a;
+  --chart-2: #a1a1aa;
+  --chart-3: #71717a;
+  --chart-4: #52525b;
+  --chart-5: #3f3f46;
+
+  /* Sidebar */
+  --sidebar: #09090b;
   --sidebar-foreground: #fafafa;
-  --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: #0a0a0a;
-  --sidebar-accent: #1f1f1f;
+  --sidebar-primary: #fafafa;
+  --sidebar-primary-foreground: #09090b;
+  --sidebar-accent: #27272a;
   --sidebar-accent-foreground: #fafafa;
-  --sidebar-border: #262626;
-  --sidebar-ring: #525252;
+  --sidebar-border: #27272a;
+  --sidebar-ring: #d4d4d8;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -250,7 +270,7 @@
     position: relative;
     background: #171717 !important;
   }
-  
+
   .note-editor-container.mobile-editor .ql-toolbar {
     position: fixed;
     bottom: 0;
@@ -268,17 +288,18 @@
     flex-wrap: wrap;
     gap: 0.25rem;
   }
-  
+
   .note-editor-container.mobile-editor .ql-container {
     border-top: none !important;
     padding-top: 0;
     background: #171717 !important;
   }
-  
+
   .note-editor-container.mobile-editor .ql-editor {
     padding: 0;
     min-height: 300px;
-    padding-bottom: 80px; /* Space for bottom toolbar */
+    padding-bottom: 80px;
+    /* Space for bottom toolbar */
     background: #171717 !important;
   }
 }
@@ -306,13 +327,15 @@
 .sticky-quill .ql-toolbar,
 .rich-text-editor.sticky .ql-toolbar {
   position: sticky !important;
-  top: 57px; /* Height of the top nav */
+  top: 57px;
+  /* Height of the top nav */
   z-index: 40;
   background: #262626 !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 @media (min-width: 640px) {
+
   .note-editor-container .ql-toolbar,
   .rich-text-editor .ql-toolbar {
     padding: 0.75rem 0;
@@ -337,6 +360,7 @@
 }
 
 @media (min-width: 640px) {
+
   .note-editor-container .ql-container,
   .rich-text-editor .ql-container {
     font-size: 18px;
@@ -358,6 +382,7 @@
 }
 
 @media (min-width: 640px) {
+
   .note-editor-container .ql-editor,
   .rich-text-editor .ql-editor {
     min-height: 60vh;
@@ -561,10 +586,12 @@
     width: 0%;
     margin-left: 0%;
   }
+
   50% {
     width: 40%;
     margin-left: 30%;
   }
+
   100% {
     width: 0%;
     margin-left: 100%;
@@ -632,6 +659,7 @@
     transform: translateY(100%);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -640,4 +668,97 @@
 
 .animate-slide-in-from-bottom {
   animation: slide-in-from-bottom 0.3s ease-out;
+}
+
+/* Landing Page Specific Effects (inspired by ClickPilot) */
+.landing-page .button-glow {
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
+  transition: box-shadow 0.3s ease;
+}
+
+.landing-page .button-glow:hover {
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.8);
+}
+
+.landing-page .border-gradient {
+  background: linear-gradient(#0A0A0A, #0A0A0A) padding-box,
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent) border-box;
+  border: 1px solid transparent;
+}
+
+.landing-page .border-gradient-glow {
+  background: linear-gradient(#0A0A0A, #0A0A0A) padding-box,
+    linear-gradient(to bottom, rgba(168, 85, 247, 0.5), transparent) border-box;
+  border: 1px solid transparent;
+}
+
+.landing-page .text-shadow-glow {
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+}
+
+.landing-page .text-shadow-sm {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.landing-page .space-ring-bg {
+  background-image:
+    radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: 0 0, 25px 25px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+}
+
+.landing-page .radial-gradient-mask {
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 70%);
+}
+
+/* Bento Grid Utilities */
+.landing-page .bento-card {
+  @apply bg-[#0A0A0A] border border-white/5 rounded-3xl overflow-hidden relative;
+  transition: all 0.3s ease;
+}
+
+.landing-page .bento-card:hover {
+  @apply border-white/10;
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.5);
+}
+
+.landing-page .bento-card-inner {
+  @apply absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-300;
+}
+
+.landing-page .bento-card:hover .bento-card-inner {
+  @apply opacity-100;
+}
+
+/* Connected Grid Background */
+.landing-page .connected-grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+}
+
+.landing-page .floating-icon {
+  animation: float-icon 6s ease-in-out infinite;
+}
+
+@keyframes float-icon {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Glassmorphism */
+.glass-panel {
+  @apply bg-black/60 backdrop-blur-xl border border-white/10;
 }

@@ -36,11 +36,11 @@ export const Navigation = ({ showSectionLinks = true }: NavigationProps) => {
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-12 h-12 flex items-center justify-center rounded-lg">
-              <Image 
-                src="/reallogo.png" 
-                alt="UnforgeAPI Logo" 
-                width={48} 
-                height={48} 
+              <Image
+                src="/reallogo.png"
+                alt="UnforgeAPI Logo"
+                width={48}
+                height={48}
                 className="w-12 h-12"
               />
             </div>
@@ -58,6 +58,7 @@ export const Navigation = ({ showSectionLinks = true }: NavigationProps) => {
             ) : (
               <Link href="/" className="hover:text-white transition-colors">Home</Link>
             )}
+            <Link href="/playground" className="hover:text-white transition-colors">Playground</Link>
             <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
             <Link href="/blog" className="hover:text-white transition-colors">Blog</Link>
           </nav>
@@ -102,6 +103,7 @@ export const Navigation = ({ showSectionLinks = true }: NavigationProps) => {
               ) : (
                 <Link href="/" className="block text-gray-400 hover:text-white">Home</Link>
               )}
+              <Link href="/playground" className="block text-gray-400 hover:text-white">Playground</Link>
               <Link href="/docs" className="block text-gray-400 hover:text-white">Docs</Link>
               <Link href="/blog" className="block text-gray-400 hover:text-white">Blog</Link>
               <Link href="/signin" className="block text-gray-400 hover:text-white">Sign In</Link>
