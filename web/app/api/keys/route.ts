@@ -3,11 +3,10 @@
  * Uses Unkey HTTP API for key creation/deletion
  * Database tracks key metadata for dashboard display
  * 
- * 4-Tier Pricing Structure:
- * - sandbox: 50/day (Managed, 5 search/day, 3 deep research/day)
- * - managed_pro: 1000/month (Managed, Search enabled)
- * - byok_starter: 100/day (BYOK, Search enabled, requires user keys)
- * - byok_pro: 10/sec rate limit (BYOK, Unlimited, requires user keys)
+ * 3-Tier Pricing Structure:
+ * - sandbox (Free): 10/month
+ * - managed_pro (Pro): $29/mo, 100/month
+ * - managed_expert (Expert): $200/mo, 800/month
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -46,27 +45,24 @@ const supabaseAdmin = createClient(
 
 const UNKEY_API_URL = 'https://api.unkey.dev'
 
-// Valid plan types
-type ApiPlan = 'sandbox' | 'managed_pro' | 'byok_starter' | 'byok_pro';
+// Valid plan types - aligned with 3-tier pricing
+type ApiPlan = 'sandbox' | 'managed_pro' | 'managed_expert';
 
 // Rate limit configuration based on plan
 function getRateLimitConfig(plan: ApiPlan) {
   switch (plan) {
     case 'sandbox':
-      // 50 requests per day
-      return { type: 'fast' as const, limit: 50, duration: 86400000 };
+      // 10 requests per month (Free tier)
+      return { type: 'fast' as const, limit: 10, duration: 2592000000 }; // 30 days
     case 'managed_pro':
-      // 50,000 requests per month (fair usage policy)
-      return { type: 'fast' as const, limit: 50000, duration: 2592000000 };
-    case 'byok_starter':
-      // 50 requests per day (matches subscription-constants.ts PLAN_CONFIG)
-      return { type: 'fast' as const, limit: 50, duration: 86400000 };
-    case 'byok_pro':
-      // 10 requests per second (speed limit only)
-      return { type: 'fast' as const, limit: 10, duration: 1000 };
+      // 100 requests per month (Pro tier)
+      return { type: 'fast' as const, limit: 100, duration: 2592000000 };
+    case 'managed_expert':
+      // 800 requests per month (Expert tier)
+      return { type: 'fast' as const, limit: 800, duration: 2592000000 };
     default:
       // Default to sandbox limits
-      return { type: 'fast' as const, limit: 50, duration: 86400000 };
+      return { type: 'fast' as const, limit: 10, duration: 2592000000 };
   }
 }
 
@@ -76,10 +72,10 @@ async function getUserFromSession() {
   const cookieStore = await cookies()
   const accessToken = cookieStore.get('sb-access-token')?.value
   const refreshToken = cookieStore.get('sb-refresh-token')?.value
-  
-  debug('getUserFromSession:cookies', { 
-    hasAccessToken: !!accessToken, 
-    hasRefreshToken: !!refreshToken 
+
+  debug('getUserFromSession:cookies', {
+    hasAccessToken: !!accessToken,
+    hasRefreshToken: !!refreshToken
   })
 
   if (!accessToken) {
@@ -87,7 +83,7 @@ async function getUserFromSession() {
     const supabaseCookies = cookieStore.getAll()
     const authCookie = supabaseCookies.find(c => c.name.includes('auth-token'))
     debug('getUserFromSession:authCookie', { found: !!authCookie })
-    
+
     if (authCookie) {
       try {
         const parsed = JSON.parse(authCookie.value)
@@ -117,17 +113,17 @@ async function getUserFromSession() {
 // Create a new API key
 export async function POST(request: NextRequest) {
   debug('POST:start', { timestamp: new Date().toISOString() })
-  
+
   try {
     const body = await request.json()
     const { name, tier = 'sandbox', workspaceId } = body
-    
+
     debug('POST:body:raw', { name, tier, workspaceId })
 
     if (!workspaceId || !name) {
       debug('POST:validation:fail', { missingWorkspaceId: !workspaceId, missingName: !name })
       return NextResponse.json(
-        { error: 'workspaceId and name are required' }, 
+        { error: 'workspaceId and name are required' },
         { status: 400 }
       )
     }
@@ -141,14 +137,14 @@ export async function POST(request: NextRequest) {
 
     let userSubscriptionTier = 'free'
     let polarProductId: string | null = null
-    
+
     if (workspace?.owner_id) {
       const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('subscription_tier, subscription_status, polar_subscription_id')
         .eq('id', workspace.owner_id)
         .single()
-      
+
       if (profile?.subscription_status === 'active' && profile?.subscription_tier) {
         userSubscriptionTier = profile.subscription_tier
       }
@@ -163,27 +159,25 @@ export async function POST(request: NextRequest) {
           .order('created_at', { ascending: false })
           .limit(1)
           .single()
-        
+
         if (webhookEvent?.payload?.data?.product_id) {
           polarProductId = webhookEvent.payload.data.product_id
         }
       }
     }
 
-    debug('POST:subscription', { 
-      userSubscriptionTier, 
+    debug('POST:subscription', {
+      userSubscriptionTier,
       polarProductId,
       subscriptionStatus: 'Retrieved from profile'
     })
 
     // Determine the API plan based on user subscription
-    // plan options: 'sandbox' | 'managed_indie' | 'managed_pro' | 'managed_expert' | 'managed_production'
+    // plan options: 'sandbox' | 'managed_pro' | 'managed_expert'
     let plan: ApiPlan
 
-    const MANAGED_INDIE_PRODUCT_ID = process.env.POLAR_MANAGED_INDIE_PRODUCT_ID!
     const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID!
     const MANAGED_EXPERT_PRODUCT_ID = process.env.POLAR_MANAGED_EXPERT_PRODUCT_ID!
-    const MANAGED_PRODUCTION_PRODUCT_ID = process.env.POLAR_MANAGED_PRODUCTION_PRODUCT_ID!
 
     debug('POST:planDetermination:start', {
       requestedTier: tier,
@@ -191,34 +185,30 @@ export async function POST(request: NextRequest) {
       polarProductId
     })
 
-    // Match subscription tier to plan
-    if (polarProductId === MANAGED_PRODUCTION_PRODUCT_ID || userSubscriptionTier === 'managed_production') {
-      plan = 'managed_production'
-    } else if (polarProductId === MANAGED_EXPERT_PRODUCT_ID || userSubscriptionTier === 'managed_expert') {
+    // Match subscription tier to plan (3-tier structure)
+    if (polarProductId === MANAGED_EXPERT_PRODUCT_ID || userSubscriptionTier === 'managed_expert') {
       plan = 'managed_expert'
     } else if (polarProductId === MANAGED_PRO_PRODUCT_ID || userSubscriptionTier === 'managed_pro' || userSubscriptionTier === 'pro') {
       plan = 'managed_pro'
-    } else if (polarProductId === MANAGED_INDIE_PRODUCT_ID || userSubscriptionTier === 'managed_indie') {
-      plan = 'managed_indie'
     } else {
       plan = 'sandbox' // Free tier
     }
 
     debugSuccess('POST:planDetermination', { tier, plan, userSubscriptionTier, polarProductId })
-    
+
     debug('POST:body', { name, tier, plan, workspaceId })
 
     if (!workspaceId || !name) {
       debug('POST:validation:fail', { missingWorkspaceId: !workspaceId, missingName: !name })
       return NextResponse.json(
-        { error: 'workspaceId and name are required' }, 
+        { error: 'workspaceId and name are required' },
         { status: 400 }
       )
     }
 
     // Get rate limit configuration based on plan
     const limitConfig = getRateLimitConfig(plan)
-    
+
     debug('POST:ratelimits', { plan, limitConfig })
 
     // Create key via Unkey HTTP API
@@ -248,18 +238,18 @@ export async function POST(request: NextRequest) {
     // Handle response - first get raw text to debug any parsing issues
     const responseText = await unkeyResponse.text()
     debug('POST:unkey:rawResponse', { status: unkeyResponse.status, text: responseText.substring(0, 500) })
-    
+
     let rawResult
     try {
       rawResult = JSON.parse(responseText)
     } catch (parseError) {
       console.error('[API/keys:POST:JSON_PARSE_ERROR]', { responseText: responseText.substring(0, 500), error: (parseError as Error).message })
       return NextResponse.json(
-        { error: 'Failed to parse Unkey API response', details: responseText.substring(0, 200) }, 
+        { error: 'Failed to parse Unkey API response', details: responseText.substring(0, 200) },
         { status: 500 }
       )
     }
-    
+
     // Unkey v2 wraps response in { meta, data } envelope
     const unkeyResult = rawResult.data || rawResult
     debug('POST:unkey:response', { ok: unkeyResponse.ok, keyId: unkeyResult.keyId, requestId: rawResult.meta?.requestId })
@@ -267,14 +257,14 @@ export async function POST(request: NextRequest) {
     if (!unkeyResponse.ok) {
       console.error('[API/keys:POST:unkey:ERROR]', rawResult)
       return NextResponse.json(
-        { error: 'Failed to create API key' }, 
+        { error: 'Failed to create API key' },
         { status: 500 }
       )
     }
 
     // Store reference in our database for dashboard display
     debug('POST:supabase:inserting', { keyId: unkeyResult.keyId, workspaceId })
-    
+
     const { data: insertedKey, error: insertError } = await supabaseAdmin
       .from('api_keys')
       .insert({
@@ -293,10 +283,10 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single()
-    
+
     if (insertError) {
-      debug('POST:supabase:error', { 
-        error: insertError.message, 
+      debug('POST:supabase:error', {
+        error: insertError.message,
         code: insertError.code,
         details: insertError.details
       })
@@ -310,7 +300,7 @@ export async function POST(request: NextRequest) {
         message: 'API key created. Save this key - it will not be shown again.'
       })
     }
-    
+
     debug('POST:supabase:success', { dbKeyId: insertedKey?.id })
     debug('POST:success', { keyId: unkeyResult.keyId })
 
@@ -323,7 +313,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('[API/keys:POST:ERROR]', error)
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -332,11 +322,11 @@ export async function POST(request: NextRequest) {
 // Delete/revoke an API key
 export async function DELETE(request: NextRequest) {
   debug('DELETE:start', { timestamp: new Date().toISOString() })
-  
+
   try {
     const { searchParams } = new URL(request.url)
     const keyId = searchParams.get('id')
-    
+
     debug('DELETE:params', { keyId })
 
     if (!keyId) {
@@ -354,7 +344,7 @@ export async function DELETE(request: NextRequest) {
       },
       body: JSON.stringify({ keyId })
     })
-    
+
     debug('DELETE:unkey:response', { ok: unkeyResponse.ok })
 
     if (!unkeyResponse.ok) {
@@ -367,7 +357,7 @@ export async function DELETE(request: NextRequest) {
       .from('api_keys')
       .update({ is_active: false, revoked_at: new Date().toISOString() })
       .eq('unkey_id', keyId)
-    
+
     debug('DELETE:success', { keyId })
 
     return NextResponse.json({ success: true })
@@ -375,7 +365,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error: any) {
     console.error('[API/keys:DELETE:ERROR]', error)
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
@@ -384,11 +374,11 @@ export async function DELETE(request: NextRequest) {
 // List API keys for a workspace
 export async function GET(request: NextRequest) {
   debug('GET:start', { timestamp: new Date().toISOString() })
-  
+
   try {
     const { searchParams } = new URL(request.url)
     const workspaceId = searchParams.get('workspaceId')
-    
+
     debug('GET:params', { workspaceId })
 
     if (!workspaceId) {
@@ -415,7 +405,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error('[API/keys:GET:ERROR]', error)
     return NextResponse.json(
-      { error: 'Internal server error' }, 
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }

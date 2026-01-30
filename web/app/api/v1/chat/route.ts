@@ -3,7 +3,7 @@
  * POST /api/v1/chat
  * 
  * Fully STATELESS - No database connections
- * Auth via Unkey, BYOK-first logic
+ * Auth via Unkey, managed plans only
  */
 
 import { NextRequest } from 'next/server'
@@ -701,9 +701,7 @@ export async function POST(req: NextRequest) {
       // Path C: Expensive Search
       debug('path:research:start', {
         plan,
-        isByokPlan,
         searchEnabled,
-        hasUserTavilyKey: !!userTavilyKey,
         hasActiveTavilyKey: !!activeTavilyKey
       }, ctx)
       const pathStartTime = performance.now()
@@ -757,18 +755,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Safety Check: If BYOK plan and no Tavily key, reject
-      // Do not burn OUR Tavily credits for BYOK users
-      if (isByokPlan && !userTavilyKey) {
-        debug('path:research:rejected', { reason: 'BYOK_MISSING_KEY' }, ctx)
-        return Response.json(
-          {
-            error: 'Research intent requires x-tavily-key header for BYOK plans',
-            code: 'BYOK_MISSING_KEY'
-          },
-          { status: 402 }
-        )
-      }
+      // All plans now use system Tavily key (managed tier)
 
       if (!activeTavilyKey) {
         debug('path:research:rejected', { reason: 'NO_SEARCH_API' }, ctx)
