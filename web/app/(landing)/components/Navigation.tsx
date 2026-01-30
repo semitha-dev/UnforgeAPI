@@ -52,7 +52,7 @@ export const Navigation = ({ showSectionLinks = true }: NavigationProps) => {
               <>
                 <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="hover:text-white transition-colors cursor-pointer">How It Works</a>
                 <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hover:text-white transition-colors cursor-pointer">Features</a>
-                <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="hover:text-white transition-colors cursor-pointer">Router</a>
+
                 <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="hover:text-white transition-colors cursor-pointer">Pricing</a>
               </>
             ) : (
@@ -97,7 +97,7 @@ export const Navigation = ({ showSectionLinks = true }: NavigationProps) => {
                 <>
                   <a href="#deep-research" onClick={(e) => scrollToSection(e, 'deep-research')} className="block text-gray-400 hover:text-white cursor-pointer">How It Works</a>
                   <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="block text-gray-400 hover:text-white cursor-pointer">Features</a>
-                  <a href="#how-it-works" onClick={(e) => scrollToSection(e, 'how-it-works')} className="block text-gray-400 hover:text-white cursor-pointer">Router</a>
+
                   <a href="#pricing" onClick={(e) => scrollToSection(e, 'pricing')} className="block text-gray-400 hover:text-white cursor-pointer">Pricing</a>
                 </>
               ) : (

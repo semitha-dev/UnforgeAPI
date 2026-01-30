@@ -39,7 +39,7 @@ export default function ApiKeysPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [showNewKeyModal, setShowNewKeyModal] = useState(false)
   const [newKeyName, setNewKeyName] = useState('Production Key')
-  const [newKeyTier, setNewKeyTier] = useState<'byok' | 'managed'>('byok')
+  const [newKeyTier, setNewKeyTier] = useState<'managed'>('managed')
   const [isCreatingKey, setIsCreatingKey] = useState(false)
   const [newApiKey, setNewApiKey] = useState<string | null>(null)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
@@ -54,9 +54,10 @@ export default function ApiKeysPage() {
   const subscription = {
     tier: subscriptionTier || 'free',
     status: 'active',
+    hasManagedIndie: subscriptionTier === 'managed_indie',
     hasManagedPro: subscriptionTier === 'managed_pro',
     hasManagedExpert: subscriptionTier === 'managed_expert',
-    hasByokPro: subscriptionTier === 'byok_pro'
+    hasManagedProduction: subscriptionTier === 'managed_production'
   }
 
   useEffect(() => {
@@ -210,8 +211,7 @@ export default function ApiKeysPage() {
   }
 
   const keysUsedPercentage = (apiKeys.length / MAX_KEYS) * 100
-  const byokKeys = apiKeys.filter(k => k.tier?.includes('byok'))
-  const managedKeys = apiKeys.filter(k => !k.tier?.includes('byok'))
+  const managedKeys = apiKeys // All keys are managed now
 
   if (isLoading) {
     return (
@@ -324,33 +324,6 @@ export default function ApiKeysPage() {
           <p className="text-sm text-slate-400 font-light">API key slots used</p>
         </div>
 
-        {/* BYOK Keys Card */}
-        <div className="bg-[#0e0e11]/60 backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 relative">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">BYOK Keys</p>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-bold text-white tracking-tight font-mono">
-                  {byokKeys.length}
-                </span>
-                <span className="text-sm text-slate-500 font-medium">keys</span>
-              </div>
-            </div>
-            <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20">
-              <Zap className="w-6 h-6 text-amber-400" />
-            </div>
-          </div>
-          <p className="text-xs text-slate-500 mt-2">
-            {subscription.hasByokPro ? 'Unlimited requests (10/sec)' : '100 requests/day limit'}
-          </p>
-          <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
-            {subscription.hasByokPro && <Crown className="w-4 h-4 text-amber-400" />}
-            <span className="text-xs text-slate-400">
-              {subscription.hasByokPro ? 'BYOK Pro Active' : 'BYOK Free Tier'}
-            </span>
-          </div>
-        </div>
-
         {/* Managed Keys Card */}
         <div className="bg-[#0e0e11]/60 backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 relative">
           <div className="flex items-center justify-between mb-4">
@@ -368,12 +341,20 @@ export default function ApiKeysPage() {
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-2">
-            {subscription.hasManagedExpert ? '200,000 requests/month' : subscription.hasManagedPro ? '50,000 requests/month' : '50 requests/day limit'}
+            {subscription.hasManagedProduction ? '800 deep research/month' :
+             subscription.hasManagedExpert ? '300 deep research/month' :
+             subscription.hasManagedPro ? '70 deep research/month' :
+             subscription.hasManagedIndie ? '25 deep research/month' :
+             '3 deep research/day'}
           </p>
           <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2">
-            {(subscription.hasManagedPro || subscription.hasManagedExpert) && <Crown className="w-4 h-4 text-emerald-400" />}
+            {(subscription.hasManagedIndie || subscription.hasManagedPro || subscription.hasManagedExpert || subscription.hasManagedProduction) && <Crown className="w-4 h-4 text-emerald-400" />}
             <span className="text-xs text-slate-400">
-              {subscription.hasManagedExpert ? 'Managed Expert Active' : subscription.hasManagedPro ? 'Managed Pro Active' : 'Managed Free Tier'}
+              {subscription.hasManagedProduction ? 'Managed Production' :
+               subscription.hasManagedExpert ? 'Managed Expert' :
+               subscription.hasManagedPro ? 'Managed Pro' :
+               subscription.hasManagedIndie ? 'Managed Indie' :
+               'Sandbox (Free)'}
             </span>
           </div>
         </div>
@@ -430,17 +411,18 @@ export default function ApiKeysPage() {
                     </div>
                   </div>
                   <div className="w-32 flex justify-center">
-                    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full ${key.tier === 'byok_pro' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
-                        key.tier === 'byok_starter' || key.tier === 'byok' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' :
-                          key.tier === 'managed_expert' ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40' :
-                            key.tier === 'managed_pro' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                              'bg-slate-800 text-slate-400 border border-slate-700'
-                      }`}>
-                      {key.tier === 'byok_pro' ? 'BYOK PRO' :
-                        key.tier === 'byok_starter' || key.tier === 'byok' ? 'BYOK' :
-                          key.tier === 'managed_expert' ? 'MANAGED EXPERT' :
-                            key.tier === 'managed_pro' ? 'MANAGED PRO' :
-                              'MANAGED'}
+                    <span className={`px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide rounded-full ${
+                      key.tier === 'managed_production' ? 'bg-purple-500/30 text-purple-300 border border-purple-500/40' :
+                      key.tier === 'managed_expert' ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40' :
+                      key.tier === 'managed_pro' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                      key.tier === 'managed_indie' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                      'bg-slate-800 text-slate-400 border border-slate-700'
+                    }`}>
+                      {key.tier === 'managed_production' ? 'PRODUCTION' :
+                       key.tier === 'managed_expert' ? 'EXPERT' :
+                       key.tier === 'managed_pro' ? 'PRO' :
+                       key.tier === 'managed_indie' ? 'INDIE' :
+                       'SANDBOX'}
                     </span>
                   </div>
                   <div className="w-24 flex justify-center">
@@ -478,22 +460,13 @@ export default function ApiKeysPage() {
           </div>
           <div className="bg-[#0e0e11] rounded-xl border border-white/5 p-6">
             <div className="space-y-4">
-              <div className="flex items-start gap-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-                <div className="p-2 bg-amber-500/20 rounded-lg">
-                  <Zap className="w-5 h-5 text-amber-400" />
-                </div>
-                <div>
-                  <h4 className="font-medium text-white text-sm mb-1">BYOK (Bring Your Own Key)</h4>
-                  <p className="text-xs text-slate-400">Pass your own AI provider keys in headers. Free tier: 100 req/day. Pro: Unlimited.</p>
-                </div>
-              </div>
               <div className="flex items-start gap-4 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
                 <div className="p-2 bg-emerald-500/20 rounded-lg">
                   <Shield className="w-5 h-5 text-emerald-400" />
                 </div>
                 <div>
-                  <h4 className="font-medium text-white text-sm mb-1">Managed</h4>
-                  <p className="text-xs text-slate-400">We handle the AI providers. Free tier: 50 req/day. Pro: 50k req/month.</p>
+                  <h4 className="font-medium text-white text-sm mb-1">Managed Keys</h4>
+                  <p className="text-xs text-slate-400">We handle the AI providers. Sandbox: 50 req/day. Managed Pro: 50k req/month. Managed Expert: 200k req/month.</p>
                 </div>
               </div>
             </div>
@@ -564,45 +537,25 @@ export default function ApiKeysPage() {
                   <label className="block text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
                     Key Type
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setNewKeyTier('byok')}
-                      className={`p-4 rounded-xl border transition-all ${newKeyTier === 'byok'
-                          ? 'border-amber-500/50 bg-amber-500/10 shadow-[0_0_15px_-3px_rgba(245,158,11,0.2)]'
-                          : 'border-white/10 hover:border-white/20 bg-[#18181b]'
-                        }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <Zap className="w-4 h-4 text-amber-400" />
-                        <span className="text-sm font-medium text-white">
-                          {subscription.hasByokPro ? 'BYOK Pro' : 'BYOK'}
-                        </span>
-                        {subscription.hasByokPro && <Crown className="w-3 h-3 text-amber-400" />}
-                      </div>
-                      <p className="text-xs text-slate-500 text-left">
-                        {subscription.hasByokPro ? 'Unlimited (10/sec)' : '100 req/day'}
-                      </p>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewKeyTier('managed')}
-                      className={`p-4 rounded-xl border transition-all ${newKeyTier === 'managed'
-                          ? 'border-emerald-500/50 bg-emerald-500/10 shadow-[0_0_15px_-3px_rgba(52,211,153,0.2)]'
-                          : 'border-white/10 hover:border-white/20 bg-[#18181b]'
-                        }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <Shield className="w-4 h-4 text-emerald-400" />
-                        <span className="text-sm font-medium text-white">
-                          {subscription.hasManagedPro ? 'Managed Pro' : 'Managed'}
-                        </span>
-                        {subscription.hasManagedPro && <Crown className="w-3 h-3 text-emerald-400" />}
-                      </div>
-                      <p className="text-xs text-slate-500 text-left">
-                        {subscription.hasManagedPro ? '50k req/mo' : '50 req/day'}
-                      </p>
-                    </button>
+                  <div className="p-4 rounded-xl border border-emerald-500/50 bg-emerald-500/10">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Shield className="w-4 h-4 text-emerald-400" />
+                      <span className="text-sm font-medium text-white">
+                        {subscription.hasManagedProduction ? 'Managed Production' :
+                         subscription.hasManagedExpert ? 'Managed Expert' :
+                         subscription.hasManagedPro ? 'Managed Pro' :
+                         subscription.hasManagedIndie ? 'Managed Indie' :
+                         'Sandbox'}
+                      </span>
+                      {(subscription.hasManagedIndie || subscription.hasManagedPro || subscription.hasManagedExpert || subscription.hasManagedProduction) && <Crown className="w-3 h-3 text-emerald-400" />}
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      {subscription.hasManagedProduction ? '800 deep research/month' :
+                       subscription.hasManagedExpert ? '300 deep research/month' :
+                       subscription.hasManagedPro ? '70 deep research/month' :
+                       subscription.hasManagedIndie ? '25 deep research/month' :
+                       '3 deep research/day'}
+                    </p>
                   </div>
                 </div>
               </div>

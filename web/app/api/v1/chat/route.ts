@@ -458,26 +458,17 @@ export async function POST(req: NextRequest) {
       forceIntent: force_intent
     }, ctx)
 
-    // Check if user provided their own keys in headers (BYOK)
-    const userGroqKey = req.headers.get('x-groq-key')
-    const userTavilyKey = req.headers.get('x-tavily-key')
+    // Use system API keys for all managed plans
+    const activeGroqKey = process.env.GROQ_API_KEY
+    const activeTavilyKey = process.env.TAVILY_API_KEY
 
-    // Determine active keys (User's key > System Fallback)
-    // This protects our wallet - BYOK users use their own credits
-    const activeGroqKey = userGroqKey || process.env.GROQ_API_KEY
-    const activeTavilyKey = userTavilyKey || process.env.TAVILY_API_KEY
-
-    debug('byok:keys', {
-      hasUserGroqKey: !!userGroqKey,
-      hasUserTavilyKey: !!userTavilyKey,
+    debug('keys:check', {
       hasSystemGroq: !!process.env.GROQ_API_KEY,
       hasSystemTavily: !!process.env.TAVILY_API_KEY,
-      usingSystemGroq: !userGroqKey,
-      usingSystemTavily: !userTavilyKey
     }, ctx)
 
     if (!activeGroqKey) {
-      debug('byok:noGroqKey', {}, ctx)
+      debug('keys:noGroqKey', {}, ctx)
       return Response.json(
         { error: 'No Groq API key available', code: 'MISSING_LLM_KEY' },
         { status: 500 }
@@ -487,13 +478,11 @@ export async function POST(req: NextRequest) {
     // Get tier from Unkey metadata (if set)
     const plan = result.meta?.plan || result.meta?.tier || 'sandbox'
     const validPlanType = plan as ApiPlan
-    const isByokPlan = plan === 'byok_starter' || plan === 'byok_pro'
     // Search is enabled for all plans - rate limits enforce fair usage
     const searchEnabled = result.meta?.searchEnabled !== false
-    const requiresUserKeys = result.meta?.requiresUserKeys || isByokPlan
     const isPriority = isPriorityPlan(validPlanType)
 
-    debug('tier:check', { plan, isByokPlan, searchEnabled, requiresUserKeys, isPriority }, ctx)
+    debug('tier:check', { plan, searchEnabled, isPriority }, ctx)
 
     // ============================================
     // PRIORITY QUEUE CHECK (Free users throttled under load)
@@ -532,35 +521,6 @@ export async function POST(req: NextRequest) {
           // Don't fail the request if load check fails
           debugError('priority:loadCheckError', loadCheckError, ctx)
         }
-      }
-    }
-
-    // ============================================
-    // BYOK KEY REQUIREMENT CHECK
-    // ============================================
-    // If plan requires user keys (byok_starter, byok_pro), enforce header requirements
-    if (requiresUserKeys) {
-      if (!userGroqKey) {
-        debug('byok:missingGroqKey', { plan }, ctx)
-        return Response.json(
-          {
-            error: 'BYOK plans require x-groq-key header',
-            code: 'BYOK_MISSING_GROQ_KEY',
-            hint: 'Add your Groq API key in the x-groq-key header'
-          },
-          { status: 400 }
-        )
-      }
-      if (!userTavilyKey) {
-        debug('byok:missingTavilyKey', { plan }, ctx)
-        return Response.json(
-          {
-            error: 'BYOK plans require x-tavily-key header',
-            code: 'BYOK_MISSING_TAVILY_KEY',
-            hint: 'Add your Tavily API key in the x-tavily-key header'
-          },
-          { status: 400 }
-        )
       }
     }
 

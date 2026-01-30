@@ -76,8 +76,12 @@ export async function POST(req: NextRequest) {
             contentType: response.headers.get('content-type')
         })
 
-        // 4. Handle streaming response
-        if (body.stream && response.body) {
+        // 4. Check actual response content type from the API
+        const apiContentType = response.headers.get('content-type') || ''
+        const isStreamResponse = apiContentType.includes('text/event-stream')
+
+        // Handle streaming response ONLY if API actually returned SSE
+        if (body.stream && response.body && isStreamResponse) {
             log('info', 'stream:start', { requestId })
 
             let chunkCount = 0

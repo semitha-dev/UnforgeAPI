@@ -82,7 +82,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const value: SubscriptionContextType = {
     tier,
-    isPro: tier === 'pro' || tier === 'managed_pro' || tier === 'managed_expert' || tier === 'byok_pro',
+    isPro: tier === 'pro' || tier === 'managed_pro' || tier === 'managed_expert',
     isAnonymous: tier === 'anonymous',
     isLoading,
     refetch: () => fetchSubscription(true)
@@ -112,6 +112,6 @@ export function clearSubscriptionCache() {
 // Export tier and isPro for convenience
 export function useSubscriptionTier() {
   const { tier } = useSubscriptionContext()
-  const isPro = tier === 'pro' || tier === 'managed_pro' || tier === 'managed_expert' || tier === 'byok_pro'
+  const isPro = tier === 'pro' || tier === 'managed_pro' || tier === 'managed_expert'
   return { tier, isPro }
 }

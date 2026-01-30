@@ -392,24 +392,20 @@ export default function DocsPage() {
                   <div className="font-medium text-gray-900 dark:text-white">3/day</div>
                 </div>
                 <div>
+                  <div className="text-gray-500">Managed Indie</div>
+                  <div className="font-medium text-gray-900 dark:text-white">25/month</div>
+                </div>
+                <div>
                   <div className="text-gray-500">Managed Pro</div>
-                  <div className="font-medium text-gray-900 dark:text-white">50/month</div>
+                  <div className="font-medium text-gray-900 dark:text-white">70/month</div>
                 </div>
                 <div>
                   <div className="text-gray-500">Managed Expert</div>
-                  <div className="font-medium text-gray-900 dark:text-white">200/month</div>
+                  <div className="font-medium text-gray-900 dark:text-white">300/month</div>
                 </div>
                 <div>
-                  <div className="text-gray-500">BYOK Starter</div>
-                  <div className="font-medium text-gray-900 dark:text-white">10/day</div>
-                </div>
-                <div>
-                  <div className="text-gray-500">BYOK Pro</div>
-                  <div className="font-medium text-gray-900 dark:text-white">∞ std, 500 agentic/mo</div>
-                </div>
-                <div>
-                  <div className="text-gray-500">Enterprise</div>
-                  <a href="mailto:support@unforgeapi.com" className="font-medium text-violet-600 dark:text-violet-400 hover:underline">Contact Us</a>
+                  <div className="text-gray-500">Managed Production</div>
+                  <div className="font-medium text-gray-900 dark:text-white">800/month</div>
                 </div>
               </div>
             </div>
@@ -660,36 +656,6 @@ curl -X POST https://www.unforgeapi.com/api/v1/chat \\
   -d '{"query": "What is quantum computing?"}'`}
             />
 
-            {/* BYOK Tier */}
-            <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">
-              BYOK Tier (Bring Your Own Keys)
-            </h3>
-            <div className="p-4 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl mb-4">
-              <p className="text-amber-700 dark:text-amber-300 text-sm mb-2">
-                <strong>Full Control:</strong> Use your own API keys. BYOK Pro gets unlimited usage.
-              </p>
-              <ul className="text-gray-600 dark:text-gray-400 text-sm space-y-1 list-disc list-inside">
-                <li>BYOK Pro: Unlimited usage with your own keys</li>
-                <li>Pay providers directly at their rates</li>
-                <li>Platform fee: $5/mo</li>
-              </ul>
-            </div>
-            <CodeBlock
-              language="bash"
-              code={`# BYOK tier - pass your own keys
-curl -X POST https://www.unforgeapi.com/api/v1/chat \\
-  -H "Authorization: Bearer uf_your_api_key" \\
-  -H "x-groq-key: gsk_your_groq_key" \\
-  -H "x-tavily-key: tvly-your_tavily_key" \\
-  -H "Content-Type: application/json" \\
-  -d '{"query": "What is quantum computing?"}'`}
-            />
-            <div className="mt-4 p-4 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 rounded-xl">
-              <p className="text-violet-700 dark:text-violet-300 text-sm">
-                <strong>Stateless Security:</strong> Your API keys are only used for the duration
-                of the request and are never logged or stored.
-              </p>
-            </div>
           </section>
 
           {/* Advanced Parameters */}
@@ -1074,8 +1040,8 @@ print(f"Routed to: {data['meta']['routed_to']}")`}
 
             <div className="mt-6 p-4 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 rounded-xl">
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                <strong className="text-violet-600 dark:text-violet-400">Recommendation:</strong> The BYOK tier is recommended for
-                production applications to ensure zero markup on token usage and unlimited scaling.
+                <strong className="text-violet-600 dark:text-violet-400">Recommendation:</strong> The Managed Expert tier is recommended for
+                high-volume production applications with dedicated support.
               </p>
             </div>
           </section>
@@ -1096,62 +1062,46 @@ print(f"Routed to: {data['meta']['routed_to']}")`}
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-zinc-700">
                     <th className="text-left py-3 text-gray-500 dark:text-gray-400">Plan</th>
-                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Request Limit</th>
-                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Rate Limit</th>
-                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Web Search</th>
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Price</th>
                     <th className="text-left py-3 text-gray-500 dark:text-gray-400">Deep Research</th>
+                    <th className="text-left py-3 text-gray-500 dark:text-gray-400">Features</th>
                   </tr>
                 </thead>
                 <tbody className="text-gray-700 dark:text-gray-300">
                   <tr className="border-b border-gray-100 dark:border-zinc-800">
                     <td className="py-3 font-medium text-gray-900 dark:text-white">Sandbox</td>
-                    <td className="py-3">50 / day</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">1 req/sec</td>
-                    <td className="py-3">5 / day</td>
+                    <td className="py-3">Free</td>
                     <td className="py-3">3 / day</td>
+                    <td className="py-3 text-xs">3-iteration agentic</td>
+                  </tr>
+                  <tr className="border-b border-gray-100 dark:border-zinc-800">
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">Managed Indie</td>
+                    <td className="py-3">$8 / month</td>
+                    <td className="py-3">25 / month</td>
+                    <td className="py-3 text-xs">3-iteration agentic</td>
                   </tr>
                   <tr className="border-b border-gray-100 dark:border-zinc-800">
                     <td className="py-3 font-medium text-gray-900 dark:text-white">Managed Pro</td>
-                    <td className="py-3">50,000 / month</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">5 req/sec</td>
-                    <td className="py-3">1,000 / month</td>
-                    <td className="py-3">50 / month</td>
+                    <td className="py-3">$20 / month</td>
+                    <td className="py-3">70 / month</td>
+                    <td className="py-3 text-xs">3-iteration agentic, priority support</td>
                   </tr>
                   <tr className="border-b border-gray-100 dark:border-zinc-800">
                     <td className="py-3 font-medium text-gray-900 dark:text-white">Managed Expert</td>
-                    <td className="py-3">200,000 / month</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">10 req/sec</td>
-                    <td className="py-3">5,000 / month</td>
-                    <td className="py-3">200 / month</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 dark:border-zinc-800">
-                    <td className="py-3 font-medium text-gray-900 dark:text-white">BYOK Starter</td>
-                    <td className="py-3">100 / day</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">2 req/sec</td>
-                    <td className="py-3">Unlimited*</td>
-                    <td className="py-3">10 / day</td>
-                  </tr>
-                  <tr className="border-b border-gray-100 dark:border-zinc-800">
-                    <td className="py-3 font-medium text-gray-900 dark:text-white">BYOK Pro</td>
-                    <td className="py-3">Unlimited</td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">10 req/sec</td>
-                    <td className="py-3">Unlimited*</td>
-                    <td className="py-3">∞ std, 500 agentic/mo</td>
+                    <td className="py-3">$79 / month</td>
+                    <td className="py-3">300 / month</td>
+                    <td className="py-3 text-xs">3-iteration agentic, dedicated manager</td>
                   </tr>
                   <tr>
-                    <td className="py-3 font-medium text-gray-900 dark:text-white">Enterprise</td>
-                    <td className="py-3"><a href="mailto:support@unforgeapi.com" className="text-violet-600 dark:text-violet-400 hover:underline">Contact Us</a></td>
-                    <td className="py-3 text-gray-600 dark:text-gray-400">Custom</td>
-                    <td className="py-3"><a href="mailto:support@unforgeapi.com" className="text-violet-600 dark:text-violet-400 hover:underline">Contact Us</a></td>
-                    <td className="py-3"><a href="mailto:support@unforgeapi.com" className="text-violet-600 dark:text-violet-400 hover:underline">Contact Us</a></td>
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">Managed Production</td>
+                    <td className="py-3">$200 / month</td>
+                    <td className="py-3">800 / month</td>
+                    <td className="py-3 text-xs">3-iteration agentic, SLA guarantee</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-              * BYOK plans use your own Tavily API key for search and deep research. Usage is subject to Tavily's rate limits.
-            </p>
 
             <h3 className="font-semibold mt-8 mb-4 text-gray-900 dark:text-white">Rate Limit Headers</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">

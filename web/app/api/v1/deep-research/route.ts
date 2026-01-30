@@ -20,15 +20,9 @@
  * - Domain Presets: Optimized for crypto, stocks, tech, academic
  * - Webhook Delivery: Async processing with callback
  *
- * Two execution paths:
- *
- * MANAGED USERS (managed_pro, managed_ultra, enterprise):
+ * MANAGED TIERS (sandbox, managed_pro, managed_expert):
  *   - Uses system Tavily + Cerebras + Groq keys
  *   - No user headers needed
- *
- * BYOK USERS (byok_starter, byok_pro):
- *   - Requires x-tavily-key header
- *   - Optional x-cerebras-key, x-groq-key, x-google-key headers
  */
 
 import { NextRequest } from 'next/server'
@@ -40,7 +34,7 @@ import { Redis } from '@upstash/redis'
 import { createHash } from 'crypto'
 import { jsonrepair } from 'jsonrepair'
 import { type ApiPlan } from '@/lib/subscription-constants'
-import { checkFeatureRateLimit, isByokExempt, getRateLimitErrorResponse, UNKEY_NAMESPACES, NAMESPACE_LIMITS, checkByokProRateLimit, requiresByokProRateLimit } from '@/lib/unkey'
+import { checkFeatureRateLimit, isByokExempt, getRateLimitErrorResponse, UNKEY_NAMESPACES, NAMESPACE_LIMITS } from '@/lib/unkey'
 
 // ============================================
 // CONFIGURATION
@@ -994,9 +988,7 @@ export async function POST(req: NextRequest) {
     timestamp: new Date().toISOString(),
     timeLimitMs: TIME_LIMIT_MS,
     url: req.url,
-    hasAuth: !!req.headers.get('Authorization'),
-    hasGroqKey: !!req.headers.get('x-groq-key'),
-    hasTavilyKey: !!req.headers.get('x-tavily-key')
+    hasAuth: !!req.headers.get('Authorization')
   }, ctx)
 
   try {
@@ -1140,43 +1132,6 @@ export async function POST(req: NextRequest) {
     const internalWebhook = req.headers.get('x-internal-webhook')
 
     // ============================================
-    // 3.1 BYOK PRO AGENTIC CAP CHECK (100/month hard limit)
-    // ============================================
-    // Vercel protection: BYOK Pro users get unlimited standard requests
-    // but agentic is capped at 100/month to prevent execution time abuse
-    let byokAgenticRemaining: number | undefined
-
-    if (plan === 'byok_pro' && agentic_loop && workspaceId) {
-      debug('byokProAgentic:check', {
-        workspaceId,
-        namespace: UNKEY_NAMESPACES.BYOK_PRO_AGENTIC
-      }, ctx)
-
-      const byokAgenticResult = await checkFeatureRateLimit(
-        workspaceId,
-        UNKEY_NAMESPACES.BYOK_PRO_AGENTIC,
-        plan
-      )
-      byokAgenticRemaining = byokAgenticResult.remaining
-
-      debug('byokProAgentic:result', {
-        success: byokAgenticResult.success,
-        remaining: byokAgenticResult.remaining,
-        limit: byokAgenticResult.limit,
-        reset: byokAgenticResult.reset
-      }, ctx)
-
-      if (!byokAgenticResult.success) {
-        return Response.json({
-          error: 'BYOK Pro agentic limit exceeded (100/month). Use agentic_loop: false for unlimited standard requests.',
-          code: 'BYOK_PRO_AGENTIC_LIMIT_EXCEEDED',
-          limit: 100,
-          remaining: 0,
-          period: 'monthly',
-          hint: 'Set agentic_loop: false for unlimited standard deep research requests.'
-        }, { status: 429 })
-      }
-    }
 
     // Validate mode-specific requirements
     if (mode === 'compare' && (!queries || queries.length < 2)) {
@@ -1293,11 +1248,6 @@ export async function POST(req: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': authHeader || '',
-          // Forward BYOK keys if present
-          ...(req.headers.get('x-tavily-key') && { 'x-tavily-key': req.headers.get('x-tavily-key')! }),
-          ...(req.headers.get('x-cerebras-key') && { 'x-cerebras-key': req.headers.get('x-cerebras-key')! }),
-          ...(req.headers.get('x-groq-key') && { 'x-groq-key': req.headers.get('x-groq-key')! }),
-          ...(req.headers.get('x-google-key') && { 'x-google-key': req.headers.get('x-google-key')! }),
           // Pass webhook in a special header so internal handler knows where to send results
           'x-internal-webhook': webhook
         },
@@ -1334,67 +1284,23 @@ export async function POST(req: NextRequest) {
     // 4. DETERMINE API KEYS
     // ============================================
 
-    // Get user-provided keys from headers (BYOK)
-    const userTavilyKey = req.headers.get('x-tavily-key')
-    const userCerebrasKey = req.headers.get('x-cerebras-key')
-    const userGroqKey = req.headers.get('x-groq-key')
-    const userGoogleKey = req.headers.get('x-google-key')
+    // Use system keys for all managed plans
+    const activeTavilyKey = process.env.TAVILY_API_KEY
+    const activeCerebrasKey = process.env.CEREBRAS_API_KEY
+    const activeGroqKey = process.env.GROQ_API_KEY
+    const activeGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
 
-    // Determine active keys based on plan
-    let activeTavilyKey: string | undefined
-    let activeCerebrasKey: string | undefined
-    let activeGroqKey: string | undefined  // Writer (primary) + extraction fallback
-    let activeGoogleKey: string | undefined  // Extraction fallback
-
-    if (isUserOnByokPlan) {
-      // BYOK: MUST use user keys - do NOT fallback to system keys for search
-      if (!userTavilyKey) {
-        return Response.json({
-          error: 'BYOK plans require x-tavily-key header for Deep Research',
-          code: 'BYOK_MISSING_TAVILY_KEY',
-          hint: 'Add your Tavily API key in the x-tavily-key header'
-        }, { status: 400 })
-      }
-
-      activeTavilyKey = userTavilyKey
-      // Cerebras/Groq/Google keys are optional for BYOK - use system keys if not provided
-      activeCerebrasKey = userCerebrasKey || process.env.CEREBRAS_API_KEY
-      activeGroqKey = userGroqKey || process.env.GROQ_API_KEY
-      activeGoogleKey = userGoogleKey || process.env.GOOGLE_GENERATIVE_AI_API_KEY
-
-      // Need Groq for writing reports
-      if (!activeGroqKey) {
-        return Response.json({
-          error: 'No Groq API key available for report writing. Provide x-groq-key header.',
-          code: 'MISSING_GROQ_KEY'
-        }, { status: 500 })
-      }
-      // Need either Cerebras or Gemini for extraction
-      if (!activeCerebrasKey && !activeGoogleKey) {
-        return Response.json({
-          error: 'No extraction API key available. Provide x-cerebras-key or x-google-key header.',
-          code: 'MISSING_EXTRACTION_KEY'
-        }, { status: 500 })
-      }
-    } else {
-      // Managed: Use system keys
-      activeTavilyKey = process.env.TAVILY_API_KEY
-      activeCerebrasKey = process.env.CEREBRAS_API_KEY
-      activeGroqKey = process.env.GROQ_API_KEY  // Writer
-      activeGoogleKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY  // Extraction fallback
-
-      if (!activeTavilyKey || !activeGroqKey) {
-        return Response.json({
-          error: 'Server configuration error - missing API keys',
-          code: 'SERVER_CONFIG_ERROR'
-        }, { status: 500 })
-      }
-      if (!activeCerebrasKey && !activeGoogleKey) {
-        return Response.json({
-          error: 'Server configuration error - no extraction model configured',
-          code: 'SERVER_CONFIG_ERROR'
-        }, { status: 500 })
-      }
+    if (!activeTavilyKey || !activeGroqKey) {
+      return Response.json({
+        error: 'Server configuration error - missing API keys',
+        code: 'SERVER_CONFIG_ERROR'
+      }, { status: 500 })
+    }
+    if (!activeCerebrasKey && !activeGoogleKey) {
+      return Response.json({
+        error: 'Server configuration error - no extraction model configured',
+        code: 'SERVER_CONFIG_ERROR'
+      }, { status: 500 })
     }
 
     debug('keys:resolved', {

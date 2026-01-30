@@ -4,16 +4,12 @@
  * Implements DECOUPLED rate limits using Unkey Namespaces:
  * - web_search: Dynamic limit based on subscription tier (RESEARCH intent)
  * - deep_research: Dynamic limit based on subscription tier (DEEP_RESEARCH intent)
- * - byok_pro_agentic: BYOK Pro agentic hard cap (100/month - Vercel protection)
  *
  * CRITICAL RULES:
  * - Rule A (Independence): Each namespace is checked independently.
  *   Hitting one limit does NOT affect the other.
- * - Rule B (BYOK Exemption): BYOK users skip deep_research limits (they use their own keys)
- * - Rule C (Tier-Based Limits): Limits are now dynamic based on subscription tier from PLAN_CONFIG
- * - Rule D (No Unlimited Defaults): If tier is missing, default to sandbox limits
- * - Rule E (BYOK Pro Rate Limit): BYOK Pro users have 10 req/sec rate limit enforced
- * - Rule F (BYOK Pro Agentic Cap): BYOK Pro agentic requests capped at 100/month
+ * - Rule B (Tier-Based Limits): Limits are now dynamic based on subscription tier from PLAN_CONFIG
+ * - Rule C (No Unlimited Defaults): If tier is missing, default to sandbox limits
  */
 
 import { PLAN_CONFIG, WEB_SEARCH_LIMITS, DEEP_RESEARCH_LIMITS } from './subscription-constants'
@@ -38,11 +34,9 @@ interface FeatureRateLimitResult {
 
 // Namespace configuration
 // SHARED CREDIT SYSTEM: Standard and Agentic share the same pool (deep_research)
-// BYOK Pro agentic has a separate hard cap (100/month) for Vercel protection
 export const UNKEY_NAMESPACES = {
   WEB_SEARCH: 'web_search',           // For RESEARCH intent (chat route)
-  DEEP_RESEARCH: 'deep_research',     // For DEEP_RESEARCH intent (shared pool)
-  BYOK_PRO_AGENTIC: 'byok_pro_agentic' // Hard cap for BYOK Pro agentic (100/month)
+  DEEP_RESEARCH: 'deep_research'      // For DEEP_RESEARCH intent (shared pool)
 } as const
 
 export type UnkeyNamespace = typeof UNKEY_NAMESPACES[keyof typeof UNKEY_NAMESPACES]
@@ -56,93 +50,39 @@ export const NAMESPACE_LIMITS: Record<UnkeyNamespace, {
   durationMs: number
 }> = {
   web_search: {
-    limit: 5,  // Default for sandbox - will be overridden by tier-based limits
-    duration: '24 hours',
-    durationMs: 86400000  // 24 * 60 * 60 * 1000
-  },
-  deep_research: {
-    limit: 3,  // Default for sandbox - shared pool for standard + agentic
-    duration: '24 hours',
-    durationMs: 86400000
-  },
-  byok_pro_agentic: {
-    limit: 100,  // BYOK Pro agentic hard cap (Vercel protection)
+    limit: 0,  // Deprecated - web search not available
     duration: '30 days',
     durationMs: 2592000000  // 30 * 24 * 60 * 60 * 1000
+  },
+  deep_research: {
+    limit: 10,  // Default for sandbox (Free tier) - 10/month
+    duration: '30 days',
+    durationMs: 2592000000
   }
 }
 
-// BYOK Pro Agentic Cap: 100 agentic requests per month
-// This protects Vercel execution time on the $5 plan
-export const BYOK_PRO_AGENTIC_CAP = 100
-
-// BYOK Pro rate limiting: 10 req/sec
-// This is enforced at the API level using a sliding window
-const BYOK_PRO_RATE_LIMIT = 10  // requests per second
-const BYOK_PRO_RATE_WINDOW_MS = 1000  // 1 second window
-
-// In-memory rate limit tracking for BYOK Pro
-// In production, this should be replaced with Redis or similar
-const byokProRateLimitCache = new Map<string, {
-  count: number
-  resetTime: number
-}>()
-
 /**
- * Check BYOK Pro rate limit (10 req/sec)
+ * Check if a plan is BYOK (Bring Your Own Key) and thus exempt from rate limiting
+ * BYOK users provide their own API keys, so they don't consume our quotas
  * 
- * @param workspaceId - The workspace ID for rate limiting
- * @returns Object indicating if request is allowed
+ * @param plan - The user's subscription tier
+ * @returns true if the plan is a BYOK plan (exempt from rate limiting)
  */
-export function checkByokProRateLimit(workspaceId: string): {
-  allowed: boolean
-  remaining: number
-  resetTime: number
-} {
-  const now = Date.now()
-  const cached = byokProRateLimitCache.get(workspaceId)
-
-  if (!cached || now >= cached.resetTime) {
-    // Reset or initialize
-    byokProRateLimitCache.set(workspaceId, {
-      count: 1,
-      resetTime: now + BYOK_PRO_RATE_WINDOW_MS
-    })
-    return {
-      allowed: true,
-      remaining: BYOK_PRO_RATE_LIMIT - 1,
-      resetTime: now + BYOK_PRO_RATE_WINDOW_MS
-    }
-  }
-
-  if (cached.count < BYOK_PRO_RATE_LIMIT) {
-    // Increment count
-    cached.count += 1
-    byokProRateLimitCache.set(workspaceId, cached)
-    return {
-      allowed: true,
-      remaining: BYOK_PRO_RATE_LIMIT - cached.count,
-      resetTime: cached.resetTime
-    }
-  }
-
-  // Rate limit exceeded
-  return {
-    allowed: false,
-    remaining: 0,
-    resetTime: cached.resetTime
-  }
+export function isByokExempt(plan?: string): boolean {
+  if (!plan) return false
+  // BYOK plans start with 'byok_' prefix
+  return plan.startsWith('byok_')
 }
 
 /**
  * Get tier-based limit for a feature namespace
  * 
  * @param plan - The user's subscription tier
- * @param namespace - The feature namespace ('web_search', 'deep_research', or 'byok_pro_agentic')
+ * @param namespace - The feature namespace ('web_search' or 'deep_research')
  * @returns The limit for this feature based on user's tier
  */
 function getTierBasedLimit(plan: string, namespace: UnkeyNamespace): number {
-  // Default to sandbox if tier is missing (Rule D: No Unlimited Defaults)
+  // Default to sandbox if tier is missing (Rule C: No Unlimited Defaults)
   const safePlan = plan || 'sandbox'
 
   if (namespace === 'web_search') {
@@ -152,9 +92,6 @@ function getTierBasedLimit(plan: string, namespace: UnkeyNamespace): number {
     // Shared credit pool for standard + agentic
     const limitConfig = DEEP_RESEARCH_LIMITS[safePlan as keyof typeof DEEP_RESEARCH_LIMITS]
     return limitConfig?.limit !== undefined ? limitConfig.limit : NAMESPACE_LIMITS.deep_research.limit
-  } else if (namespace === 'byok_pro_agentic') {
-    // BYOK Pro agentic hard cap - always 100/month
-    return BYOK_PRO_AGENTIC_CAP
   }
 
   // Fallback to default limits
@@ -280,24 +217,6 @@ export async function checkFeatureRateLimit(
 }
 
 /**
- * Check if a plan is exempt from feature rate limits (BYOK plans)
- *
- * Rule B: BYOK users bring their own API keys, so they are not subject
- * to our managed rate limits. The API-level rate limit (50 req/day for starter,
- * 10 req/sec for pro) is their only constraint.
- */
-export function isByokExempt(plan: string): boolean {
-  return plan === 'byok_starter' || plan === 'byok_pro'
-}
-
-/**
- * Check if a plan requires BYOK Pro rate limiting (10 req/sec)
- */
-export function requiresByokProRateLimit(plan: string): boolean {
-  return plan === 'byok_pro'
-}
-
-/**
  * Get error response for a rate limit exceeded scenario
  */
 export function getRateLimitErrorResponse(
@@ -323,13 +242,13 @@ export function getRateLimitErrorResponse(
     const periodText = period === 'daily' ? 'day' : 'month'
 
     return {
-      error: `${period === 'daily' ? 'Daily' : 'Monthly'} web search limit reached (${config.limit}/${periodText}). Resets ${resetDate.toLocaleString()}.`,
+      error: `Monthly web search limit reached. Resets ${resetDate.toLocaleString()}.`,
       code: 'RESEARCH_LIMIT_EXCEEDED',
       limit: config.limit,
       remaining: 0,
       reset_at: result.reset,
       period: period,
-      upgrade_hint: 'Upgrade to Managed Pro ($20/mo) for 1,000 searches/month, or use BYOK for unlimited searches with your own Tavily key.'
+      upgrade_hint: 'Web search is deprecated. Use deep research instead.'
     }
   }
 
@@ -339,12 +258,12 @@ export function getRateLimitErrorResponse(
   const periodText = period === 'daily' ? 'day' : 'month'
 
   return {
-    error: `${period === 'daily' ? 'Daily' : 'Monthly'} deep research limit reached (${config.limit}/${periodText}). Resets ${resetDate.toLocaleString()}.`,
+    error: `Monthly deep research limit reached (${result.limit}/${periodText}). Resets ${resetDate.toLocaleString()}.`,
     code: 'DEEP_RESEARCH_LIMIT_EXCEEDED',
-    limit: config.limit,
+    limit: result.limit,
     remaining: 0,
     reset_at: result.reset,
     period: period,
-    upgrade_hint: 'Upgrade to Managed Pro ($20/mo) for 50 deep research/month, or Managed Expert ($79/mo) for 200/month.'
+    upgrade_hint: 'Upgrade to Pro ($29/mo) for 100 deep research/month, or Expert ($200/mo) for 800/month.'
   }
 }

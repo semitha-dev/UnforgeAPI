@@ -758,7 +758,30 @@
   }
 }
 
-/* Glassmorphism */
+/* Glassmorphism - Updated for Infrastructure Section */
 .glass-panel {
-  @apply bg-black/60 backdrop-blur-xl border border-white/10;
+  background: rgba(30, 41, 59, 0.3);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Custom Animations for Infrastructure Section */
+@keyframes flow {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  100% {
+    background-position: 0% 100%;
+  }
+}
+
+.animate-flow {
+  background-size: 100% 200%;
+  animation: flow 3s linear infinite;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
 }

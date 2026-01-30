@@ -205,7 +205,8 @@ function BillingPageContent() {
   }, [subscriptionSuccess, refetchUser, refetchSubscription])
 
   const planConfig = PLAN_CONFIG[subscription.tier] || PLAN_CONFIG.sandbox
-  const isPaidPlan = subscription.tier === 'managed_pro' || subscription.tier === 'managed_expert' || subscription.tier === 'byok_pro'
+  const isPaidPlan = subscription.tier === 'managed_indie' || subscription.tier === 'managed_pro' ||
+    subscription.tier === 'managed_expert' || subscription.tier === 'managed_production'
 
   // Handle opening customer portal
   const handleManageSubscription = async () => {
@@ -265,9 +266,10 @@ function BillingPageContent() {
   // Get price for current plan
   const getPlanPrice = () => {
     switch (subscription.tier) {
+      case 'managed_indie': return '$8'
       case 'managed_pro': return '$20'
       case 'managed_expert': return '$79'
-      case 'byok_pro': return '$5'
+      case 'managed_production': return '$200'
       default: return '$0.00'
     }
   }
@@ -448,51 +450,82 @@ function BillingPageContent() {
           </a>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Managed Pro Plan */}
-          <div className={`relative bg-[#0e0e11] border border-white/5 rounded-2xl p-6 flex flex-col ${subscription.tier === 'managed_pro' ? 'opacity-75 hover:opacity-100' : ''
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+          {/* Free Plan */}
+          <div className={`relative bg-[#0e0e11] border border-white/5 rounded-2xl p-6 flex flex-col ${subscription.tier === 'sandbox' ? 'opacity-75 hover:opacity-100' : ''
             } transition-opacity`}>
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-medium text-slate-300">Managed Pro</h3>
-                {subscription.tier === 'managed_pro' && (
+                <h3 className="text-lg font-medium text-slate-300">Free</h3>
+                {subscription.tier === 'sandbox' && (
                   <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-slate-800 text-slate-400 rounded">
                     Current
                   </span>
                 )}
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-bold text-white">$20</span>
-                <span className="text-sm text-slate-500">/mo</span>
+                <span className="text-3xl font-bold text-white">$0</span>
               </div>
             </div>
             <div className="text-sm text-slate-400 mb-6 border-b border-white/5 pb-6">
-              For growing teams and production apps.
+              Perfect for testing and development.
             </div>
             <ul className="flex-grow space-y-3">
               <li className="flex items-center gap-3 text-sm text-slate-300">
                 <Check className="w-5 h-5 text-slate-600" />
-                <span><span className="text-white font-medium">50,000</span> requests/mo</span>
+                <span><span className="text-white font-medium">10</span> deep research/month</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-slate-300">
                 <Check className="w-5 h-5 text-slate-600" />
-                Priority Email Support
+                Community support
+              </li>
+            </ul>
+            <button
+              disabled
+              className="mt-6 w-full py-2.5 rounded-lg text-sm font-medium bg-slate-800/50 text-slate-500 cursor-not-allowed"
+            >
+              Current Plan
+            </button>
+          </div>
+
+          {/* Pro Plan - Highlighted */}
+          <div className="relative bg-[#0F1115] border border-indigo-500/50 rounded-2xl p-6 flex flex-col shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] z-10 scale-[1.02] transform">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-lg whitespace-nowrap">
+              Most Popular
+            </div>
+            <div className="mb-4 mt-2">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-medium text-indigo-200">Pro</h3>
+                {subscription.tier === 'managed_pro' && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-indigo-500/20 text-indigo-400 rounded">
+                    Current
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-1 mt-2">
+                <span className="text-4xl font-bold text-white">$29</span>
+                <span className="text-sm text-slate-400">/mo</span>
+              </div>
+            </div>
+            <div className="text-sm text-indigo-200/60 mb-6 border-b border-indigo-500/10 pb-6">
+              For growing teams and production apps.
+            </div>
+            <ul className="flex-grow space-y-3">
+              <li className="flex items-center gap-3 text-sm text-slate-300">
+                <Check className="w-5 h-5 text-indigo-400" />
+                <span><span className="text-white font-medium">100</span> deep research/month</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-slate-600" />
-                1,000 Search / 50 Deep Research
-              </li>
-              <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-slate-600" />
-                Full Context Paths
+                <Check className="w-5 h-5 text-indigo-400" />
+                Priority support
               </li>
             </ul>
             <button
               onClick={handleManageSubscription}
               disabled={isLoadingPortal}
-              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${subscription.tier === 'managed_pro'
-                ? 'border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white bg-slate-900/50 hover:bg-slate-800/50 cursor-pointer'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer'
+              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${subscription.tier === 'managed_pro'
+                ? 'border border-indigo-500/50 hover:border-indigo-400 text-indigo-200 hover:text-white bg-indigo-600/30 hover:bg-indigo-600/50 cursor-pointer'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 cursor-pointer'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isLoadingPortal && subscription.tier === 'managed_pro' ? (
@@ -503,112 +536,52 @@ function BillingPageContent() {
             </button>
           </div>
 
-          {/* Managed Expert Plan - Highlighted */}
-          <div className="relative bg-[#0F1115] border border-indigo-500/50 rounded-2xl p-6 flex flex-col shadow-[0_0_25px_-5px_rgba(99,102,241,0.15)] z-10 scale-[1.02] transform">
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-lg">
-              Most Popular
-            </div>
-            <div className="mb-4 mt-2">
+          {/* Expert Plan */}
+          <div className={`relative bg-[#0e0e11] border border-white/5 rounded-2xl p-6 flex flex-col ${subscription.tier === 'managed_expert' ? 'opacity-75 hover:opacity-100' : ''
+            } transition-opacity`}>
+            <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-medium text-indigo-200">Managed Expert</h3>
+                <h3 className="text-lg font-medium text-slate-300">Expert</h3>
                 {subscription.tier === 'managed_expert' && (
-                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-indigo-500/20 text-indigo-400 rounded">
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-slate-800 text-slate-400 rounded">
                     Current
                   </span>
                 )}
               </div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-bold text-white">$79</span>
-                <span className="text-sm text-slate-400">/mo</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-bold text-white">$200</span>
+                <span className="text-sm text-slate-500">/mo</span>
               </div>
             </div>
-            <div className="text-sm text-indigo-200/60 mb-6 border-b border-indigo-500/10 pb-6">
+            <div className="text-sm text-slate-400 mb-6 border-b border-white/5 pb-6">
               For high-volume production apps.
             </div>
             <ul className="flex-grow space-y-3">
               <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-indigo-400" />
-                <span><span className="text-white font-medium">200,000</span> requests/mo</span>
+                <Check className="w-5 h-5 text-slate-600" />
+                <span><span className="text-white font-medium">800</span> deep research/month</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-indigo-400" />
-                Dedicated Account Manager
+                <Check className="w-5 h-5 text-slate-600" />
+                Dedicated account manager
               </li>
               <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-indigo-400" />
-                5,000 Search / 200 Deep Research
-              </li>
-              <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-indigo-400" />
-                Priority Queue Access
+                <Check className="w-5 h-5 text-slate-600" />
+                SLA guarantee
               </li>
             </ul>
             <button
               onClick={handleManageSubscription}
               disabled={isLoadingPortal}
-              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-semibold transition-all ${subscription.tier === 'managed_expert'
-                ? 'border border-indigo-500/50 hover:border-indigo-400 text-indigo-200 hover:text-white bg-indigo-600/30 hover:bg-indigo-600/50 cursor-pointer'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/25 cursor-pointer'
+              className={`mt-6 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${subscription.tier === 'managed_expert'
+                ? 'border border-slate-600 hover:border-slate-500 text-slate-300 hover:text-white bg-slate-900/50 hover:bg-slate-800/50 cursor-pointer'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer'
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {isLoadingPortal && subscription.tier === 'managed_expert' ? (
                 <Loader2 className="w-4 h-4 animate-spin mx-auto" />
               ) : (
                 subscription.tier === 'managed_expert' ? 'Manage Plan' : 'Upgrade to Expert'
-              )}
-            </button>
-          </div>
-
-          {/* BYOK Pro Plan */}
-          <div className="relative bg-[#0e0e11] border border-purple-500/30 rounded-2xl p-6 flex flex-col hover:border-purple-500/60 transition-colors shadow-[0_0_25px_-5px_rgba(139,92,246,0.15)]">
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-medium text-purple-200">BYOK Pro</h3>
-                {subscription.tier === 'byok_pro' && (
-                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-purple-500/20 text-purple-400 rounded">
-                    Current
-                  </span>
-                )}
-              </div>
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-3xl font-bold text-white">$5</span>
-                <span className="text-sm text-slate-500">/mo</span>
-              </div>
-            </div>
-            <div className="text-sm text-slate-400 mb-6 border-b border-white/5 pb-6">
-              Production scale with your own keys.
-            </div>
-            <ul className="flex-grow space-y-3">
-              <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-purple-400" />
-                <span><span className="text-white font-medium">Unlimited</span> requests (10 req/sec)</span>
-              </li>
-              <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-purple-400" />
-                Premium Support
-              </li>
-              <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-purple-400" />
-                Unlimited Search / Deep Research
-              </li>
-              <li className="flex items-center gap-3 text-sm text-slate-300">
-                <Check className="w-5 h-5 text-purple-400" />
-                <span><span className="text-white font-medium">500</span> Agentic / month</span>
-              </li>
-            </ul>
-            <p className="text-[10px] text-slate-500 mt-3">Agentic mode capped at 500/month for Vercel protection.</p>
-            <button
-              onClick={handleManageSubscription}
-              disabled={isLoadingPortal}
-              className={`mt-4 w-full py-2.5 rounded-lg text-sm font-medium transition-all ${subscription.tier === 'byok_pro'
-                ? 'border border-purple-500/50 hover:border-purple-400 text-purple-300 hover:text-white bg-purple-600/20 hover:bg-purple-600/30 cursor-pointer'
-                : 'border border-purple-500/50 text-purple-300 hover:bg-purple-500/10 cursor-pointer'
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isLoadingPortal && subscription.tier === 'byok_pro' ? (
-                <Loader2 className="w-4 h-4 animate-spin mx-auto" />
-              ) : (
-                subscription.tier === 'byok_pro' ? 'Manage Plan' : 'Get BYOK Pro'
               )}
             </button>
           </div>

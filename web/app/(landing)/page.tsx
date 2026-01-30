@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import gsap from 'gsap';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,16 +30,124 @@ import {
 } from 'lucide-react';
 
 import { DeepResearchSection as NewDeepResearchSection } from './components/DeepResearchSection';
+import { KnowledgeLayerSection } from './components/KnowledgeLayerSection';
+import { InfrastructureSection } from './components/InfrastructureSection';
 import { Navigation } from './components/Navigation';
 
 // Hero Section - Connected Grid Mix
 const HeroSection = () => {
+  const heroRef = useRef<HTMLDivElement>(null);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const line1Ref = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const subtitleRef = useRef<HTMLParagraphElement>(null);
+  const buttonsRef = useRef<HTMLDivElement>(null);
+  const consoleRef = useRef<HTMLDivElement>(null);
+  const codeContainerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+      // 1. Initial State
+      gsap.set(badgeRef.current, { opacity: 0, y: 20 });
+      gsap.set(headingRef.current, { opacity: 0, y: 30 });
+      gsap.set(line1Ref.current, { width: 0, opacity: 1 });
+      gsap.set(textRef.current, { width: 0, opacity: 1 });
+      gsap.set(subtitleRef.current, { opacity: 0, y: 20 });
+      gsap.set(buttonsRef.current, { opacity: 0, y: 20 });
+      gsap.set(consoleRef.current, { opacity: 0, scale: 0.9, y: 50 });
+
+      // Hide code lines initially
+      const codeLines = codeContainerRef.current?.querySelectorAll('.code-line');
+      if (codeLines) {
+        gsap.set(codeLines, { opacity: 0, x: -20 });
+      }
+
+      // 2. Entrance Sequence
+      tl.to(badgeRef.current, { opacity: 1, y: 0, duration: 0.8 })
+        .to(headingRef.current, { opacity: 1, y: 0, duration: 1 }, "-=0.6")
+
+        // Reveals cursor just before typing
+        .set(line1Ref.current, { borderRightColor: "white", visibility: "visible" })
+        // Typewriter Effect Part 1: "Knowledge for"
+        .fromTo(line1Ref.current,
+          { width: "0%" },
+          { width: "auto", duration: 1.2, ease: "steps(13)" },
+          "-=0.5"
+        )
+        // Remove cursor from line 1
+        .set(line1Ref.current, { borderRightColor: "transparent" })
+
+        // Reveals cursor just before typing
+        .set(textRef.current, { borderRightColor: "#c084fc", visibility: "visible" }) // purple-400
+        // Typewriter Effect Part 2: "AI Agents"
+        .fromTo(textRef.current,
+          { width: "0%" },
+          { width: "auto", duration: 1.0, ease: "steps(9)" },
+        )
+
+        .to(subtitleRef.current, { opacity: 1, y: 0, duration: 0.8 }, "-=0.5")
+        .to(buttonsRef.current, { opacity: 1, y: 0, duration: 0.8 }, "-=0.6")
+
+        // Elastic Console Entrance
+        .to(consoleRef.current, {
+          opacity: 1,
+          scale: 1,
+          y: 0,
+          duration: 1.5,
+          ease: "elastic.out(1, 0.5)"
+        }, "-=0.4")
+
+        // Sequential Code Typing
+        .to(codeLines || [], {
+          opacity: 1,
+          x: 0,
+          duration: 0.4,
+          stagger: 0.05,
+          ease: "power2.out"
+        }, "-=1.0");
+
+      // 3. 3D Tilt Effect on Mouse Move
+      const handleMouseMove = (e: MouseEvent) => {
+        if (!consoleRef.current) return;
+        const { left, top, width, height } = consoleRef.current.getBoundingClientRect();
+        const x = (e.clientX - left) / width - 0.5;
+        const y = (e.clientY - top) / height - 0.5;
+
+        gsap.to(consoleRef.current, {
+          rotationY: x * 5, // Rotate Y based on X position
+          rotationX: -y * 5, // Rotate X based on Y position (inverted)
+          transformPerspective: 1000,
+          ease: "power1.out",
+          duration: 0.5
+        });
+      };
+
+      const handleMouseLeave = () => {
+        gsap.to(consoleRef.current, {
+          rotationY: 0,
+          rotationX: 0,
+          ease: "power2.out",
+          duration: 0.8
+        });
+      };
+
+      heroRef.current?.addEventListener('mousemove', handleMouseMove);
+      heroRef.current?.addEventListener('mouseleave', handleMouseLeave);
+
+    }, heroRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <section className="relative flex flex-col items-center pt-24 pb-20 overflow-hidden min-h-[90vh] landing-page">
-      {/* Background - Connected Grid */}
+    <section ref={heroRef} className="relative flex flex-col items-center pt-24 pb-20 overflow-hidden min-h-[90vh] landing-page perspective-[2000px]">
+      {/* Background Elements - Specific to Hero */}
       <div className="absolute inset-0 pointer-events-none select-none overflow-hidden">
-        {/* Main Grid */}
-        <div className="absolute inset-0 connected-grid-bg" />
+        {/* Additional Hero Glow - Stronger than global */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/10 blur-[120px] rounded-full" />
 
         {/* Floating Icons 'Network' */}
         <div className="absolute inset-0">
@@ -91,13 +200,9 @@ const HeroSection = () => {
 
         {/* Header Content */}
         <div className="text-center max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+          <div>
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-8 hover:bg-white/10 transition-colors cursor-default">
+            <div ref={badgeRef} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-8 hover:bg-white/10 transition-colors cursor-default opacity-0">
               <span className="flex relative h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -106,21 +211,28 @@ const HeroSection = () => {
             </div>
 
             {/* Headline */}
-            <h1 className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tight text-white mb-8 leading-[0.95] drop-shadow-2xl">
-              Knowledge for <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-purple-400">
-                AI Agents
-              </span>
+            <h1 ref={headingRef} className="text-5xl sm:text-7xl lg:text-8xl font-black tracking-tight text-white mb-8 leading-[0.95] drop-shadow-2xl opacity-0">
+              <div className="inline-block overflow-hidden align-bottom">
+                <span ref={line1Ref} className="block whitespace-nowrap overflow-hidden border-r-4 border-transparent pr-2 w-0 invisible">
+                  Knowledge for
+                </span>
+              </div>
+              <br />
+              <div className="inline-block overflow-hidden align-bottom">
+                <span ref={textRef} className="block whitespace-nowrap overflow-hidden text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-200 to-purple-400 border-r-4 border-transparent pr-2 w-0 invisible">
+                  AI Agents
+                </span>
+              </div>
             </h1>
 
             {/* Subtitle */}
-            <p className="text-xl text-gray-400 leading-relaxed max-w-2xl mx-auto mb-10 font-medium">
+            <p ref={subtitleRef} className="text-xl text-gray-400 leading-relaxed max-w-2xl mx-auto mb-10 font-medium opacity-0">
               Give your LLMs real-time access to the entire web. <br className="hidden sm:block" />
               <span className="text-white decoration-purple-500/30 underline decoration-2 underline-offset-4">Structured JSON</span> output in under 30 seconds.
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <div ref={buttonsRef} className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16 opacity-0">
               <Link
                 href="/signup"
                 className="group relative inline-flex justify-center items-center gap-2 bg-white text-black px-8 py-4 rounded-xl font-bold transition-all hover:-translate-y-1 shadow-[0_0_20px_-5px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_-5px_rgba(255,255,255,0.4)]"
@@ -136,133 +248,81 @@ const HeroSection = () => {
                 Read the Docs
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Floating Research Console */}
-        <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.8, type: "spring", stiffness: 50 }}
-          className="relative max-w-5xl mx-auto w-full"
+        <div
+          ref={consoleRef}
+          className="relative max-w-5xl mx-auto w-full opacity-0 [transform-style:preserve-3d]"
         >
           {/* Ambient Glow behind console */}
-          <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/30 via-blue-500/30 to-pink-500/30 rounded-[32px] blur-2xl opacity-40 group-hover:opacity-60 transition duration-1000" />
+          <div className="absolute -inset-4 bg-gradient-to-r from-purple-500/30 via-blue-500/30 to-pink-500/30 rounded-[32px] blur-2xl opacity-40 group-hover:opacity-60 transition duration-1000 -z-10" />
 
-          {/* Console Container */}
-          <div className="relative rounded-2xl overflow-hidden bg-[#050505] border border-white/10 shadow-[0_0_50px_-10px_rgba(0,0,0,0.5)]">
+          {/* Console Container - Code vs JSON */}
+          <div className="relative rounded-2xl overflow-hidden bg-[#0D0D0D] border border-white/10 shadow-[0_0_50px_-10px_rgba(0,0,0,0.5)] font-mono text-sm leading-relaxed backdrop-blur-xl">
 
-            {/* UI Header showing 'Research Tabs' in a browser-like feel */}
-            <div className="flex items-center justify-between px-4 py-3 bg-[#0A0A0A] border-b border-white/5">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#141414] rounded-lg border border-white/5 text-xs font-medium text-gray-300">
-                  <Sparkles className="w-3 h-3 text-purple-400" />
-                  <span>Deep Analysis</span>
-                </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-white/5 transition-colors cursor-pointer">
-                  <span>Sources</span>
-                  <span className="bg-white/10 px-1 rounded text-[10px]">12</span>
-                </div>
+            {/* Window Header */}
+            <div className="flex items-center justify-between px-4 py-3 bg-[#111] border-b border-white/5">
+              <div className="flex gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/50" />
+                <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-[10px] font-mono text-green-500 uppercase tracking-wider">Live</span>
+              <div className="flex items-center gap-4 text-xs font-medium text-gray-500">
+                <span className="text-gray-300">example.ts</span>
+                <span>response.json</span>
               </div>
             </div>
 
-            {/* Split View: Request / Analysis */}
-            <div className="grid md:grid-cols-[1fr_1.4fr] divide-y md:divide-y-0 md:divide-x divide-white/5 min-h-[400px]">
+            <div ref={codeContainerRef} className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/5 bg-[#0D0D0D]">
 
-              {/* Left: Input/Query */}
-              <div className="p-6 bg-[#080808]">
-                <div className="mb-6">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 block">Research Query</label>
-                  <div className="text-lg font-medium text-white leading-relaxed">
-                    "Analyze the current state of <span className="text-purple-400 border-b border-purple-500/30 pb-0.5">Quantum Computing</span> startups in 2026 vs 2025"
-                  </div>
-                </div>
+              {/* Left: The Request Code */}
+              <div className="p-6 overflow-x-auto">
+                <div className="code-line text-gray-500 mb-2 select-none">// 1. Define your schema</div>
+                <div className="code-line text-purple-400">const<span className="text-white"> schema </span><span className="text-blue-400">=</span><span className="text-white"> {'{'}</span></div>
+                <div className="code-line pl-4 text-white">company_name<span className="text-blue-400">:</span> <span className="text-green-400">"string"</span>,</div>
+                <div className="code-line pl-4 text-white">revenue_growth<span className="text-blue-400">:</span> <span className="text-green-400">"string"</span>,</div>
+                <div className="code-line pl-4 text-white">key_risks<span className="text-blue-400">:</span> [<span className="text-green-400">"string"</span>]</div>
+                <div className="code-line text-white">{'}'}</div>
 
-                <div className="mb-6">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2 block">Configuration</label>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-300">Breadth</span>
-                      </div>
-                      <span className="text-xs font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded">WIDE</span>
-                    </div>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-300">Lookback</span>
-                      </div>
-                      <span className="text-xs font-mono text-gray-400">12 MONTHS</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-white/5">
-                  <div className="flex items-center gap-3 text-xs text-gray-500 font-mono">
-                    <div className="w-4 h-4 rounded border border-white/10 flex items-center justify-center bg-white/5">&gt;_</div>
-                    <span>Initializing agent swarm...</span>
-                  </div>
-                </div>
+                <div className="code-line text-gray-500 mt-6 mb-2 select-none">// 2. Call UnforgeAPI</div>
+                <div className="code-line text-blue-400">const<span className="text-white"> res </span><span className="text-blue-400">=</span><span className="text-blue-400"> await</span><span className="text-yellow-400"> fetch</span><span className="text-white">('https://www.unforgeapi.com/api/v1/deep-research', {'{'}</span></div>
+                <div className="code-line pl-4 text-white">method<span className="text-blue-400">:</span> <span className="text-green-400">'POST'</span>,</div>
+                <div className="code-line pl-4 text-white">headers<span className="text-blue-400">:</span> {'{'} <span className="text-green-400">'Authorization'</span><span className="text-blue-400">:</span> <span className="text-green-400">'Bearer uf_your_api_key'</span> {'}'},</div>
+                <div className="code-line pl-4 text-white">body<span className="text-blue-400">:</span><span className="text-yellow-400"> JSON</span><span className="text-white">.</span><span className="text-yellow-400">stringify</span><span className="text-white">({'{'}</span></div>
+                <div className="code-line pl-8 text-white">query<span className="text-blue-400">:</span> <span className="text-green-400">"Microsoft Q3 2026 Results"</span>,</div>
+                <div className="code-line pl-8 text-white">mode<span className="text-blue-400">:</span> <span className="text-green-400">'schema'</span>,</div>
+                <div className="code-line pl-8 text-white">preset<span className="text-blue-400">:</span> <span className="text-green-400">'stocks'</span>,</div>
+                <div className="code-line pl-8 text-white">schema</div>
+                <div className="code-line pl-4 text-white">{'}'})</div>
+                <div className="code-line text-white">{'}'})</div>
               </div>
 
-              {/* Right: Real-time Output */}
-              <div className="p-6 bg-[#050505] relative overflow-hidden">
-                {/* Decorative scanline */}
-                <div className="absolute inset-x-0 top-0 h-[100px] bg-gradient-to-b from-purple-500/5 to-transparent animate-scan" />
-
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                    <Bot className="w-3 h-3" /> Agent Output
-                  </div>
-                  <div className="flex gap-1">
-                    <div className="w-2 h-2 rounded-full bg-white/20" />
-                    <div className="w-2 h-2 rounded-full bg-white/20" />
-                    <div className="w-2 h-2 rounded-full bg-white/40" />
-                  </div>
+              {/* Right: The JSON Output */}
+              <div className="p-6 bg-[#0A0A0A] relative overflow-hidden group">
+                <div className="absolute top-4 right-4 px-2 py-1 rounded bg-green-500/10 text-green-400 text-xs font-medium border border-green-500/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                  200 OK
                 </div>
 
-                <div className="space-y-4 font-mono text-sm">
-                  {/* Step 1 */}
-                  <div className="flex gap-3 text-green-400/80">
-                    <span className="opacity-50 select-none">01</span>
-                    <span>Searching "Quantum Computing VC funding 2026"...</span>
-                  </div>
-                  {/* Step 2 */}
-                  <div className="flex gap-3 text-green-400/80">
-                    <span className="opacity-50 select-none">02</span>
-                    <span>Found <span className="text-white">14 citations</span> from TechCrunch, Nature, PitchBook.</span>
-                  </div>
-
-                  {/* Extracted Data Card */}
-                  <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/5 transition-colors hover:border-purple-500/30 group/card">
-                    <div className="text-xs text-gray-500 mb-2 group-hover/card:text-purple-400 transition-colors">EXTRACTED INSIGHT</div>
-                    <div className="text-gray-300 mb-3">
-                      Global funding for quantum startups increased by <span className="text-white font-bold bg-white/10 px-1 rounded">22%</span> in Q1 2026, driven by breakthroughs in error correction.
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">Market Trend</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/10 text-pink-400 border border-pink-500/20">High Confidence</span>
-                    </div>
-                  </div>
-
-                  {/* Step 3 - Typing */}
-                  <div className="flex gap-3 text-gray-500">
-                    <span className="opacity-50 select-none">03</span>
-                    <span className="flex items-center gap-1">
-                      Synthesizing report <span className="w-1.5 h-4 bg-purple-500 animate-pulse inline-block align-middle ml-1" />
-                    </span>
-                  </div>
-                </div>
+                <div className="code-line text-gray-500 select-none mb-2">// Response (~30s)</div>
+                <div className="code-line text-purple-400">{'{'}</div>
+                <div className="code-line pl-4 text-white">"company_name"<span className="text-blue-400">:</span> <span className="text-green-400">"Microsoft Corporation"</span>,</div>
+                <div className="code-line pl-4 text-white">"revenue_growth"<span className="text-blue-400">:</span> <span className="text-green-400">"+17% YoY"</span>,</div>
+                <div className="code-line pl-4 text-white">"key_risks"<span className="text-blue-400">:</span> [</div>
+                <div className="code-line pl-8 text-green-400">"AI regulation (EU AI Act)",</div>
+                <div className="code-line pl-8 text-green-400">"Data center capacity constraints"</div>
+                <div className="code-line pl-4 text-white">],</div>
+                <div className="code-line pl-4 text-white">"sources"<span className="text-blue-400">:</span> [</div>
+                <div className="code-line pl-8 text-white">{'{'} <span className="text-green-400">"title"</span><span className="text-blue-400">:</span> <span className="text-green-400">"Microsoft Q3 2026"</span>, <span className="text-green-400">"url"</span><span className="text-blue-400">:</span> <span className="text-green-400">"..."</span> {'}'}</div>
+                <div className="code-line pl-4 text-white">],</div>
+                <div className="code-line pl-4 text-white">"meta"<span className="text-blue-400">:</span> {'{'} <span className="text-green-400">"latency_ms"</span><span className="text-blue-400">:</span> <span className="text-yellow-400">28450</span>, <span className="text-green-400">"preset"</span><span className="text-blue-400">:</span> <span className="text-green-400">"stocks"</span> {'}'}</div>
+                <div className="code-line text-purple-400">{'}'}</div>
               </div>
 
             </div>
           </div>
-        </motion.div>
+        </div>
 
       </div>
     </section>
@@ -280,16 +340,15 @@ const ArrowDownIcon = ({ className }: { className?: string }) => (
 // Stats Section - Minimal Strip
 const StatsSection = () => {
   const stats = [
-    { value: '35ms', label: 'Analysis Speed', icon: Zap },
+    { value: '~30s', label: 'Deep Research', icon: Zap },
     { value: '100%', label: 'Structured JSON', icon: FileText },
-    { value: 'BYOK', label: 'No Rate Limits', icon: Key },
-    { value: '40+', label: 'Preset Domains', icon: Globe },
+    { value: '6', label: 'Domain Presets', icon: Globe },
   ];
 
   return (
     <section className="relative py-12 border-y border-white/5 bg-white/[0.02] backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-3 gap-8">
           {stats.map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -308,6 +367,297 @@ const StatsSection = () => {
             </motion.div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+};
+
+// Comparison Section - UnforgeAPI vs Perplexity vs Firecrawl
+const ComparisonSection = () => {
+  const features = [
+    {
+      category: 'Core Function',
+      unforge: 'AI research → Structured data',
+      unforgeDetail: 'Web research + synthesis + verification',
+      perplexity: 'Search + Answer',
+      perplexityDetail: 'Real-time search with conversational answers',
+      firecrawl: 'Web scraping',
+      firecrawlDetail: 'Extract clean data from websites',
+    },
+    {
+      category: 'Pricing (Entry)',
+      unforge: '$5/mo unlimited',
+      unforgeDetail: 'BYOK model - bring your own API keys',
+      perplexity: '$5 per 1,000 requests',
+      perplexityDetail: 'Pay-per-use API pricing',
+      firecrawl: '$16/mo for 3,000 pages',
+      firecrawlDetail: 'Subscription-based page credits',
+    },
+    {
+      category: 'Custom JSON Schemas',
+      unforge: true,
+      unforgeDetail: 'Define any JSON structure you want',
+      perplexity: false,
+      perplexityDetail: 'Fixed response format',
+      firecrawl: false,
+      firecrawlDetail: 'Returns raw HTML/markdown',
+    },
+    {
+      category: 'Agentic Verification',
+      unforge: true,
+      unforgeDetail: 'Multi-iteration fact-checking loops',
+      perplexity: false,
+      perplexityDetail: 'Single-pass answers',
+      firecrawl: false,
+      firecrawlDetail: 'No verification - just scraping',
+    },
+    {
+      category: 'Best For',
+      unforge: 'AI agents & automation',
+      unforgeDetail: 'Structured research at scale',
+      perplexity: 'Human Q&A',
+      perplexityDetail: 'Conversational search experience',
+      firecrawl: 'Data extraction',
+      firecrawlDetail: 'Scraping websites for raw content',
+    },
+    {
+      category: 'Output Format',
+      unforge: 'Custom JSON + Markdown',
+      unforgeDetail: 'You define the structure',
+      perplexity: 'Markdown text',
+      perplexityDetail: 'Natural language responses',
+      firecrawl: 'HTML/Markdown',
+      firecrawlDetail: 'Raw web content',
+    },
+    {
+      category: 'Response Time',
+      unforge: '30-40 seconds',
+      unforgeDetail: 'Deep research with verification',
+      perplexity: '2-5 seconds',
+      perplexityDetail: 'Fast conversational answers',
+      firecrawl: '1-3 seconds',
+      firecrawlDetail: 'Quick scraping',
+    },
+  ];
+
+  return (
+    <section id="comparison" className="relative py-32 landing-page">
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-16"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-500/30 bg-purple-500/10 text-xs font-medium text-purple-300 mb-6">
+            <BarChart3 className="w-3 h-3" />
+            <span>COMPARISON</span>
+          </div>
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
+            How we compare
+          </h2>
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
+            Different tools for different needs. Here's how UnforgeAPI stacks up against Perplexity and Firecrawl.
+          </p>
+        </motion.div>
+
+        {/* Comparison Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="overflow-x-auto"
+        >
+          <div className="min-w-[800px] bg-[#0A0A0A] border border-white/10 rounded-3xl overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-4 gap-4 p-6 bg-white/5 border-b border-white/10">
+              <div className="text-sm font-bold text-gray-400 uppercase tracking-wider">Feature</div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-purple-300 mb-1">UnforgeAPI</div>
+                <div className="text-xs text-gray-500">Research API</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-blue-300 mb-1">Perplexity</div>
+                <div className="text-xs text-gray-500">Search Engine</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-bold text-orange-300 mb-1">Firecrawl</div>
+                <div className="text-xs text-gray-500">Web Scraper</div>
+              </div>
+            </div>
+
+            {/* Table Rows */}
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className={`grid grid-cols-4 gap-4 p-6 ${index !== features.length - 1 ? 'border-b border-white/5' : ''
+                  } hover:bg-white/5 transition-colors group`}
+              >
+                <div className="text-sm font-semibold text-white">{feature.category}</div>
+
+                {/* UnforgeAPI Column */}
+                <div className="text-center">
+                  {typeof feature.unforge === 'boolean' ? (
+                    feature.unforge ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-purple-400" />
+                        <span className="text-xs text-gray-500">{feature.unforgeDetail}</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <XCircle className="w-5 h-5 text-gray-600" />
+                        <span className="text-xs text-gray-600">{feature.unforgeDetail}</span>
+                      </div>
+                    )
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-sm font-medium text-purple-300">{feature.unforge}</span>
+                      <span className="text-xs text-gray-500">{feature.unforgeDetail}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Perplexity Column */}
+                <div className="text-center">
+                  {typeof feature.perplexity === 'boolean' ? (
+                    feature.perplexity ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-blue-400" />
+                        <span className="text-xs text-gray-500">{feature.perplexityDetail}</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <XCircle className="w-5 h-5 text-gray-600" />
+                        <span className="text-xs text-gray-600">{feature.perplexityDetail}</span>
+                      </div>
+                    )
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-sm font-medium text-blue-300">{feature.perplexity}</span>
+                      <span className="text-xs text-gray-500">{feature.perplexityDetail}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Firecrawl Column */}
+                <div className="text-center">
+                  {typeof feature.firecrawl === 'boolean' ? (
+                    feature.firecrawl ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-orange-400" />
+                        <span className="text-xs text-gray-500">{feature.firecrawlDetail}</span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <XCircle className="w-5 h-5 text-gray-600" />
+                        <span className="text-xs text-gray-600">{feature.firecrawlDetail}</span>
+                      </div>
+                    )
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-sm font-medium text-orange-300">{feature.firecrawl}</span>
+                      <span className="text-xs text-gray-500">{feature.firecrawlDetail}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Use Case Cards */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="grid md:grid-cols-3 gap-6 mt-12"
+        >
+          {/* UnforgeAPI Use Case */}
+          <div className="p-6 rounded-2xl bg-purple-500/5 border border-purple-500/20 hover:border-purple-500/40 transition-colors">
+            <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-4">
+              <Bot className="w-6 h-6 text-purple-400" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Choose UnforgeAPI if...</h3>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                <span>You need <strong>structured JSON output</strong> for AI agents</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                <span>You want <strong>fact-checked research</strong> with verification loops</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                <span>You're building <strong>automation workflows</strong> that need reliable data</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Perplexity Use Case */}
+          <div className="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/20 hover:border-blue-500/40 transition-colors">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-4">
+              <MessageSquare className="w-6 h-6 text-blue-400" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Choose Perplexity if...</h3>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <span>You need <strong>fast conversational answers</strong> for humans</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <span>You want a <strong>search engine alternative</strong> with citations</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <span>You don't need custom <strong>output formatting</strong></span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Firecrawl Use Case */}
+          <div className="p-6 rounded-2xl bg-orange-500/5 border border-orange-500/20 hover:border-orange-500/40 transition-colors">
+            <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center mb-4">
+              <Globe className="w-6 h-6 text-orange-400" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-2">Choose Firecrawl if...</h3>
+            <ul className="space-y-2 text-sm text-gray-400">
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                <span>You need to <strong>scrape websites</strong> for raw content</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                <span>You want <strong>clean HTML/markdown</strong> without ads</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+                <span>You don't need AI <strong>synthesis or analysis</strong></span>
+              </li>
+            </ul>
+          </div>
+        </motion.div>
+
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="text-center mt-12"
+        >
+          <Link
+            href="/playground"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white font-bold text-lg transition-all hover:shadow-lg hover:shadow-purple-500/25"
+          >
+            Try UnforgeAPI Free
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+        </motion.div>
       </div>
     </section>
   );
@@ -463,18 +813,14 @@ const FeaturesSection = () => {
 
 // Pricing Section - Premium Cards
 const PricingSection = () => {
-  const [activeTab, setActiveTab] = useState<'managed' | 'byok'>('managed');
-
   const managedPlans = [
     {
-      name: 'Sandbox',
-      price: 'Free',
+      name: 'Free',
+      price: '$0',
       period: '',
-      description: 'Perfect for testing the API',
+      description: 'Perfect for testing',
       features: [
-        '50 requests / day',
-        '5 Web Search / day',
-        '3 Deep Research / day',
+        '10 deep research / month',
         'Community support',
       ],
       cta: 'Start Free',
@@ -482,112 +828,36 @@ const PricingSection = () => {
       badge: null,
     },
     {
-      name: 'Managed Pro',
-      price: '$20',
+      name: 'Pro',
+      price: '$29',
       period: '/month',
-      description: 'For production applications',
+      description: 'For growing teams',
       features: [
-        '50,000 requests / month',
-        '1,000 Web Search / month',
-        '50 Deep Research / month',
+        '100 deep research / month',
         'Priority support',
       ],
-      cta: 'Get Managed Pro',
+      cta: 'Get Pro',
       popular: true,
       badge: 'Most Popular',
     },
     {
-      name: 'Managed Expert',
-      price: '$79',
+      name: 'Expert',
+      price: '$200',
       period: '/month',
-      description: 'For high-volume production apps',
+      description: 'For high-volume production',
       features: [
-        '200,000 requests / month',
-        '5,000 Web Search / month',
-        '200 Deep Research / month',
-        'Priority support',
+        '800 deep research / month',
         'Dedicated account manager',
+        'SLA guarantee',
       ],
-      cta: 'Get Managed Expert',
+      cta: 'Get Expert',
       popular: false,
-      badge: 'High Volume',
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      period: '',
-      description: 'Tailored for your organization',
-      features: [
-        'Custom request limits',
-        'Unlimited Web Search',
-        'Unlimited Deep Research',
-        'Dedicated support & SLAs',
-        'Custom integrations',
-        'On-premise deployment options',
-      ],
-      cta: 'Contact Sales',
-      popular: false,
-      badge: 'Custom',
-      isEnterprise: true,
+      badge: null,
     },
   ];
 
-  const byokPlans = [
-    {
-      name: 'BYOK Starter',
-      price: 'Free',
-      period: '',
-      description: 'Test the engine with your own keys',
-      features: [
-        '50 requests / day',
-        '10 Deep Research / day',
-        'Unlimited Web Search',
-        'Your Groq & Tavily keys required',
-        'Community support',
-      ],
-      cta: 'Get Started',
-      popular: false,
-      badge: 'New',
-    },
-    {
-      name: 'BYOK Pro',
-      price: '$5',
-      period: '/month',
-      description: 'Production scale with your own keys.',
-      features: [
-        'Unlimited requests (10 req/sec)',
-        'Unlimited Web Search',
-        'Unlimited Deep Research',
-        '500 Agentic / month',
-        'Your Groq & Tavily keys',
-        'Premium support',
-      ],
-      cta: 'Go Pro',
-      popular: true,
-      badge: 'Best Value',
-      footnote: 'Agentic mode capped at 500/month for Vercel protection.',
-    },
-    {
-      name: 'Enterprise',
-      price: 'Custom',
-      period: '',
-      description: 'Tailored for your organization',
-      features: [
-        'Custom request limits',
-        'Unlimited Web Search',
-        'Unlimited Deep Research',
-        'Dedicated support & SLAs',
-        'Custom integrations',
-        'Your own API keys',
-      ],
-      cta: 'Contact Sales',
-      popular: false,
-      badge: 'Custom',
-      isEnterprise: true,
-    },
-  ];
+  const byokPlans: any[] = [];
 
-  const activePlans = activeTab === 'managed' ? managedPlans : byokPlans;
 
   return (
     <section id="pricing" className="relative py-32 landing-page">
@@ -603,42 +873,21 @@ const PricingSection = () => {
             <span>PRICING</span>
           </div>
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
-            Pay for the API, not the tokens.
+            Simple, Transparent Pricing
           </h2>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            Choose <strong>Managed</strong> for zero-config, or <strong>BYOK</strong> to bring your own API keys and pay spot prices directly to providers.
+            Deep research API with 3-iteration agentic loop. All tiers fully managed - we handle the AI provider costs.
           </p>
         </motion.div>
 
-        {/* Custom Tab Switcher */}
-        <div className="flex justify-center mb-16 cursor-default">
-          <div className="p-1.5 rounded-2xl bg-white/5 border border-white/10 flex gap-2 relative">
-            <div
-              className={`absolute inset-y-1.5 rounded-xl transition-all duration-300 ease-out bg-white/10 ${activeTab === 'managed' ? 'left-1.5 right-[calc(50%+4px)]' : 'left-[calc(50%+4px)] right-1.5'}`}
-            />
-            <button
-              onClick={() => setActiveTab('managed')}
-              className={`relative z-10 px-6 py-3 rounded-xl text-sm font-bold transition-colors ${activeTab === 'managed' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              Managed
-            </button>
-            <button
-              onClick={() => setActiveTab('byok')}
-              className={`relative z-10 px-6 py-3 rounded-xl text-sm font-bold transition-colors ${activeTab === 'byok' ? 'text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              BYOK
-            </button>
-          </div>
-        </div>
-
-        <div className={`grid gap-8 mx-auto ${activeTab === 'managed' ? 'md:grid-cols-2 lg:grid-cols-4 max-w-7xl' : 'md:grid-cols-3 max-w-5xl'}`}>
-          {activePlans.map((plan, index) => {
+        <div className="grid gap-6 mx-auto md:grid-cols-2 lg:grid-cols-3 max-w-5xl">
+          {managedPlans.map((plan, index) => {
             const isEnterprise = 'isEnterprise' in plan && plan.isEnterprise;
             const isPopular = plan.popular;
 
             return (
               <motion.div
-                key={`${activeTab}-${plan.name}`}
+                key={plan.name}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
@@ -737,7 +986,7 @@ const FAQSection = () => {
     },
     {
       question: 'Can I use my own LLM provider?',
-      answer: 'Yes! With our BYOK (Bring Your Own Key) tier, you can use your own Groq and Tavily API keys. This means zero markup on token usage and unlimited scaling based on your provider limits.',
+      answer: 'All tiers are fully managed - we handle all AI provider costs. You simply pay for the number of deep research requests per month based on your chosen tier.',
     },
     {
       question: 'How fast is Deep Research compared to alternatives?',
@@ -895,16 +1144,61 @@ const Footer = () => {
 // Main Landing Page
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#050505] text-white">
+    <main className="min-h-screen bg-[#050505] selection:bg-purple-500/30 text-white font-sans overflow-hidden relative">
       <Navigation />
-      <HeroSection />
-      <StatsSection />
-      <NewDeepResearchSection />
-      <FeaturesSection />
-      <PricingSection />
-      <FAQSection />
-      <CTASection />
-      <Footer />
+
+      {/* Global Background Layer - Fixed to viewport for consistent premium feel */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {/* Main Connected Grid - Subtle everywhere */}
+        <div className="absolute inset-0 opacity-[0.15]"
+          style={{
+            backgroundImage: `linear-gradient(to right, #333 1px, transparent 1px), linear-gradient(to bottom, #333 1px, transparent 1px)`,
+            backgroundSize: '60px 60px',
+            maskImage: 'radial-gradient(circle at center, black 30%, transparent 80%)'
+          }}
+        />
+
+        {/* Ambient Glows - Fixed positions that stay as you scroll */}
+        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-purple-900/10 blur-[120px] rounded-full mix-blend-screen" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-900/10 blur-[100px] rounded-full mix-blend-screen" />
+      </div>
+
+      <div className="relative z-10">
+        <HeroSection />
+
+        <StatsSection />
+
+        {/* Section Divider - Glow */}
+        <div className="relative h-px w-full max-w-7xl mx-auto bg-gradient-to-r from-transparent via-white/10 to-transparent my-0" />
+
+        <div className="relative">
+          {/* Deep Research Glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1200px] h-[800px] bg-blue-500/5 blur-[100px] rounded-full -z-10 pointer-events-none" />
+          <NewDeepResearchSection />
+        </div>
+
+        <div className="relative">
+          <KnowledgeLayerSection />
+        </div>
+
+        <div className="relative">
+          <InfrastructureSection />
+        </div>
+
+
+
+
+
+        <div className="relative">
+          {/* Pricing Section Glow */}
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-pink-500/5 blur-[100px] rounded-full -z-10 pointer-events-none" />
+          <PricingSection />
+        </div>
+
+        <FAQSection />
+        <CTASection />
+        <Footer />
+      </div>
     </main>
   );
 }

@@ -2,19 +2,15 @@
 // This file contains no server-side imports and can be used in client components
 
 // ============================================
-// 5-TIER PRICING STRUCTURE
+// 3-TIER MANAGED PRICING STRUCTURE
 // ============================================
-// SHARED CREDIT SYSTEM: Standard + Agentic share same pool
-// - agentic_loop: false (default) = Single-shot search (faster)
-// - agentic_loop: true = Agentic reasoning loop (iterative)
+// Deep Research API Only (3-iteration agentic loop enforced)
+// - Cost per request: ~$0.21 (3 Tavily searches + Cerebras + Groq)
 //
-// Group A: Managed (We pay for LLM keys)
-//   - sandbox (Standard): Free, 50 req/day, 5 Web Research/day, 3 Deep Research/day
-//   - managed_pro: $20/mo, 1000 search/mo, 50 Deep Research/mo
-//   - managed_expert: $79/mo, 5000 search/mo, 200 Deep Research/mo
-// Group B: BYOK (They pay for their keys)
-//   - byok_starter: Free, 50 req/day (chat/context/research), 10 Deep Research/day
-//   - byok_pro: $4.99/mo, Unlimited standard, 100 agentic/month (Vercel protection)
+// Managed Tiers (We pay for AI/search costs):
+//   - sandbox (Free): $0/mo, 10 deep research/month
+//   - managed_pro (Pro): $29/mo, 100 deep research/month
+//   - managed_expert (Expert): $200/mo, 800 deep research/month
 
 // ============================================
 // API PLANS
@@ -22,11 +18,11 @@
 export const API_PLANS = {
   // Managed tiers (we provide keys)
   SANDBOX: 'sandbox',
+  MANAGED_INDIE: 'managed_indie',
   MANAGED_PRO: 'managed_pro',
   MANAGED_EXPERT: 'managed_expert',
-  // BYOK tiers (user provides keys)
-  BYOK_STARTER: 'byok_starter',
-  BYOK_PRO: 'byok_pro',
+  MANAGED_PRODUCTION: 'managed_production',
+  // Legacy mappings
   PRO: 'pro',
   FREE: 'free',
 } as const;
@@ -35,107 +31,99 @@ export type ApiPlan = typeof API_PLANS[keyof typeof API_PLANS];
 
 // Polar Product IDs (from environment variables)
 export const POLAR_PRODUCT_IDS = {
+  MANAGED_INDIE: process.env.POLAR_MANAGED_INDIE_PRODUCT_ID!,
   MANAGED_PRO: process.env.POLAR_MANAGED_PRO_PRODUCT_ID!,
   MANAGED_EXPERT: process.env.POLAR_MANAGED_EXPERT_PRODUCT_ID!,
-  BYOK_PRO: process.env.POLAR_BYOK_PRO_PRODUCT_ID!,
+  MANAGED_PRODUCTION: process.env.POLAR_MANAGED_PRODUCTION_PRODUCT_ID!,
 } as const;
 
 // Deep Research limits per plan
-// SHARED CREDIT SYSTEM: Both Standard and Agentic requests consume 1 credit
-// - agentic_loop parameter: optional (default: false)
-// - false: Single-shot search (faster)
-// - true: Agentic reasoning loop (iterative, cross-source verification)
-//
-// Tier limits (Standard + Agentic share same pool):
-// - Sandbox: 3 Total Requests/day
-// - Managed Pro: 50 Total Requests/month
-// - Managed Expert: 200 Total Requests/month
-// - BYOK Starter: 10 Total Requests/day
-// - BYOK Pro: Unlimited Standard, but HARD CAP of 500 Agentic/month (Vercel protection)
+// All tiers use 3-iteration agentic loop (enforced in deep-research endpoint)
+// Cost per request: ~$0.21 (3 Tavily + Cerebras + Groq)
 export const DEEP_RESEARCH_LIMITS: Record<ApiPlan, {
   limit: number;        // -1 = unlimited, 0 = no access
   period: 'daily' | 'monthly';
   description: string;
-  byokAgenticCap?: number;  // Hard cap for agentic requests (BYOK Pro only)
 }> = {
   sandbox: {
-    limit: 3,
-    period: 'daily',
-    description: '3 deep research requests per day',
+    limit: 10,
+    period: 'monthly',
+    description: '10 deep research requests per month',
+  },
+  managed_indie: {
+    limit: 25,
+    period: 'monthly',
+    description: '25 deep research requests per month',
   },
   managed_pro: {
-    limit: 50,
+    limit: 100,
     period: 'monthly',
-    description: '50 deep research requests per month',
+    description: '100 deep research requests per month',
   },
   managed_expert: {
-    limit: 200,
+    limit: 800,
     period: 'monthly',
-    description: '200 deep research requests per month',
+    description: '800 deep research requests per month',
   },
-  byok_starter: {
-    limit: 10,
-    period: 'daily',
-    description: '10 deep research requests per day',
-  },
-  byok_pro: {
-    limit: -1,  // Unlimited standard requests (rate limited to 10 req/sec)
+  managed_production: {
+    limit: 800,
     period: 'monthly',
-    description: 'Unlimited standard, 500 agentic/month',
-    byokAgenticCap: 500,  // HARD CAP: 500 agentic requests/month (Vercel execution time protection)
+    description: '800 deep research requests per month',
   },
+  // Legacy mappings
   pro: {
-    limit: 50,
+    limit: 100,
     period: 'monthly',
-    description: '50 deep research requests per month',
+    description: '100 deep research requests per month',
   },
   free: {
-    limit: 3,
-    period: 'daily',
-    description: '3 deep research requests per day',
+    limit: 10,
+    period: 'monthly',
+    description: '10 deep research requests per month',
   }
 };
 
-// Web Search limits per plan (for /api/v1/chat RESEARCH intent)
+// Web Search limits per plan (DEPRECATED - Deep Research API only)
+// Keeping for backward compatibility but not advertised
 export const WEB_SEARCH_LIMITS: Record<ApiPlan, {
   limit: number;        // -1 = unlimited, 0 = no access
   period: 'daily' | 'monthly';
   description: string;
 }> = {
   sandbox: {
-    limit: 5,
+    limit: 0,
     period: 'daily',
-    description: '5 web searches per day',
+    description: 'Not available',
+  },
+  managed_indie: {
+    limit: 0,
+    period: 'monthly',
+    description: 'Not available',
   },
   managed_pro: {
-    limit: 1000,
+    limit: 0,
     period: 'monthly',
-    description: '1,000 web searches per month',
+    description: 'Not available',
   },
   managed_expert: {
-    limit: 5000,
+    limit: 0,
     period: 'monthly',
-    description: '5,000 web searches per month',
+    description: 'Not available',
   },
-  byok_starter: {
-    limit: -1,  // Unlimited (they pay Tavily directly, 50 req/day API limit is guard)
-    period: 'daily',
-    description: 'Unlimited (within 50 req/day API limit)',
-  },
-  byok_pro: {
-    limit: -1,  // Unlimited (they pay Tavily directly)
-    period: 'daily',
-    description: 'Unlimited (your Tavily key)',
+  managed_production: {
+    limit: 0,
+    period: 'monthly',
+    description: 'Not available',
   },
   pro: {
-    limit: 1000,
+    limit: 0,
     period: 'monthly',
-    description: '1,000 web searches per month',
+    description: 'Not available',
   },
   free: {
-    limit: 5,
+    limit: 0,
     period: 'daily',
-    description: '5 web searches per day',
+    description: 'Not available',
   }
 };
 
@@ -158,140 +146,128 @@ export const PLAN_CONFIG: Record<ApiPlan, {
   features: string[];
 }> = {
   sandbox: {
-    name: 'Sandbox',
+    name: 'Free',
     price: 0,
-    priceLabel: 'Free',
+    priceLabel: '$0',
     period: '',
-    description: 'Perfect for testing API',
-    limitType: 'daily',
-    limit: 50,
-    searchLimit: 5,
-    deepResearchLimit: 3,
-    deepResearchPeriod: 'daily',
-    duration: 86400000, // 24 hours
-    searchEnabled: true,
+    description: 'Perfect for testing',
+    limitType: 'monthly',
+    limit: 10,
+    deepResearchLimit: 10,
+    deepResearchPeriod: 'monthly',
+    duration: 2592000000, // 30 days
+    searchEnabled: false,
     requiresUserKeys: false,
     isPriority: false,
     features: [
-      '50 requests / day',
-      '5 Web Research / day',
-      '3 Deep Research / day (agentic)',
+      '10 deep research / month',
+      '3-iteration agentic loop',
       'Community support',
     ],
   },
-  managed_pro: {
-    name: 'Managed Pro',
-    price: 19.99,
-    priceLabel: '$20',
+  managed_indie: {
+    name: 'Managed Indie',
+    price: 8,
+    priceLabel: '$8',
     period: '/month',
-    description: 'For production applications',
+    description: 'For solo developers',
     limitType: 'monthly',
-    limit: 50000, // Fair usage: 50k total requests/month
-    searchLimit: 1000, // Web search requests limit
-    deepResearchLimit: 50,
+    limit: 25,
+    deepResearchLimit: 25,
     deepResearchPeriod: 'monthly',
     duration: 2592000000, // 30 days
-    searchEnabled: true,
+    searchEnabled: false,
+    requiresUserKeys: false,
+    isPriority: false,
+    features: [
+      '25 deep research / month',
+      '3-iteration agentic loop',
+      'System API keys',
+      'Email support',
+    ],
+  },
+  managed_pro: {
+    name: 'Pro',
+    price: 29,
+    priceLabel: '$29',
+    period: '/month',
+    description: 'For growing teams',
+    limitType: 'monthly',
+    limit: 100,
+    deepResearchLimit: 100,
+    deepResearchPeriod: 'monthly',
+    duration: 2592000000, // 30 days
+    searchEnabled: false,
     requiresUserKeys: false,
     isPriority: true,
     features: [
-      '50,000 requests / month',
-      '1,000 Web Search / month',
-      '50 Deep Research / month (agentic)',
-      'System API keys',
+      '100 deep research / month',
+      '3-iteration agentic loop',
       'Priority support',
     ],
   },
   managed_expert: {
-    name: 'Managed Expert',
-    price: 79,
-    priceLabel: '$79',
+    name: 'Expert',
+    price: 200,
+    priceLabel: '$200',
     period: '/month',
-    description: 'For high-volume production apps',
+    description: 'For high-volume production',
     limitType: 'monthly',
-    limit: 200000, // Fair usage: 200k total requests/month
-    searchLimit: 5000, // Web search requests limit
-    deepResearchLimit: 200,
+    limit: 800,
+    deepResearchLimit: 800,
     deepResearchPeriod: 'monthly',
     duration: 2592000000, // 30 days
-    searchEnabled: true,
+    searchEnabled: false,
     requiresUserKeys: false,
     isPriority: true,
     features: [
-      '200,000 requests / month',
-      '5,000 Web Search / month',
-      '200 Deep Research / month (agentic)',
+      '800 deep research / month',
+      '3-iteration agentic loop',
+      'Dedicated account manager',
+      'SLA guarantee',
+    ],
+  },
+  managed_production: {
+    name: 'Managed Production',
+    price: 200,
+    priceLabel: '$200',
+    period: '/month',
+    description: 'For enterprise & high-volume',
+    limitType: 'monthly',
+    limit: 800,
+    deepResearchLimit: 800,
+    deepResearchPeriod: 'monthly',
+    duration: 2592000000, // 30 days
+    searchEnabled: false,
+    requiresUserKeys: false,
+    isPriority: true,
+    features: [
+      '800 deep research / month',
+      '3-iteration agentic loop',
       'System API keys',
       'Priority support',
       'Dedicated account manager',
-    ],
-  },
-  byok_starter: {
-    name: 'BYOK Starter',
-    price: 0,
-    priceLabel: 'Free',
-    period: '',
-    description: 'Use your own API keys with our routing',
-    limitType: 'daily',
-    limit: 50,
-    searchLimit: -1, // Unlimited
-    deepResearchLimit: 10,
-    deepResearchPeriod: 'daily',
-    duration: 86400000, // 24 hours
-    searchEnabled: true,
-    requiresUserKeys: true,
-    isPriority: false,
-    features: [
-      '50 API calls / day',
-      'Unlimited Web Search',
-      '10 Deep Research / day (agentic)',
-      'Your Groq & Tavily keys',
-      'Community support',
-    ],
-  },
-  byok_pro: {
-    name: 'BYOK Pro',
-    price: 4.99,
-    priceLabel: '$5',
-    period: '/month',
-    description: 'Production scale with fair use limits.',
-    limitType: 'rate',
-    limit: 10,
-    searchLimit: -1, // Unlimited
-    deepResearchLimit: -1, // Unlimited
-    deepResearchPeriod: 'daily',
-    duration: 1000, // 1 second (10 req/sec)
-    searchEnabled: true,
-    requiresUserKeys: true,
-    isPriority: true,
-    features: [
-      'Unlimited requests',
-      'Unlimited Deep Research (agentic)',
-      '10 req/sec rate limit',
-      'Your Groq & Tavily keys',
-      'Premium support',
+      'SLA guarantee',
     ],
   },
   pro: {
     // Legacy mapping for 'pro' -> managed_pro
     name: 'Managed Pro',
-    price: 19.99,
+    price: 20,
     priceLabel: '$20',
     period: '/month',
-    description: 'For production applications',
+    description: 'For small teams & startups',
     limitType: 'monthly',
-    limit: 50000,
-    searchLimit: 1000,
-    deepResearchLimit: 50,
+    limit: 70,
+    deepResearchLimit: 70,
     deepResearchPeriod: 'monthly',
     duration: 2592000000,
-    searchEnabled: true,
+    searchEnabled: false,
     requiresUserKeys: false,
     isPriority: true,
     features: [
-      '50,000 requests / month',
-      '1,000 Web Search / month',
-      '50 Deep Research / month (agentic)',
+      '70 deep research / month',
+      '3-iteration agentic loop',
       'System API keys',
       'Priority support',
     ],
@@ -302,36 +278,32 @@ export const PLAN_CONFIG: Record<ApiPlan, {
     price: 0,
     priceLabel: 'Free',
     period: '',
-    description: 'Perfect for testing API',
+    description: 'Perfect for testing',
     limitType: 'daily',
-    limit: 50,
-    searchLimit: 5,
+    limit: 3,
     deepResearchLimit: 3,
     deepResearchPeriod: 'daily',
     duration: 86400000,
-    searchEnabled: true,
+    searchEnabled: false,
     requiresUserKeys: false,
     isPriority: false,
     features: [
-      '50 requests / day',
-      '5 Web Research / day',
-      '3 Deep Research / day (agentic)',
+      '3 deep research / day',
+      '3-iteration agentic loop',
       'Community support',
     ],
   },
 };
 
 // Helper functions
-export function isByokPlan(plan: ApiPlan): boolean {
-  return plan === 'byok_starter' || plan === 'byok_pro';
-}
-
 export function isManagedPlan(plan: ApiPlan): boolean {
-  return plan === 'sandbox' || plan === 'managed_pro' || plan === 'managed_expert';
+  return plan === 'sandbox' || plan === 'managed_indie' || plan === 'managed_pro' ||
+    plan === 'managed_expert' || plan === 'managed_production';
 }
 
 export function isPaidPlan(plan: ApiPlan): boolean {
-  return plan === 'managed_pro' || plan === 'managed_expert' || plan === 'byok_pro';
+  return plan === 'managed_indie' || plan === 'managed_pro' ||
+    plan === 'managed_expert' || plan === 'managed_production';
 }
 
 export function isPriorityPlan(plan: ApiPlan): boolean {

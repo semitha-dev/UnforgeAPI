@@ -294,7 +294,12 @@ export default function PlaygroundPage() {
         throw new Error(errorData.error || `Server error (${res.status})`)
       }
 
-      if (streaming) {
+      // Check content type - API may return JSON even when streaming is requested
+      // (e.g., for schema/extract modes that don't support streaming)
+      const contentType = res.headers.get('content-type') || ''
+      const isJsonResponse = contentType.includes('application/json')
+
+      if (streaming && !isJsonResponse) {
         setResearchStage('Analyzing sources...')
         const reader = res.body?.getReader()
         const decoder = new TextDecoder()
@@ -368,6 +373,7 @@ export default function PlaygroundPage() {
           })
         }
       } else {
+        // JSON response (either streaming not requested, or API returned JSON for this mode)
         setResearchStage('Processing request...')
         const data = await res.json()
         setResponse(data)
@@ -542,9 +548,8 @@ export default function PlaygroundPage() {
                     placeholder={mode === 'schema' ? "Describe the data you want to populate the schema with..." : "What would you like to research today?"}
                   />
                   {query.length > 0 && (
-                    <div className={`absolute bottom-2 right-2 text-[10px] font-mono ${
-                      query.length > 10000 ? 'text-red-400' : query.length > 5000 ? 'text-amber-400' : 'text-gray-600'
-                    }`}>
+                    <div className={`absolute bottom-2 right-2 text-[10px] font-mono ${query.length > 10000 ? 'text-red-400' : query.length > 5000 ? 'text-amber-400' : 'text-gray-600'
+                      }`}>
                       {query.length.toLocaleString()}/10,000
                     </div>
                   )}
@@ -652,9 +657,8 @@ export default function PlaygroundPage() {
               <button
                 key={i}
                 onClick={() => loadExample({ ...ex, mode })}
-                className={`w-full text-left p-3 rounded-lg border transition-all group relative overflow-hidden ${
-                  i === 0 ? 'bg-purple-500/5 border-purple-500/20 hover:bg-purple-500/10' : 'bg-white/5 hover:bg-white/10 border-white/5'
-                }`}
+                className={`w-full text-left p-3 rounded-lg border transition-all group relative overflow-hidden ${i === 0 ? 'bg-purple-500/5 border-purple-500/20 hover:bg-purple-500/10' : 'bg-white/5 hover:bg-white/10 border-white/5'
+                  }`}
               >
                 {i === 0 && (
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent animate-pulse" />

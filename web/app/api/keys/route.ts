@@ -176,75 +176,35 @@ export async function POST(request: NextRequest) {
       subscriptionStatus: 'Retrieved from profile'
     })
 
-    // Determine the API plan based on user selection and subscription
-    // tier from UI: 'byok' | 'managed'
-    // plan to use: 'sandbox' | 'managed_pro' | 'byok_starter' | 'byok_pro'
+    // Determine the API plan based on user subscription
+    // plan options: 'sandbox' | 'managed_indie' | 'managed_pro' | 'managed_expert' | 'managed_production'
     let plan: ApiPlan
-    
+
+    const MANAGED_INDIE_PRODUCT_ID = process.env.POLAR_MANAGED_INDIE_PRODUCT_ID!
     const MANAGED_PRO_PRODUCT_ID = process.env.POLAR_MANAGED_PRO_PRODUCT_ID!
-    const BYOK_PRO_PRODUCT_ID = process.env.POLAR_BYOK_PRO_PRODUCT_ID!
-    
+    const MANAGED_EXPERT_PRODUCT_ID = process.env.POLAR_MANAGED_EXPERT_PRODUCT_ID!
+    const MANAGED_PRODUCTION_PRODUCT_ID = process.env.POLAR_MANAGED_PRODUCTION_PRODUCT_ID!
+
     debug('POST:planDetermination:start', {
       requestedTier: tier,
       userSubscriptionTier,
-      polarProductId,
-      MANAGED_PRO_PRODUCT_ID,
-      BYOK_PRO_PRODUCT_ID,
-      isManagedProMatch: polarProductId === MANAGED_PRO_PRODUCT_ID || userSubscriptionTier === 'managed_pro',
-      isByokProMatch: polarProductId === BYOK_PRO_PRODUCT_ID || userSubscriptionTier === 'byok_pro'
+      polarProductId
     })
-    
-    if (tier === 'byok') {
-      // User wants BYOK key
-      // Check if they have BYOK Pro subscription
-      if (polarProductId === BYOK_PRO_PRODUCT_ID || userSubscriptionTier === 'byok_pro') {
-        plan = 'byok_pro'
-        debugSuccess('POST:planDetermination', { 
-          decision: 'BYOK Pro - User has BYOK Pro subscription',
-          tier,
-          plan,
-          reason: polarProductId === BYOK_PRO_PRODUCT_ID ? 'Matched BYOK_PRO_PRODUCT_ID' : 'Matched byok_pro tier'
-        })
-      } else {
-        plan = 'byok_starter' // Free BYOK tier (100 req/day)
-        debug('POST:planDetermination', { 
-          decision: 'BYOK Starter - No pro subscription',
-          tier,
-          plan,
-          reason: 'Fallback to free BYOK tier'
-        })
-      }
-    } else if (tier === 'managed') {
-      // User wants Managed key
-      // Check if they have Managed Pro subscription
-      if (polarProductId === MANAGED_PRO_PRODUCT_ID || userSubscriptionTier === 'managed_pro' || userSubscriptionTier === 'pro') {
-        plan = 'managed_pro'
-        debugSuccess('POST:planDetermination', { 
-          decision: 'Managed Pro - User has Pro subscription',
-          tier,
-          plan,
-          reason: polarProductId === MANAGED_PRO_PRODUCT_ID ? 'Matched MANAGED_PRO_PRODUCT_ID' : `Matched tier: ${userSubscriptionTier}`
-        })
-      } else {
-        plan = 'sandbox' // Free Managed tier (50 req/day)
-        debug('POST:planDetermination', { 
-          decision: 'Sandbox - No pro subscription',
-          tier,
-          plan,
-          reason: 'Fallback to free sandbox tier'
-        })
-      }
+
+    // Match subscription tier to plan
+    if (polarProductId === MANAGED_PRODUCTION_PRODUCT_ID || userSubscriptionTier === 'managed_production') {
+      plan = 'managed_production'
+    } else if (polarProductId === MANAGED_EXPERT_PRODUCT_ID || userSubscriptionTier === 'managed_expert') {
+      plan = 'managed_expert'
+    } else if (polarProductId === MANAGED_PRO_PRODUCT_ID || userSubscriptionTier === 'managed_pro' || userSubscriptionTier === 'pro') {
+      plan = 'managed_pro'
+    } else if (polarProductId === MANAGED_INDIE_PRODUCT_ID || userSubscriptionTier === 'managed_indie') {
+      plan = 'managed_indie'
     } else {
-      // Direct plan specification (for backward compatibility)
-      const validTiers: ApiPlan[] = ['sandbox', 'managed_pro', 'byok_starter', 'byok_pro']
-      plan = validTiers.includes(tier as ApiPlan) ? (tier as ApiPlan) : 'sandbox'
-      debug('POST:planDetermination', { 
-        decision: 'Direct plan specification',
-        tier,
-        plan,
-        reason: 'Backward compatibility mode'
-      })
+      plan = 'sandbox' // Free tier
     }
+
+    debugSuccess('POST:planDetermination', { tier, plan, userSubscriptionTier, polarProductId })
     
     debug('POST:body', { name, tier, plan, workspaceId })
 
@@ -278,7 +238,7 @@ export async function POST(request: NextRequest) {
           plan, // Use 'plan' instead of 'tier' for clarity
           tier: plan, // Keep 'tier' for backward compatibility
           searchEnabled: true, // All plans have search enabled
-          requiresUserKeys: plan === 'byok_starter' || plan === 'byok_pro'
+          requiresUserKeys: false // All managed plans, no user keys required
         },
         ratelimit: limitConfig,
         enabled: true
@@ -328,7 +288,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           plan,
           searchEnabled: plan !== 'sandbox',
-          requiresUserKeys: plan === 'byok_starter' || plan === 'byok_pro'
+          requiresUserKeys: false // All managed plans
         }
       })
       .select()
