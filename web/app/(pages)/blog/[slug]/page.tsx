@@ -3,15 +3,10 @@ import { notFound } from 'next/navigation'
 import { blogPosts } from '@/lib/blog-data'
 import BlogPostClient from './BlogPostClient'
 
+export const dynamic = 'force-dynamic'
+
 interface Props {
   params: Promise<{ slug: string }>
-}
-
-// Generate static params for all blog posts
-export async function generateStaticParams() {
-  return blogPosts.map((post) => ({
-    slug: post.slug,
-  }))
 }
 
 // Generate dynamic metadata for each blog post
