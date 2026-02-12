@@ -62,6 +62,14 @@ server/
 - `GET  /health` — Health check
 - `POST /api/subscription/reconcile` — Cron: reconcile subscriptions
 
+## Railway
+
+To deploy to Railway, follow these steps:
+
+1. Create a new Railway project and link your GitHub repository.
+2. Configure your environment variables in the Railway dashboard.
+3. Deploy your application.
+
 ## Docker
 
 ```bash

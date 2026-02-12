@@ -17,3 +17,14 @@ Thumbs.db
 node_modules
 .next
 nul
+
+# Environment files
+.env
+.env.local
+.env.*.local
+server/.env
+
+# Build artifacts
+dist/
+build/
+*.log
