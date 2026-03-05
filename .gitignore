@@ -22,7 +22,6 @@ nul
 .env
 .env.local
 .env.*.local
-server/.env
 
 # Build artifacts
 dist/
