@@ -1,6 +1,6 @@
 # UnforgeAPI
 
-**An intelligent AI API router** that automatically classifies incoming queries and routes them to the optimal processing path — simple chat, context-based answers, live web search, or full deep research — so your app gets the right answer without you wiring up the logic yourself.
+**An intelligent AI API router** that automatically classifies incoming queries and routes them to the optimal processing path  simple chat, context-based answers, live web search, or full deep research  so your app gets the right answer without you wiring up the logic yourself.
 
 ---
 
@@ -77,7 +77,7 @@ UnforgeAPI/
 | **BYOK Starter** | Free | Your own | 100 req/day |
 | **BYOK Pro** | $4.99/mo | Your own | Unlimited (10 req/sec) |
 
-BYOK (Bring Your Own Keys) tiers let users supply their own Groq, Tavily, and Google API keys — paying those providers directly at a lower platform cost.
+BYOK (Bring Your Own Keys) tiers let users supply their own Groq, Tavily, and Google API keys  paying those providers directly at a lower platform cost.
 
 ---
 
