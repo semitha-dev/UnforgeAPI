@@ -19,11 +19,10 @@ node_modules
 nul
 
 # Environment files
-.env
-.env.local
 .env.*.local
 
 # Build artifacts
 dist/
 build/
 *.log
+config.bat
