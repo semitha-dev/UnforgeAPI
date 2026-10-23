@@ -26,3 +26,6 @@ dist/
 build/
 *.log
 config.bat
+
+# env files: keep secrets out of git (re-added after malware cleanup)
+!.env.example
